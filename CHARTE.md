@@ -1,0 +1,188 @@
+# Charte graphique & technique — Mayeutik
+
+Cette charte décrit le **design system commun** à tous les mini-jeux HTML de la série Mayeutik (jeux éducatifs autonomes pour l'école primaire française). Chaque nouveau jeu ajouté au dossier `/jeux` doit s'y conformer, afin que la série ait un look & feel cohérent, quel que soit le fichier ouvert.
+
+Chaque jeu est un fichier **HTML autonome** (HTML + CSS + JS dans un seul fichier, sans dépendance de build), qui respecte les règles ci-dessous.
+
+---
+
+## 1. Typographie
+
+Police unique pour toute la série : **[Fredoka](https://fonts.google.com/specimen/Fredoka)** (Google Fonts), une police ronde et ludique adaptée à un public d'enfants.
+
+```html
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+```
+
+```css
+body {
+  font-family: 'Fredoka', system-ui, sans-serif;
+}
+```
+
+- Graisses utilisées : `400` (texte courant), `500`/`600` (boutons, titres de cartes), `700` (titres principaux).
+- Les titres et boutons privilégient des tailles généreuses (min. `1.1rem`) et un `border-radius` prononcé (12–24px) pour rester cohérents avec l'esprit rond de la police.
+
+---
+
+## 2. Palette de couleurs
+
+La palette est déclarée sous forme de **variables CSS** sur `:root`, avec des noms sémantiques partagés par tous les jeux :
+
+```css
+:root {
+  --couleur-fond: #FFF8EF;      /* fond clair, chaud */
+  --couleur-encre: #2B2B2B;     /* texte principal */
+  --couleur-mandarine: #FF8C42; /* accent chaud / boutons principaux */
+  --couleur-menthe: #4ECDC4;    /* succès / éléments secondaires */
+  --couleur-corail: #FF6B6B;    /* erreur / alerte douce */
+  --couleur-soleil: #FFD93D;    /* mise en valeur / étoiles / récompenses */
+}
+```
+
+Règles d'usage :
+- `--couleur-fond` : fond de page (jamais de blanc pur).
+- `--couleur-encre` : texte principal, jamais de noir pur.
+- `--couleur-mandarine` : couleur d'action principale (CTA, boutons "valider").
+- `--couleur-menthe` : retours positifs (bonne réponse, validation, progression).
+- `--couleur-corail` : retours d'erreur, toujours utilisé avec douceur (jamais agressif, pas de rouge vif pur).
+- `--couleur-soleil` : étoiles, badges, éléments de récompense/valorisation.
+
+Ces six variables sont **le seul vocabulaire de couleurs** de la série : pas de couleurs "en dur" ailleurs dans le CSS d'un jeu, on compose à partir de ces six teintes (avec `opacity`/`color-mix()` si besoin de nuances).
+
+---
+
+## 3. Mode clair forcé
+
+Les jeux sont conçus uniquement en mode clair. Il faut empêcher le mode sombre du système (notamment iOS/Safari) de casser les couleurs.
+
+**Balise meta** (dans le `<head>` de chaque jeu) :
+
+```html
+<meta name="color-scheme" content="light only">
+```
+
+**Fallback CSS** pour forcer le rendu clair même si un navigateur iOS ignore la meta en mode sombre système :
+
+```css
+:root {
+  color-scheme: light only;
+}
+
+@media (prefers-color-scheme: dark) {
+  html {
+    background-color: var(--couleur-fond);
+  }
+  body {
+    background-color: var(--couleur-fond);
+    color: var(--couleur-encre);
+  }
+  /* Neutralise les inversions automatiques de formulaires/inputs sous iOS dark mode */
+  input, select, textarea, button {
+    background-color: #FFFFFF;
+    color: var(--couleur-encre);
+  }
+}
+```
+
+---
+
+## 4. Moteur de confettis
+
+À **chaque bonne réponse**, une explosion de confettis est déclenchée pour renforcer le feedback positif.
+
+- Implémentation en **JS vanilla**, sans dépendance externe (canvas ou éléments DOM générés dynamiquement puis retirés).
+- Les confettis utilisent la palette de la charte (`--couleur-mandarine`, `--couleur-menthe`, `--couleur-corail`, `--couleur-soleil`) plutôt que des couleurs arbitraires.
+- Fonction exposée sous un nom homogène dans tous les jeux, par exemple :
+
+```js
+function lancerConfettis() {
+  // génère un lot de particules colorées (issues de la palette),
+  // les anime en chute avec rotation puis les supprime du DOM
+}
+```
+
+- Le déclenchement doit rester léger (durée courte, quelques dizaines de particules maximum) pour ne pas ralentir les appareils bas de gamme utilisés en classe.
+
+---
+
+## 5. Feedback sonore
+
+Chaque jeu fournit un retour sonore synthétisé via l'**API Web Audio** (`AudioContext`), sans fichiers audio externes à charger :
+
+- Un son **"bravo"** (mélodie ascendante, joyeuse) joué sur bonne réponse, en complément des confettis.
+- Un son **"raté"** (son bref, descendant, non anxiogène) joué sur mauvaise réponse.
+
+```js
+function jouerSon(type) {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  // type === 'bravo' -> séquence de notes ascendante
+  // type === 'rate'  -> note brève descendante
+}
+```
+
+- L'`AudioContext` doit être créé/relancé suite à une interaction utilisateur (contrainte des navigateurs mobiles), jamais au chargement de la page.
+- Le son reste un **plus**, jamais un pré-requis : le jeu doit rester compréhensible sans le son (feedback visuel toujours présent en parallèle).
+
+---
+
+## 6. Contenu pédagogique séparé de la logique
+
+Le contenu pédagogique (questions, réponses, énoncés, niveaux...) est déclaré dans un **bloc JSON isolé**, distinct du code qui gère l'affichage et les interactions.
+
+```html
+<script type="application/json" id="donnees-jeu">
+{
+  "titre": "Compléments à 10",
+  "niveaux": [
+    { "question": "3 + ? = 10", "reponse": 7 }
+  ]
+}
+</script>
+
+<script>
+  const donnees = JSON.parse(document.getElementById('donnees-jeu').textContent);
+  // toute la logique du jeu lit ensuite `donnees`, sans valeur pédagogique en dur ailleurs
+</script>
+```
+
+Objectif : permettre de modifier/relire facilement le contenu pédagogique (par un enseignant, ou pour créer une variante) sans toucher au code du moteur de jeu.
+
+---
+
+## 7. Écran d'accueil
+
+Bien que chaque fichier HTML soit autonome, la série partage un même patron d'écran d'accueil quand un jeu propose plusieurs mini-jeux/niveaux :
+
+- **Cartes de mini-jeux** : une grille de cartes cliquables (`border-radius` prononcé, ombre douce), une carte par mini-jeu/niveau, utilisant les couleurs de la palette pour se différencier.
+- **Système d'étoiles** : chaque carte affiche la progression de l'enfant sous forme d'étoiles (`--couleur-soleil`), typiquement de 0 à 3 étoiles selon la performance, stockées en `localStorage`.
+- **Bouton retour** : présent sur l'écran de jeu pour revenir à l'écran d'accueil/à la sélection des cartes, toujours positionné de façon cohérente (coin supérieur gauche) et stylé selon la charte (mandarine ou encre, jamais une couleur hors palette).
+
+---
+
+## 8. Responsive iPhone
+
+La cible principale d'usage est un iPhone en main (élève ou enseignant), en plus des tablettes/ordinateurs de classe :
+
+- Layout **mobile-first**, testé en priorité sur des largeurs type iPhone (375–430px).
+- Sur l'écran d'accueil, les **cartes de mini-jeux sont limitées à environ `34vh` de hauteur maximum** (`max-height: 34vh`), afin que plusieurs cartes restent visibles sans scroll excessif sur un écran de téléphone.
+- Utilisation de `vh`/`vw`/`%` et de `flexbox`/`grid` plutôt que de dimensions fixes en pixels pour les conteneurs principaux.
+- Zones cliquables (cartes, boutons de réponse) dimensionnées pour le tactile (cible minimale ~44px de hauteur).
+- Pas de scroll horizontal : tout conteneur large (ex. grille de cartes) doit s'adapter ou passer en `overflow-x: auto` contenu, jamais déborder de la page.
+
+---
+
+## Résumé technique
+
+| Aspect | Choix |
+|---|---|
+| Police | Fredoka (Google Fonts) |
+| Couleurs | 6 variables CSS sémantiques (`--couleur-*`) |
+| Thème | Clair forcé (`color-scheme: light only` + fallback `prefers-color-scheme: dark`) |
+| Récompense visuelle | Confettis JS vanilla à chaque bonne réponse |
+| Récompense sonore | Web Audio API, sons "bravo"/"raté" synthétisés |
+| Contenu | Bloc JSON séparé de la logique du jeu |
+| Accueil | Cartes de mini-jeux + étoiles de progression + bouton retour |
+| Responsive | Mobile-first, cartes d'accueil `max-height: 34vh` |
