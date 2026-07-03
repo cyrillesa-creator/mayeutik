@@ -650,6 +650,7 @@
   /* ---------- Confettis ---------- */
 
   function lancerConfettis() {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const conteneur = document.getElementById('confettis-conteneur');
     const couleurs = [
       'var(--couleur-mandarine)', 'var(--couleur-menthe)',
