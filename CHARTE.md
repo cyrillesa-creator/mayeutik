@@ -174,6 +174,48 @@ La cible principale d'usage est un iPhone en main (élève ou enseignant), en pl
 
 ---
 
+## 9. Stockage
+
+Les jeux persistent localement la progression de l'enfant (étoiles, scores...) via `localStorage`. Mais `localStorage` n'est pas fiable partout : il est absent ou bloqué dans certains environnements où un jeu peut être ouvert — Safari en navigation privée, une iframe sandboxée (artefact Claude par exemple), un navigateur avec le stockage désactivé par une politique de confidentialité. Dans ces cas, **le simple fait de lire la propriété `localStorage`** peut lever une exception, pas seulement `getItem`/`setItem`.
+
+Pour que le jeu ne plante jamais et reste jouable (avec une progression valable pour la session en cours, même sans persistance), toute lecture/écriture passe par une petite couche de stockage sûre plutôt que par un accès direct à `localStorage` :
+
+- une **variable JavaScript en mémoire** est toujours la source de vérité pour la session en cours ;
+- à la **lecture initiale**, on tente de lire `localStorage` dans un `try/catch` ; en cas d'échec (accès refusé, indisponible...), on part silencieusement d'un objet vide ;
+- à l'**écriture**, on met d'abord à jour la variable en mémoire, puis on tente d'écrire dans `localStorage` dans un `try/catch` ; en cas d'échec, on ignore silencieusement (pas d'erreur affichée, pas de `throw`).
+
+```js
+let memoireDonnees = null;
+
+function lireDonnees() {
+  if (memoireDonnees === null) {
+    memoireDonnees = {};
+    try {
+      const brut = window.localStorage.getItem(CLE_STOCKAGE);
+      if (brut) memoireDonnees = JSON.parse(brut);
+    } catch (e) {
+      memoireDonnees = {};
+    }
+  }
+  return memoireDonnees;
+}
+
+function enregistrerDonnees(cle, valeur) {
+  const tout = lireDonnees();
+  tout[cle] = valeur;
+  memoireDonnees = tout;
+  try {
+    window.localStorage.setItem(CLE_STOCKAGE, JSON.stringify(tout));
+  } catch (e) {
+    // localStorage indisponible : les données restent valables pour la session en cours.
+  }
+}
+```
+
+Cette convention s'applique à toute donnée que la charte demande de stocker (étoiles, progression...) : jamais d'appel direct à `localStorage.getItem`/`setItem` hors d'un `try/catch`, et jamais de blocage du jeu si le stockage échoue.
+
+---
+
 ## Résumé technique
 
 | Aspect | Choix |
@@ -186,3 +228,4 @@ La cible principale d'usage est un iPhone en main (élève ou enseignant), en pl
 | Contenu | Bloc JSON séparé de la logique du jeu |
 | Accueil | Cartes de mini-jeux + étoiles de progression + bouton retour |
 | Responsive | Mobile-first, cartes d'accueil `max-height: 34vh` |
+| Stockage | Variable mémoire = source de vérité, `localStorage` en best-effort via `try/catch` |

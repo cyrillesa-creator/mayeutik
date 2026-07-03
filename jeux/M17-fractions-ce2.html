@@ -586,16 +586,36 @@
     return n1 * d2 === n2 * d1;
   }
 
-  /* ---------- Étoiles / localStorage ---------- */
+  /* ---------- Étoiles : stockage sûr (mémoire + localStorage best-effort) ---------- */
+
+  // La variable en mémoire est toujours la source de vérité pour la session
+  // en cours. localStorage n'est qu'une tentative de persistance en plus :
+  // il est absent/bloqué dans certains environnements (Safari en navigation
+  // privée, artefacts Claude en iframe sandboxée, etc.), et y accéder peut
+  // lever une exception rien qu'en le lisant — jamais en dehors d'un try/catch.
+  let memoireEtoiles = null;
 
   function lireEtoiles() {
-    try { return JSON.parse(localStorage.getItem(CLE_STOCKAGE)) || {}; }
-    catch (e) { return {}; }
+    if (memoireEtoiles === null) {
+      memoireEtoiles = {};
+      try {
+        const brut = window.localStorage.getItem(CLE_STOCKAGE);
+        if (brut) memoireEtoiles = JSON.parse(brut);
+      } catch (e) {
+        memoireEtoiles = {};
+      }
+    }
+    return memoireEtoiles;
   }
   function enregistrerEtoiles(jeuId, valeur) {
     const tout = lireEtoiles();
     tout[jeuId] = Math.max(tout[jeuId] || 0, valeur);
-    localStorage.setItem(CLE_STOCKAGE, JSON.stringify(tout));
+    memoireEtoiles = tout;
+    try {
+      window.localStorage.setItem(CLE_STOCKAGE, JSON.stringify(tout));
+    } catch (e) {
+      // localStorage indisponible : les étoiles restent valables pour la session en cours.
+    }
   }
   function creerEtoiles(valeur, max) {
     max = max || 3;
