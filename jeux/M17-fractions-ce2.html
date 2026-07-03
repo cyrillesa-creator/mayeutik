@@ -512,6 +512,12 @@
     to { transform: translateY(105vh) rotate(340deg); opacity: 0.75; }
   }
 
+  /* Filet de sécurité CSS : même si lancerConfettis() était appelée malgré
+     tout, aucune particule ne s'affiche ni ne s'anime avec le mouvement réduit. */
+  @media (prefers-reduced-motion: reduce) {
+    .confetti { display: none; animation: none; }
+  }
+
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -564,7 +570,7 @@
     { "id": "egales", "titre": "Fractions égales", "icone": "🟰", "couleur": "soleil", "description": "Retrouve la fraction qui représente la même quantité.", "nbQuestions": 6, "consigne": "Quelle fraction est égale à celle-ci ?" },
     { "id": "comparer", "titre": "Comparer", "icone": "⚖️", "couleur": "corail", "description": "Range les fractions de la plus petite à la plus grande.", "nbQuestions": 6, "consigne": "Touche les fractions dans l'ordre, de la plus petite à la plus grande." },
     { "id": "calculer-facile", "titre": "Calculer (facile)", "icone": "➕", "couleur": "mandarine", "description": "Additionne et soustrais des fractions de même dénominateur.", "nbQuestions": 6, "niveauCalcul": "facile" },
-    { "id": "calculer-difficile", "titre": "Calculer (difficile)", "icone": "🧮", "couleur": "menthe", "description": "Additionne et soustrais des fractions à dénominateurs différents.", "nbQuestions": 6, "niveauCalcul": "difficile" }
+    { "id": "calculer-difficile", "titre": "Calculer (difficile)", "icone": "🧮", "couleur": "menthe", "description": "Additionne et soustrais des fractions avec de plus grands dénominateurs.", "nbQuestions": 6, "niveauCalcul": "difficile" }
   ]
 }
 </script>
@@ -1208,21 +1214,8 @@
   /* ---------- Mini-jeu 4 : Comparer ---------- */
 
   function genererFractionsComparaison() {
-    const modeMultiples = Math.random() < 0.5;
-    if (modeMultiples) {
-      const paires = [];
-      D.forEach((a) => D.forEach((b) => { if (b > a && b % a === 0) paires.push([a, b]); }));
-      if (paires.length > 0) {
-        const [dA, dB] = choisir(paires);
-        for (let t = 0; t < 30; t++) {
-          const nA = nombreAleatoire(1, dA - 1);
-          const nB = nombreAleatoire(1, dB - 1);
-          if (!memeValeur(nA, dA, nB, dB)) {
-            return [{ n: nA, d: dA }, { n: nB, d: dB }];
-          }
-        }
-      }
-    }
+    // Programme CE2 (BO n°41, rentrée 2025) : comparaison à dénominateurs
+    // identiques uniquement. Comparer des dénominateurs différents relève du CM.
     const candidatsD = D.filter((d) => d >= 4);
     const d = choisir(candidatsD);
     const numerateurs = melanger(Array.from({ length: d - 1 }, (_, i) => i + 1)).slice(0, 3);
@@ -1299,47 +1292,33 @@
     zone.appendChild(rangeeSlots);
   }
 
-  /* ---------- Mini-jeu 5 : Calculer (facile = même dénominateur, difficile = dénominateurs multiples) ---------- */
+  /* ---------- Mini-jeu 5 : Calculer (facile = petits dénominateurs, difficile = grands dénominateurs) ---------- */
 
   function genererCalcul(niveau) {
-    const pairesMultiples = [];
-    D.forEach((a) => D.forEach((b) => { if (b > a && b % a === 0) pairesMultiples.push([a, b]); }));
+    // Programme CE2 (BO n°41, rentrée 2025) : addition/soustraction à
+    // dénominateur identique uniquement. La conversion entre dénominateurs
+    // différents relève du CM. La difficulté vient donc de la taille du
+    // dénominateur, pas d'une conversion : facile = petits dénominateurs
+    // (≤ 5), difficile = grands dénominateurs (6, 8, 10 ou 12).
+    const candidatsD = niveau === 'facile' ? D.filter((x) => x <= 5) : D.filter((x) => x >= 6);
 
     for (let t = 0; t < 80; t++) {
-      // Facile : toujours le même dénominateur, aucune conversion à faire.
-      // Difficile : dénominateurs multiples (ex. 1/4 et 1/2), avec conversion visuelle.
-      const sameDenom = niveau === 'facile' ? true : (Math.random() < 0.3 || pairesMultiples.length === 0);
-      let d1, d2;
-      if (sameDenom) {
-        d1 = d2 = choisir(D);
-      } else {
-        const paire = choisir(pairesMultiples);
-        d1 = paire[0]; d2 = paire[1];
-        if (Math.random() < 0.5) { const tmp = d1; d1 = d2; d2 = tmp; }
-      }
-      const dGrand = Math.max(d1, d2);
-      const r1 = dGrand / d1;
-      const r2 = dGrand / d2;
-      const n1 = nombreAleatoire(1, d1 - 1);
-      const n2 = nombreAleatoire(1, d2 - 1);
-      const n1c = n1 * r1;
-      const n2c = n2 * r2;
+      const d = choisir(candidatsD);
+      const n1 = nombreAleatoire(1, d - 1);
+      const n2 = nombreAleatoire(1, d - 1);
       const operation = Math.random() < 0.5 ? '+' : '-';
 
       if (operation === '+') {
-        if (n1c + n2c <= dGrand && n1c + n2c >= 2) {
-          return { a: { n: n1, d: d1 }, b: { n: n2, d: d2 }, dGrand, operation, resultat: { n: n1c + n2c, d: dGrand } };
+        if (n1 + n2 <= d && n1 + n2 >= 2) {
+          return { a: { n: n1, d }, b: { n: n2, d }, dGrand: d, operation, resultat: { n: n1 + n2, d } };
         }
-      } else if (n1c !== n2c) {
-        const aEstGrand = n1c > n2c;
-        const grand = aEstGrand ? { n: n1, d: d1 } : { n: n2, d: d2 };
-        const petit = aEstGrand ? { n: n2, d: d2 } : { n: n1, d: d1 };
-        const grandConv = aEstGrand ? n1c : n2c;
-        const petitConv = aEstGrand ? n2c : n1c;
-        return { a: grand, b: petit, dGrand, operation, resultat: { n: grandConv - petitConv, d: dGrand } };
+      } else if (n1 !== n2) {
+        const grand = n1 > n2 ? { n: n1, d } : { n: n2, d };
+        const petit = n1 > n2 ? { n: n2, d } : { n: n1, d };
+        return { a: grand, b: petit, dGrand: d, operation, resultat: { n: grand.n - petit.n, d } };
       }
     }
-    return { a: { n: 1, d: 2 }, b: { n: 1, d: 4 }, dGrand: 4, operation: '+', resultat: { n: 3, d: 4 } };
+    return { a: { n: 1, d: 4 }, b: { n: 2, d: 4 }, dGrand: 4, operation: '+', resultat: { n: 3, d: 4 } };
   }
 
   function genererCalculer(zone, cfg) {
