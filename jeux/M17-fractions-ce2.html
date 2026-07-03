@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="color-scheme" content="light only">
+<title>Fractions CE2 – Mayeutik</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --couleur-fond: #FFF8EF;
+    --couleur-encre: #2B2B2B;
+    --couleur-mandarine: #FF8C42;
+    --couleur-menthe: #4ECDC4;
+    --couleur-corail: #FF6B6B;
+    --couleur-soleil: #FFD93D;
+    color-scheme: light only;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    html { background-color: var(--couleur-fond); }
+    body { background-color: var(--couleur-fond); color: var(--couleur-encre); }
+    input, select, textarea, button {
+      background-color: #FFFFFF;
+      color: var(--couleur-encre);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--couleur-fond);
+    color: var(--couleur-encre);
+    overflow-x: hidden;
+  }
+
+  body {
+    font-family: 'Fredoka', system-ui, sans-serif;
+    min-height: 100vh;
+    padding-bottom: 2rem;
+  }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  h1, h2, h3 { font-weight: 700; margin: 0 0 0.4rem; }
+
+  /* ---------- Écran d'accueil ---------- */
+
+  #ecran-accueil {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 1.2rem 1rem 2rem;
+  }
+
+  .entete-accueil {
+    text-align: center;
+    margin-bottom: 1.2rem;
+  }
+
+  .entete-accueil h1 {
+    font-size: 1.7rem;
+    color: var(--couleur-mandarine);
+  }
+
+  .entete-accueil p {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+    opacity: 0.85;
+  }
+
+  .grille-jeux {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.9rem;
+  }
+
+  @media (max-width: 360px) {
+    .grille-jeux { grid-template-columns: 1fr; }
+  }
+
+  .carte-jeu {
+    --c: var(--couleur-mandarine);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    text-align: center;
+    gap: 0.3rem;
+    background: color-mix(in srgb, var(--c) 16%, white);
+    border: 3px solid var(--c);
+    border-radius: 20px;
+    padding: 0.8rem 0.6rem;
+    max-height: 34vh;
+    min-height: 9.5rem;
+    box-shadow: 0 4px 0 color-mix(in srgb, var(--c) 55%, black 6%);
+  }
+
+  .carte-jeu:active { transform: translateY(2px); box-shadow: 0 2px 0 color-mix(in srgb, var(--c) 55%, black 6%); }
+
+  .carte-jeu.carte-menthe { --c: var(--couleur-menthe); }
+  .carte-jeu.carte-corail { --c: var(--couleur-corail); }
+  .carte-jeu.carte-soleil { --c: var(--couleur-soleil); }
+
+  .carte-jeu .icone { font-size: 1.9rem; line-height: 1; }
+  .carte-jeu h2 { font-size: 1.02rem; }
+  .carte-jeu p {
+    font-size: 0.78rem;
+    font-weight: 400;
+    margin: 0;
+    opacity: 0.85;
+  }
+
+  .etoiles { display: inline-flex; gap: 2px; font-size: 1.1rem; letter-spacing: -1px; }
+  .etoile { color: rgba(43,43,43,0.2); }
+  .etoile.pleine { color: var(--couleur-soleil); text-shadow: 0 0 1px rgba(43,43,43,0.35); }
+
+  /* ---------- Écran de jeu ---------- */
+
+  #ecran-jeu { max-width: 640px; margin: 0 auto; padding: 0.8rem 1rem 2.5rem; }
+
+  .entete-jeu {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .bouton-retour {
+    flex: 0 0 auto;
+    min-height: 44px;
+    min-width: 44px;
+    border-radius: 14px;
+    border: none;
+    background: var(--couleur-encre);
+    color: var(--couleur-fond);
+    font-size: 1.2rem;
+    font-weight: 600;
+    padding: 0 0.9rem;
+  }
+
+  .entete-jeu-titres { flex: 1; min-width: 0; }
+  .entete-jeu-titres h2 { font-size: 1.15rem; color: var(--couleur-mandarine); }
+  .entete-jeu-titres .progression { font-size: 0.85rem; font-weight: 500; opacity: 0.75; }
+
+  #zone-jeu {
+    background: #ffffff;
+    border-radius: 20px;
+    border: 3px solid color-mix(in srgb, var(--couleur-encre) 12%, white);
+    padding: 1.1rem 0.9rem;
+    min-height: 40vh;
+  }
+
+  .consigne {
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0 0 1rem;
+  }
+
+  .legende, .legende-petite {
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 400;
+    opacity: 0.85;
+    margin-top: 0.9rem;
+  }
+
+  .legende-petite { font-size: 0.8rem; margin-bottom: 0.4rem; }
+
+  .bloc-representation-alt { margin-top: 1rem; text-align: center; }
+
+  /* Formes de représentation */
+
+  .forme-principale, .forme-secondaire { margin: 0 auto; }
+
+  .forme-bande {
+    display: flex;
+    width: 100%;
+    max-width: 20rem;
+    height: 2.4rem;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid var(--couleur-encre);
+    margin: 0 auto;
+  }
+  .segment-bande {
+    flex: 1;
+    border-right: 2px solid var(--couleur-encre);
+    background: #ffffff;
+  }
+  .segment-bande:last-child { border-right: none; }
+  .segment-bande.rempli { background: var(--couleur-mandarine); }
+
+  .forme-disque {
+    width: 7.5rem;
+    height: 7.5rem;
+    border-radius: 50%;
+    border: 2px solid var(--couleur-encre);
+    margin: 0 auto;
+  }
+
+  .forme-quadrillage {
+    display: grid;
+    gap: 3px;
+    width: 9.5rem;
+    height: 6.4rem;
+    margin: 0 auto;
+    border: 2px solid var(--couleur-encre);
+    padding: 3px;
+    border-radius: 10px;
+  }
+  .cellule-quadrillage { background: #ffffff; border: 1px solid var(--couleur-encre); border-radius: 3px; }
+  .cellule-quadrillage.rempli { background: var(--couleur-mandarine); }
+
+  /* Fraction affichée n/d */
+
+  .fraction-affichage {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    font-weight: 600;
+    line-height: 1.1;
+    font-size: 1.15rem;
+  }
+  .fraction-affichage .fr-barre {
+    width: 1.5em;
+    height: 2px;
+    background: currentColor;
+    margin: 2px 0;
+  }
+  .fraction-affichage.grande { font-size: 1.6rem; }
+
+  /* Options QCM */
+
+  .grille-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+  }
+
+  .bouton-option {
+    min-height: 3.4rem;
+    border-radius: 16px;
+    border: 2.5px solid var(--couleur-encre);
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem;
+  }
+  .bouton-option:disabled { opacity: 0.6; }
+  .bouton-option.correct { background: color-mix(in srgb, var(--couleur-menthe) 45%, white); border-color: var(--couleur-menthe); }
+  .bouton-option.incorrect { background: color-mix(in srgb, var(--couleur-corail) 35%, white); border-color: var(--couleur-corail); }
+
+  /* Droite graduée */
+
+  .droite-scroll {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+  }
+  .droite-graduee {
+    position: relative;
+    height: 6rem;
+    min-width: 100%;
+    margin: 1.8rem 0 1rem;
+    /* Marge interne réservée pour que les graduations et labels des extrémités
+       (0 et surtout 1) ne soient jamais rognés par le débordement du conteneur. */
+    padding: 0 1.5rem;
+    box-sizing: border-box;
+  }
+  .piste-graduation {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+  .ligne-droite {
+    position: absolute;
+    left: 0; right: 0; top: 50%;
+    height: 4px;
+    background: var(--couleur-encre);
+    border-radius: 2px;
+  }
+  .graduation {
+    position: absolute;
+    top: calc(50% - 11px);
+    width: 2px;
+    height: 22px;
+    background: var(--couleur-encre);
+    transform: translateX(-1px);
+  }
+  .graduation-label {
+    position: absolute;
+    top: calc(50% + 16px);
+    transform: translateX(-50%);
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .marqueur-droite {
+    position: absolute;
+    top: calc(50% - 40px);
+    transform: translateX(-50%);
+    font-size: 1.5rem;
+    color: var(--couleur-mandarine);
+  }
+  .tick-interactive {
+    position: absolute;
+    top: calc(50% - 23px);
+    transform: translateX(-50%);
+    width: 2.7rem;
+    height: 2.7rem;
+    border-radius: 50%;
+    border: 2.5px solid var(--couleur-encre);
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+  .tick-interactive.correct { background: color-mix(in srgb, var(--couleur-menthe) 45%, white); border-color: var(--couleur-menthe); }
+  .tick-interactive.incorrect { background: color-mix(in srgb, var(--couleur-corail) 35%, white); border-color: var(--couleur-corail); }
+
+  /* Fractions égales : cartes de comparaison */
+
+  .carte-fraction-visuelle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  /* Largeur fixe (non pourcentage) pour éviter un effondrement de taille
+     quand la carte est elle-même un enfant flex centré sans largeur définie. */
+  .bouton-option .forme-bande { width: 6.5rem; height: 1.6rem; }
+
+  /* Comparer : cartes + slots */
+
+  .rangee-cartes {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+    margin: 0.6rem 0 1.1rem;
+  }
+
+  .carte-comparaison {
+    border: 2.5px solid var(--couleur-encre);
+    border-radius: 16px;
+    background: #ffffff;
+    padding: 0.5rem 0.6rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    min-width: 5.6rem;
+  }
+  .carte-comparaison.selectionnee { opacity: 0.4; }
+  .carte-comparaison .forme-bande { width: 5rem; height: 1.4rem; }
+
+  .rangee-slots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.8rem;
+    flex-wrap: wrap;
+  }
+  .slot-ordre {
+    min-width: 3.4rem;
+    min-height: 3.4rem;
+    border: 2.5px dashed var(--couleur-encre);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--couleur-soleil) 12%, white);
+  }
+  .slot-ordre.rempli { border-style: solid; background: color-mix(in srgb, var(--couleur-soleil) 30%, white); }
+  .slot-ordre.correct { border-color: var(--couleur-menthe); background: color-mix(in srgb, var(--couleur-menthe) 40%, white); }
+  .slot-ordre.incorrect { border-color: var(--couleur-corail); background: color-mix(in srgb, var(--couleur-corail) 30%, white); }
+  .fleche-ordre { font-size: 1.1rem; opacity: 0.6; }
+
+  .bouton-secondaire {
+    display: block;
+    margin: 0 auto;
+    min-height: 44px;
+    border-radius: 14px;
+    border: 2.5px solid var(--couleur-encre);
+    background: #ffffff;
+    padding: 0 1.1rem;
+    font-weight: 500;
+  }
+
+  /* Calculer */
+
+  .bloc-calcul-consigne {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+  .symbole-calcul { font-size: 1.4rem; font-weight: 700; color: var(--couleur-mandarine); }
+
+  .apercu-calcul {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+  .apercu-fraction { text-align: center; }
+  .apercu-fraction .forme-bande { width: 8.5rem; height: 1.7rem; }
+  .apercu-fraction .legende-petite { margin-top: 0.3rem; margin-bottom: 0; }
+  .apercu-fraction.op-a .segment-bande.rempli { background: var(--couleur-mandarine); }
+  .apercu-fraction.op-b .segment-bande.rempli { background: var(--couleur-menthe); }
+
+  .forme-bande-interactive {
+    display: flex;
+    width: 100%;
+    max-width: 22rem;
+    height: 2.6rem;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2.5px solid var(--couleur-encre);
+    margin: 0.6rem auto 1rem;
+  }
+  .cellule-interactive {
+    flex: 1;
+    border-right: 2px solid var(--couleur-encre);
+    background: #ffffff;
+    padding: 0;
+  }
+  .cellule-interactive:last-child { border-right: none; }
+  .cellule-interactive.rempli { background: var(--couleur-soleil); }
+  .forme-bande-interactive.verrouille .cellule-interactive.rempli { background: var(--couleur-menthe); }
+
+  /* Feedback + navigation */
+
+  .feedback {
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.05rem;
+    min-height: 1.6rem;
+    margin: 0.8rem 0 0.2rem;
+  }
+  .feedback-succes { color: color-mix(in srgb, var(--couleur-menthe) 70%, black 20%); }
+  .feedback-erreur { color: color-mix(in srgb, var(--couleur-corail) 70%, black 20%); }
+
+  .bouton-suivant {
+    display: block;
+    margin: 0.6rem auto 0;
+    min-height: 44px;
+    border-radius: 14px;
+    border: none;
+    background: var(--couleur-mandarine);
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 0 1.4rem;
+  }
+
+  /* Résultats */
+
+  .bloc-resultats { text-align: center; }
+  .bloc-resultats .etoiles { font-size: 2.6rem; margin: 0.6rem 0; }
+  .bloc-resultats .score-texte { font-size: 1.1rem; font-weight: 500; margin-bottom: 1rem; }
+  .boutons-resultats { display: flex; justify-content: center; gap: 0.7rem; flex-wrap: wrap; margin-top: 0.6rem; }
+  .bouton-principal {
+    min-height: 44px;
+    border-radius: 14px;
+    border: none;
+    background: var(--couleur-mandarine);
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0 1.2rem;
+  }
+
+  /* Confettis */
+
+  #confettis-conteneur {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 999;
+  }
+  .confetti {
+    position: absolute;
+    top: -12px;
+    width: 9px;
+    height: 14px;
+    border-radius: 2px;
+    animation-name: chute-confetti;
+    animation-timing-function: ease-in;
+    animation-fill-mode: forwards;
+  }
+  @keyframes chute-confetti {
+    to { transform: translateY(105vh) rotate(340deg); opacity: 0.75; }
+  }
+
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="confettis-conteneur" aria-hidden="true"></div>
+
+<!-- ---------- Écran d'accueil ---------- -->
+<main id="ecran-accueil">
+  <div class="entete-accueil">
+    <h1>Fractions CE2</h1>
+    <p id="sous-titre-accueil"></p>
+  </div>
+  <div class="grille-jeux" id="grille-jeux"></div>
+</main>
+
+<!-- ---------- Écran de jeu ---------- -->
+<main id="ecran-jeu" hidden>
+  <div class="entete-jeu">
+    <button class="bouton-retour" id="bouton-retour" aria-label="Retour à l'accueil">←</button>
+    <div class="entete-jeu-titres">
+      <h2 id="titre-jeu-courant"></h2>
+      <div class="progression" id="progression-jeu"></div>
+    </div>
+  </div>
+  <div id="zone-jeu"></div>
+  <div class="feedback" id="zone-feedback" aria-live="polite"></div>
+  <button class="bouton-suivant" id="bouton-suivant" hidden>Suivant →</button>
+</main>
+
+<!-- ---------- Contenu pédagogique (séparé de la logique) ---------- -->
+<script type="application/json" id="donnees-jeu">
+{
+  "titre": "Fractions CE2",
+  "sousTitre": "Découvre, compare et calcule avec les fractions !",
+  "vocabulaire": {
+    "numerateur": "Numérateur",
+    "denominateur": "Dénominateur",
+    "fraction": "Fraction",
+    "egalite": "Égalité de fractions"
+  },
+  "denominateursAutorises": [2, 3, 4, 5, 6, 8, 10, 12],
+  "messagesFeedback": {
+    "bravo": ["Bravo !", "Super !", "Génial !", "Exact, bien joué !", "C'est ça !", "Parfait !", "Trop fort !"],
+    "rate": ["Pas tout à fait...", "Essaie encore la prochaine fois !", "Presque !", "Regarde bien la forme.", "Pas cette fois, courage !"]
+  },
+  "jeux": [
+    { "id": "decouverte", "titre": "Découverte", "icone": "🔎", "couleur": "mandarine", "description": "Observe une forme partagée et trouve la fraction représentée.", "nbQuestions": 6, "consigneLire": "Quelle fraction est représentée ?" },
+    { "id": "droite", "titre": "Droite graduée", "icone": "📏", "couleur": "menthe", "description": "Place et lis des fractions sur une droite graduée.", "nbQuestions": 6, "consigneLire": "Quelle fraction indique le repère ?", "consignePlacer": "Place la fraction sur la droite." },
+    { "id": "egales", "titre": "Fractions égales", "icone": "🟰", "couleur": "soleil", "description": "Retrouve la fraction qui représente la même quantité.", "nbQuestions": 6, "consigne": "Quelle fraction est égale à celle-ci ?" },
+    { "id": "comparer", "titre": "Comparer", "icone": "⚖️", "couleur": "corail", "description": "Range les fractions de la plus petite à la plus grande.", "nbQuestions": 6, "consigne": "Touche les fractions dans l'ordre, de la plus petite à la plus grande." },
+    { "id": "calculer-facile", "titre": "Calculer (facile)", "icone": "➕", "couleur": "mandarine", "description": "Additionne et soustrais des fractions de même dénominateur.", "nbQuestions": 6, "niveauCalcul": "facile" },
+    { "id": "calculer-difficile", "titre": "Calculer (difficile)", "icone": "🧮", "couleur": "menthe", "description": "Additionne et soustrais des fractions à dénominateurs différents.", "nbQuestions": 6, "niveauCalcul": "difficile" }
+  ]
+}
+</script>
+
+<script>
+(function () {
+  'use strict';
+
+  const donnees = JSON.parse(document.getElementById('donnees-jeu').textContent);
+  const D = donnees.denominateursAutorises;
+  const CLE_STOCKAGE = 'mayeutik-fractions-ce2-etoiles';
+
+  /* ---------- Utilitaires génériques ---------- */
+
+  function nombreAleatoire(min, max) {
+    return min + Math.floor(Math.random() * (max - min + 1));
+  }
+  function choisir(tableau) {
+    return tableau[Math.floor(Math.random() * tableau.length)];
+  }
+  function melanger(tableau) {
+    for (let i = tableau.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [tableau[i], tableau[j]] = [tableau[j], tableau[i]];
+    }
+    return tableau;
+  }
+  function memeValeur(n1, d1, n2, d2) {
+    return n1 * d2 === n2 * d1;
+  }
+
+  /* ---------- Étoiles : stockage sûr (mémoire + localStorage best-effort) ---------- */
+
+  // La variable en mémoire est toujours la source de vérité pour la session
+  // en cours. localStorage n'est qu'une tentative de persistance en plus :
+  // il est absent/bloqué dans certains environnements (Safari en navigation
+  // privée, artefacts Claude en iframe sandboxée, etc.), et y accéder peut
+  // lever une exception rien qu'en le lisant — jamais en dehors d'un try/catch.
+  let memoireEtoiles = null;
+
+  function lireEtoiles() {
+    if (memoireEtoiles === null) {
+      memoireEtoiles = {};
+      try {
+        const brut = window.localStorage.getItem(CLE_STOCKAGE);
+        if (brut) memoireEtoiles = JSON.parse(brut);
+      } catch (e) {
+        memoireEtoiles = {};
+      }
+    }
+    return memoireEtoiles;
+  }
+  function enregistrerEtoiles(jeuId, valeur) {
+    const tout = lireEtoiles();
+    tout[jeuId] = Math.max(tout[jeuId] || 0, valeur);
+    memoireEtoiles = tout;
+    try {
+      window.localStorage.setItem(CLE_STOCKAGE, JSON.stringify(tout));
+    } catch (e) {
+      // localStorage indisponible : les étoiles restent valables pour la session en cours.
+    }
+  }
+  function creerEtoiles(valeur, max) {
+    max = max || 3;
+    const cont = document.createElement('span');
+    cont.className = 'etoiles';
+    for (let i = 1; i <= max; i++) {
+      const s = document.createElement('span');
+      s.className = 'etoile' + (i <= valeur ? ' pleine' : '');
+      s.textContent = '★';
+      cont.appendChild(s);
+    }
+    return cont;
+  }
+  function calculerEtoiles(score, total) {
+    const pct = score / total;
+    if (pct >= 1) return 3;
+    if (pct >= 0.66) return 2;
+    if (pct >= 0.33) return 1;
+    return 0;
+  }
+
+  /* ---------- Confettis ---------- */
+
+  function lancerConfettis() {
+    const conteneur = document.getElementById('confettis-conteneur');
+    const couleurs = [
+      'var(--couleur-mandarine)', 'var(--couleur-menthe)',
+      'var(--couleur-corail)', 'var(--couleur-soleil)'
+    ];
+    const total = 36;
+    for (let i = 0; i < total; i++) {
+      const p = document.createElement('div');
+      p.className = 'confetti';
+      p.style.left = Math.random() * 100 + 'vw';
+      p.style.backgroundColor = couleurs[Math.floor(Math.random() * couleurs.length)];
+      p.style.animationDuration = (0.9 + Math.random() * 0.9) + 's';
+      p.style.animationDelay = (Math.random() * 0.15) + 's';
+      p.style.transform = 'rotate(' + Math.floor(Math.random() * 360) + 'deg)';
+      conteneur.appendChild(p);
+      p.addEventListener('animationend', () => p.remove());
+      setTimeout(() => p.remove(), 2500);
+    }
+  }
+
+  /* ---------- Feedback sonore (Web Audio) ---------- */
+
+  let contexteAudio = null;
+  function obtenirContexteAudio() {
+    if (!contexteAudio) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      contexteAudio = new Ctx();
+    }
+    if (contexteAudio.state === 'suspended') contexteAudio.resume();
+    return contexteAudio;
+  }
+  function jouerSon(type) {
+    let ctx;
+    try { ctx = obtenirContexteAudio(); } catch (e) { return; }
+    const maintenant = ctx.currentTime;
+    const notes = type === 'bravo' ? [523.25, 659.25, 783.99, 1046.5] : [392.0, 293.66];
+    const duree = type === 'bravo' ? 0.11 : 0.17;
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const debut = maintenant + i * duree;
+      gain.gain.setValueAtTime(0.0001, debut);
+      gain.gain.exponentialRampToValueAtTime(0.22, debut + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, debut + duree);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(debut);
+      osc.stop(debut + duree + 0.02);
+    });
+  }
+
+  /* ---------- Représentations visuelles de fractions ---------- */
+
+  function creerBande(denom, numRempli) {
+    const cont = document.createElement('div');
+    cont.className = 'forme-bande';
+    for (let i = 0; i < denom; i++) {
+      const seg = document.createElement('div');
+      seg.className = 'segment-bande' + (i < numRempli ? ' rempli' : '');
+      cont.appendChild(seg);
+    }
+    return cont;
+  }
+
+  function degradeConique(denom, numRempli) {
+    const gap = Math.min(2.2, (360 / denom) * 0.08);
+    let angle = 0;
+    const seg = 360 / denom;
+    const parts = [];
+    for (let i = 0; i < denom; i++) {
+      const couleur = i < numRempli ? 'var(--couleur-mandarine)' : '#ffffff';
+      parts.push(couleur + ' ' + angle + 'deg ' + (angle + seg - gap) + 'deg');
+      parts.push('var(--couleur-encre) ' + (angle + seg - gap) + 'deg ' + (angle + seg) + 'deg');
+      angle += seg;
+    }
+    return 'conic-gradient(' + parts.join(',') + ')';
+  }
+  function creerDisque(denom, numRempli) {
+    const cont = document.createElement('div');
+    cont.className = 'forme-disque';
+    cont.style.background = degradeConique(denom, numRempli);
+    return cont;
+  }
+
+  function creerQuadrillage(denom, numRempli) {
+    // Grille la plus carrée possible (distincte visuellement d'une bande), y compris pour les dénominateurs premiers.
+    const colonnes = Math.ceil(Math.sqrt(denom));
+    const lignes = Math.ceil(denom / colonnes);
+    const cont = document.createElement('div');
+    cont.className = 'forme-quadrillage';
+    cont.style.gridTemplateColumns = 'repeat(' + colonnes + ',1fr)';
+    cont.style.gridTemplateRows = 'repeat(' + lignes + ',1fr)';
+    for (let i = 0; i < denom; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'cellule-quadrillage' + (i < numRempli ? ' rempli' : '');
+      cont.appendChild(cell);
+    }
+    return cont;
+  }
+
+  function creerForme(type, denom, numRempli) {
+    if (type === 'disque') return creerDisque(denom, numRempli);
+    if (type === 'quadrillage') return creerQuadrillage(denom, numRempli);
+    return creerBande(denom, numRempli);
+  }
+
+  function creerFractionLabel(n, d, grande) {
+    const el = document.createElement('span');
+    el.className = 'fraction-affichage' + (grande ? ' grande' : '');
+    const num = document.createElement('span');
+    num.textContent = n;
+    const barre = document.createElement('span');
+    barre.className = 'fr-barre';
+    const den = document.createElement('span');
+    den.textContent = d;
+    el.appendChild(num);
+    el.appendChild(barre);
+    el.appendChild(den);
+    return el;
+  }
+
+  /* ---------- Génération de distracteurs pour les QCM ---------- */
+
+  function genererOptions(nCorrect, dCorrect) {
+    const options = [{ n: nCorrect, d: dCorrect }];
+    const candidats = [];
+    [-2, -1, 1, 2].forEach((delta) => {
+      const n2 = nCorrect + delta;
+      if (n2 >= 1 && n2 < dCorrect) candidats.push({ n: n2, d: dCorrect });
+    });
+    [-2, -1, 1, 2].forEach((delta) => {
+      const d2 = dCorrect + delta;
+      if (d2 >= 2 && nCorrect < d2) candidats.push({ n: nCorrect, d: d2 });
+    });
+    if (nCorrect >= 1 && dCorrect - nCorrect >= 1) {
+      candidats.push({ n: dCorrect - nCorrect, d: dCorrect });
+    }
+    if (nCorrect !== dCorrect && nCorrect >= 1) {
+      candidats.push({ n: dCorrect, d: nCorrect });
+    }
+    const uniques = [];
+    candidats.forEach((c) => {
+      if (c.n < 1 || c.d < 2) return;
+      if (memeValeur(c.n, c.d, nCorrect, dCorrect)) return;
+      if (uniques.some((u) => memeValeur(u.n, u.d, c.n, c.d))) return;
+      uniques.push(c);
+    });
+    melanger(uniques);
+    options.push(...uniques.slice(0, 3));
+    let garde = 0;
+    while (options.length < 4 && garde < 100) {
+      garde++;
+      const d2 = choisir(D);
+      const n2 = nombreAleatoire(1, d2 - 1);
+      if (!options.some((o) => memeValeur(o.n, o.d, n2, d2))) {
+        options.push({ n: n2, d: d2 });
+      }
+    }
+    return melanger(options);
+  }
+
+  /* ---------- État global ---------- */
+
+  let etat = { jeuId: null, index: 0, score: 0, verrouille: false };
+
+  const configJeux = donnees.jeux;
+
+  /* ---------- Écran d'accueil ---------- */
+
+  function construireAccueil() {
+    document.getElementById('sous-titre-accueil').textContent = donnees.sousTitre;
+    const grille = document.getElementById('grille-jeux');
+    grille.innerHTML = '';
+    configJeux.forEach((cfg) => {
+      const carte = document.createElement('button');
+      carte.className = 'carte-jeu carte-' + cfg.couleur;
+      carte.dataset.jeu = cfg.id;
+
+      const icone = document.createElement('div');
+      icone.className = 'icone';
+      icone.textContent = cfg.icone;
+
+      const titre = document.createElement('h2');
+      titre.textContent = cfg.titre;
+
+      const desc = document.createElement('p');
+      desc.textContent = cfg.description;
+
+      const tout = lireEtoiles();
+      const etoiles = creerEtoiles(tout[cfg.id] || 0);
+
+      carte.appendChild(icone);
+      carte.appendChild(titre);
+      carte.appendChild(desc);
+      carte.appendChild(etoiles);
+      carte.addEventListener('click', () => demarrerJeu(cfg.id));
+      grille.appendChild(carte);
+    });
+  }
+
+  function retourAccueil() {
+    document.getElementById('ecran-jeu').hidden = true;
+    document.getElementById('ecran-accueil').hidden = false;
+    construireAccueil();
+  }
+
+  /* ---------- Contrôleur de jeu ---------- */
+
+  function trouverConfig(jeuId) {
+    return configJeux.find((j) => j.id === jeuId);
+  }
+
+  function demarrerJeu(jeuId) {
+    etat = { jeuId, index: 0, score: 0, verrouille: false };
+    document.getElementById('ecran-accueil').hidden = true;
+    document.getElementById('ecran-jeu').hidden = false;
+    document.getElementById('titre-jeu-courant').textContent = trouverConfig(jeuId).titre;
+    questionSuivante();
+  }
+
+  function majProgression() {
+    const cfg = trouverConfig(etat.jeuId);
+    document.getElementById('progression-jeu').textContent =
+      'Question ' + etat.index + ' / ' + cfg.nbQuestions;
+  }
+
+  function questionSuivante() {
+    const cfg = trouverConfig(etat.jeuId);
+    if (etat.index >= cfg.nbQuestions) {
+      afficherResultats(cfg);
+      return;
+    }
+    etat.index++;
+    etat.verrouille = false;
+    majProgression();
+    const zone = document.getElementById('zone-jeu');
+    zone.innerHTML = '';
+    document.getElementById('zone-feedback').textContent = '';
+    document.getElementById('zone-feedback').className = 'feedback';
+    document.getElementById('bouton-suivant').hidden = true;
+    if (cfg.id === 'decouverte') genererDecouverte(zone, cfg);
+    else if (cfg.id === 'droite') genererDroite(zone, cfg);
+    else if (cfg.id === 'egales') genererEgales(zone, cfg);
+    else if (cfg.id === 'comparer') genererComparer(zone, cfg);
+    else if (cfg.niveauCalcul) genererCalculer(zone, cfg);
+  }
+
+  function validerReponse(estCorrecte) {
+    if (etat.verrouille) return;
+    etat.verrouille = true;
+    const zoneFeedback = document.getElementById('zone-feedback');
+    if (estCorrecte) {
+      etat.score++;
+      zoneFeedback.textContent = choisir(donnees.messagesFeedback.bravo);
+      zoneFeedback.className = 'feedback feedback-succes';
+      lancerConfettis();
+      jouerSon('bravo');
+    } else {
+      zoneFeedback.textContent = choisir(donnees.messagesFeedback.rate);
+      zoneFeedback.className = 'feedback feedback-erreur';
+      jouerSon('rate');
+    }
+    document.getElementById('bouton-suivant').hidden = false;
+  }
+
+  function afficherResultats(cfg) {
+    document.getElementById('progression-jeu').textContent = 'Résultats';
+    document.getElementById('bouton-suivant').hidden = true;
+    document.getElementById('zone-feedback').textContent = '';
+    const etoilesGagnees = calculerEtoiles(etat.score, cfg.nbQuestions);
+    enregistrerEtoiles(cfg.id, etoilesGagnees);
+
+    const zone = document.getElementById('zone-jeu');
+    zone.innerHTML = '';
+    const bloc = document.createElement('div');
+    bloc.className = 'bloc-resultats';
+
+    const titre = document.createElement('h3');
+    titre.textContent = 'Fin du jeu !';
+
+    const score = document.createElement('p');
+    score.className = 'score-texte';
+    score.textContent = etat.score + ' / ' + cfg.nbQuestions + ' bonnes réponses';
+
+    const etoiles = creerEtoiles(etoilesGagnees);
+
+    const boutons = document.createElement('div');
+    boutons.className = 'boutons-resultats';
+
+    const rejouer = document.createElement('button');
+    rejouer.className = 'bouton-principal';
+    rejouer.textContent = 'Rejouer';
+    rejouer.addEventListener('click', () => demarrerJeu(cfg.id));
+
+    const accueilBtn = document.createElement('button');
+    accueilBtn.className = 'bouton-secondaire';
+    accueilBtn.textContent = "Retour à l'accueil";
+    accueilBtn.addEventListener('click', retourAccueil);
+
+    boutons.appendChild(rejouer);
+    boutons.appendChild(accueilBtn);
+
+    bloc.appendChild(titre);
+    bloc.appendChild(etoiles);
+    bloc.appendChild(score);
+    bloc.appendChild(boutons);
+    zone.appendChild(bloc);
+
+    if (etoilesGagnees === 3) {
+      lancerConfettis();
+      jouerSon('bravo');
+    }
+  }
+
+  /* ---------- Mini-jeu 1 : Découverte ---------- */
+
+  function genererDecouverte(zone, cfg) {
+    const d = choisir(D);
+    const n = nombreAleatoire(1, d - 1);
+    const type = choisir(['bande', 'disque', 'quadrillage']);
+
+    const consigne = document.createElement('p');
+    consigne.className = 'consigne';
+    consigne.textContent = cfg.consigneLire;
+    zone.appendChild(consigne);
+
+    const forme = creerForme(type, d, n);
+    forme.classList.add('forme-principale');
+    zone.appendChild(forme);
+
+    const optionsCont = document.createElement('div');
+    optionsCont.className = 'grille-options';
+    const options = genererOptions(n, d);
+    let boutonCorrect = null;
+    options.forEach((opt) => {
+      const estCorrecte = memeValeur(opt.n, opt.d, n, d);
+      const btn = document.createElement('button');
+      btn.className = 'bouton-option';
+      btn.appendChild(creerFractionLabel(opt.n, opt.d));
+      if (estCorrecte) boutonCorrect = btn;
+      btn.addEventListener('click', () => {
+        if (etat.verrouille) return;
+        Array.from(optionsCont.children).forEach((b) => (b.disabled = true));
+        btn.classList.add(estCorrecte ? 'correct' : 'incorrect');
+        if (!estCorrecte && boutonCorrect) boutonCorrect.classList.add('correct');
+        validerReponse(estCorrecte);
+      });
+      optionsCont.appendChild(btn);
+    });
+    zone.appendChild(optionsCont);
+
+    const legende = document.createElement('p');
+    legende.className = 'legende';
+    legende.innerHTML =
+      '<strong>' + n + '</strong> ' + donnees.vocabulaire.numerateur.toLowerCase() +
+      ' sur <strong>' + d + '</strong> ' + donnees.vocabulaire.denominateur.toLowerCase();
+    zone.appendChild(legende);
+
+    const typesRestants = ['bande', 'disque', 'quadrillage'].filter((t) => t !== type);
+    const wrapAlt = document.createElement('div');
+    wrapAlt.className = 'bloc-representation-alt';
+    const titreAlt = document.createElement('p');
+    titreAlt.className = 'legende-petite';
+    titreAlt.textContent = 'La même fraction, autrement :';
+    const formeAlt = creerForme(choisir(typesRestants), d, n);
+    formeAlt.classList.add('forme-secondaire');
+    wrapAlt.appendChild(titreAlt);
+    wrapAlt.appendChild(formeAlt);
+    zone.appendChild(wrapAlt);
+  }
+
+  /* ---------- Mini-jeu 2 : Droite graduée ---------- */
+
+  function creerDroiteGraduee(d, opts) {
+    opts = opts || {};
+    const scroll = document.createElement('div');
+    scroll.className = 'droite-scroll';
+    const cont = document.createElement('div');
+    cont.className = 'droite-graduee';
+    // Largeur proportionnelle au nombre de graduations, pour que les cibles
+    // tactiles (44px min.) ne se chevauchent jamais, même avec un dénominateur 12.
+    // La marge (padding) de .droite-graduee est incluse dans cette largeur
+    // (box-sizing: border-box), donc elle ne réduit pas l'espacement des graduations.
+    cont.style.width = Math.max(d * 46, 260) + 'px';
+    scroll.appendChild(cont);
+    // La piste interne (position:relative) devient le repère à 100% pour les
+    // graduations : leurs positions en pourcentage restent donc bien à
+    // l'intérieur de la marge réservée par .droite-graduee, et ne sont jamais
+    // rognées par le défilement horizontal du conteneur.
+    const piste = document.createElement('div');
+    piste.className = 'piste-graduation';
+    cont.appendChild(piste);
+    const ligne = document.createElement('div');
+    ligne.className = 'ligne-droite';
+    piste.appendChild(ligne);
+
+    for (let i = 0; i <= d; i++) {
+      const pct = (i / d) * 100;
+      if (opts.interactif) {
+        const btn = document.createElement('button');
+        btn.className = 'tick-interactive';
+        btn.style.left = pct + '%';
+        btn.dataset.index = i;
+        btn.textContent = i === 0 ? '0' : (i === d ? '1' : '');
+        btn.addEventListener('click', () => opts.onTick(i, btn, piste));
+        piste.appendChild(btn);
+      } else {
+        const g = document.createElement('div');
+        g.className = 'graduation';
+        g.style.left = pct + '%';
+        piste.appendChild(g);
+        if (i === 0 || i === d) {
+          const lbl = document.createElement('div');
+          lbl.className = 'graduation-label';
+          lbl.style.left = pct + '%';
+          lbl.textContent = i === 0 ? '0' : '1';
+          piste.appendChild(lbl);
+        }
+      }
+    }
+    if (typeof opts.marqueur === 'number') {
+      const m = document.createElement('div');
+      m.className = 'marqueur-droite';
+      m.style.left = (opts.marqueur / d) * 100 + '%';
+      m.textContent = '▼';
+      piste.appendChild(m);
+    }
+    return scroll;
+  }
+
+  function genererDroite(zone, cfg) {
+    const d = choisir(D);
+    const k = nombreAleatoire(1, d - 1);
+    const modeLire = Math.random() < 0.5;
+
+    const consigne = document.createElement('p');
+    consigne.className = 'consigne';
+
+    if (modeLire) {
+      consigne.textContent = cfg.consigneLire;
+      zone.appendChild(consigne);
+      zone.appendChild(creerDroiteGraduee(d, { marqueur: k }));
+
+      const optionsCont = document.createElement('div');
+      optionsCont.className = 'grille-options';
+      const options = genererOptions(k, d);
+      let boutonCorrect = null;
+      options.forEach((opt) => {
+        const estCorrecte = memeValeur(opt.n, opt.d, k, d);
+        const btn = document.createElement('button');
+        btn.className = 'bouton-option';
+        btn.appendChild(creerFractionLabel(opt.n, opt.d));
+        if (estCorrecte) boutonCorrect = btn;
+        btn.addEventListener('click', () => {
+          if (etat.verrouille) return;
+          Array.from(optionsCont.children).forEach((b) => (b.disabled = true));
+          btn.classList.add(estCorrecte ? 'correct' : 'incorrect');
+          if (!estCorrecte && boutonCorrect) boutonCorrect.classList.add('correct');
+          validerReponse(estCorrecte);
+        });
+        optionsCont.appendChild(btn);
+      });
+      zone.appendChild(optionsCont);
+    } else {
+      consigne.textContent = cfg.consignePlacer;
+      zone.appendChild(consigne);
+
+      const cible = document.createElement('div');
+      cible.style.textAlign = 'center';
+      cible.appendChild(creerFractionLabel(k, d, true));
+      zone.appendChild(cible);
+
+      const ligne = creerDroiteGraduee(d, {
+        interactif: true,
+        onTick: (i, btn, cont) => {
+          if (etat.verrouille) return;
+          const estCorrecte = i === k;
+          Array.from(cont.querySelectorAll('.tick-interactive')).forEach((b) => (b.disabled = true));
+          btn.classList.add(estCorrecte ? 'correct' : 'incorrect');
+          if (!estCorrecte) {
+            const bonTick = cont.querySelector('.tick-interactive[data-index="' + k + '"]');
+            if (bonTick) bonTick.classList.add('correct');
+          }
+          validerReponse(estCorrecte);
+        }
+      });
+      zone.appendChild(ligne);
+    }
+  }
+
+  /* ---------- Mini-jeu 3 : Fractions égales ---------- */
+
+  function trouverPaireEquivalente() {
+    for (let tentative = 0; tentative < 60; tentative++) {
+      const d0 = choisir(D);
+      const n0 = nombreAleatoire(1, d0 - 1);
+      const multiples = D.filter((dd) => dd !== d0 && dd % d0 === 0).map((dd) => ({
+        n: n0 * (dd / d0), d: dd
+      }));
+      if (multiples.length > 0) {
+        return { base: { n: n0, d: d0 }, equivalente: choisir(multiples) };
+      }
+    }
+    return { base: { n: 1, d: 2 }, equivalente: { n: 2, d: 4 } };
+  }
+
+  function genererEgales(zone, cfg) {
+    const { base, equivalente } = trouverPaireEquivalente();
+
+    const consigne = document.createElement('p');
+    consigne.className = 'consigne';
+    consigne.textContent = cfg.consigne;
+    zone.appendChild(consigne);
+
+    const cibleWrap = document.createElement('div');
+    cibleWrap.className = 'carte-fraction-visuelle';
+    cibleWrap.appendChild(creerBande(base.d, base.n));
+    cibleWrap.appendChild(creerFractionLabel(base.n, base.d));
+    zone.appendChild(cibleWrap);
+
+    const optionsCont = document.createElement('div');
+    optionsCont.className = 'grille-options';
+    const options = genererOptions(equivalente.n, equivalente.d);
+    let boutonCorrect = null;
+    const resultatEgalite = document.createElement('p');
+    resultatEgalite.className = 'legende';
+
+    options.forEach((opt) => {
+      const estCorrecte = memeValeur(opt.n, opt.d, equivalente.n, equivalente.d);
+      const btn = document.createElement('button');
+      btn.className = 'bouton-option';
+      const contenu = document.createElement('div');
+      contenu.className = 'carte-fraction-visuelle';
+      contenu.appendChild(creerBande(opt.d, opt.n));
+      contenu.appendChild(creerFractionLabel(opt.n, opt.d));
+      btn.appendChild(contenu);
+      if (estCorrecte) boutonCorrect = btn;
+      btn.addEventListener('click', () => {
+        if (etat.verrouille) return;
+        Array.from(optionsCont.children).forEach((b) => (b.disabled = true));
+        btn.classList.add(estCorrecte ? 'correct' : 'incorrect');
+        if (!estCorrecte && boutonCorrect) boutonCorrect.classList.add('correct');
+        resultatEgalite.innerHTML =
+          '<strong>' + base.n + '/' + base.d + '</strong> = <strong>' + equivalente.n + '/' + equivalente.d + '</strong> : ' +
+          donnees.vocabulaire.egalite.toLowerCase();
+        validerReponse(estCorrecte);
+      });
+      optionsCont.appendChild(btn);
+    });
+    zone.appendChild(optionsCont);
+    zone.appendChild(resultatEgalite);
+  }
+
+  /* ---------- Mini-jeu 4 : Comparer ---------- */
+
+  function genererFractionsComparaison() {
+    const modeMultiples = Math.random() < 0.5;
+    if (modeMultiples) {
+      const paires = [];
+      D.forEach((a) => D.forEach((b) => { if (b > a && b % a === 0) paires.push([a, b]); }));
+      if (paires.length > 0) {
+        const [dA, dB] = choisir(paires);
+        for (let t = 0; t < 30; t++) {
+          const nA = nombreAleatoire(1, dA - 1);
+          const nB = nombreAleatoire(1, dB - 1);
+          if (!memeValeur(nA, dA, nB, dB)) {
+            return [{ n: nA, d: dA }, { n: nB, d: dB }];
+          }
+        }
+      }
+    }
+    const candidatsD = D.filter((d) => d >= 4);
+    const d = choisir(candidatsD);
+    const numerateurs = melanger(Array.from({ length: d - 1 }, (_, i) => i + 1)).slice(0, 3);
+    return numerateurs.map((n) => ({ n, d }));
+  }
+
+  function genererComparer(zone, cfg) {
+    const fractions = genererFractionsComparaison();
+    const ordreCorrect = fractions
+      .map((f, i) => i)
+      .sort((i, j) => fractions[i].n / fractions[i].d - fractions[j].n / fractions[j].d);
+
+    const consigne = document.createElement('p');
+    consigne.className = 'consigne';
+    consigne.textContent = cfg.consigne;
+    zone.appendChild(consigne);
+
+    const rangeeCartes = document.createElement('div');
+    rangeeCartes.className = 'rangee-cartes';
+    const rangeeSlots = document.createElement('div');
+    rangeeSlots.className = 'rangee-slots';
+
+    const ordreAffiche = melanger(fractions.map((f, i) => i));
+    const selection = [];
+    const slots = [];
+
+    fractions.forEach((f, i) => {
+      const slot = document.createElement('div');
+      slot.className = 'slot-ordre';
+      slots.push(slot);
+      rangeeSlots.appendChild(slot);
+      if (i < fractions.length - 1) {
+        const fleche = document.createElement('span');
+        fleche.className = 'fleche-ordre';
+        fleche.textContent = '→';
+        rangeeSlots.appendChild(fleche);
+      }
+    });
+
+    ordreAffiche.forEach((idx) => {
+      const f = fractions[idx];
+      const carte = document.createElement('button');
+      carte.className = 'carte-comparaison';
+      carte.appendChild(creerBande(f.d, f.n));
+      carte.appendChild(creerFractionLabel(f.n, f.d));
+      carte.addEventListener('click', () => {
+        if (etat.verrouille || selection.includes(idx)) return;
+        selection.push(idx);
+        carte.classList.add('selectionnee');
+        carte.disabled = true;
+        const slot = slots[selection.length - 1];
+        slot.classList.add('rempli');
+        slot.innerHTML = '';
+        slot.appendChild(creerFractionLabel(f.n, f.d));
+        if (selection.length === fractions.length) {
+          const estCorrecte = selection.every((v, i) => v === ordreCorrect[i]);
+          slots.forEach((s, i) => {
+            s.classList.add(estCorrecte ? 'correct' : 'incorrect');
+          });
+          if (!estCorrecte) {
+            slots.forEach((s, i) => {
+              const bonneFraction = fractions[ordreCorrect[i]];
+              s.innerHTML = '';
+              s.appendChild(creerFractionLabel(bonneFraction.n, bonneFraction.d));
+            });
+          }
+          validerReponse(estCorrecte);
+        }
+      });
+      rangeeCartes.appendChild(carte);
+    });
+
+    zone.appendChild(rangeeCartes);
+    zone.appendChild(rangeeSlots);
+  }
+
+  /* ---------- Mini-jeu 5 : Calculer (facile = même dénominateur, difficile = dénominateurs multiples) ---------- */
+
+  function genererCalcul(niveau) {
+    const pairesMultiples = [];
+    D.forEach((a) => D.forEach((b) => { if (b > a && b % a === 0) pairesMultiples.push([a, b]); }));
+
+    for (let t = 0; t < 80; t++) {
+      // Facile : toujours le même dénominateur, aucune conversion à faire.
+      // Difficile : dénominateurs multiples (ex. 1/4 et 1/2), avec conversion visuelle.
+      const sameDenom = niveau === 'facile' ? true : (Math.random() < 0.3 || pairesMultiples.length === 0);
+      let d1, d2;
+      if (sameDenom) {
+        d1 = d2 = choisir(D);
+      } else {
+        const paire = choisir(pairesMultiples);
+        d1 = paire[0]; d2 = paire[1];
+        if (Math.random() < 0.5) { const tmp = d1; d1 = d2; d2 = tmp; }
+      }
+      const dGrand = Math.max(d1, d2);
+      const r1 = dGrand / d1;
+      const r2 = dGrand / d2;
+      const n1 = nombreAleatoire(1, d1 - 1);
+      const n2 = nombreAleatoire(1, d2 - 1);
+      const n1c = n1 * r1;
+      const n2c = n2 * r2;
+      const operation = Math.random() < 0.5 ? '+' : '-';
+
+      if (operation === '+') {
+        if (n1c + n2c <= dGrand && n1c + n2c >= 2) {
+          return { a: { n: n1, d: d1 }, b: { n: n2, d: d2 }, dGrand, operation, resultat: { n: n1c + n2c, d: dGrand } };
+        }
+      } else if (n1c !== n2c) {
+        const aEstGrand = n1c > n2c;
+        const grand = aEstGrand ? { n: n1, d: d1 } : { n: n2, d: d2 };
+        const petit = aEstGrand ? { n: n2, d: d2 } : { n: n1, d: d1 };
+        const grandConv = aEstGrand ? n1c : n2c;
+        const petitConv = aEstGrand ? n2c : n1c;
+        return { a: grand, b: petit, dGrand, operation, resultat: { n: grandConv - petitConv, d: dGrand } };
+      }
+    }
+    return { a: { n: 1, d: 2 }, b: { n: 1, d: 4 }, dGrand: 4, operation: '+', resultat: { n: 3, d: 4 } };
+  }
+
+  function genererCalculer(zone, cfg) {
+    const calc = genererCalcul(cfg.niveauCalcul);
+    const dGrand = calc.dGrand;
+    const aConv = calc.a.n * (dGrand / calc.a.d);
+    const bConv = calc.b.n * (dGrand / calc.b.d);
+
+    const consigne = document.createElement('p');
+    consigne.className = 'consigne';
+    consigne.textContent = calc.operation === '+'
+      ? 'Touche les cases pour ajouter la deuxième fraction.'
+      : 'Touche les cases pour retirer la deuxième fraction.';
+    zone.appendChild(consigne);
+
+    const blocCalcul = document.createElement('div');
+    blocCalcul.className = 'bloc-calcul-consigne';
+    blocCalcul.appendChild(creerFractionLabel(calc.a.n, calc.a.d, true));
+    const symbole = document.createElement('span');
+    symbole.className = 'symbole-calcul';
+    symbole.textContent = calc.operation;
+    blocCalcul.appendChild(symbole);
+    blocCalcul.appendChild(creerFractionLabel(calc.b.n, calc.b.d, true));
+    const egal = document.createElement('span');
+    egal.className = 'symbole-calcul';
+    egal.textContent = '=';
+    blocCalcul.appendChild(egal);
+    const point = document.createElement('span');
+    point.className = 'symbole-calcul';
+    point.textContent = '?';
+    blocCalcul.appendChild(point);
+    zone.appendChild(blocCalcul);
+
+    const apercu = document.createElement('div');
+    apercu.className = 'apercu-calcul';
+
+    const apercuA = document.createElement('div');
+    apercuA.className = 'apercu-fraction op-a';
+    apercuA.appendChild(creerBande(dGrand, aConv));
+    const legA = document.createElement('p');
+    legA.className = 'legende-petite';
+    legA.textContent = calc.a.d === dGrand
+      ? calc.a.n + '/' + calc.a.d
+      : calc.a.n + '/' + calc.a.d + ' = ' + aConv + '/' + dGrand;
+    apercuA.appendChild(legA);
+
+    const apercuB = document.createElement('div');
+    apercuB.className = 'apercu-fraction op-b';
+    apercuB.appendChild(creerBande(dGrand, bConv));
+    const legB = document.createElement('p');
+    legB.className = 'legende-petite';
+    legB.textContent = calc.b.d === dGrand
+      ? calc.b.n + '/' + calc.b.d
+      : calc.b.n + '/' + calc.b.d + ' = ' + bConv + '/' + dGrand;
+    apercuB.appendChild(legB);
+
+    apercu.appendChild(apercuA);
+    apercu.appendChild(apercuB);
+    zone.appendChild(apercu);
+
+    const rempli = new Array(dGrand).fill(false).map((_, i) => i < aConv);
+    const interactive = document.createElement('div');
+    interactive.className = 'forme-bande-interactive';
+    const cellules = [];
+    for (let i = 0; i < dGrand; i++) {
+      const cell = document.createElement('button');
+      cell.className = 'cellule-interactive' + (rempli[i] ? ' rempli' : '');
+      cell.addEventListener('click', () => {
+        if (etat.verrouille) return;
+        rempli[i] = !rempli[i];
+        cell.classList.toggle('rempli', rempli[i]);
+      });
+      cellules.push(cell);
+      interactive.appendChild(cell);
+    }
+    zone.appendChild(interactive);
+
+    const compteur = document.createElement('p');
+    compteur.className = 'legende';
+    zone.appendChild(compteur);
+
+    const boutonValider = document.createElement('button');
+    boutonValider.className = 'bouton-principal';
+    boutonValider.style.display = 'block';
+    boutonValider.style.margin = '0.4rem auto 0';
+    boutonValider.textContent = 'Valider';
+    boutonValider.addEventListener('click', () => {
+      if (etat.verrouille) return;
+      const total = rempli.filter(Boolean).length;
+      const estCorrecte = total === calc.resultat.n;
+      interactive.classList.add('verrouille');
+      cellules.forEach((c) => (c.disabled = true));
+      boutonValider.disabled = true;
+      boutonValider.hidden = true;
+      compteur.innerHTML = estCorrecte
+        ? 'Résultat : <strong>' + calc.resultat.n + '/' + dGrand + '</strong>'
+        : 'La bonne réponse était <strong>' + calc.resultat.n + '/' + dGrand + '</strong> (tu avais ' + total + '/' + dGrand + ')';
+      validerReponse(estCorrecte);
+    });
+    zone.appendChild(boutonValider);
+  }
+
+  /* ---------- Initialisation ---------- */
+
+  document.getElementById('bouton-retour').addEventListener('click', retourAccueil);
+  document.getElementById('bouton-suivant').addEventListener('click', questionSuivante);
+
+  construireAccueil();
+})();
+</script>
+</body>
+</html>
