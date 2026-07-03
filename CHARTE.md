@@ -99,12 +99,14 @@ Les jeux sont conçus uniquement en mode clair. Il faut empêcher le mode sombre
 
 ```js
 function lancerConfettis() {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   // génère un lot de particules colorées (issues de la palette),
   // les anime en chute avec rotation puis les supprime du DOM
 }
 ```
 
 - Le déclenchement doit rester léger (durée courte, quelques dizaines de particules maximum) pour ne pas ralentir les appareils bas de gamme utilisés en classe.
+- Respect de `prefers-reduced-motion` : si l'utilisateur (ou l'appareil) a activé la réduction des animations, `lancerConfettis()` ne déclenche rien (le feedback sonore et visuel de couleur/texte suffisent). Ce garde-fou est la première ligne de la fonction dans tous les jeux de la série.
 
 ---
 
