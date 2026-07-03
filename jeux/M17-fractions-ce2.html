@@ -273,7 +273,16 @@
     position: relative;
     height: 6rem;
     min-width: 100%;
-    margin: 1.8rem 0.8rem 1rem;
+    margin: 1.8rem 0 1rem;
+    /* Marge interne réservée pour que les graduations et labels des extrémités
+       (0 et surtout 1) ne soient jamais rognés par le débordement du conteneur. */
+    padding: 0 1.5rem;
+    box-sizing: border-box;
+  }
+  .piste-graduation {
+    position: relative;
+    width: 100%;
+    height: 100%;
   }
   .ligne-droite {
     position: absolute;
@@ -554,7 +563,8 @@
     { "id": "droite", "titre": "Droite graduée", "icone": "📏", "couleur": "menthe", "description": "Place et lis des fractions sur une droite graduée.", "nbQuestions": 6, "consigneLire": "Quelle fraction indique le repère ?", "consignePlacer": "Place la fraction sur la droite." },
     { "id": "egales", "titre": "Fractions égales", "icone": "🟰", "couleur": "soleil", "description": "Retrouve la fraction qui représente la même quantité.", "nbQuestions": 6, "consigne": "Quelle fraction est égale à celle-ci ?" },
     { "id": "comparer", "titre": "Comparer", "icone": "⚖️", "couleur": "corail", "description": "Range les fractions de la plus petite à la plus grande.", "nbQuestions": 6, "consigne": "Touche les fractions dans l'ordre, de la plus petite à la plus grande." },
-    { "id": "calculer", "titre": "Calculer", "icone": "➕", "couleur": "mandarine", "description": "Additionne et soustrais des fractions grâce aux cases à toucher.", "nbQuestions": 6 }
+    { "id": "calculer-facile", "titre": "Calculer (facile)", "icone": "➕", "couleur": "mandarine", "description": "Additionne et soustrais des fractions de même dénominateur.", "nbQuestions": 6, "niveauCalcul": "facile" },
+    { "id": "calculer-difficile", "titre": "Calculer (difficile)", "icone": "🧮", "couleur": "menthe", "description": "Additionne et soustrais des fractions à dénominateurs différents.", "nbQuestions": 6, "niveauCalcul": "difficile" }
   ]
 }
 </script>
@@ -885,7 +895,7 @@
     else if (cfg.id === 'droite') genererDroite(zone, cfg);
     else if (cfg.id === 'egales') genererEgales(zone, cfg);
     else if (cfg.id === 'comparer') genererComparer(zone, cfg);
-    else if (cfg.id === 'calculer') genererCalculer(zone, cfg);
+    else if (cfg.niveauCalcul) genererCalculer(zone, cfg);
   }
 
   function validerReponse(estCorrecte) {
@@ -1022,11 +1032,20 @@
     cont.className = 'droite-graduee';
     // Largeur proportionnelle au nombre de graduations, pour que les cibles
     // tactiles (44px min.) ne se chevauchent jamais, même avec un dénominateur 12.
+    // La marge (padding) de .droite-graduee est incluse dans cette largeur
+    // (box-sizing: border-box), donc elle ne réduit pas l'espacement des graduations.
     cont.style.width = Math.max(d * 46, 260) + 'px';
     scroll.appendChild(cont);
+    // La piste interne (position:relative) devient le repère à 100% pour les
+    // graduations : leurs positions en pourcentage restent donc bien à
+    // l'intérieur de la marge réservée par .droite-graduee, et ne sont jamais
+    // rognées par le défilement horizontal du conteneur.
+    const piste = document.createElement('div');
+    piste.className = 'piste-graduation';
+    cont.appendChild(piste);
     const ligne = document.createElement('div');
     ligne.className = 'ligne-droite';
-    cont.appendChild(ligne);
+    piste.appendChild(ligne);
 
     for (let i = 0; i <= d; i++) {
       const pct = (i / d) * 100;
@@ -1036,19 +1055,19 @@
         btn.style.left = pct + '%';
         btn.dataset.index = i;
         btn.textContent = i === 0 ? '0' : (i === d ? '1' : '');
-        btn.addEventListener('click', () => opts.onTick(i, btn, cont));
-        cont.appendChild(btn);
+        btn.addEventListener('click', () => opts.onTick(i, btn, piste));
+        piste.appendChild(btn);
       } else {
         const g = document.createElement('div');
         g.className = 'graduation';
         g.style.left = pct + '%';
-        cont.appendChild(g);
+        piste.appendChild(g);
         if (i === 0 || i === d) {
           const lbl = document.createElement('div');
           lbl.className = 'graduation-label';
           lbl.style.left = pct + '%';
           lbl.textContent = i === 0 ? '0' : '1';
-          cont.appendChild(lbl);
+          piste.appendChild(lbl);
         }
       }
     }
@@ -1057,7 +1076,7 @@
       m.className = 'marqueur-droite';
       m.style.left = (opts.marqueur / d) * 100 + '%';
       m.textContent = '▼';
-      cont.appendChild(m);
+      piste.appendChild(m);
     }
     return scroll;
   }
@@ -1242,14 +1261,12 @@
       }
     });
 
-    const cartesParIndex = {};
     ordreAffiche.forEach((idx) => {
       const f = fractions[idx];
       const carte = document.createElement('button');
       carte.className = 'carte-comparaison';
       carte.appendChild(creerBande(f.d, f.n));
       carte.appendChild(creerFractionLabel(f.n, f.d));
-      cartesParIndex[idx] = carte;
       carte.addEventListener('click', () => {
         if (etat.verrouille || selection.includes(idx)) return;
         selection.push(idx);
@@ -1279,27 +1296,18 @@
 
     zone.appendChild(rangeeCartes);
     zone.appendChild(rangeeSlots);
-
-    const reinit = document.createElement('button');
-    reinit.className = 'bouton-secondaire';
-    reinit.textContent = 'Recommencer';
-    reinit.addEventListener('click', () => {
-      if (etat.verrouille) return;
-      selection.length = 0;
-      slots.forEach((s) => { s.className = 'slot-ordre'; s.innerHTML = ''; });
-      Object.values(cartesParIndex).forEach((c) => { c.classList.remove('selectionnee'); c.disabled = false; });
-    });
-    zone.appendChild(reinit);
   }
 
-  /* ---------- Mini-jeu 5 : Calculer ---------- */
+  /* ---------- Mini-jeu 5 : Calculer (facile = même dénominateur, difficile = dénominateurs multiples) ---------- */
 
-  function genererCalcul() {
+  function genererCalcul(niveau) {
     const pairesMultiples = [];
     D.forEach((a) => D.forEach((b) => { if (b > a && b % a === 0) pairesMultiples.push([a, b]); }));
 
     for (let t = 0; t < 80; t++) {
-      const sameDenom = Math.random() < 0.3 || pairesMultiples.length === 0;
+      // Facile : toujours le même dénominateur, aucune conversion à faire.
+      // Difficile : dénominateurs multiples (ex. 1/4 et 1/2), avec conversion visuelle.
+      const sameDenom = niveau === 'facile' ? true : (Math.random() < 0.3 || pairesMultiples.length === 0);
       let d1, d2;
       if (sameDenom) {
         d1 = d2 = choisir(D);
@@ -1334,7 +1342,7 @@
   }
 
   function genererCalculer(zone, cfg) {
-    const calc = genererCalcul();
+    const calc = genererCalcul(cfg.niveauCalcul);
     const dGrand = calc.dGrand;
     const aConv = calc.a.n * (dGrand / calc.a.d);
     const bConv = calc.b.n * (dGrand / calc.b.d);
@@ -1424,6 +1432,7 @@
       interactive.classList.add('verrouille');
       cellules.forEach((c) => (c.disabled = true));
       boutonValider.disabled = true;
+      boutonValider.hidden = true;
       compteur.innerHTML = estCorrecte
         ? 'Résultat : <strong>' + calc.resultat.n + '/' + dGrand + '</strong>'
         : 'La bonne réponse était <strong>' + calc.resultat.n + '/' + dGrand + '</strong> (tu avais ' + total + '/' + dGrand + ')';
