@@ -176,15 +176,18 @@ La cible principale d'usage est un iPhone en main (élève ou enseignant), en pl
 
 ---
 
-## 9. Stockage
+## 9. Stockage sûr des données (étoiles, progression)
 
 Les jeux persistent localement la progression de l'enfant (étoiles, scores...) via `localStorage`. Mais `localStorage` n'est pas fiable partout : il est absent ou bloqué dans certains environnements où un jeu peut être ouvert — Safari en navigation privée, une iframe sandboxée (artefact Claude par exemple), un navigateur avec le stockage désactivé par une politique de confidentialité. Dans ces cas, **le simple fait de lire la propriété `localStorage`** peut lever une exception, pas seulement `getItem`/`setItem`.
 
-Pour que le jeu ne plante jamais et reste jouable (avec une progression valable pour la session en cours, même sans persistance), toute lecture/écriture passe par une petite couche de stockage sûre plutôt que par un accès direct à `localStorage` :
+Le pattern ci-dessous est **obligatoire pour tous les jeux de la série**, afin qu'ils fonctionnent aussi bien dans Safari (persistance réelle) que dans un environnement où `localStorage` est indisponible ou bloqué (progression valable pour la session en cours seulement, sans erreur) :
 
 - une **variable JavaScript en mémoire** est toujours la source de vérité pour la session en cours ;
 - à la **lecture initiale**, on tente de lire `localStorage` dans un `try/catch` ; en cas d'échec (accès refusé, indisponible...), on part silencieusement d'un objet vide ;
-- à l'**écriture**, on met d'abord à jour la variable en mémoire, puis on tente d'écrire dans `localStorage` dans un `try/catch` ; en cas d'échec, on ignore silencieusement (pas d'erreur affichée, pas de `throw`).
+- à l'**écriture**, on met d'abord à jour la variable en mémoire, puis on tente d'écrire dans `localStorage` dans un `try/catch` ; en cas d'échec, on ignore silencieusement (pas d'erreur affichée, pas de `throw`) ;
+- le jeu ne doit **JAMAIS planter ni afficher d'erreur** si `localStorage` est absent : dans ce cas, les données ne valent que pour la session en cours.
+
+Extrait de référence à copier dans chaque nouveau jeu (`lireDonnees` / `enregistrerDonnees`) :
 
 ```js
 let memoireDonnees = null;
@@ -218,6 +221,25 @@ Cette convention s'applique à toute donnée que la charte demande de stocker (�
 
 ---
 
+## 10. Flux de test et de publication
+
+Chaque jeu suit la même procédure avant d'être fusionné dans `main`, de sa création par Claude Code jusqu'à sa mise en ligne :
+
+1. **Claude Code** produit ou modifie le fichier `.html` du jeu sur une branche dédiée, et ouvre (ou met à jour) la Pull Request correspondante.
+2. Sur **GitHub**, ouvrir le fichier `.html` modifié dans la Pull Request, puis cliquer sur **"Raw"** pour accéder au contenu brut du fichier.
+3. Sur ordinateur : **clic droit → "Enregistrer sous"** pour télécharger le fichier, puis **double-cliquer** sur le fichier téléchargé pour l'ouvrir directement dans le navigateur par défaut.
+4. **Tester manuellement** tous les mini-jeux du fichier et vérifier :
+   - les couleurs et le mode clair forcé (pas de bascule en sombre) ;
+   - le rendu responsive (notamment sur une largeur type iPhone) ;
+   - le déclenchement des confettis sur bonne réponse ;
+   - le feedback sonore ;
+   - l'absence d'erreur dans la console du navigateur (outils de développement).
+5. **Si tout est correct** : fusionner la Pull Request dans `main`. **Sinon**, décrire précisément le problème constaté à Claude Code pour qu'il corrige sur la même branche, puis reprendre le test à l'étape 4.
+
+La validation du rendu visuel et du ressenti de jeu (étape 4) reste **manuelle** : un humain doit ouvrir et tester le jeu dans un vrai navigateur avant fusion, car ce rendu (couleurs perçues, fluidité des animations, agrément sonore, confort tactile réel) ne peut pas être garanti par une vérification automatisée seule.
+
+---
+
 ## Résumé technique
 
 | Aspect | Choix |
@@ -231,3 +253,4 @@ Cette convention s'applique à toute donnée que la charte demande de stocker (�
 | Accueil | Cartes de mini-jeux + étoiles de progression + bouton retour |
 | Responsive | Mobile-first, cartes d'accueil `max-height: 34vh` |
 | Stockage | Variable mémoire = source de vérité, `localStorage` en best-effort via `try/catch` |
+| Test & publication | Test manuel via le fichier "Raw" téléchargé depuis la PR, avant fusion dans `main` |
