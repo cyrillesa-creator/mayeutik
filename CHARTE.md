@@ -264,6 +264,8 @@ Minimisation RGPD : prénom et niveau uniquement. Si aucun profil n'existe, les 
 
 ### Objet SESSION — écrit par le jeu à la fin de chaque mini-jeu TERMINÉ (jamais pour une partie abandonnée)
 
+Session d'un module d'entraînement (type "M", cas par défaut — c'est le seul format que les jeux existants comme M17 ont besoin d'écrire) :
+
 ```json
 {
   "profilId": "p1",
@@ -277,15 +279,34 @@ Minimisation RGPD : prénom et niveau uniquement. Si aucun profil n'existe, les 
 }
 ```
 
-- `competence` : id du **mini-jeu** (granularité fine, ex. `"egales"`, `"calculer-difficile"`).
-- `duree` : en secondes.
-- `type` (optionnel, défaut `"entrainement"`) : `"entrainement"` pour une session de jeu classique, ou `"evaluation"` pour une session jouée au format officiel d'une fiche Évaluation Repère (cf. PRODUIT.md). Un jeu qui n'écrit pas ce champ produit implicitement des sessions `"entrainement"` ; les jeux existants n'ont pas besoin d'être modifiés pour rester valides.
+Session d'un module d'évaluation (type "E", chronométré — cf. section 12) : deux champs supplémentaires, présents **uniquement** quand `"type": "evaluation"` :
+
+```json
+{
+  "profilId": "p1",
+  "module": "E-CE2-01",
+  "competence": "soustraire",
+  "score": 7,
+  "total": 10,
+  "date": "ISO 8601",
+  "duree": 165,
+  "type": "evaluation",
+  "tempsImparti": 180,
+  "interrompu": false
+}
+```
+
+- `competence` : id du **mini-jeu** (granularité fine, ex. `"egales"`, `"calculer-difficile"`, `"soustraire"`).
+- `duree` : temps réellement écoulé, en secondes.
+- `type` (optionnel, défaut `"entrainement"`) : `"entrainement"` pour une session de jeu classique, ou `"evaluation"` pour une session jouée au format officiel d'une fiche Évaluation Repère (cf. PRODUIT.md, section « Modules d'évaluation »). Un jeu qui n'écrit pas ce champ produit implicitement des sessions `"entrainement"` ; les jeux existants n'ont pas besoin d'être modifiés pour rester valides.
+- `tempsImparti` (uniquement si `type === "evaluation"`) : durée officielle allouée à l'exercice, en secondes, telle que définie par la fiche Repères.
+- `interrompu` (uniquement si `type === "evaluation"`) : `true` si le temps imparti a expiré avant que l'élève ait terminé, `false` s'il a terminé dans les temps. Les modules "M" ne portent jamais ces deux champs.
 
 Les étoiles restent locales au jeu (récompense enfant) ; les sessions sont une couche parallèle destinée au suivi parental.
 
 ### RÉFÉRENTIEL
 
-Métadonnées par module (fichier central de la coquille, pas dans les jeux) : module, titre, niveau, domaine, programme (ex. `"BO-2024"`), et liste des compétences `{id, libelle}`.
+Métadonnées par module (fichier central de la coquille, pas dans les jeux) : module, titre, niveau, domaine, programme (ex. `"BO-2024"`), et liste des compétences `{id, libelle}`. Pour un module d'évaluation (type "E"), chaque compétence porte en plus le `tempsImparti` officiel (cf. section 12) et, le cas échéant, les bandes de lecture de la fiche Repères (cf. PRODUIT.md).
 
 ### Échelle d'acquisition
 
@@ -305,6 +326,18 @@ Pas de détail question par question, pas de données nominatives au-delà du pr
 
 ---
 
+## 12. Mode chronométré (modules d'évaluation)
+
+Les modules de type **"E"** (évaluations Repères, cf. PRODUIT.md) sont **chronométrés**, contrairement aux modules **"M"** (entraînement) qui ne le sont jamais.
+
+- **Temps imparti** : c'est un **paramètre par exercice/compétence**, issu de la fiche Repères officielle correspondante, stocké dans le **référentiel du module** (cf. section 11) — jamais codé en dur dans la logique du jeu. Deux exercices d'un même module peuvent avoir des durées différentes.
+- **Affichage** : un compte à rebours **visible mais discret et non anxiogène**, cohérent avec le ton bienveillant de la charte — pas de son de tic-tac stressant ni d'animation alarmante. Les dernières secondes peuvent être signalées visuellement (ex. changement de couleur doux vers `--couleur-corail`), sans dramatiser (pas de clignotement violent, pas de son d'alarme).
+- **À l'expiration du temps** : la saisie est **figée immédiatement**, aucun temps supplémentaire n'est accordé, et le jeu passe directement au décompte du score. Cet arrêt net fait partie intégrante de l'évaluation (c'est une mesure de fluence), ce n'est pas un bug à corriger.
+- **Score** : uniquement le nombre de bonnes réponses obtenues **dans le temps imparti**. Les items non atteints faute de temps ne sont ni rattrapés, ni comptés comme des erreurs — ils sont simplement absents du score obtenu.
+- La session correspondante est enregistrée avec `"type": "evaluation"`, `"tempsImparti"` (durée officielle) et `"interrompu"` (`true` si le chrono a expiré avant la fin) — cf. l'objet SESSION en section 11.
+
+---
+
 ## Résumé technique
 
 | Aspect | Choix |
@@ -320,3 +353,4 @@ Pas de détail question par question, pas de données nominatives au-delà du pr
 | Stockage | Variable mémoire = source de vérité, `localStorage` en best-effort via `try/catch` |
 | Test & publication | Test manuel via le fichier "Raw" téléchargé depuis la PR, avant fusion dans `main` |
 | Progression & acquis | Contrat de données v1 : sessions brutes écrites par les jeux, statuts calculés côté coquille |
+| Mode chronométré | Modules "E" uniquement : temps imparti par exercice (référentiel), arrêt net à expiration, pas de rattrapage |
