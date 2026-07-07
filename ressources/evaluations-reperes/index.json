@@ -1,0 +1,18 @@
+{
+  "source": "https://www.education.gouv.fr/l-evaluation-des-acquis-des-eleves-en-cp-ce1-ce2-cm1-et-cm2-fiches-descriptives-des-exercices-342046",
+  "dateRecuperation": "2026-07-07",
+  "statut": "incomplet",
+  "note": "La page source et le domaine education.gouv.fr sont bloqués par la politique réseau de cet environnement (voir README.md). La liste ci-dessous n'a donc pas pu être extraite de la page index elle-même ; elle contient uniquement la fiche identifiée par recherche web, à titre d'exemple de format. Aucun fichier n'a pu être téléchargé.",
+  "fiches": [
+    {
+      "niveau": "ce2",
+      "theme": "placer-un-nombre-sur-une-ligne-graduee",
+      "discipline": "mathematiques",
+      "chemin": null,
+      "url": "https://www.education.gouv.fr/sites/default/files/document/Fiche%20%C3%A9valuation%20rep%C3%A8res%20CE2%20:%20Placer%20un%20nombre%20sur%20une%20ligne%20gradu%C3%A9e-403422.pdf",
+      "module": null,
+      "telecharge": false,
+      "erreur": "Domaine education.gouv.fr bloqué par la politique réseau de l'environnement (403 au niveau du proxy, avant même la requête HTTPS)."
+    }
+  ]
+}
