@@ -51,6 +51,29 @@ Quand une fiche existe pour une compétence donnée :
 
 ---
 
+## Modules d'évaluation (type E)
+
+**Nomenclature "E"**, parallèle à celle des modules "M" d'entraînement. Un module E reproduit fidèlement le format officiel d'une évaluation nationale Repères (DEPP) : mêmes exercices, même nombre d'items, même chronométrage (cf. CHARTE.md, section 12 « Mode chronométré »).
+
+**Règle de calendrier** : les évaluations Repères ont lieu en septembre, en **début** d'année scolaire. Une fiche de début d'année N mesure donc les acquis de **fin d'année N-1**. Pour évaluer la fin d'une année scolaire donnée, on utilise la fiche Repères du **niveau suivant** (ex. : pour mesurer la fin de CE2, on utilise la fiche Repères de début CM1).
+
+**Double usage de chaque fiche** :
+1. **Diagnostic d'entrée** : la fiche du niveau courant, jouée en début d'année.
+2. **Cible de fin d'année** : la même fiche, réutilisée comme objectif à atteindre par les élèves du niveau précédent en fin d'année.
+
+**Sessions** : les modules E écrivent des sessions `"type": "evaluation"` (format défini en CHARTE.md section 11, comportement chronométré détaillé en section 12) ; les modules M continuent d'écrire des sessions `"type": "entrainement"`.
+
+**Modules maths cycle 2 prévus** :
+- `E-CP-01`
+- `E-CP-PE-01` (Point d'étape mi-CP — seul Repère qui a lieu en cours d'année plutôt qu'en septembre)
+- `E-CE1-01`
+- `E-CE2-01`
+- `E-CM1-01`
+
+**Source** : les fiches Repères officielles (PDF) servent de **cahier des charges** de chaque module E (nombre d'items, type de propositions, temps imparti, bandes de lecture). Elles sont rangées dans [`ressources/evaluations-reperes/`](./ressources/evaluations-reperes/).
+
+---
+
 ## UI/UX
 
 La charte actuelle ([`CHARTE.md`](./CHARTE.md)) reste la référence visuelle et technique pour **tous les jeux** de la V1 — aucune divergence de design system entre les modules.
