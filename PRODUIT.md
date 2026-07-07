@@ -1,0 +1,60 @@
+# Décisions produit — Mayeutik
+
+Ce document consigne les décisions produit de la série Mayeutik (au-delà du design system, décrit dans [`CHARTE.md`](./CHARTE.md)). Il sert de référence pour arbitrer les futures évolutions sans les rediscuter à chaque fois.
+
+---
+
+## Forme du produit
+
+**V1** : une **coquille PWA** regroupant les jeux — écran d'accueil, index par niveau × matière × thème, progression centralisée, profils multi-enfants. Les jeux eux-mêmes restent des **modules HTML autonomes** (cf. CHARTE.md), inchangés dans leur fonctionnement.
+
+**V2** :
+- Empaquetage **Capacitor** pour publication sur les stores (App Store / Play Store).
+- Fonctionnalité **"photo de la leçon"** : l'enfant (ou le parent) prend une photo du cahier de leçon, une API de vision identifie le thème abordé, et l'app propose le jeu Mayeutik correspondant.
+
+**Architecture** : local-first à toutes les étapes. Tout doit fonctionner sans compte ni serveur ; le cloud (sauvegarde, synchronisation multi-appareils...) sera **optionnel**, jamais un prérequis.
+
+---
+
+## Tableau de bord parental
+
+- **Terminologie et échelle** : reprend telle quelle celle définie dans le contrat de données de CHARTE.md (échelle LSU : Non travaillé / Objectifs non atteints / Partiellement atteints / Atteints / Dépassés).
+- **Visualisation principale** : un **diagramme en toile d'araignée (radar)**, dans l'esprit des restitutions des évaluations nationales. Deux niveaux de lecture :
+  1. Un **radar de synthèse** à **4 axes** (les 4 domaines du programme 2024).
+  2. Pour chaque domaine, un **radar détaillé par compétence** (**8 axes maximum** par radar, au-delà on scinde en plusieurs radars).
+  
+  Valeur radiale portée sur chaque axe :
+
+  | Statut | Valeur |
+  |---|---|
+  | Non travaillé | 0 |
+  | Objectifs non atteints | 1 |
+  | Partiellement atteints | 2 |
+  | Atteints | 3 |
+  | Dépassés | 4 |
+
+- **Recommandations** : le tableau de bord met en avant, en priorité, les compétences "à consolider" (Objectifs non atteints), puis "en cours" (Partiellement atteints) — en commençant par les **plus anciennes** (celles où l'enfant n'a pas joué depuis le plus longtemps) — et suggère les jeux correspondants.
+- **Mention obligatoire**, affichée sur toute vue parentale : *« positionnement indicatif basé sur les jeux, inspiré de l'échelle du livret scolaire »*. Ce n'est en aucun cas une évaluation scolaire officielle.
+
+---
+
+## Évaluations Repères (Éducation nationale)
+
+Les fiches officielles **"Évaluations Repères"** (publiées par niveau et par thème) servent de **référence d'étalonnage** pour les compétences qui en disposent.
+
+Quand une fiche existe pour une compétence donnée :
+- le module correspondant peut proposer un mini-jeu **"Mode Évaluation Repère"**, qui reproduit fidèlement le format officiel (nombre d'items, chronométrage, type de propositions) ;
+- les **bandes de lecture officielles** de la fiche (les seuils de score définis par l'Éducation nationale) sont reportées dans le **référentiel du module**, et **priment sur les seuils génériques** de l'échelle d'acquisition (section 11 de CHARTE.md) pour cette compétence précise ;
+- une session jouée dans ce mode s'enregistre avec `"type": "evaluation"` (cf. amendement du contrat de données dans CHARTE.md).
+
+**Exemple de référence** — CP, compétence *Soustraire* : 10 calculs, QCM à 6 propositions, 3 minutes ; bandes de lecture : **0–4** / **5–6** / **7–10**.
+
+---
+
+## UI/UX
+
+La charte actuelle ([`CHARTE.md`](./CHARTE.md)) reste la référence visuelle et technique pour **tous les jeux** de la V1 — aucune divergence de design system entre les modules.
+
+L'effort de design produit se concentre sur la **coquille** (écran d'accueil, index, tableau de bord parental), avec un **ton délibérément différencié** selon le public :
+- **côté enfant** : ludique, coloré, dans l'esprit de la charte des jeux ;
+- **côté parent** : sobre et informatif, pensé pour une lecture rapide et rassurante du tableau de bord.

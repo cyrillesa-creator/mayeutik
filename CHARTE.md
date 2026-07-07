@@ -272,12 +272,14 @@ Minimisation RGPD : prénom et niveau uniquement. Si aucun profil n'existe, les 
   "score": 5,
   "total": 6,
   "date": "ISO 8601",
-  "duree": 180
+  "duree": 180,
+  "type": "entrainement"
 }
 ```
 
 - `competence` : id du **mini-jeu** (granularité fine, ex. `"egales"`, `"calculer-difficile"`).
 - `duree` : en secondes.
+- `type` (optionnel, défaut `"entrainement"`) : `"entrainement"` pour une session de jeu classique, ou `"evaluation"` pour une session jouée au format officiel d'une fiche Évaluation Repère (cf. PRODUIT.md). Un jeu qui n'écrit pas ce champ produit implicitement des sessions `"entrainement"` ; les jeux existants n'ont pas besoin d'être modifiés pour rester valides.
 
 Les étoiles restent locales au jeu (récompense enfant) ; les sessions sont une couche parallèle destinée au suivi parental.
 
