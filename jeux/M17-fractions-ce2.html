@@ -653,6 +653,84 @@
     return 0;
   }
 
+  /* ---------- Sessions : contrat de données v1 (CHARTE.md, section 11) ---------- */
+  // Implémentation de référence du contrat de données v1
+
+  const CLE_SESSIONS = 'mayeutik-sessions';
+  const CLE_PROFIL_ACTIF = 'mayeutik-profil-actif';
+  const MODULE_ID = 'M17';
+  const MAX_SESSIONS_PAR_PROFIL = 500;
+
+  // Même pattern « stockage sûr » que les étoiles : mémoire = source de
+  // vérité, localStorage en best-effort via try/catch, jamais de plantage.
+  let memoireProfilActif = null;
+  let memoireSessions = null;
+
+  function lireProfilActif() {
+    if (memoireProfilActif === null) {
+      memoireProfilActif = 'p1';
+      try {
+        const brut = window.localStorage.getItem(CLE_PROFIL_ACTIF);
+        if (brut) memoireProfilActif = brut;
+      } catch (e) {
+        memoireProfilActif = 'p1';
+      }
+    }
+    return memoireProfilActif;
+  }
+
+  function lireSessions() {
+    if (memoireSessions === null) {
+      memoireSessions = [];
+      try {
+        const brut = window.localStorage.getItem(CLE_SESSIONS);
+        if (brut) memoireSessions = JSON.parse(brut);
+      } catch (e) {
+        memoireSessions = [];
+      }
+    }
+    return memoireSessions;
+  }
+
+  // Écrit une session brute à la fin d'un mini-jeu TERMINÉ (jamais pour une
+  // partie abandonnée). `competence` = id du mini-jeu (granularité fine).
+  // Aucune intelligence ici (pas de statut, pas de recommandation) : c'est le
+  // rôle de la coquille, jamais des jeux, conformément au contrat v1.
+  function enregistrerSession(competence, score, total, duree) {
+    const profilId = lireProfilActif();
+    const toutes = lireSessions();
+    toutes.push({
+      profilId,
+      module: MODULE_ID,
+      competence,
+      score,
+      total,
+      date: new Date().toISOString(),
+      duree
+    });
+
+    // Plafond : au maximum les 500 dernières sessions par profil. On parcourt
+    // à l'envers (du plus récent au plus ancien) et on supprime les sessions
+    // de CE profil qui dépassent le plafond ; les autres profils ne sont
+    // jamais comptés ni touchés.
+    let compteur = 0;
+    for (let i = toutes.length - 1; i >= 0; i--) {
+      if (toutes[i].profilId === profilId) {
+        compteur++;
+        if (compteur > MAX_SESSIONS_PAR_PROFIL) {
+          toutes.splice(i, 1);
+        }
+      }
+    }
+
+    memoireSessions = toutes;
+    try {
+      window.localStorage.setItem(CLE_SESSIONS, JSON.stringify(toutes));
+    } catch (e) {
+      // localStorage indisponible : la session reste valable pour la session en cours.
+    }
+  }
+
   /* ---------- Confettis ---------- */
 
   function lancerConfettis() {
@@ -821,7 +899,7 @@
 
   /* ---------- État global ---------- */
 
-  let etat = { jeuId: null, index: 0, score: 0, verrouille: false };
+  let etat = { jeuId: null, index: 0, score: 0, verrouille: false, demarreLe: 0 };
 
   const configJeux = donnees.jeux;
 
@@ -871,7 +949,7 @@
   }
 
   function demarrerJeu(jeuId) {
-    etat = { jeuId, index: 0, score: 0, verrouille: false };
+    etat = { jeuId, index: 0, score: 0, verrouille: false, demarreLe: Date.now() };
     document.getElementById('ecran-accueil').hidden = true;
     document.getElementById('ecran-jeu').hidden = false;
     document.getElementById('titre-jeu-courant').textContent = trouverConfig(jeuId).titre;
@@ -929,6 +1007,8 @@
     document.getElementById('zone-feedback').textContent = '';
     const etoilesGagnees = calculerEtoiles(etat.score, cfg.nbQuestions);
     enregistrerEtoiles(cfg.id, etoilesGagnees);
+    const dureeSecondes = Math.max(0, Math.round((Date.now() - etat.demarreLe) / 1000));
+    enregistrerSession(cfg.id, etat.score, cfg.nbQuestions, dureeSecondes);
 
     const zone = document.getElementById('zone-jeu');
     zone.innerHTML = '';

@@ -240,6 +240,71 @@ La validation du rendu visuel et du ressenti de jeu (étape 4) reste **manuelle*
 
 ---
 
+## 11. Contrat de données — progression et acquis (v1)
+
+### Principe
+
+Local-first. Les jeux écrivent des enregistrements bruts et simples ; toute l'intelligence (statuts, recommandations) vit dans la coquille, jamais dans les jeux. Les règles de calcul peuvent évoluer sans rouvrir les jeux.
+
+### Clés de stockage partagées (communes à tous les jeux)
+
+- `mayeutik-profils` : tableau de profils
+- `mayeutik-profil-actif` : id du profil courant (défaut `"p1"`)
+- `mayeutik-sessions` : tableau de sessions (ajout en fin)
+
+Toujours accédées via le pattern « stockage sûr » (mémoire + `try/catch`, cf. section 9). Plafond : conserver au maximum les 500 dernières sessions par profil (supprimer les plus anciennes au-delà).
+
+### Objet PROFIL
+
+```json
+{ "id": "p1", "prenom": "", "niveau": "CE2", "creeLe": "AAAA-MM-JJ" }
+```
+
+Minimisation RGPD : prénom et niveau uniquement. Si aucun profil n'existe, les jeux fonctionnent avec le profil par défaut `"p1"`.
+
+### Objet SESSION — écrit par le jeu à la fin de chaque mini-jeu TERMINÉ (jamais pour une partie abandonnée)
+
+```json
+{
+  "profilId": "p1",
+  "module": "M17",
+  "competence": "egales",
+  "score": 5,
+  "total": 6,
+  "date": "ISO 8601",
+  "duree": 180,
+  "type": "entrainement"
+}
+```
+
+- `competence` : id du **mini-jeu** (granularité fine, ex. `"egales"`, `"calculer-difficile"`).
+- `duree` : en secondes.
+- `type` (optionnel, défaut `"entrainement"`) : `"entrainement"` pour une session de jeu classique, ou `"evaluation"` pour une session jouée au format officiel d'une fiche Évaluation Repère (cf. PRODUIT.md). Un jeu qui n'écrit pas ce champ produit implicitement des sessions `"entrainement"` ; les jeux existants n'ont pas besoin d'être modifiés pour rester valides.
+
+Les étoiles restent locales au jeu (récompense enfant) ; les sessions sont une couche parallèle destinée au suivi parental.
+
+### RÉFÉRENTIEL
+
+Métadonnées par module (fichier central de la coquille, pas dans les jeux) : module, titre, niveau, domaine, programme (ex. `"BO-2024"`), et liste des compétences `{id, libelle}`.
+
+### Échelle d'acquisition
+
+Terminologie officielle LSU (bilans périodiques, élémentaire), **calculée par la coquille, JAMAIS stockée** :
+
+- **Non travaillé** (état technique, affiché « — ») : aucune session
+- **Objectifs non atteints** : sessions existantes, taux de réussite < 50 %
+- **Partiellement atteints** : au moins une session ≥ 50 %, critères « atteints » non remplis
+- **Atteints** : ≥ 3 sessions avec score ≥ 80 %, sur au moins 2 jours distincts
+- **Dépassés** : critères « atteints » remplis + dernières sessions à 100 % sur la variante la plus difficile de la compétence
+
+Seuils = paramètres de la coquille, ajustables sans toucher aux données. Mention obligatoire dans toute interface parentale : « positionnement indicatif basé sur les jeux, inspiré de l'échelle du livret scolaire » (ce n'est pas une évaluation scolaire officielle).
+
+### Ce qu'on n'enregistre PAS (décisions explicites v1)
+
+Pas de détail question par question, pas de données nominatives au-delà du prénom, pas d'identifiant d'appareil, rien côté serveur.
+
+---
+
 ## Résumé technique
 
 | Aspect | Choix |
@@ -254,3 +319,4 @@ La validation du rendu visuel et du ressenti de jeu (étape 4) reste **manuelle*
 | Responsive | Mobile-first, cartes d'accueil `max-height: 34vh` |
 | Stockage | Variable mémoire = source de vérité, `localStorage` en best-effort via `try/catch` |
 | Test & publication | Test manuel via le fichier "Raw" téléchargé depuis la PR, avant fusion dans `main` |
+| Progression & acquis | Contrat de données v1 : sessions brutes écrites par les jeux, statuts calculés côté coquille |
