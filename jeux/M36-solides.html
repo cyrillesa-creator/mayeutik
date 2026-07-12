@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="color-scheme" content="light only">
+<meta name="supported-color-schemes" content="light">
+<title>Les Solides — M36</title>
+<!-- ============================================================
+     JEU M36 — Reconnaître les solides (CE2)
+     Backlog : Pilotage_Maths_Cycle2.xlsx
+     Règles série : contenu JSON séparé / charte commune / ID backlog
+     ============================================================ -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+/* ===================== CHARTE SÉRIE ===================== */
+:root{
+  color-scheme: light only;
+  --ciel:#EAF2FC; --carte:#FFFFFF; --encre:#1D3354; --encre2:#41577A;
+  --mandarine:#FF8A3D; --mandarine-f:#E5701F;
+  --menthe:#2EC4A6; --menthe-t:#0B8A70; --corail:#FF5D5D; --corail-t:#D93636; --soleil:#FFC93C;
+  --r:20px; --ombre:0 4px 0 rgba(29,51,84,.12);
+  font-size:16px;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html{background:var(--ciel); color-scheme:light only;}
+html,body{margin:0; padding:0; height:100%;}
+body{
+  font-family:'Fredoka', ui-rounded, 'Segoe UI', system-ui, sans-serif;
+  background:var(--ciel); color:var(--encre);
+  background-image:radial-gradient(rgba(29,51,84,.05) 1.5px, transparent 1.5px);
+  background-size:26px 26px;
+  display:flex; justify-content:center;
+}
+#app{width:100%; max-width:520px; min-height:100dvh; display:flex; flex-direction:column; padding:10px 14px 18px;}
+
+/* ---------- Header ---------- */
+header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-height:54px;}
+#btnBack{
+  width:42px; height:42px; border-radius:14px; border:none; flex:none;
+  background:var(--carte); color:var(--encre); font-size:20px; font-weight:700;
+  box-shadow:var(--ombre); cursor:pointer;
+}
+#btnBack:active{transform:translateY(2px); box-shadow:0 2px 0 rgba(29,51,84,.12);}
+#hdrTitle{font-weight:600; font-size:1.15rem; flex:1; line-height:1.1;}
+#dots{display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end; max-width:46%;}
+.dot{width:10px; height:10px; border-radius:50%; background:#C9D6E8;}
+.dot.ok{background:var(--menthe);} .dot.ko{background:var(--corail);} .dot.cur{background:var(--mandarine);}
+
+/* ---------- Home ---------- */
+#home h1{font-size:1.7rem; margin:4px 0 2px; font-weight:700;}
+#home .sub{color:var(--encre2); margin:0 0 16px; font-size:.95rem;}
+.cards{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.card{
+  background:var(--carte); border:none; border-radius:var(--r); padding:16px 12px 14px;
+  box-shadow:var(--ombre); cursor:pointer; text-align:center;
+  font-family:inherit; color:var(--encre);
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  transition:transform .08s;
+}
+.card:active{transform:translateY(3px); box-shadow:0 1px 0 rgba(29,51,84,.12);}
+.card .ico{font-size:2rem; line-height:1;}
+.card .nom{font-weight:600; font-size:1.02rem;}
+.card .det{font-size:.78rem; color:var(--encre2);}
+.card .stars{font-size:.85rem; letter-spacing:2px; min-height:1.1em;}
+.card.wide{grid-column:1 / -1; flex-direction:row; justify-content:center; gap:12px; padding:14px;}
+
+/* ---------- Viewport 3D ---------- */
+#viewport{
+  position:relative; background:var(--carte); border-radius:var(--r);
+  box-shadow:var(--ombre); height:300px; overflow:hidden; touch-action:none;
+}
+@media (max-height:740px){ #viewport{height:248px;} }
+#viewport canvas{display:block; width:100%; height:100%;}
+#hint3d{
+  position:absolute; bottom:8px; left:0; right:0; text-align:center;
+  font-size:.78rem; color:var(--encre2); pointer-events:none; opacity:.85;
+}
+#counterBubble{
+  position:absolute; top:10px; right:12px; min-width:58px; padding:6px 12px;
+  background:var(--soleil); border-radius:16px; font-size:1.7rem; font-weight:700;
+  text-align:center; box-shadow:var(--ombre); display:none; pointer-events:none;
+}
+#btnShow{
+  position:absolute; top:10px; left:10px; border:none; border-radius:14px;
+  padding:9px 13px; font-family:inherit; font-weight:600; font-size:.88rem;
+  background:var(--soleil); color:var(--encre); box-shadow:var(--ombre); cursor:pointer;
+  display:none;
+}
+#btnShow:active{transform:translateY(2px);}
+
+/* ---------- Question / réponses ---------- */
+#qText{
+  font-size:1.12rem; font-weight:600; text-align:center; margin:14px 4px 12px;
+  min-height:2.2em; display:flex; align-items:center; justify-content:center; line-height:1.3;
+}
+#answers{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+#answers.uno{grid-template-columns:1fr;}
+.rep{
+  border:none; border-radius:16px; padding:15px 8px; font-family:inherit;
+  font-size:1.05rem; font-weight:600; background:var(--carte); color:var(--encre);
+  box-shadow:var(--ombre); cursor:pointer;
+}
+.rep:active{transform:translateY(2px); box-shadow:0 1px 0 rgba(29,51,84,.12);}
+.rep.ok{background:var(--menthe); color:#fff;}
+.rep.ko{background:var(--corail); color:#fff; animation:shake .35s;}
+.rep.dim{opacity:.55;}
+.rep svg{display:block; margin:0 auto; max-width:100%; height:88px;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+#feedback{
+  text-align:center; font-weight:700; margin-top:12px; min-height:2.4em;
+  font-size:1.06rem; line-height:1.35; padding:0 6px;
+}
+#feedback.bon{color:var(--menthe-t);} #feedback.mauvais{color:var(--corail-t);}
+
+#btnNext{
+  display:none; margin:12px auto 0; border:none; border-radius:18px;
+  padding:13px 38px; font-family:inherit; font-size:1.1rem; font-weight:700;
+  background:var(--mandarine); color:#fff; box-shadow:0 4px 0 var(--mandarine-f); cursor:pointer;
+}
+#btnNext:active{transform:translateY(3px); box-shadow:0 1px 0 var(--mandarine-f);}
+
+/* ---------- Découverte ---------- */
+#chips{display:flex; gap:8px; overflow-x:auto; padding:2px 0 10px; scrollbar-width:none;}
+#chips::-webkit-scrollbar{display:none;}
+.chip{
+  flex:none; border:none; border-radius:14px; padding:9px 14px; font-family:inherit;
+  font-weight:600; font-size:.92rem; background:var(--carte); color:var(--encre);
+  box-shadow:var(--ombre); cursor:pointer;
+}
+.chip.sel{background:var(--encre); color:#fff;}
+#toggles{display:flex; gap:8px; margin:10px 0;}
+.tog{
+  flex:1; border:none; border-radius:14px; padding:10px 4px; font-family:inherit;
+  font-weight:600; font-size:.88rem; background:var(--carte); color:var(--encre);
+  box-shadow:var(--ombre); cursor:pointer;
+}
+.tog.on{outline:3px solid var(--mandarine); color:var(--mandarine-f);}
+#infoCard{
+  background:var(--carte); border-radius:var(--r); box-shadow:var(--ombre);
+  padding:14px 16px; margin-top:2px;
+}
+#infoCard h2{margin:0 0 4px; font-size:1.3rem; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+.badge{font-size:.72rem; font-weight:700; padding:4px 10px; border-radius:999px; color:#fff;}
+.badge.poly{background:var(--menthe);} .badge.nonpoly{background:var(--corail);}
+#infoCard .ligne{font-size:.95rem; margin:4px 0; color:var(--encre);}
+#infoCard .ligne b{color:var(--mandarine-f);}
+#infoCard .objet{margin-top:8px; font-size:.92rem; color:var(--encre2);}
+
+/* ---------- Fin ---------- */
+#end{text-align:center; padding-top:8vh;}
+#endStars{font-size:3.4rem; letter-spacing:8px; margin:10px 0;}
+#endStars span{display:inline-block; animation:pop .5s backwards;}
+#endStars span:nth-child(2){animation-delay:.25s;} #endStars span:nth-child(3){animation-delay:.5s;}
+@keyframes pop{0%{transform:scale(0)}70%{transform:scale(1.35)}100%{transform:scale(1)}}
+#endMsg{font-size:1.3rem; font-weight:700;}
+#endScore{color:var(--encre2); margin:6px 0 22px;}
+#end .actions{display:flex; gap:12px; justify-content:center;}
+#end .actions button{
+  border:none; border-radius:18px; padding:13px 26px; font-family:inherit;
+  font-size:1.05rem; font-weight:700; cursor:pointer; box-shadow:var(--ombre);
+}
+#bRejouer{background:var(--mandarine); color:#fff; box-shadow:0 4px 0 var(--mandarine-f);}
+#bMenu{background:var(--carte); color:var(--encre);}
+
+/* ---------- Confettis (CHARTE.md, section 4) ---------- */
+#confettis-conteneur{position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:999;}
+.confetti{position:absolute; top:-12px; width:9px; height:14px; border-radius:2px;
+  animation-name:chute-confetti; animation-timing-function:ease-in; animation-fill-mode:forwards;}
+@keyframes chute-confetti{ to{ transform:translateY(105vh) rotate(340deg); opacity:.75; } }
+@media (prefers-reduced-motion:reduce){ .confetti{display:none; animation:none;} }
+
+[hidden]{display:none !important;}
+@media (prefers-color-scheme: dark){
+  html, body{background:var(--ciel) !important; color:var(--encre) !important;}
+  .card, .rep, .chip, .tog, #infoCard, #viewport, #btnBack{background:var(--carte) !important; color:var(--encre) !important;}
+}
+@media (prefers-reduced-motion:reduce){ *{animation:none !important;} }
+</style>
+</head>
+<body>
+<div id="confettis-conteneur" aria-hidden="true"></div>
+<div id="app">
+  <header>
+    <button id="btnBack" hidden aria-label="Retour">◀</button>
+    <div id="hdrTitle">Les Solides</div>
+    <div id="dots"></div>
+  </header>
+
+  <main style="flex:1; display:flex; flex-direction:column;">
+
+    <section id="home">
+      <h1>Les Solides 🧊</h1>
+      <p class="sub">Touche un solide pour le faire tourner !</p>
+      <div class="cards">
+        <button class="card wide" data-mode="decouvre">
+          <span class="ico">🔍</span>
+          <span><span class="nom">Découvre les solides</span><br><span class="det">Manipule-les en 3D</span></span>
+        </button>
+        <button class="card" data-mode="nomme">
+          <span class="ico">🎯</span><span class="nom">Qui suis-je ?</span>
+          <span class="det">Nomme les solides</span><span class="stars" data-stars="nomme"></span>
+        </button>
+        <button class="card" data-mode="polyedre">
+          <span class="ico">🧐</span><span class="nom">Polyèdre ?</span>
+          <span class="det">Plat ou courbe ?</span><span class="stars" data-stars="polyedre"></span>
+        </button>
+        <button class="card" data-mode="compte">
+          <span class="ico">🔢</span><span class="nom">Je compte</span>
+          <span class="det">Faces, sommets, arêtes</span><span class="stars" data-stars="compte"></span>
+        </button>
+        <button class="card" data-mode="explore">
+          <span class="ico">👆</span><span class="nom">J'explore</span>
+          <span class="det">Faces opposées &amp; cie</span><span class="stars" data-stars="explore"></span>
+        </button>
+        <button class="card" data-mode="devinette">
+          <span class="ico">🕵️</span><span class="nom">Devinettes</span>
+          <span class="det">Qui suis-je ?</span><span class="stars" data-stars="devinette"></span>
+        </button>
+        <button class="card" data-mode="patrons">
+          <span class="ico">✂️</span><span class="nom">Les patrons</span>
+          <span class="det">Plier les solides</span><span class="stars" data-stars="patrons"></span>
+        </button>
+      </div>
+    </section>
+
+    <section id="discover" hidden>
+      <div id="chips"></div>
+      <div id="viewportSlot1"></div>
+      <div id="toggles">
+        <button class="tog" data-t="faces">🟧 Faces</button>
+        <button class="tog" data-t="aretes">📏 Arêtes</button>
+        <button class="tog" data-t="sommets">🔴 Sommets</button>
+      </div>
+      <div id="infoCard"></div>
+    </section>
+
+    <section id="game" hidden>
+      <div id="qText"></div>
+      <div id="viewportSlot2"></div>
+      <div id="answers"></div>
+      <div id="feedback"></div>
+      <button id="btnNext">Suivant ➜</button>
+    </section>
+
+    <section id="end" hidden>
+      <div id="endStars"></div>
+      <div id="endMsg"></div>
+      <div id="endScore"></div>
+      <div class="actions">
+        <button id="bRejouer">Rejouer</button>
+        <button id="bMenu">Menu</button>
+      </div>
+    </section>
+
+    <div id="viewport">
+      <canvas id="c3d"></canvas>
+      <div id="counterBubble">0</div>
+      <button id="btnShow">👀 Montre-moi</button>
+      <div id="hint3d">↻ Fais-le tourner avec ton doigt</div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   CONTENU PÉDAGOGIQUE (JSON) — modifiable sans toucher au moteur
+   ============================================================ */
+const CONTENU = {
+  solides: {
+    cube: {
+      nom:"le cube", court:"Cube", couleur:0x4D96FF, poly:true,
+      geo:{type:"box", args:[2,2,2]},
+      objet:"un dé 🎲",
+      v:[[-1,-1,-1],[1,-1,-1],[1,-1,1],[-1,-1,1],[-1,1,-1],[1,1,-1],[1,1,1],[-1,1,1]],
+      e:[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]],
+      f:[[0,1,2,3],[4,7,6,5],[3,2,6,7],[0,4,5,1],[1,5,6,2],[0,3,7,4]],
+      fOpp:[[0,1],[2,3],[4,5]]
+    },
+    pave: {
+      nom:"le pavé droit", court:"Pavé droit", couleur:0x9B5DE5, poly:true,
+      geo:{type:"box", args:[3,1.6,2]},
+      objet:"une boîte de céréales 📦",
+      v:[[-1.5,-0.8,-1],[1.5,-0.8,-1],[1.5,-0.8,1],[-1.5,-0.8,1],[-1.5,0.8,-1],[1.5,0.8,-1],[1.5,0.8,1],[-1.5,0.8,1]],
+      e:[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]],
+      f:[[0,1,2,3],[4,7,6,5],[3,2,6,7],[0,4,5,1],[1,5,6,2],[0,3,7,4]],
+      fOpp:[[0,1],[2,3],[4,5]]
+    },
+    pyramide: {
+      nom:"la pyramide", court:"Pyramide", couleur:0xFF8A3D, poly:true,
+      geo:{type:"cone", args:[1.7,2.2,4]},
+      objet:"les pyramides d'Égypte 🏜️",
+      v:[[0,1.1,0],[0,-1.1,1.7],[1.7,-1.1,0],[0,-1.1,-1.7],[-1.7,-1.1,0]],
+      e:[[1,2],[2,3],[3,4],[4,1],[0,1],[0,2],[0,3],[0,4]],
+      f:[[1,2,3,4],[0,1,2],[0,2,3],[0,3,4],[0,4,1]]
+    },
+    prisme: {
+      nom:"le prisme droit", court:"Prisme droit", couleur:0x2EC4A6, poly:true,
+      geo:{type:"cylinder", args:[1.5,1.5,2.4,3]},
+      objet:"une tente ⛺",
+      v:[[0,1.2,1.5],[1.299,1.2,-0.75],[-1.299,1.2,-0.75],[0,-1.2,1.5],[1.299,-1.2,-0.75],[-1.299,-1.2,-0.75]],
+      e:[[0,1],[1,2],[2,0],[3,4],[4,5],[5,3],[0,3],[1,4],[2,5]],
+      f:[[0,1,2],[3,5,4],[0,3,4,1],[1,4,5,2],[2,5,3,0]]
+    },
+    cylindre: {
+      nom:"le cylindre", court:"Cylindre", couleur:0xFFC93C, poly:false,
+      geo:{type:"cylinder", args:[1.2,1.2,2.4,48]},
+      objet:"une boîte de conserve 🥫",
+      info:"2 faces plates (des disques) et 1 surface courbe. Il peut rouler !"
+    },
+    cone: {
+      nom:"le cône", court:"Cône", couleur:0xFF5D8F, poly:false,
+      geo:{type:"cone", args:[1.4,2.4,48]},
+      objet:"un cornet de glace 🍦",
+      info:"1 face plate, 1 surface courbe et 1 pointe (le sommet). Il peut rouler !"
+    },
+    boule: {
+      nom:"la boule", court:"Boule", couleur:0x5FD068, poly:false,
+      geo:{type:"sphere", args:[1.5,48,32]},
+      objet:"un ballon ⚽",
+      info:"Une seule surface, toute courbe. Pas de face plate, pas de sommet, pas d'arête. Elle roule dans tous les sens !"
+    }
+  },
+  explicationPoly:{
+    oui:"toutes ses faces sont plates : c'est un POLYÈDRE !",
+    non:"il a une surface courbe (il peut rouler) : ce n'est PAS un polyèdre."
+  },
+  bravo:["Bravo !","Super !","Excellent !","Bien joué !","Champion !","Parfait !"],
+  devinettes:[
+    {q:"J'ai 6 faces, toutes carrées. Qui suis-je ?", ans:"cube"},
+    {q:"J'ai 6 faces, mais elles ne sont pas toutes carrées. Qui suis-je ?", ans:"pave"},
+    {q:"J'ai 5 faces : 4 triangles et 1 carré. Qui suis-je ?", ans:"pyramide"},
+    {q:"J'ai 5 faces : 2 triangles et 3 rectangles. Qui suis-je ?", ans:"prisme"},
+    {q:"Je n'ai aucune face plate, aucun sommet, aucune arête… et je roule dans tous les sens. Qui suis-je ?", ans:"boule"},
+    {q:"J'ai 2 faces plates en forme de disque, et je peux rouler. Qui suis-je ?", ans:"cylindre"},
+    {q:"J'ai 1 seule face plate, 1 sommet tout en haut, et je peux rouler. Qui suis-je ?", ans:"cone"},
+    {q:"J'ai 8 sommets, 12 arêtes, et toutes mes faces sont exactement les mêmes. Qui suis-je ?", ans:"cube"},
+    {q:"Je suis un polyèdre et j'ai exactement 5 sommets. Qui suis-je ?", ans:"pyramide"},
+    {q:"J'ai autant de faces que la pyramide, mais j'ai 6 sommets. Qui suis-je ?", ans:"prisme"}
+  ],
+  patrons:[
+    {type:"netToName", net:"cube", q:"Si on plie ce patron, quel solide obtient-on ?", opts:["cube","pave","pyramide","prisme"], ans:0},
+    {type:"solidToNet", solide:"cube", q:"Quel patron permet de construire ce solide ?", nets:["cube","cube5","pyramide"], ans:0},
+    {type:"netToName", net:"pyramide", q:"Si on plie ce patron, quel solide obtient-on ?", opts:["pyramide","cube","prisme","cone"], ans:0},
+    {type:"netToName", net:"cylindre", q:"Si on plie ce patron, quel solide obtient-on ?", opts:["cylindre","cone","boule","cube"], ans:0},
+    {type:"solidToNet", solide:"pave", q:"Quel patron permet de construire ce solide ?", nets:["pave","cube","prisme"], ans:0},
+    {type:"solidToNet", solide:"prisme", q:"Quel patron permet de construire ce solide ?", nets:["prisme","pyramide","cone"], ans:0},
+    {type:"netToName", net:"cube2x3", q:"Ce patron a 6 carrés. En le pliant, peut-on faire un cube ?", opts:["Oui","Non"], ans:1,
+     expl:"Non ! Les 6 carrés sont mal placés : en pliant, des faces se retrouvent l'une sur l'autre et il manque des côtés."}
+  ]
+};
+
+/* ============================================================
+   PATRONS — dessins SVG
+   ============================================================ */
+const NETS = (() => {
+  const sq = (x,y,s) => `<rect x="${x}" y="${y}" width="${s}" height="${s}" />`;
+  const rc = (x,y,w,h) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" />`;
+  const pg = pts => `<polygon points="${pts}" />`;
+  const wrap = (vb, inner, fill) =>
+    `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" style="fill:${fill};stroke:#1D3354;stroke-width:2;stroke-linejoin:round">${inner}</svg>`;
+  const grid = (cells, s=24) => cells.map(([cx,cy]) => sq(2+cx*s, 2+cy*s, s)).join("");
+  return {
+    cube:    wrap("0 0 76 100", grid([[1,0],[0,1],[1,1],[2,1],[1,2],[1,3]]), "#D6E6FF"),
+    cube5:   wrap("0 0 76 100", grid([[1,0],[0,1],[1,1],[2,1],[1,2]]), "#D6E6FF"),
+    cube2x3: wrap("0 0 52 76",  grid([[0,0],[1,0],[0,1],[1,1],[0,2],[1,2]]), "#D6E6FF"),
+    pave:    wrap("0 0 70 94",
+      rc(20,2,30,16)+rc(20,18,30,26)+rc(20,44,30,16)+rc(20,60,30,26)+rc(2,18,18,26)+rc(50,18,18,26), "#EBDCFF"),
+    pyramide:wrap("0 0 120 120",
+      rc(45,45,30,30)+pg("45,45 75,45 60,18")+pg("75,45 75,75 102,60")+pg("45,75 75,75 60,102")+pg("45,45 45,75 18,60"), "#FFE3CC"),
+    prisme:  wrap("0 0 96 100",
+      rc(33,3,30,28)+rc(33,31,30,28)+rc(33,59,30,28)+pg("33,31 33,59 8,45")+pg("63,31 63,59 88,45"), "#CFF3EA"),
+    cylindre:wrap("0 0 96 106",
+      `<circle cx="48" cy="16" r="13"/>`+rc(16,31,64,42)+`<circle cx="48" cy="89" r="13"/>`, "#FFF1C4"),
+    cone:    wrap("0 0 120 110",
+      pg("60,14 26,72 94,72").replace("<polygon","<path d=\"M60,14 L26,72 A46,46 0 0 0 94,72 Z\" ").replace(/points="[^"]*" \/>/,"/>")+
+      `<circle cx="42" cy="92" r="14"/>`, "#FFD9E6")
+  };
+})();
+
+/* ============================================================
+   MOTEUR 3D
+   ============================================================ */
+const viewport = document.getElementById("viewport");
+const canvas = document.getElementById("c3d");
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 60);
+camera.position.set(0, 0.6, 6.4);
+camera.lookAt(0,0,0);
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+const dir1 = new THREE.DirectionalLight(0xffffff, 0.75); dir1.position.set(3,5,4); scene.add(dir1);
+const dir2 = new THREE.DirectionalLight(0xffffff, 0.25); dir2.position.set(-4,-2,-3); scene.add(dir2);
+
+let groupe = null, partiesC = null;   // groupe courant + parties (overlays…)
+let autoRot = true, dragging = false, lastX=0, lastY=0, downX=0, downY=0;
+let tapHandler = null;                // callback de tap pour les questions 3D
+const raycaster = new THREE.Raycaster();
+
+function resize(){
+  const w = viewport.clientWidth, h = viewport.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+}
+window.addEventListener("resize", resize);
+
+function clearGroupe(){
+  if(groupe){ scene.remove(groupe); groupe.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material) o.material.dispose(); }); }
+  groupe = null; partiesC = null;
+}
+
+function makeGeo(g){
+  if(g.type==="box") return new THREE.BoxGeometry(...g.args);
+  if(g.type==="cone") return new THREE.ConeGeometry(...g.args);
+  if(g.type==="cylinder") return new THREE.CylinderGeometry(...g.args);
+  return new THREE.SphereGeometry(...g.args);
+}
+
+function faceMesh(pts, normalOut){
+  // polygone coplanaire -> triangulation en éventail, léger décalage vers l'extérieur
+  const n = normalOut.clone().multiplyScalar(0.025);
+  const verts = [];
+  for(let i=1; i<pts.length-1; i++){
+    verts.push(pts[0].x+n.x, pts[0].y+n.y, pts[0].z+n.z);
+    verts.push(pts[i].x+n.x, pts[i].y+n.y, pts[i].z+n.z);
+    verts.push(pts[i+1].x+n.x, pts[i+1].y+n.y, pts[i+1].z+n.z);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(verts, 3));
+  geo.computeVertexNormals();
+  const mat = new THREE.MeshBasicMaterial({color:0xFFC93C, transparent:true, opacity:0, side:THREE.DoubleSide, depthWrite:false});
+  return new THREE.Mesh(geo, mat);
+}
+
+function edgeMesh(p1, p2, radius, opacity, color){
+  const dirV = new THREE.Vector3().subVectors(p2, p1);
+  const len = dirV.length();
+  const geo = new THREE.CylinderGeometry(radius, radius, len, 8);
+  const mat = new THREE.MeshBasicMaterial({color, transparent:true, opacity, depthWrite:opacity>0});
+  const m = new THREE.Mesh(geo, mat);
+  m.position.copy(p1).add(dirV.clone().multiplyScalar(0.5));
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dirV.clone().normalize());
+  return m;
+}
+
+function montrerSolide(key, opts={}){
+  clearGroupe();
+  const S = CONTENU.solides[key];
+  groupe = new THREE.Group();
+  const flat = S.poly;
+  const couleur = opts.neutre ? 0xDDE5F0 : S.couleur;
+  const mat = new THREE.MeshPhongMaterial({color:couleur, flatShading:flat, shininess:30});
+  const mesh = new THREE.Mesh(makeGeo(S.geo), mat);
+  groupe.add(mesh);
+  // contour pour mieux lire les arêtes
+  const eg = new THREE.EdgesGeometry(mesh.geometry, 12);
+  groupe.add(new THREE.LineSegments(eg, new THREE.LineBasicMaterial({color:0x1D3354, transparent:true, opacity:0.55})));
+
+  partiesC = {faces:[], aretes:[], aretesHit:[], sommets:[], key};
+  if(S.poly){
+    const V = S.v.map(a => new THREE.Vector3(...a));
+    const centre = new THREE.Vector3();
+    V.forEach(p => centre.add(p)); centre.multiplyScalar(1/V.length);
+    S.f.forEach(idx => {
+      const pts = idx.map(i => V[i]);
+      const c = new THREE.Vector3(); pts.forEach(p=>c.add(p)); c.multiplyScalar(1/pts.length);
+      const normal = c.clone().sub(centre).normalize();
+      const fm = faceMesh(pts, normal);
+      fm.userData = {type:"face", index:partiesC.faces.length};
+      partiesC.faces.push(fm); groupe.add(fm);
+    });
+    S.e.forEach((pair, i) => {
+      const a = V[pair[0]], b = V[pair[1]];
+      const vis = edgeMesh(a, b, 0.055, 0, 0xFF8A3D);
+      const hit = edgeMesh(a, b, 0.2, 0, 0xffffff);
+      hit.userData = {type:"arete", index:i};
+      partiesC.aretes.push(vis); partiesC.aretesHit.push(hit);
+      groupe.add(vis); groupe.add(hit);
+    });
+    V.forEach((p, i) => {
+      const s = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12),
+        new THREE.MeshBasicMaterial({color:0xFF5D5D, transparent:true, opacity:0}));
+      s.position.copy(p); s.userData = {type:"sommet", index:i};
+      partiesC.sommets.push(s); groupe.add(s);
+    });
+  }
+  groupe.rotation.set(0.35, -0.65, 0);
+  scene.add(groupe);
+}
+
+/* ----- interactions tactiles ----- */
+viewport.addEventListener("pointerdown", e => {
+  dragging = true; lastX = downX = e.clientX; lastY = downY = e.clientY;
+  viewport.setPointerCapture(e.pointerId);
+});
+viewport.addEventListener("pointermove", e => {
+  if(!dragging || !groupe) return;
+  groupe.rotation.y += (e.clientX - lastX) * 0.011;
+  groupe.rotation.x += (e.clientY - lastY) * 0.011;
+  groupe.rotation.x = Math.max(-1.4, Math.min(1.4, groupe.rotation.x));
+  lastX = e.clientX; lastY = e.clientY;
+});
+viewport.addEventListener("pointerup", e => {
+  dragging = false;
+  const moved = Math.hypot(e.clientX-downX, e.clientY-downY);
+  if(moved < 9 && tapHandler && groupe){
+    const r = viewport.getBoundingClientRect();
+    const p = new THREE.Vector2(((e.clientX-r.left)/r.width)*2-1, -((e.clientY-r.top)/r.height)*2+1);
+    raycaster.setFromCamera(p, camera);
+    const cibles = tapHandler.cibles;
+    const hits = raycaster.intersectObjects(cibles, false);
+    if(hits.length) tapHandler.cb(hits[0].object.userData);
+  }
+});
+
+(function boucle(){
+  requestAnimationFrame(boucle);
+  if(groupe && autoRot && !dragging) groupe.rotation.y += 0.0045;
+  renderer.render(scene, camera);
+})();
+
+/* ----- surlignages ----- */
+function resetSurlignages(){
+  if(!partiesC) return;
+  partiesC.faces.forEach(f => { f.material.opacity = 0; f.material.color.set(0xFFC93C); });
+  partiesC.aretes.forEach(a => { a.material.opacity = 0; a.material.color.set(0xFF8A3D); });
+  partiesC.sommets.forEach(s => { s.material.opacity = 0; s.material.color.set(0xFF5D5D); });
+}
+function montreFace(i, couleur=0xFFC93C, op=0.85){ const f=partiesC.faces[i]; f.material.color.set(couleur); f.material.opacity=op; }
+function montreArete(i, couleur=0xFF8A3D){ const a=partiesC.aretes[i]; a.material.color.set(couleur); a.material.opacity=1; }
+function montreSommet(i, couleur=0xFF5D5D){ const s=partiesC.sommets[i]; s.material.color.set(couleur); s.material.opacity=1; }
+
+let seqTimer = null;
+function stopSequence(){ if(seqTimer){ clearInterval(seqTimer); seqTimer=null; } bulle.style.display="none"; }
+const bulle = document.getElementById("counterBubble");
+function sequenceComptage(kind, fin){
+  stopSequence(); resetSurlignages();
+  const liste = kind==="faces" ? partiesC.faces : kind==="aretes" ? partiesC.aretes : partiesC.sommets;
+  let i = 0;
+  bulle.textContent = "0"; bulle.style.display = "block";
+  bip(660, .07);
+  seqTimer = setInterval(() => {
+    if(i < liste.length){
+      if(kind==="faces") montreFace(i); else if(kind==="aretes") montreArete(i); else montreSommet(i);
+      i++; bulle.textContent = i; bip(520 + i*30, .06);
+    } else {
+      clearInterval(seqTimer); seqTimer = null;
+      setTimeout(() => { bulle.style.display="none"; resetSurlignages(); if(fin) fin(); }, 1400);
+    }
+  }, 620);
+}
+
+/* ----- sons ----- */
+let actx = null;
+function bip(freq, dur, type="sine", vol=0.12){
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur);
+    o.connect(g); g.connect(actx.destination);
+    o.start(); o.stop(actx.currentTime + dur);
+  }catch(e){}
+}
+function sonBravo(){ bip(620,.1); setTimeout(()=>bip(820,.12),100); setTimeout(()=>bip(1040,.16),210); }
+function sonRate(){ bip(220,.22,"square",.08); }
+
+/* ----- confettis (CHARTE.md, section 4) ----- */
+function lancerConfettis(){
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const conteneur = document.getElementById('confettis-conteneur');
+  const couleurs = ['var(--mandarine)', 'var(--menthe)', 'var(--corail)', 'var(--soleil)'];
+  const total = 36;
+  for (let i = 0; i < total; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti';
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.backgroundColor = couleurs[Math.floor(Math.random() * couleurs.length)];
+    p.style.animationDuration = (0.9 + Math.random() * 0.9) + 's';
+    p.style.animationDelay = (Math.random() * 0.15) + 's';
+    p.style.transform = 'rotate(' + Math.floor(Math.random() * 360) + 'deg)';
+    conteneur.appendChild(p);
+    p.addEventListener('animationend', () => p.remove());
+    setTimeout(() => p.remove(), 2500);
+  }
+}
+
+/* ============================================================
+   ÉTOILES : stockage sûr (mémoire + localStorage best-effort)
+   Pattern imposé par CHARTE.md section 9 — cf. M17 pour référence.
+   ============================================================ */
+const CLE_STOCKAGE = 'mayeutik-m36-solides-etoiles';
+let memoireEtoiles = null;
+
+function lireEtoiles() {
+  if (memoireEtoiles === null) {
+    memoireEtoiles = {};
+    try {
+      const brut = window.localStorage.getItem(CLE_STOCKAGE);
+      if (brut) memoireEtoiles = JSON.parse(brut);
+    } catch (e) {
+      memoireEtoiles = {};
+    }
+  }
+  return memoireEtoiles;
+}
+function enregistrerEtoiles(jeuId, valeur) {
+  const tout = lireEtoiles();
+  tout[jeuId] = Math.max(tout[jeuId] || 0, valeur);
+  memoireEtoiles = tout;
+  try {
+    window.localStorage.setItem(CLE_STOCKAGE, JSON.stringify(tout));
+  } catch (e) {
+    // localStorage indisponible : les étoiles restent valables pour la session en cours.
+  }
+}
+
+/* ============================================================
+   SESSIONS : contrat de données v1 (CHARTE.md, section 11)
+   Même implémentation que M17, avec MODULE_ID adapté.
+   ============================================================ */
+const CLE_SESSIONS = 'mayeutik-sessions';
+const CLE_PROFIL_ACTIF = 'mayeutik-profil-actif';
+const MODULE_ID = 'M36';
+const MAX_SESSIONS_PAR_PROFIL = 500;
+
+let memoireProfilActif = null;
+let memoireSessions = null;
+
+function lireProfilActif() {
+  if (memoireProfilActif === null) {
+    memoireProfilActif = 'p1';
+    try {
+      const brut = window.localStorage.getItem(CLE_PROFIL_ACTIF);
+      if (brut) memoireProfilActif = brut;
+    } catch (e) {
+      memoireProfilActif = 'p1';
+    }
+  }
+  return memoireProfilActif;
+}
+
+function lireSessions() {
+  if (memoireSessions === null) {
+    memoireSessions = [];
+    try {
+      const brut = window.localStorage.getItem(CLE_SESSIONS);
+      if (brut) memoireSessions = JSON.parse(brut);
+    } catch (e) {
+      memoireSessions = [];
+    }
+  }
+  return memoireSessions;
+}
+
+// Écrit une session brute à la fin d'un mini-jeu TERMINÉ (jamais pour une
+// partie abandonnée). `competence` = id du mini-jeu (granularité fine).
+function enregistrerSession(competence, score, total, duree) {
+  const profilId = lireProfilActif();
+  const toutes = lireSessions();
+  toutes.push({
+    profilId,
+    module: MODULE_ID,
+    competence,
+    score,
+    total,
+    date: new Date().toISOString(),
+    duree
+  });
+
+  // Plafond : au maximum les 500 dernières sessions par profil.
+  let compteur = 0;
+  for (let i = toutes.length - 1; i >= 0; i--) {
+    if (toutes[i].profilId === profilId) {
+      compteur++;
+      if (compteur > MAX_SESSIONS_PAR_PROFIL) {
+        toutes.splice(i, 1);
+      }
+    }
+  }
+
+  memoireSessions = toutes;
+  try {
+    window.localStorage.setItem(CLE_SESSIONS, JSON.stringify(toutes));
+  } catch (e) {
+    // localStorage indisponible : la session reste valable pour la session en cours.
+  }
+}
+
+/* ============================================================
+   GÉNÉRATION DES QUESTIONS
+   ============================================================ */
+const melange = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const pioche = a => a[Math.floor(Math.random()*a.length)];
+const CLES = Object.keys(CONTENU.solides);
+const POLYS = CLES.filter(k => CONTENU.solides[k].poly);
+
+function qNomme(){
+  const base = melange([...CLES, pioche(CLES), pioche(CLES), pioche(CLES)]);
+  return base.map(k => {
+    const autres = melange(CLES.filter(x => x!==k)).slice(0,3);
+    return {mode:"nomme", solide:k, q:"Comment s'appelle ce solide ?",
+      opts:melange([k, ...autres]), ans:k, fmt:x=>CONTENU.solides[x].court};
+  });
+}
+function qPolyedre(){
+  return melange([...CLES, pioche(CLES)]).map(k => {
+    const S = CONTENU.solides[k];
+    return {mode:"polyedre", solide:k, q:`${maj(S.nom)} est-il un polyèdre ?`,
+      opts:["Polyèdre ✔","Pas un polyèdre ✖"], ans:S.poly?0:1, idx:true,
+      expl:`${maj(S.nom)} : ${S.poly?CONTENU.explicationPoly.oui:CONTENU.explicationPoly.non}`};
+  });
+}
+function qCompte(){
+  const kinds = ["faces","sommets","aretes"];
+  const noms = {faces:"faces", sommets:"sommets", aretes:"arêtes"};
+  const combos = [];
+  POLYS.forEach(k => kinds.forEach(t => combos.push([k,t])));
+  return melange(combos).slice(0,9).map(([k,t]) => {
+    const S = CONTENU.solides[k];
+    const n = t==="faces" ? S.f.length : t==="sommets" ? S.v.length : S.e.length;
+    const distr = new Set();
+    while(distr.size<3){ const d = n + pioche([-3,-2,-1,1,2,3,4]); if(d>0 && d!==n) distr.add(d); }
+    return {mode:"compte", solide:k, kind:t, ans:n,
+      q:`Combien de ${noms[t]} a ${S.nom} ?`,
+      opts:melange([n, ...distr]), fmt:x=>String(x), aide:true};
+  });
+}
+function qExplore(){
+  return [
+    {mode:"explore", type:"areteFaces", solide:"cube",
+     q:"Regarde l'arête orange. Combien de faces sépare-t-elle ?", opts:[1,2,3], ans:2},
+    {mode:"explore", type:"opposee", solide:"cube",
+     q:"Tape la face OPPOSÉE à la face bleue !"},
+    {mode:"explore", type:"sommetFaces", solide:"cube", sommet:null,
+     q:"Regarde le sommet rouge. Combien de faces se rejoignent à ce sommet ?", opts:[2,3,4], ans:3},
+    {mode:"explore", type:"areteTap", solide:"cube",
+     q:"Tape l'arête qui sépare les deux faces colorées !"},
+    {mode:"explore", type:"opposee", solide:"pave",
+     q:"Tape la face OPPOSÉE à la face bleue !"},
+    {mode:"explore", type:"sommetFaces", solide:"pyramide", sommet:0,
+     q:"Regarde le sommet rouge, en haut. Combien de faces se rejoignent à ce sommet ?", opts:[3,4,5], ans:4},
+    {mode:"explore", type:"sommetFaces", solide:"pyramide", sommet:2,
+     q:"Regarde le sommet rouge, en bas. Combien de faces se rejoignent à ce sommet ?", opts:[2,3,4], ans:3},
+    {mode:"explore", type:"areteFaces", solide:"prisme",
+     q:"Regarde l'arête orange. Combien de faces sépare-t-elle ?", opts:[1,2,3], ans:2}
+  ];
+}
+function qPatrons(){ return CONTENU.patrons.map(p => ({...p, mode:"patrons"})); }
+function qDevinettes(){
+  return melange(CONTENU.devinettes).slice(0,8).map(d => {
+    const autres = melange(CLES.filter(x => x !== d.ans)).slice(0,3);
+    return {mode:"devinette", q:d.q, ans:d.ans,
+      opts:melange([d.ans, ...autres]), fmt:x=>CONTENU.solides[x].court};
+  });
+}
+
+const maj = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+/* ============================================================
+   ÉCRANS & DÉROULÉ
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const ecrans = {home:$("home"), discover:$("discover"), game:$("game"), end:$("end")};
+let file = [], pos = 0, score = 0, modeCourant = null, demarreLe = 0;
+
+function montreEcran(nom){
+  Object.values(ecrans).forEach(e => e.hidden = true);
+  ecrans[nom].hidden = false;
+  $("btnBack").hidden = (nom === "home");
+  $("dots").innerHTML = "";
+  // replacer le viewport 3D au bon endroit
+  const slot = nom==="discover" ? $("viewportSlot1") : nom==="game" ? $("viewportSlot2") : null;
+  if(slot){ slot.appendChild(viewport); viewport.style.display="block"; requestAnimationFrame(resize); }
+  else viewport.style.display = "none";
+}
+
+$("btnBack").addEventListener("click", () => { stopSequence(); tapHandler=null; document.querySelectorAll(".patronTmp").forEach(el=>el.remove()); montreEcran("home"); majEtoilesHome(); });
+
+document.querySelectorAll(".card").forEach(c => c.addEventListener("click", () => lance(c.dataset.mode)));
+
+function lance(mode){
+  modeCourant = mode;
+  if(mode === "decouvre"){ initDecouverte(); return; }
+  file = mode==="nomme" ? qNomme() : mode==="polyedre" ? qPolyedre()
+       : mode==="compte" ? qCompte() : mode==="explore" ? qExplore()
+       : mode==="devinette" ? qDevinettes() : qPatrons();
+  pos = 0; score = 0;
+  demarreLe = Date.now();
+  const titres = {nomme:"Qui suis-je ?", polyedre:"Polyèdre ?", compte:"Je compte", explore:"J'explore", devinette:"Devinettes", patrons:"Les patrons"};
+  $("hdrTitle").textContent = titres[mode];
+  montreEcran("game");
+  majDots();
+  question();
+}
+
+function majDots(){
+  $("dots").innerHTML = file.map((_,i) =>
+    `<span class="dot ${i<pos ? (file[i]._ok?"ok":"ko") : i===pos ? "cur" : ""}"></span>`).join("");
+}
+
+function question(){
+  stopSequence(); tapHandler = null;
+  const q = file[pos];
+  $("qText").textContent = q.q;
+  $("feedback").textContent = ""; $("feedback").className = "";
+  $("btnNext").style.display = "none";
+  $("btnShow").style.display = "none";
+  $("hint3d").style.display = "block";
+  const ans = $("answers"); ans.innerHTML = ""; ans.classList.remove("uno"); ans.style.gridTemplateColumns = "";
+  document.querySelectorAll(".patronTmp").forEach(el => el.remove());
+  autoRot = true;
+
+  /* --- mise en place 3D / SVG selon le type --- */
+  if(q.mode === "devinette"){
+    viewport.style.display = "none";
+  } else if(q.mode === "patrons" && q.type !== "solidToNet"){
+    viewport.style.display = "none";
+    // patron en grand au-dessus des réponses
+    const d = document.createElement("div");
+    d.className = "patronTmp";
+    d.style.cssText = "background:var(--carte);border-radius:var(--r);box-shadow:var(--ombre);padding:10px;display:flex;justify-content:center;margin-bottom:2px;";
+    d.innerHTML = `<div style="height:170px;display:flex;justify-content:center">${NETS[q.net]}</div>`;
+    const svg = d.querySelector("svg");
+    svg.style.height = "100%"; svg.style.width = "auto";
+    $("qText").after(d);
+    q._tmp = d;
+  } else {
+    viewport.style.display = "block";
+    montrerSolide(q.solide, {neutre: q.mode === "explore"});
+    requestAnimationFrame(resize);
+  }
+
+  if(q.mode === "compte" && q.aide){
+    $("btnShow").style.display = "block";
+    $("btnShow").onclick = () => sequenceComptage(q.kind);
+  }
+
+  if(q.mode === "explore") prepareExplore(q);
+
+  /* --- réponses --- */
+  if(q.opts || q.nets){
+    if(q.mode==="patrons" && q.type==="solidToNet"){
+      ans.innerHTML = "";
+      q.nets.forEach((n, i) => {
+        const b = document.createElement("button");
+        b.className = "rep"; b.innerHTML = NETS[n];
+        if(i === q.ans) b.dataset.correct = "1";
+        b.onclick = () => repond(i === q.ans, b, q);
+        ans.appendChild(b);
+      });
+      if(q.nets.length===3) ans.classList.add("uno"), ans.style.gridTemplateColumns="1fr 1fr 1fr";
+    } else {
+      q.opts.forEach((o, i) => {
+        const b = document.createElement("button");
+        b.className = "rep";
+        b.textContent = q.fmt ? q.fmt(o) : (q.mode==="patrons"&&q.type==="netToName" ? CONTENU.solides[o]?.court ?? o : String(o));
+        const bon = q.idx!==undefined||q.mode==="polyedre" ? (i===q.ans)
+                  : (q.mode==="patrons" ? i===q.ans : o===q.ans);
+        if(bon) b.dataset.correct = "1";
+        b.onclick = () => repond(bon, b, q);
+        ans.appendChild(b);
+      });
+      if(q.opts.length===2) ans.classList.add("uno");
+    }
+  }
+  majDots();
+}
+
+function prepareExplore(q){
+  resetSurlignages();
+  const S = CONTENU.solides[q.solide];
+  if(q.type === "areteFaces"){
+    q._arete = Math.floor(Math.random()*S.e.length);
+    montreArete(q._arete);
+  }
+  if(q.type === "sommetFaces"){
+    q._som = q.sommet ?? Math.floor(Math.random()*S.v.length);
+    montreSommet(q._som);
+  }
+  if(q.type === "opposee"){
+    q._face = Math.floor(Math.random()*S.f.length);
+    montreFace(q._face, 0x4D96FF, 0.9);
+    const paire = S.fOpp.find(p => p.includes(q._face));
+    q._cible = paire[0]===q._face ? paire[1] : paire[0];
+    $("hint3d").style.display = "none";
+    tapHandler = {cibles:partiesC.faces, cb:d => {
+      if(d.index === q._face) return;       // re-taper la face bleue : ignoré
+      const bon = d.index === q._cible;
+      if(bon) montreFace(d.index, 0x2EC4A6, 0.9);
+      else { montreFace(d.index, 0xFF5D5D, 0.9); montreFace(q._cible, 0x2EC4A6, 0.9); }
+      repond(bon, null, q);
+    }};
+  }
+  if(q.type === "areteTap"){
+    const ei = Math.floor(Math.random()*S.e.length);
+    const [a,b] = S.e[ei];
+    const fcs = S.f.map((f,i)=>i).filter(i => S.f[i].includes(a) && S.f[i].includes(b));
+    montreFace(fcs[0], 0x4D96FF, 0.85);
+    montreFace(fcs[1], 0xFFC93C, 0.95);
+    q._cible = ei;
+    $("hint3d").style.display = "none";
+    tapHandler = {cibles:partiesC.aretesHit, cb:d => {
+      const bon = d.index === q._cible;
+      montreArete(d.index, bon ? 0x2EC4A6 : 0xFF5D5D);
+      if(!bon) montreArete(q._cible, 0x2EC4A6);
+      repond(bon, null, q);
+    }};
+  }
+}
+
+function repond(bon, bouton, q){
+  tapHandler = null;
+  document.querySelectorAll(".rep").forEach(b => { b.disabled = true; if(b!==bouton) b.classList.add("dim"); });
+  if(bouton) bouton.classList.add(bon ? "ok" : "ko");
+  if(!bon){
+    const correct = document.querySelector('.rep[data-correct]');
+    if(correct){ correct.classList.remove("dim"); correct.classList.add("ok"); }
+  }
+  if(q.mode === "devinette"){
+    viewport.style.display = "block";
+    montrerSolide(q.ans);
+    requestAnimationFrame(resize);
+  }
+  q._ok = bon;
+  if(bon){ score++; sonBravo(); lancerConfettis(); $("feedback").textContent = pioche(CONTENU.bravo) + (q.expl ? " " + q.expl : ""); $("feedback").className = "bon"; }
+  else {
+    sonRate();
+    let correction = "";
+    if(q.mode==="nomme" || q.mode==="devinette") correction = `C'était ${CONTENU.solides[q.ans].nom} !`;
+    else if(q.mode==="compte") correction = `La bonne réponse était ${q.ans}. Appuie sur 👀 pour vérifier !`;
+    else if(q.expl) correction = q.expl;
+    else if(q.opts){
+      const estIndex = q.idx !== undefined || q.mode==="polyedre" || q.mode==="patrons";
+      const val = estIndex ? q.opts[q.ans] : q.ans;
+      const lbl = (q.mode==="patrons" && q.type==="netToName") ? (CONTENU.solides[val]?.court ?? val) : val;
+      correction = `La bonne réponse était : ${lbl}`;
+    }
+    $("feedback").textContent = "Presque ! " + correction;
+    $("feedback").className = "mauvais";
+  }
+  if(q.expl && bon===false){ $("feedback").textContent = "Presque ! " + q.expl; }
+  $("btnNext").style.display = "block";
+  $("btnNext").textContent = pos === file.length-1 ? "Voir mon score ⭐" : "Suivant ➜";
+  majDots();
+}
+
+$("btnNext").addEventListener("click", () => {
+  const q = file[pos];
+  if(q._tmp){ q._tmp.remove(); q._tmp = null; }
+  pos++;
+  if(pos < file.length) question();
+  else fin();
+});
+
+function fin(){
+  stopSequence(); tapHandler = null;
+  const ratio = score / file.length;
+  const n = ratio >= 0.85 ? 3 : ratio >= 0.6 ? 2 : 1;
+  enregistrerEtoiles(modeCourant, n);
+  const dureeSecondes = Math.max(0, Math.round((Date.now() - demarreLe) / 1000));
+  enregistrerSession(modeCourant, score, file.length, dureeSecondes);
+  $("hdrTitle").textContent = "Résultat";
+  montreEcran("end");
+  $("endStars").innerHTML = "⭐".repeat(n).split("").map(s=>`<span>${s}</span>`).join("") +
+    "<span style='filter:grayscale(1);opacity:.35'>"+"⭐".repeat(3-n)+"</span>";
+  $("endMsg").textContent = n===3 ? "Incroyable, tu es un champion des solides !" : n===2 ? "Très bien joué !" : "Bon début, continue à t'entraîner !";
+  $("endScore").textContent = `${score} bonnes réponses sur ${file.length}`;
+  sonBravo();
+  if(n === 3) lancerConfettis();
+}
+$("bRejouer").addEventListener("click", () => lance(modeCourant));
+$("bMenu").addEventListener("click", () => { montreEcran("home"); majEtoilesHome(); });
+
+function majEtoilesHome(){
+  $("hdrTitle").textContent = "Les Solides";
+  const tout = lireEtoiles();
+  document.querySelectorAll("[data-stars]").forEach(el => {
+    const n = tout[el.dataset.stars] || 0;
+    el.textContent = n ? "⭐".repeat(n) : "";
+  });
+}
+
+/* ============================================================
+   MODE DÉCOUVERTE
+   ============================================================ */
+let decToggles = {faces:false, aretes:false, sommets:false};
+function initDecouverte(){
+  $("hdrTitle").textContent = "Découvre";
+  montreEcran("discover");
+  const chips = $("chips");
+  chips.innerHTML = "";
+  CLES.forEach((k, i) => {
+    const b = document.createElement("button");
+    b.className = "chip" + (i===0 ? " sel" : "");
+    b.textContent = CONTENU.solides[k].court;
+    b.onclick = () => { document.querySelectorAll(".chip").forEach(c=>c.classList.remove("sel")); b.classList.add("sel"); montreDecouverte(k); };
+    chips.appendChild(b);
+  });
+  montreDecouverte(CLES[0]);
+}
+function montreDecouverte(k){
+  stopSequence();
+  montrerSolide(k);
+  requestAnimationFrame(resize);
+  decToggles = {faces:false, aretes:false, sommets:false};
+  document.querySelectorAll(".tog").forEach(t => t.classList.remove("on"));
+  const S = CONTENU.solides[k];
+  const peut = S.poly;
+  document.querySelectorAll(".tog").forEach(t => { t.disabled = !peut; t.style.opacity = peut ? "1" : ".4"; });
+  let lignes;
+  if(S.poly){
+    lignes = `<div class="ligne">🟧 <b>${S.f.length}</b> faces &nbsp;·&nbsp; 📏 <b>${S.e.length}</b> arêtes &nbsp;·&nbsp; 🔴 <b>${S.v.length}</b> sommets</div>`;
+  } else {
+    lignes = `<div class="ligne">${S.info}</div>`;
+  }
+  $("infoCard").innerHTML = `
+    <h2>${maj(S.nom)} <span class="badge ${S.poly?"poly":"nonpoly"}">${S.poly?"POLYÈDRE":"PAS UN POLYÈDRE"}</span></h2>
+    ${lignes}
+    <div class="objet">Dans la vie : comme ${S.objet}</div>`;
+  $("infoCard").dataset.solide = k;
+}
+document.querySelectorAll(".tog").forEach(t => t.addEventListener("click", () => {
+  const k = $("infoCard").dataset.solide;
+  if(!CONTENU.solides[k].poly) return;
+  const type = t.dataset.t;
+  decToggles[type] = !decToggles[type];
+  t.classList.toggle("on", decToggles[type]);
+  resetSurlignages();
+  if(decToggles.faces) partiesC.faces.forEach((_,i)=>montreFace(i,0xFFC93C,0.5));
+  if(decToggles.aretes) partiesC.aretes.forEach((_,i)=>montreArete(i));
+  if(decToggles.sommets) partiesC.sommets.forEach((_,i)=>montreSommet(i));
+}));
+
+/* ============================================================
+   DÉMARRAGE
+   ============================================================ */
+montreEcran("home");
+majEtoilesHome();
+resize();
+</script>
+</body>
+</html>
