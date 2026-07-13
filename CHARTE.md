@@ -383,6 +383,18 @@ Une partie ne doit pas reproduire la même série de questions que la précéden
 
 Dans les deux cas, éviter de reposer exactement le même item deux parties de suite quand la taille de la banque le permet.
 
+### Cas particulier : modules d'évaluation (type E)
+
+Un module **"E"** doit reproduire **strictement** le format officiel de la fiche Repères correspondante (cf. PRODUIT.md, section « Modules d'évaluation (type E) ») : nombre d'items, chronométrage, nombre et type de propositions, registre de difficulté. **Ce moule est immuable** — on n'y applique jamais les libertés de format qu'un module M pourrait prendre.
+
+En revanche, les **valeurs concrètes des items sont régénérées à chaque passation**, par tirage procédural dans le registre de difficulté défini par la fiche. Deux raisons à cela :
+- que **rejouer entraîne réellement** — l'élève ne doit pas pouvoir mémoriser des réponses plutôt que la compétence ;
+- que **deux passages soient comparables** pour le suivi de progression (même format, même niveau de difficulté, valeurs différentes).
+
+**Exception** : lorsqu'un exercice ne peut pas être régénéré par formule (figure géométrique spécifique, suite de nombres donnée dans la fiche...), utiliser une **petite banque de variantes équivalentes**, ou à défaut un **contenu figé** — la fiche officielle fait foi dans tous les cas.
+
+Règle absolue : on ne touche **jamais** au format (nombre d'items, chronométrage, type de propositions), **seulement** au contenu.
+
 ---
 
 ## Résumé technique
