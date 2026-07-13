@@ -704,6 +704,14 @@ function enregistrerSession(competence, score, total, duree) {
    ============================================================ */
 const melange = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
 const pioche = a => a[Math.floor(Math.random()*a.length)];
+// CHARTE.md section 13 : mélange les options d'un QCM à index (comme les
+// patrons ou "polyèdre ?", où la bonne réponse est repérée par sa position),
+// et recalcule l'index correct après mélange.
+function melangerOptions(options, indexCorrect){
+  const enveloppes = options.map((valeur, i) => ({valeur, estCorrecte: i === indexCorrect}));
+  const melangees = melange(enveloppes);
+  return {options: melangees.map(e => e.valeur), indexCorrect: melangees.findIndex(e => e.estCorrecte)};
+}
 const CLES = Object.keys(CONTENU.solides);
 const POLYS = CLES.filter(k => CONTENU.solides[k].poly);
 
@@ -718,8 +726,9 @@ function qNomme(){
 function qPolyedre(){
   return melange([...CLES, pioche(CLES)]).map(k => {
     const S = CONTENU.solides[k];
+    const {options, indexCorrect} = melangerOptions(["Polyèdre ✔","Pas un polyèdre ✖"], S.poly?0:1);
     return {mode:"polyedre", solide:k, q:`${maj(S.nom)} est-il un polyèdre ?`,
-      opts:["Polyèdre ✔","Pas un polyèdre ✖"], ans:S.poly?0:1, idx:true,
+      opts:options, ans:indexCorrect, idx:true,
       expl:`${maj(S.nom)} : ${S.poly?CONTENU.explicationPoly.oui:CONTENU.explicationPoly.non}`};
   });
 }
@@ -739,26 +748,38 @@ function qCompte(){
   });
 }
 function qExplore(){
-  return [
+  return melange([
     {mode:"explore", type:"areteFaces", solide:"cube",
-     q:"Regarde l'arête orange. Combien de faces sépare-t-elle ?", opts:[1,2,3], ans:2},
+     q:"Regarde l'arête orange. Combien de faces sépare-t-elle ?", opts:melange([1,2,3]), ans:2},
     {mode:"explore", type:"opposee", solide:"cube",
      q:"Tape la face OPPOSÉE à la face bleue !"},
     {mode:"explore", type:"sommetFaces", solide:"cube", sommet:null,
-     q:"Regarde le sommet rouge. Combien de faces se rejoignent à ce sommet ?", opts:[2,3,4], ans:3},
+     q:"Regarde le sommet rouge. Combien de faces se rejoignent à ce sommet ?", opts:melange([2,3,4]), ans:3},
     {mode:"explore", type:"areteTap", solide:"cube",
      q:"Tape l'arête qui sépare les deux faces colorées !"},
     {mode:"explore", type:"opposee", solide:"pave",
      q:"Tape la face OPPOSÉE à la face bleue !"},
     {mode:"explore", type:"sommetFaces", solide:"pyramide", sommet:0,
-     q:"Regarde le sommet rouge, en haut. Combien de faces se rejoignent à ce sommet ?", opts:[3,4,5], ans:4},
+     q:"Regarde le sommet rouge, en haut. Combien de faces se rejoignent à ce sommet ?", opts:melange([3,4,5]), ans:4},
     {mode:"explore", type:"sommetFaces", solide:"pyramide", sommet:2,
-     q:"Regarde le sommet rouge, en bas. Combien de faces se rejoignent à ce sommet ?", opts:[2,3,4], ans:3},
+     q:"Regarde le sommet rouge, en bas. Combien de faces se rejoignent à ce sommet ?", opts:melange([2,3,4]), ans:3},
     {mode:"explore", type:"areteFaces", solide:"prisme",
-     q:"Regarde l'arête orange. Combien de faces sépare-t-elle ?", opts:[1,2,3], ans:2}
-  ];
+     q:"Regarde l'arête orange. Combien de faces sépare-t-elle ?", opts:melange([1,2,3]), ans:2}
+  ]);
 }
-function qPatrons(){ return CONTENU.patrons.map(p => ({...p, mode:"patrons"})); }
+function qPatrons(){
+  return melange(CONTENU.patrons.map(p => {
+    if(p.opts){
+      const {options, indexCorrect} = melangerOptions(p.opts, p.ans);
+      return {...p, mode:"patrons", opts:options, ans:indexCorrect};
+    }
+    if(p.nets){
+      const {options, indexCorrect} = melangerOptions(p.nets, p.ans);
+      return {...p, mode:"patrons", nets:options, ans:indexCorrect};
+    }
+    return {...p, mode:"patrons"};
+  }));
+}
 function qDevinettes(){
   return melange(CONTENU.devinettes).slice(0,8).map(d => {
     const autres = melange(CLES.filter(x => x !== d.ans)).slice(0,3);
