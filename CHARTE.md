@@ -338,6 +338,53 @@ Les modules de type **"E"** (évaluations Repères, cf. PRODUIT.md) sont **chron
 
 ---
 
+## 13. Variété et randomisation (obligatoire pour tous les jeux)
+
+Ces règles sont un **critère de conformité** : tout nouveau jeu ajouté à `/jeux` doit les respecter, au même titre que le reste de la charte.
+
+### Position des réponses (QCM)
+
+Dans tout QCM, l'ordre des propositions doit être **mélangé à chaque affichage** (algorithme de Fisher-Yates), en recalculant l'index de la bonne réponse après mélange. La bonne réponse ne doit **JAMAIS** occuper une position fixe (ex. toujours en 2ᵉ position).
+
+Fonction utilitaire de référence à copier dans chaque nouveau jeu :
+
+```js
+function melanger(tableau) {
+  const copie = [...tableau];
+  for (let i = copie.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copie[i], copie[j]] = [copie[j], copie[i]];
+  }
+  return copie;
+}
+
+function melangerOptions(options, indexCorrect) {
+  const enveloppes = options.map((valeur, i) => ({ valeur, estCorrecte: i === indexCorrect }));
+  const melangees = melanger(enveloppes);
+  return {
+    options: melangees.map((e) => e.valeur),
+    indexCorrect: melangees.findIndex((e) => e.estCorrecte)
+  };
+}
+```
+
+### Ordre des questions
+
+L'ordre des questions d'un mini-jeu est **mélangé par défaut à chaque partie** (même algorithme de Fisher-Yates, appliqué au tableau de questions).
+
+Exception : un mini-jeu peut déclarer une **contrainte d'ordre explicite** entre deux questions (ex. « la question B doit suivre la question A », pour une progression pédagogique précise). Dans ce cas : mélanger d'abord normalement, **puis** rétablir la contrainte en repositionnant les questions concernées après coup — la contrainte ne dispense jamais du mélange du reste.
+
+### Variété entre sessions
+
+Une partie ne doit pas reproduire la même série de questions que la précédente. Deux stratégies selon la nature du contenu :
+
+- **Génération procédurale** (calcul, nombres, fractions...) : fabriquer les questions par tirage aléatoire de paramètres à **chaque partie** (cf. M17, `jeux/M17-fractions-ce2.html`). À privilégier dès que le contenu s'y prête.
+- **Banque + tirage** (contenu fini : géographie, solides, vocabulaire...) : écrire une banque de questions **sensiblement plus grande** que le nombre posé par partie — viser **au moins 2 à 3 fois plus** — et en tirer un sous-ensemble aléatoire à chaque partie (cf. M36, `jeux/M36-solides.html`).
+
+Dans les deux cas, éviter de reposer exactement le même item deux parties de suite quand la taille de la banque le permet.
+
+---
+
 ## Résumé technique
 
 | Aspect | Choix |
@@ -354,3 +401,4 @@ Les modules de type **"E"** (évaluations Repères, cf. PRODUIT.md) sont **chron
 | Test & publication | Test manuel via le fichier "Raw" téléchargé depuis la PR, avant fusion dans `main` |
 | Progression & acquis | Contrat de données v1 : sessions brutes écrites par les jeux, statuts calculés côté coquille |
 | Mode chronométré | Modules "E" uniquement : temps imparti par exercice (référentiel), arrêt net à expiration, pas de rattrapage |
+| Variété & randomisation | QCM mélangés (Fisher-Yates), questions mélangées par partie, banque ≥ 2-3× le nombre posé ou génération procédurale |
