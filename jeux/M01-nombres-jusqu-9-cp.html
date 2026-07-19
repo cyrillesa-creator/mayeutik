@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="color-scheme" content="light only">
+<title>Le Jardin des Petites Bêtes – Mayeutik</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --couleur-fond: #FFF8EF;
+    --couleur-encre: #2B2B2B;
+    --couleur-mandarine: #FF8C42;
+    --couleur-menthe: #4ECDC4;
+    --couleur-corail: #FF6B6B;
+    --couleur-soleil: #FFD93D;
+    color-scheme: light only;
+  }
+  @media (prefers-color-scheme: dark) {
+    html { background-color: var(--couleur-fond); }
+    body { background-color: var(--couleur-fond); color: var(--couleur-encre); }
+    input, select, textarea, button { background-color: #FFFFFF; color: var(--couleur-encre); }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; background:var(--couleur-fond); color:var(--couleur-encre); overflow-x:hidden; }
+  body { font-family:'Fredoka', system-ui, sans-serif; min-height:100vh; padding-bottom:2rem; }
+  button { font-family:inherit; cursor:pointer; }
+  h1,h2,h3{ font-weight:700; margin:0 0 .4rem; }
+
+  #ecran-accueil { max-width:640px; margin:0 auto; padding:1.2rem 1rem 2rem; }
+  .entete-accueil { text-align:center; margin-bottom:1.2rem; }
+  .entete-accueil h1 { font-size:1.6rem; color:var(--couleur-mandarine); }
+  .entete-accueil p { margin:0; font-size:1rem; font-weight:500; opacity:.85; }
+  .grille-jeux { display:grid; grid-template-columns:repeat(2,1fr); gap:.9rem; }
+  @media (max-width:360px){ .grille-jeux{ grid-template-columns:1fr; } }
+  .carte-jeu {
+    --c: var(--couleur-mandarine);
+    display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+    text-align:center; gap:.3rem;
+    background: color-mix(in srgb, var(--c) 16%, white);
+    border:3px solid var(--c); border-radius:20px; padding:.8rem .6rem;
+    max-height:34vh; min-height:9.5rem;
+    box-shadow:0 4px 0 color-mix(in srgb, var(--c) 55%, black 6%);
+  }
+  .carte-jeu:active { transform:translateY(2px); box-shadow:0 2px 0 color-mix(in srgb, var(--c) 55%, black 6%); }
+  .carte-jeu.carte-menthe{ --c:var(--couleur-menthe); }
+  .carte-jeu.carte-corail{ --c:var(--couleur-corail); }
+  .carte-jeu.carte-soleil{ --c:var(--couleur-soleil); }
+  .carte-jeu .icone{ font-size:1.9rem; line-height:1; }
+  .carte-jeu h2{ font-size:1rem; }
+  .carte-jeu p{ font-size:.76rem; font-weight:400; margin:0; opacity:.85; }
+  .etoiles{ display:inline-flex; gap:2px; font-size:1.1rem; letter-spacing:-1px; }
+  .etoile{ color:rgba(43,43,43,.2); }
+  .etoile.pleine{ color:var(--couleur-soleil); text-shadow:0 0 1px rgba(43,43,43,.35); }
+
+  #ecran-jeu{ max-width:640px; margin:0 auto; padding:.8rem 1rem 2.5rem; }
+  .entete-jeu{ display:flex; align-items:center; gap:.6rem; margin-bottom:.8rem; }
+  .bouton-retour{
+    flex:0 0 auto; min-height:44px; min-width:44px; border-radius:14px; border:none;
+    background:var(--couleur-encre); color:var(--couleur-fond); font-size:1.2rem; font-weight:600; padding:0 .9rem;
+  }
+  .entete-jeu-titres{ flex:1; min-width:0; }
+  .entete-jeu-titres h2{ font-size:1.1rem; color:var(--couleur-mandarine); }
+  .entete-jeu-titres .progression{ font-size:.85rem; font-weight:500; opacity:.75; }
+  #zone-jeu{
+    background:#ffffff; border-radius:20px;
+    border:3px solid color-mix(in srgb, var(--couleur-encre) 12%, white);
+    padding:1.1rem .9rem; min-height:40vh;
+  }
+  .consigne{ text-align:center; font-size:1.08rem; font-weight:600; margin:0; }
+  .legende{ text-align:center; font-size:.9rem; font-weight:400; opacity:.85; margin-top:.9rem; }
+
+  .bloc-consigne{ display:flex; align-items:center; justify-content:center; gap:.6rem; margin-bottom:.8rem; flex-wrap:wrap; }
+  .bouton-son{
+    min-width:44px; min-height:44px; border-radius:50%;
+    border:2.5px solid var(--couleur-mandarine); background:#ffffff;
+    font-size:1.3rem; display:flex; align-items:center; justify-content:center; flex:0 0 auto;
+  }
+  .bouton-son:active{ transform:translateY(2px); }
+
+  .grille-options{ display:grid; grid-template-columns:repeat(2,1fr); gap:.6rem; margin-top:.5rem; }
+  .bouton-option{
+    min-height:3.4rem; border-radius:16px; border:2.5px solid var(--couleur-encre); background:#ffffff;
+    display:flex; align-items:center; justify-content:center; padding:.4rem;
+  }
+  .bouton-option:disabled{ opacity:.6; }
+  .bouton-option.correct{ background:color-mix(in srgb, var(--couleur-menthe) 45%, white); border-color:var(--couleur-menthe); }
+  .bouton-option.incorrect{ background:color-mix(in srgb, var(--couleur-corail) 35%, white); border-color:var(--couleur-corail); }
+
+  .bouton-principal{
+    display:block; margin:.8rem auto 0; min-height:44px; border-radius:14px; border:none;
+    background:var(--couleur-mandarine); color:#ffffff; font-weight:700; padding:0 1.3rem;
+  }
+  .bouton-secondaire{
+    display:block; margin:0 auto; min-height:44px; border-radius:14px; border:2.5px solid var(--couleur-encre);
+    background:#ffffff; padding:0 1.1rem; font-weight:500;
+  }
+
+  .feedback{ text-align:center; font-weight:700; font-size:1.05rem; min-height:1.6rem; margin:.8rem 0 .2rem; }
+  .feedback-succes{ color:color-mix(in srgb, var(--couleur-menthe) 70%, black 20%); }
+  .feedback-erreur{ color:color-mix(in srgb, var(--couleur-corail) 70%, black 20%); }
+  .bouton-suivant{
+    display:block; margin:.6rem auto 0; min-height:44px; border-radius:14px; border:none;
+    background:var(--couleur-mandarine); color:#ffffff; font-weight:700; font-size:1rem; padding:0 1.4rem;
+  }
+
+  .bloc-resultats{ text-align:center; }
+  .bloc-resultats .etoiles{ font-size:2.6rem; margin:.6rem 0; }
+  .bloc-resultats .score-texte{ font-size:1.1rem; font-weight:500; margin-bottom:1rem; }
+  .boutons-resultats{ display:flex; justify-content:center; gap:.7rem; flex-wrap:wrap; margin-top:.6rem; }
+
+  /* jardin — dénombrer */
+  .zone-jardin{
+    position:relative; height:11rem; border-radius:20px;
+    border:3px solid color-mix(in srgb, var(--couleur-menthe) 40%, var(--couleur-encre) 10%);
+    background:color-mix(in srgb, var(--couleur-menthe) 16%, var(--couleur-fond));
+    margin:.6rem 0; overflow:hidden;
+  }
+  .bete-jardin{
+    position:absolute; transform:translate(-50%,-50%);
+    font-size:2.2rem; line-height:1; background:none; border:none; padding:.2rem;
+    border-radius:50%; min-width:44px; min-height:44px;
+  }
+  .bete-jardin.comptee{ animation:pop-bete .35s ease; opacity:.35; filter:grayscale(.6); }
+  @keyframes pop-bete{ 0%{transform:translate(-50%,-50%) scale(1);} 50%{transform:translate(-50%,-50%) scale(1.5);} 100%{transform:translate(-50%,-50%) scale(1);} }
+  .compteur-jardin{
+    /* Élément en flux normal (pas superposé à la scène) pour ne jamais
+       masquer ni bloquer le tap d'une bête du jardin. */
+    display:block; width:fit-content; margin:0 auto .5rem; min-width:2.4rem;
+    padding:.3rem .8rem; border-radius:14px;
+    background:var(--couleur-soleil); font-weight:700; font-size:1.3rem; text-align:center;
+    box-shadow:0 3px 0 color-mix(in srgb, var(--couleur-soleil) 55%, black 6%);
+  }
+
+  /* pavé numérique diégétique */
+  .pave-numerique{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; max-width:16rem; margin:.8rem auto 0;
+    padding:.8rem; border-radius:18px; border:5px solid var(--couleur-mandarine);
+    background:repeating-linear-gradient(180deg,
+      color-mix(in srgb, var(--couleur-mandarine) 10%, var(--couleur-fond)) 0px,
+      color-mix(in srgb, var(--couleur-mandarine) 10%, var(--couleur-fond)) 13px,
+      color-mix(in srgb, var(--couleur-mandarine) 18%, var(--couleur-fond)) 13px,
+      color-mix(in srgb, var(--couleur-mandarine) 18%, var(--couleur-fond)) 15px);
+    box-shadow:0 4px 0 color-mix(in srgb, var(--couleur-mandarine) 55%, black 6%);
+  }
+  .touche-chiffre{
+    min-height:3.2rem; border-radius:14px; border:2.5px solid var(--couleur-encre);
+    background:#ffffff; font-size:1.4rem; font-weight:700; color:var(--couleur-encre);
+  }
+  .touche-chiffre.correct{ background:color-mix(in srgb, var(--couleur-menthe) 45%, white); border-color:var(--couleur-menthe); }
+  .touche-chiffre.incorrect{ background:color-mix(in srgb, var(--couleur-corail) 35%, white); border-color:var(--couleur-corail); }
+
+  /* étiqueter */
+  .zone-etiquetage{ position:relative; display:flex; gap:1.2rem; margin-top:.6rem; }
+  .colonne-etiquetage{ flex:1; display:flex; flex-direction:column; gap:.6rem; }
+  .traits-connexion{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  .trait-connexion{ stroke:var(--couleur-menthe); stroke-width:3; stroke-linecap:round; }
+  .carte-etiquetage, .etiquette-nombre{
+    min-height:3.6rem; border-radius:16px; border:2.5px solid var(--couleur-encre); background:#ffffff;
+    display:flex; align-items:center; justify-content:center; padding:.4rem;
+  }
+  .carte-etiquetage.selectionnee{ border-color:var(--couleur-mandarine); box-shadow:0 0 0 3px color-mix(in srgb, var(--couleur-mandarine) 35%, transparent); }
+  .carte-etiquetage.appariee, .etiquette-nombre.appariee{
+    background:color-mix(in srgb, var(--couleur-menthe) 35%, white); border-color:var(--couleur-menthe); opacity:.75;
+  }
+  .carte-etiquetage.secousse, .etiquette-nombre.secousse{ animation:secousse-legere .35s; }
+  @keyframes secousse-legere{ 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+  .etiquette-nombre{ font-size:1.6rem; font-weight:700; }
+  .mini-collection{ display:flex; flex-wrap:wrap; gap:2px; max-width:5rem; justify-content:center; font-size:1.1rem; }
+  .de-points{ display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:3px; width:2.6rem; height:2.6rem; }
+  .point-de{ border-radius:50%; background:transparent; }
+  .point-de.actif{ background:var(--couleur-encre); }
+
+  /* comparer */
+  .badge-mot-cle{
+    display:block; width:fit-content; margin:.4rem auto .8rem; padding:.35rem 1rem; border-radius:999px;
+    background:var(--couleur-soleil); color:var(--couleur-encre); font-weight:700; font-size:1.1rem; letter-spacing:.03em;
+  }
+  .rangee-contenants{ display:flex; gap:.7rem; justify-content:center; flex-wrap:wrap; }
+  .bouton-contenant{ border:none; background:none; padding:0; border-radius:18px; }
+  .contenant-comparaison{
+    min-width:6rem; min-height:6rem; border-radius:18px; border:3px solid var(--couleur-encre); background:#ffffff;
+    padding:.5rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.3rem;
+  }
+  .contenant-comparaison.reference{ border-style:dashed; background:color-mix(in srgb, var(--couleur-soleil) 15%, white); }
+  .tag-modele{ font-size:.7rem; font-weight:700; color:var(--couleur-encre); opacity:.7; }
+  .contenu-contenant{ display:flex; flex-wrap:wrap; gap:2px; max-width:4.6rem; justify-content:center; font-size:1.15rem; }
+  .bouton-contenant.entoure-correct .contenant-comparaison{
+    border-color:var(--couleur-menthe); border-width:5px; box-shadow:0 0 0 4px color-mix(in srgb, var(--couleur-menthe) 30%, transparent);
+  }
+  .bouton-contenant.entoure-incorrect .contenant-comparaison{ border-color:var(--couleur-corail); border-width:5px; }
+
+  /* drag & drop commun (constituer / ranger) */
+  .zone-constituer, .zone-ranger{ display:flex; flex-direction:column; gap:.8rem; margin-top:.6rem; }
+  .contenant-cible{
+    border-radius:20px; border:3px dashed var(--couleur-mandarine);
+    background:color-mix(in srgb, var(--couleur-mandarine) 10%, var(--couleur-fond));
+    padding:.6rem; min-height:6rem;
+  }
+  .etiquette-contenant{ text-align:center; font-weight:700; margin-bottom:.3rem; color:color-mix(in srgb, var(--couleur-mandarine) 70%, black 15%); }
+  .grille-cible{ display:flex; flex-wrap:wrap; gap:.4rem; justify-content:center; min-height:3.2rem; }
+  .reserve-drag{
+    display:flex; flex-wrap:wrap; gap:.5rem; justify-content:center; padding:.6rem; border-radius:16px;
+    background:#ffffff; border:2.5px solid color-mix(in srgb, var(--couleur-encre) 15%, white); min-height:3.6rem;
+  }
+  .bete-draggable{
+    font-size:2rem; min-width:44px; min-height:44px; display:flex; align-items:center; justify-content:center;
+    touch-action:none; cursor:grab; user-select:none; border-radius:50%;
+  }
+  .bete-draggable.en-glisse{ cursor:grabbing; filter:drop-shadow(0 6px 6px rgba(43,43,43,.25)); }
+  .escargot-draggable{
+    position:relative; width:3.4rem; height:3.4rem; font-size:2.2rem;
+    touch-action:none; cursor:grab; user-select:none;
+  }
+  .escargot-draggable.en-glisse{ cursor:grabbing; filter:drop-shadow(0 6px 6px rgba(43,43,43,.25)); }
+  .escargot-draggable .fond-escargot{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+  .escargot-draggable .numero-escargot{
+    position:absolute; bottom:-2px; right:-2px; background:var(--couleur-soleil); color:var(--couleur-encre);
+    font-size:1rem; font-weight:700; min-width:1.4rem; height:1.4rem; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; border:2px solid var(--couleur-fond);
+  }
+
+  /* autant que le modèle */
+  .rangee-modele{
+    display:flex; align-items:center; gap:.6rem; margin:.6rem 0; padding:.6rem; border-radius:16px;
+    background:#ffffff; border:2.5px solid color-mix(in srgb, var(--couleur-encre) 12%, white);
+  }
+  .etiquette-rangee{ font-weight:700; font-size:.8rem; min-width:3.4rem; color:color-mix(in srgb, var(--couleur-encre) 70%, white); }
+  .collection-modele, .collection-cible{ display:flex; flex-wrap:wrap; gap:3px; flex:1; font-size:1.5rem; min-height:2.4rem; }
+  .element-cible{ border:none; background:none; padding:0; font-size:inherit; line-height:1; cursor:pointer; min-width:44px; min-height:44px; }
+  .bouton-ajout-retrait{
+    display:block; margin:.6rem auto; min-height:44px; border-radius:16px; border:none;
+    background:var(--couleur-mandarine); color:#fff; font-weight:700; padding:0 1.4rem;
+    box-shadow:0 4px 0 color-mix(in srgb, var(--couleur-mandarine) 60%, black 10%);
+  }
+
+  /* ranger */
+  .bande-support{
+    display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; padding:.6rem; border-radius:16px;
+    background:color-mix(in srgb, var(--couleur-menthe) 12%, var(--couleur-fond));
+    border:3px solid color-mix(in srgb, var(--couleur-menthe) 45%, var(--couleur-encre) 8%);
+    min-height:4.4rem;
+  }
+  .slot-rang{
+    width:3.6rem; height:3.6rem; border-radius:14px; border:2.5px dashed color-mix(in srgb, var(--couleur-encre) 30%, white);
+    background:#ffffff; display:flex; align-items:center; justify-content:center;
+  }
+  .slot-rang.rang-correct{ border-style:solid; border-color:var(--couleur-menthe); background:color-mix(in srgb, var(--couleur-menthe) 30%, white); }
+  .slot-rang.rang-incorrect{ border-style:solid; border-color:var(--couleur-corail); background:color-mix(in srgb, var(--couleur-corail) 25%, white); }
+
+  /* confettis */
+  #confettis-conteneur{ position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:999; }
+  .confetti{ position:absolute; top:-12px; width:9px; height:14px; border-radius:2px;
+    animation-name:chute-confetti; animation-timing-function:ease-in; animation-fill-mode:forwards; }
+  @keyframes chute-confetti{ to{ transform:translateY(105vh) rotate(340deg); opacity:.75; } }
+  @media (prefers-reduced-motion:reduce){ .confetti{ display:none; animation:none; } }
+
+  [hidden]{ display:none !important; }
+</style>
+</head>
+<body>
+<div id="confettis-conteneur" aria-hidden="true"></div>
+
+<main id="ecran-accueil">
+  <div class="entete-accueil">
+    <h1>Le Jardin des Petites Bêtes 🐞</h1>
+    <p id="sous-titre-accueil"></p>
+  </div>
+  <div class="grille-jeux" id="grille-jeux"></div>
+</main>
+
+<main id="ecran-jeu" hidden>
+  <div class="entete-jeu">
+    <button class="bouton-retour" id="bouton-retour" aria-label="Retour à l'accueil">←</button>
+    <div class="entete-jeu-titres">
+      <h2 id="titre-jeu-courant"></h2>
+      <div class="progression" id="progression-jeu"></div>
+    </div>
+  </div>
+  <div id="zone-jeu"></div>
+  <div class="feedback" id="zone-feedback" aria-live="polite"></div>
+  <button class="bouton-suivant" id="bouton-suivant" hidden>Suivant →</button>
+</main>
+
+<script type="application/json" id="donnees-jeu">
+{
+  "titre": "Le Jardin des Petites Bêtes",
+  "sousTitre": "Compte, compare et range les habitants du jardin !",
+  "especes": {
+    "coccinelle": {"emoji":"🐞","singulier":"coccinelle","pluriel":"coccinelles","laLe":"la coccinelle"},
+    "escargot": {"emoji":"🐌","singulier":"escargot","pluriel":"escargots","laLe":"l'escargot"},
+    "papillon": {"emoji":"🦋","singulier":"papillon","pluriel":"papillons","laLe":"le papillon"},
+    "abeille": {"emoji":"🐝","singulier":"abeille","pluriel":"abeilles","laLe":"l'abeille"},
+    "fleur": {"emoji":"🌸","singulier":"fleur","pluriel":"fleurs","laLe":"la fleur"},
+    "fraise": {"emoji":"🍓","singulier":"fraise","pluriel":"fraises","laLe":"la fraise"}
+  },
+  "universComparer": [
+    {"contenant":"boîte","article":"la","emoji":"🍬","mot":"bonbons"},
+    {"contenant":"bouquet","article":"le","emoji":"🌸","mot":"fleurs"},
+    {"contenant":"sac","article":"le","emoji":"🔵","mot":"billes"}
+  ],
+  "contenantsConstituer": [
+    {"especeId":"abeille","nomContenant":"la ruche"},
+    {"especeId":"coccinelle","nomContenant":"le jardin"},
+    {"especeId":"papillon","nomContenant":"le filet"},
+    {"especeId":"fraise","nomContenant":"le panier"}
+  ],
+  "especesAutantQue": ["fleur","fraise","coccinelle","papillon"],
+  "messagesFeedback": {
+    "bravo": ["Bravo !", "Super !", "Génial !", "Bien joué !", "C'est ça !", "Trop fort !"],
+    "rate": ["Presque !", "Essaie encore la prochaine fois !", "Pas cette fois, courage !", "Regarde bien."]
+  },
+  "jeux": [
+    { "id": "denombrer", "titre": "Compte les petites bêtes", "icone": "🐞", "couleur": "mandarine", "description": "Tape pour compter les bêtes du jardin.", "nbQuestions": 6 },
+    { "id": "etiqueter", "titre": "La bonne étiquette", "icone": "🏷️", "couleur": "menthe", "description": "Relie chaque collection à son nombre.", "nbQuestions": 6 },
+    { "id": "comparer", "titre": "Plus, moins, autant", "icone": "⚖️", "couleur": "soleil", "description": "Entoure le bon contenant.", "nbQuestions": 6 },
+    { "id": "constituer", "titre": "Le compte est juste", "icone": "🐝", "couleur": "corail", "description": "Fais glisser le bon nombre de bêtes.", "nbQuestions": 6 },
+    { "id": "autant-que", "titre": "Autant que le modèle", "icone": "🌸", "couleur": "mandarine", "description": "Complète pour avoir autant, un de plus ou un de moins.", "nbQuestions": 6 },
+    { "id": "ranger", "titre": "La bande des nombres", "icone": "🐌", "couleur": "menthe", "description": "Range les escargots du plus petit au plus grand.", "nbQuestions": 6 }
+  ]
+}
+</script>
+<script>
+(function () {
+  'use strict';
+
+  const donnees = JSON.parse(document.getElementById('donnees-jeu').textContent);
+
+  /* ---------- Utilitaires génériques ---------- */
+
+  function nombreAleatoire(min, max) { return min + Math.floor(Math.random() * (max - min + 1)); }
+  function choisir(tableau) { return tableau[Math.floor(Math.random() * tableau.length)]; }
+  function melanger(tableau) {
+    const copie = [...tableau];
+    for (let i = copie.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copie[i], copie[j]] = [copie[j], copie[i]];
+    }
+    return copie;
+  }
+  const maj = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  /* ---------- Étoiles : stockage sûr (mémoire + localStorage best-effort) ---------- */
+
+  const CLE_STOCKAGE = 'mayeutik-m01-jardin-etoiles';
+  let memoireEtoiles = null;
+
+  function lireEtoiles() {
+    if (memoireEtoiles === null) {
+      memoireEtoiles = {};
+      try {
+        const brut = window.localStorage.getItem(CLE_STOCKAGE);
+        if (brut) memoireEtoiles = JSON.parse(brut);
+      } catch (e) {
+        memoireEtoiles = {};
+      }
+    }
+    return memoireEtoiles;
+  }
+  function enregistrerEtoiles(jeuId, valeur) {
+    const tout = lireEtoiles();
+    tout[jeuId] = Math.max(tout[jeuId] || 0, valeur);
+    memoireEtoiles = tout;
+    try {
+      window.localStorage.setItem(CLE_STOCKAGE, JSON.stringify(tout));
+    } catch (e) {
+      // localStorage indisponible : les étoiles restent valables pour la session en cours.
+    }
+  }
+  function creerEtoiles(valeur, max) {
+    max = max || 3;
+    const cont = document.createElement('span');
+    cont.className = 'etoiles';
+    for (let i = 1; i <= max; i++) {
+      const s = document.createElement('span');
+      s.className = 'etoile' + (i <= valeur ? ' pleine' : '');
+      s.textContent = '★';
+      cont.appendChild(s);
+    }
+    return cont;
+  }
+  function calculerEtoiles(score, total) {
+    const pct = score / total;
+    if (pct >= 1) return 3;
+    if (pct >= 0.66) return 2;
+    if (pct >= 0.33) return 1;
+    return 0;
+  }
+
+  /* ---------- Sessions : contrat de données v1 (CHARTE.md, section 11) ---------- */
+  // Implémentation de référence copiée de M17, avec MODULE_ID adapté.
+
+  const CLE_SESSIONS = 'mayeutik-sessions';
+  const CLE_PROFIL_ACTIF = 'mayeutik-profil-actif';
+  const MODULE_ID = 'M01';
+  const MAX_SESSIONS_PAR_PROFIL = 500;
+
+  let memoireProfilActif = null;
+  let memoireSessions = null;
+
+  function lireProfilActif() {
+    if (memoireProfilActif === null) {
+      memoireProfilActif = 'p1';
+      try {
+        const brut = window.localStorage.getItem(CLE_PROFIL_ACTIF);
+        if (brut) memoireProfilActif = brut;
+      } catch (e) {
+        memoireProfilActif = 'p1';
+      }
+    }
+    return memoireProfilActif;
+  }
+  function lireSessions() {
+    if (memoireSessions === null) {
+      memoireSessions = [];
+      try {
+        const brut = window.localStorage.getItem(CLE_SESSIONS);
+        if (brut) memoireSessions = JSON.parse(brut);
+      } catch (e) {
+        memoireSessions = [];
+      }
+    }
+    return memoireSessions;
+  }
+  function enregistrerSession(competence, score, total, duree) {
+    const profilId = lireProfilActif();
+    const toutes = lireSessions();
+    toutes.push({ profilId, module: MODULE_ID, competence, score, total, date: new Date().toISOString(), duree });
+    let compteur = 0;
+    for (let i = toutes.length - 1; i >= 0; i--) {
+      if (toutes[i].profilId === profilId) {
+        compteur++;
+        if (compteur > MAX_SESSIONS_PAR_PROFIL) toutes.splice(i, 1);
+      }
+    }
+    memoireSessions = toutes;
+    try {
+      window.localStorage.setItem(CLE_SESSIONS, JSON.stringify(toutes));
+    } catch (e) {
+      // localStorage indisponible : la session reste valable pour la session en cours.
+    }
+  }
+
+  /* ---------- Confettis (CHARTE.md, section 4) ---------- */
+
+  function lancerConfettis() {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const conteneur = document.getElementById('confettis-conteneur');
+    const couleurs = ['var(--couleur-mandarine)', 'var(--couleur-menthe)', 'var(--couleur-corail)', 'var(--couleur-soleil)'];
+    const total = 36;
+    for (let i = 0; i < total; i++) {
+      const p = document.createElement('div');
+      p.className = 'confetti';
+      p.style.left = Math.random() * 100 + 'vw';
+      p.style.backgroundColor = couleurs[Math.floor(Math.random() * couleurs.length)];
+      p.style.animationDuration = (0.9 + Math.random() * 0.9) + 's';
+      p.style.animationDelay = (Math.random() * 0.15) + 's';
+      p.style.transform = 'rotate(' + Math.floor(Math.random() * 360) + 'deg)';
+      conteneur.appendChild(p);
+      p.addEventListener('animationend', () => p.remove());
+      setTimeout(() => p.remove(), 2500);
+    }
+  }
+
+  /* ---------- Feedback sonore (Web Audio) ---------- */
+
+  let contexteAudio = null;
+  function obtenirContexteAudio() {
+    if (!contexteAudio) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      contexteAudio = new Ctx();
+    }
+    if (contexteAudio.state === 'suspended') contexteAudio.resume();
+    return contexteAudio;
+  }
+  function jouerSon(type) {
+    let ctx;
+    try { ctx = obtenirContexteAudio(); } catch (e) { return; }
+    const maintenant = ctx.currentTime;
+    if (type === 'tic') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.0001, maintenant);
+      gain.gain.exponentialRampToValueAtTime(0.12, maintenant + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, maintenant + 0.08);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(maintenant); osc.stop(maintenant + 0.09);
+      return;
+    }
+    const notes = type === 'bravo' ? [523.25, 659.25, 783.99, 1046.5] : [392.0, 293.66];
+    const duree = type === 'bravo' ? 0.11 : 0.17;
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = freq;
+      const debut = maintenant + i * duree;
+      gain.gain.setValueAtTime(0.0001, debut);
+      gain.gain.exponentialRampToValueAtTime(0.22, debut + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, debut + duree);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(debut); osc.stop(debut + duree + 0.02);
+    });
+  }
+
+  /* ---------- Consigne lue à voix haute (SpeechSynthesis, CP non-lecteurs) ---------- */
+
+  function lireAVoixHaute(texte) {
+    try {
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(texte);
+      u.lang = 'fr-FR';
+      u.rate = 0.95;
+      window.speechSynthesis.speak(u);
+    } catch (e) {
+      // synthèse vocale indisponible : la consigne reste lisible à l'écran.
+    }
+  }
+  function creerBlocConsigne(texte, texteVoix) {
+    const cont = document.createElement('div');
+    cont.className = 'bloc-consigne';
+    const p = document.createElement('p');
+    p.className = 'consigne';
+    p.textContent = texte;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'bouton-son';
+    btn.setAttribute('aria-label', 'Écouter la consigne');
+    btn.textContent = '🔊';
+    const texteALire = texteVoix || texte;
+    btn.addEventListener('click', () => lireAVoixHaute(texteALire));
+    cont.appendChild(p);
+    cont.appendChild(btn);
+    lireAVoixHaute(texteALire);
+    return cont;
+  }
+
+  /* ---------- Glisser-déposer tactile générique (constituer / ranger) ---------- */
+
+  function activerDrag(element, options) {
+    element.style.touchAction = 'none';
+    element.addEventListener('pointerdown', (e) => {
+      if (element.disabled) return;
+      e.preventDefault();
+      const rectDepart = element.getBoundingClientRect();
+      const decalX = e.clientX - rectDepart.left;
+      const decalY = e.clientY - rectDepart.top;
+      try { element.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      element.classList.add('en-glisse');
+      element.style.position = 'fixed';
+      element.style.zIndex = '500';
+      element.style.width = rectDepart.width + 'px';
+      element.style.left = rectDepart.left + 'px';
+      element.style.top = rectDepart.top + 'px';
+
+      const bouger = (ev) => {
+        element.style.left = (ev.clientX - decalX) + 'px';
+        element.style.top = (ev.clientY - decalY) + 'px';
+      };
+      const relacher = (ev) => {
+        element.removeEventListener('pointermove', bouger);
+        element.removeEventListener('pointerup', relacher);
+        element.classList.remove('en-glisse');
+        element.style.position = '';
+        element.style.zIndex = '';
+        element.style.width = '';
+        element.style.left = '';
+        element.style.top = '';
+        options.onDepose(ev.clientX, ev.clientY, element);
+      };
+      element.addEventListener('pointermove', bouger);
+      element.addEventListener('pointerup', relacher);
+    });
+  }
+
+  /* ---------- État global ---------- */
+
+  let etat = { jeuId: null, index: 0, score: 0, verrouille: false, demarreLe: 0 };
+  const configJeux = donnees.jeux;
+
+  function plageActuelle() {
+    return etat.index <= 3 ? { min: 1, max: 5 } : { min: 1, max: 9 };
+  }
+
+  /* ---------- Écran d'accueil ---------- */
+
+  function construireAccueil() {
+    document.getElementById('sous-titre-accueil').textContent = donnees.sousTitre;
+    const grille = document.getElementById('grille-jeux');
+    grille.innerHTML = '';
+    configJeux.forEach((cfg) => {
+      const carte = document.createElement('button');
+      carte.className = 'carte-jeu carte-' + cfg.couleur;
+      carte.dataset.jeu = cfg.id;
+
+      const icone = document.createElement('div');
+      icone.className = 'icone';
+      icone.textContent = cfg.icone;
+
+      const titre = document.createElement('h2');
+      titre.textContent = cfg.titre;
+
+      const desc = document.createElement('p');
+      desc.textContent = cfg.description;
+
+      const tout = lireEtoiles();
+      const etoiles = creerEtoiles(tout[cfg.id] || 0);
+
+      carte.appendChild(icone);
+      carte.appendChild(titre);
+      carte.appendChild(desc);
+      carte.appendChild(etoiles);
+      carte.addEventListener('click', () => demarrerJeu(cfg.id));
+      grille.appendChild(carte);
+    });
+  }
+
+  function retourAccueil() {
+    if (window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch (e) { /* ignore */ } }
+    document.getElementById('ecran-jeu').hidden = true;
+    document.getElementById('ecran-accueil').hidden = false;
+    construireAccueil();
+  }
+
+  /* ---------- Contrôleur de jeu ---------- */
+
+  function trouverConfig(jeuId) { return configJeux.find((j) => j.id === jeuId); }
+
+  function demarrerJeu(jeuId) {
+    etat = { jeuId, index: 0, score: 0, verrouille: false, demarreLe: Date.now() };
+    document.getElementById('ecran-accueil').hidden = true;
+    document.getElementById('ecran-jeu').hidden = false;
+    document.getElementById('titre-jeu-courant').textContent = trouverConfig(jeuId).titre;
+    questionSuivante();
+  }
+
+  function majProgression() {
+    const cfg = trouverConfig(etat.jeuId);
+    document.getElementById('progression-jeu').textContent = 'Question ' + etat.index + ' / ' + cfg.nbQuestions;
+  }
+
+  function questionSuivante() {
+    const cfg = trouverConfig(etat.jeuId);
+    if (etat.index >= cfg.nbQuestions) { afficherResultats(cfg); return; }
+    etat.index++;
+    etat.verrouille = false;
+    majProgression();
+    const zone = document.getElementById('zone-jeu');
+    zone.innerHTML = '';
+    document.getElementById('zone-feedback').textContent = '';
+    document.getElementById('zone-feedback').className = 'feedback';
+    document.getElementById('bouton-suivant').hidden = true;
+    if (cfg.id === 'denombrer') genererDenombrer(zone, cfg);
+    else if (cfg.id === 'etiqueter') genererEtiqueter(zone, cfg);
+    else if (cfg.id === 'comparer') genererComparer(zone, cfg);
+    else if (cfg.id === 'constituer') genererConstituer(zone, cfg);
+    else if (cfg.id === 'autant-que') genererAutantQue(zone, cfg);
+    else if (cfg.id === 'ranger') genererRanger(zone, cfg);
+  }
+
+  function validerReponse(estCorrecte) {
+    if (etat.verrouille) return;
+    etat.verrouille = true;
+    const zoneFeedback = document.getElementById('zone-feedback');
+    if (estCorrecte) {
+      etat.score++;
+      zoneFeedback.textContent = choisir(donnees.messagesFeedback.bravo);
+      zoneFeedback.className = 'feedback feedback-succes';
+      lancerConfettis();
+      jouerSon('bravo');
+    } else {
+      zoneFeedback.textContent = choisir(donnees.messagesFeedback.rate);
+      zoneFeedback.className = 'feedback feedback-erreur';
+      jouerSon('rate');
+    }
+    document.getElementById('bouton-suivant').hidden = false;
+  }
+
+  function afficherResultats(cfg) {
+    document.getElementById('progression-jeu').textContent = 'Résultats';
+    document.getElementById('bouton-suivant').hidden = true;
+    document.getElementById('zone-feedback').textContent = '';
+    const etoilesGagnees = calculerEtoiles(etat.score, cfg.nbQuestions);
+    enregistrerEtoiles(cfg.id, etoilesGagnees);
+    const dureeSecondes = Math.max(0, Math.round((Date.now() - etat.demarreLe) / 1000));
+    enregistrerSession(cfg.id, etat.score, cfg.nbQuestions, dureeSecondes);
+
+    const zone = document.getElementById('zone-jeu');
+    zone.innerHTML = '';
+    const bloc = document.createElement('div');
+    bloc.className = 'bloc-resultats';
+
+    const titre = document.createElement('h3');
+    titre.textContent = 'Fin du jeu !';
+
+    const score = document.createElement('p');
+    score.className = 'score-texte';
+    score.textContent = etat.score + ' / ' + cfg.nbQuestions + ' bonnes réponses';
+
+    const etoiles = creerEtoiles(etoilesGagnees);
+
+    const boutons = document.createElement('div');
+    boutons.className = 'boutons-resultats';
+
+    const rejouer = document.createElement('button');
+    rejouer.className = 'bouton-principal';
+    rejouer.textContent = 'Rejouer';
+    rejouer.addEventListener('click', () => demarrerJeu(cfg.id));
+
+    const accueilBtn = document.createElement('button');
+    accueilBtn.className = 'bouton-secondaire';
+    accueilBtn.textContent = "Retour à l'accueil";
+    accueilBtn.addEventListener('click', retourAccueil);
+
+    boutons.appendChild(rejouer);
+    boutons.appendChild(accueilBtn);
+
+    bloc.appendChild(titre);
+    bloc.appendChild(etoiles);
+    bloc.appendChild(score);
+    bloc.appendChild(boutons);
+    zone.appendChild(bloc);
+
+    if (etoilesGagnees === 3) {
+      lancerConfettis();
+      jouerSon('bravo');
+    }
+  }
+
+  /* ---------- Mini-jeu 1 : Compte les petites bêtes (dénombrer — tap) ---------- */
+
+  function positionsGrille(n) {
+    const cols = 3;
+    const rows = Math.ceil(n / cols);
+    const cellules = [];
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) cellules.push({ r, c });
+    const melangees = melanger(cellules);
+    const largeurCellule = 100 / cols;
+    const hauteurCellule = 100 / rows;
+    return melangees.slice(0, n).map(({ r, c }) => ({
+      x: c * largeurCellule + largeurCellule * (0.22 + Math.random() * 0.56),
+      y: r * hauteurCellule + hauteurCellule * (0.22 + Math.random() * 0.56)
+    }));
+  }
+
+  function genererDenombrer(zone, cfg) {
+    const plage = plageActuelle();
+    const n = nombreAleatoire(plage.min, plage.max);
+    const especeId = choisir(Object.keys(donnees.especes));
+    const espece = donnees.especes[especeId];
+
+    const consigneTexte = n === 1
+      ? `Tape sur ${espece.laLe} du jardin pour la compter !`
+      : `Tape sur chaque ${espece.singulier} du jardin pour les compter !`;
+    zone.appendChild(creerBlocConsigne(consigneTexte));
+
+    const scene = document.createElement('div');
+    scene.className = 'zone-jardin';
+    const positions = positionsGrille(n);
+    let compte = 0;
+    const compteurAffiche = document.createElement('div');
+    compteurAffiche.className = 'compteur-jardin';
+    compteurAffiche.textContent = '0';
+
+    const zonePave = document.createElement('div');
+    zonePave.id = 'zone-pave';
+
+    for (let i = 0; i < n; i++) {
+      const bete = document.createElement('button');
+      bete.type = 'button';
+      bete.className = 'bete-jardin';
+      bete.textContent = espece.emoji;
+      bete.style.left = positions[i].x + '%';
+      bete.style.top = positions[i].y + '%';
+      bete.addEventListener('click', () => {
+        if (bete.classList.contains('comptee')) return;
+        bete.classList.add('comptee');
+        bete.disabled = true;
+        compte++;
+        compteurAffiche.textContent = String(compte);
+        jouerSon('tic');
+        if (compte === n) setTimeout(afficherPaveNumerique, 350);
+      });
+      scene.appendChild(bete);
+    }
+    zone.appendChild(compteurAffiche);
+    zone.appendChild(scene);
+    zone.appendChild(zonePave);
+
+    function afficherPaveNumerique() {
+      zonePave.innerHTML = '';
+      const motCompte = n === 1 ? espece.singulier : espece.pluriel;
+      const consigne2 = n === 1
+        ? `As-tu compté ${motCompte} ? Appuie sur le bon nombre.`
+        : `Combien de ${motCompte} as-tu comptées ? Appuie sur le bon nombre.`;
+      zonePave.appendChild(creerBlocConsigne(consigne2, consigne2));
+      const pave = document.createElement('div');
+      pave.className = 'pave-numerique';
+      for (let d = plage.min; d <= plage.max; d++) {
+        const touche = document.createElement('button');
+        touche.type = 'button';
+        touche.className = 'touche-chiffre';
+        touche.textContent = String(d);
+        touche.addEventListener('click', () => {
+          if (etat.verrouille) return;
+          Array.from(pave.children).forEach((b) => (b.disabled = true));
+          const estCorrecte = d === n;
+          touche.classList.add(estCorrecte ? 'correct' : 'incorrect');
+          if (!estCorrecte) {
+            const bonneTouche = Array.from(pave.children).find((b) => b.textContent === String(n));
+            if (bonneTouche) bonneTouche.classList.add('correct');
+          }
+          validerReponse(estCorrecte);
+        });
+        pave.appendChild(touche);
+      }
+      zonePave.appendChild(pave);
+    }
+  }
+
+  /* ---------- Mini-jeu 2 : La bonne étiquette (associer — relier) ---------- */
+
+  const PIPS_DE = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+  function creerDe(n) {
+    const de = document.createElement('div');
+    de.className = 'de-points';
+    const motifs = PIPS_DE[n] || [];
+    for (let i = 0; i < 9; i++) {
+      const point = document.createElement('span');
+      point.className = 'point-de' + (motifs.includes(i) ? ' actif' : '');
+      de.appendChild(point);
+    }
+    return de;
+  }
+  function creerMiniCollection(especeId, n) {
+    const espece = donnees.especes[especeId];
+    const cont = document.createElement('div');
+    cont.className = 'mini-collection';
+    for (let i = 0; i < n; i++) {
+      const s = document.createElement('span');
+      s.textContent = espece.emoji;
+      cont.appendChild(s);
+    }
+    return cont;
+  }
+  function dessinerTrait(svg, elA, elB, conteneur) {
+    const rectConteneur = conteneur.getBoundingClientRect();
+    const rectA = elA.getBoundingClientRect();
+    const rectB = elB.getBoundingClientRect();
+    const ligne = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    ligne.setAttribute('x1', String(rectA.right - rectConteneur.left));
+    ligne.setAttribute('y1', String(rectA.top + rectA.height / 2 - rectConteneur.top));
+    ligne.setAttribute('x2', String(rectB.left - rectConteneur.left));
+    ligne.setAttribute('y2', String(rectB.top + rectB.height / 2 - rectConteneur.top));
+    ligne.setAttribute('class', 'trait-connexion');
+    svg.appendChild(ligne);
+  }
+
+  function genererEtiqueter(zone, cfg) {
+    const plage = plageActuelle();
+    const valeurs = melanger(Array.from({ length: plage.max - plage.min + 1 }, (_, i) => plage.min + i)).slice(0, 4);
+
+    zone.appendChild(creerBlocConsigne("Relie chaque collection à son étiquette-nombre !"));
+
+    const cartesGauche = valeurs.map((n) => {
+      const utiliserDe = n <= 6 && Math.random() < 0.35;
+      if (utiliserDe) return { n, type: 'de' };
+      return { n, type: 'collection', especeId: choisir(Object.keys(donnees.especes)) };
+    });
+    const gaucheAffiche = melanger(cartesGauche.map((c, i) => ({ ...c, id: i })));
+    const droiteAffiche = melanger(valeurs.map((n, i) => ({ n, id: i })));
+
+    const zoneMatch = document.createElement('div');
+    zoneMatch.className = 'zone-etiquetage';
+    const colGauche = document.createElement('div');
+    colGauche.className = 'colonne-etiquetage';
+    const colDroite = document.createElement('div');
+    colDroite.className = 'colonne-etiquetage';
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'traits-connexion');
+
+    let selectionGauche = null;
+    let paireRestantes = valeurs.length;
+    let erreurCommise = false;
+
+    gaucheAffiche.forEach((carte) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'carte-etiquetage';
+      btn.appendChild(carte.type === 'de' ? creerDe(carte.n) : creerMiniCollection(carte.especeId, carte.n));
+      btn.addEventListener('click', () => {
+        if (btn.disabled) return;
+        if (selectionGauche) selectionGauche.el.classList.remove('selectionnee');
+        selectionGauche = { n: carte.n, el: btn };
+        btn.classList.add('selectionnee');
+      });
+      colGauche.appendChild(btn);
+    });
+
+    droiteAffiche.forEach((etq) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'etiquette-nombre';
+      btn.textContent = String(etq.n);
+      btn.addEventListener('click', () => {
+        if (btn.disabled || !selectionGauche) return;
+        const estCorrecte = selectionGauche.n === etq.n;
+        if (estCorrecte) {
+          selectionGauche.el.disabled = true;
+          selectionGauche.el.classList.remove('selectionnee');
+          selectionGauche.el.classList.add('appariee');
+          btn.disabled = true;
+          btn.classList.add('appariee');
+          dessinerTrait(svg, selectionGauche.el, btn, zoneMatch);
+          jouerSon('tic');
+          paireRestantes--;
+          selectionGauche = null;
+          if (paireRestantes === 0) setTimeout(() => validerReponse(!erreurCommise), 400);
+        } else {
+          erreurCommise = true;
+          const elGauche = selectionGauche.el;
+          btn.classList.add('secousse');
+          elGauche.classList.add('secousse');
+          jouerSon('rate');
+          setTimeout(() => {
+            btn.classList.remove('secousse');
+            elGauche.classList.remove('secousse');
+            elGauche.classList.remove('selectionnee');
+          }, 350);
+          selectionGauche = null;
+        }
+      });
+      colDroite.appendChild(btn);
+    });
+
+    zoneMatch.appendChild(svg);
+    zoneMatch.appendChild(colGauche);
+    zoneMatch.appendChild(colDroite);
+    zone.appendChild(zoneMatch);
+  }
+
+  /* ---------- Mini-jeu 3 : Plus, moins, autant (comparer — entourer) ---------- */
+
+  function genererComparer(zone, cfg) {
+    const plage = plageActuelle();
+    const univers = choisir(donnees.universComparer);
+    const motCle = choisir(['PLUS', 'MOINS', 'AUTANT']);
+
+    let contenants;
+    if (motCle === 'AUTANT') {
+      const reference = nombreAleatoire(plage.min, plage.max);
+      let incorrecte;
+      do { incorrecte = nombreAleatoire(plage.min, plage.max); } while (incorrecte === reference);
+      const candidats = melanger([
+        { n: reference, estCorrecte: true },
+        { n: incorrecte, estCorrecte: false }
+      ]);
+      contenants = [{ n: reference, estReference: true }, ...candidats];
+    } else {
+      const valeurs = new Set();
+      while (valeurs.size < 3) valeurs.add(nombreAleatoire(plage.min, plage.max));
+      const tableau = Array.from(valeurs);
+      const cible = motCle === 'PLUS' ? Math.max(...tableau) : Math.min(...tableau);
+      contenants = melanger(tableau.map((n) => ({ n, estCorrecte: n === cible })));
+    }
+
+    const consigneTexte = motCle === 'AUTANT'
+      ? `Entoure ${univers.article} ${univers.contenant} qui a AUTANT de ${univers.mot} que le modèle !`
+      : `Entoure ${univers.article} ${univers.contenant} qui a LE ${motCle} de ${univers.mot} !`;
+    zone.appendChild(creerBlocConsigne(consigneTexte));
+
+    const badge = document.createElement('div');
+    badge.className = 'badge-mot-cle';
+    badge.textContent = motCle;
+    zone.appendChild(badge);
+
+    const rangee = document.createElement('div');
+    rangee.className = 'rangee-contenants';
+    let boutonCorrect = null;
+
+    contenants.forEach((c) => {
+      const boite = document.createElement('div');
+      boite.className = 'contenant-comparaison' + (c.estReference ? ' reference' : '');
+      if (c.estReference) {
+        const tag = document.createElement('span');
+        tag.className = 'tag-modele';
+        tag.textContent = 'modèle';
+        boite.appendChild(tag);
+      }
+      const contenu = document.createElement('div');
+      contenu.className = 'contenu-contenant';
+      for (let i = 0; i < c.n; i++) {
+        const s = document.createElement('span');
+        s.textContent = univers.emoji;
+        contenu.appendChild(s);
+      }
+      boite.appendChild(contenu);
+
+      if (c.estReference) {
+        rangee.appendChild(boite);
+        return;
+      }
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'bouton-contenant';
+      btn.appendChild(boite);
+      if (c.estCorrecte) boutonCorrect = btn;
+      btn.addEventListener('click', () => {
+        if (etat.verrouille) return;
+        Array.from(rangee.querySelectorAll('.bouton-contenant')).forEach((b) => (b.disabled = true));
+        btn.classList.add(c.estCorrecte ? 'entoure-correct' : 'entoure-incorrect');
+        if (!c.estCorrecte && boutonCorrect) boutonCorrect.classList.add('entoure-correct');
+        validerReponse(c.estCorrecte);
+      });
+      rangee.appendChild(btn);
+    });
+    zone.appendChild(rangee);
+  }
+
+  /* ---------- Mini-jeu 4 : Le compte est juste (constituer — drag & drop) ---------- */
+
+  function genererConstituer(zone, cfg) {
+    const plage = plageActuelle();
+    const n = nombreAleatoire(plage.min, plage.max);
+    const choix = choisir(donnees.contenantsConstituer);
+    const espece = donnees.especes[choix.especeId];
+    const supplement = nombreAleatoire(2, 4);
+    const total = Math.min(n + supplement, 12);
+
+    const motEspece = n > 1 ? espece.pluriel : espece.singulier;
+    zone.appendChild(creerBlocConsigne(`Fais glisser exactement ${n} ${motEspece} dans ${choix.nomContenant} !`));
+
+    const zoneDrag = document.createElement('div');
+    zoneDrag.className = 'zone-constituer';
+    const contenantCible = document.createElement('div');
+    contenantCible.className = 'contenant-cible';
+    const etiquetteContenant = document.createElement('div');
+    etiquetteContenant.className = 'etiquette-contenant';
+    etiquetteContenant.textContent = maj(choix.nomContenant);
+    const grilleCible = document.createElement('div');
+    grilleCible.className = 'grille-cible';
+    contenantCible.appendChild(etiquetteContenant);
+    contenantCible.appendChild(grilleCible);
+
+    const reserve = document.createElement('div');
+    reserve.className = 'reserve-drag';
+
+    for (let i = 0; i < total; i++) {
+      const bete = document.createElement('div');
+      bete.className = 'bete-draggable';
+      bete.textContent = espece.emoji;
+      reserve.appendChild(bete);
+      activerDrag(bete, {
+        onDepose(x, y) {
+          const rect = grilleCible.getBoundingClientRect();
+          const dansZone = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+          if (dansZone && bete.parentElement !== grilleCible) grilleCible.appendChild(bete);
+          else if (!dansZone && bete.parentElement === grilleCible) reserve.appendChild(bete);
+        }
+      });
+    }
+
+    zoneDrag.appendChild(contenantCible);
+    zoneDrag.appendChild(reserve);
+    zone.appendChild(zoneDrag);
+
+    const boutonValider = document.createElement('button');
+    boutonValider.type = 'button';
+    boutonValider.className = 'bouton-principal';
+    boutonValider.textContent = 'Valider';
+    boutonValider.addEventListener('click', () => {
+      if (etat.verrouille) return;
+      const place = grilleCible.querySelectorAll('.bete-draggable').length;
+      const estCorrecte = place === n;
+      Array.from(reserve.children).forEach((b) => { b.style.pointerEvents = 'none'; });
+      Array.from(grilleCible.children).forEach((b) => { b.style.pointerEvents = 'none'; });
+      boutonValider.disabled = true;
+      boutonValider.hidden = true;
+      validerReponse(estCorrecte);
+    });
+    zone.appendChild(boutonValider);
+  }
+
+  /* ---------- Mini-jeu 5 : Autant que le modèle (comparaison constructive — tap) ---------- */
+
+  function genererAutantQue(zone, cfg) {
+    const plage = plageActuelle();
+    let modele = plage.min;
+    let relation = 'autant';
+    for (let t = 0; t < 30; t++) {
+      modele = nombreAleatoire(plage.min, plage.max);
+      relation = choisir(['autant', 'plus-un', 'moins-un']);
+      if (relation === 'moins-un' && modele < 2) continue;
+      if (relation === 'plus-un' && modele > plage.max - 1) continue;
+      break;
+    }
+    const cible = relation === 'autant' ? modele : relation === 'plus-un' ? modele + 1 : modele - 1;
+    const especeId = choisir(donnees.especesAutantQue);
+    const espece = donnees.especes[especeId];
+
+    const phraseRelation = relation === 'autant' ? 'AUTANT de' : relation === 'plus-un' ? 'UN DE PLUS que' : 'UN DE MOINS que';
+    zone.appendChild(creerBlocConsigne(`Touche pour qu'il y ait ${phraseRelation} le modèle !`));
+
+    const rangeeModele = document.createElement('div');
+    rangeeModele.className = 'rangee-modele';
+    const etiqModele = document.createElement('div');
+    etiqModele.className = 'etiquette-rangee';
+    etiqModele.textContent = 'Modèle';
+    const collModele = document.createElement('div');
+    collModele.className = 'collection-modele';
+    for (let i = 0; i < modele; i++) {
+      const s = document.createElement('span');
+      s.textContent = espece.emoji;
+      collModele.appendChild(s);
+    }
+    rangeeModele.appendChild(etiqModele);
+    rangeeModele.appendChild(collModele);
+    zone.appendChild(rangeeModele);
+
+    const rangeeCible = document.createElement('div');
+    rangeeCible.className = 'rangee-modele';
+    const etiqCible = document.createElement('div');
+    etiqCible.className = 'etiquette-rangee';
+    etiqCible.textContent = 'À toi';
+    const collCible = document.createElement('div');
+    collCible.className = 'collection-cible';
+    rangeeCible.appendChild(etiqCible);
+    rangeeCible.appendChild(collCible);
+    zone.appendChild(rangeeCible);
+
+    let compte = 0;
+    const MAX_AJOUT = 10;
+    const boutonAjouter = document.createElement('button');
+    boutonAjouter.type = 'button';
+    boutonAjouter.className = 'bouton-ajout-retrait';
+    boutonAjouter.textContent = '+ Ajouter';
+    boutonAjouter.addEventListener('click', () => {
+      if (compte >= MAX_AJOUT) return;
+      const s = document.createElement('button');
+      s.type = 'button';
+      s.className = 'element-cible';
+      s.textContent = espece.emoji;
+      s.addEventListener('click', () => { s.remove(); compte--; });
+      collCible.appendChild(s);
+      compte++;
+    });
+    zone.appendChild(boutonAjouter);
+
+    const boutonValider = document.createElement('button');
+    boutonValider.type = 'button';
+    boutonValider.className = 'bouton-principal';
+    boutonValider.textContent = 'Valider';
+    boutonValider.addEventListener('click', () => {
+      if (etat.verrouille) return;
+      const estCorrecte = compte === cible;
+      boutonAjouter.disabled = true;
+      boutonAjouter.hidden = true;
+      Array.from(collCible.children).forEach((el) => (el.disabled = true));
+      boutonValider.disabled = true;
+      boutonValider.hidden = true;
+      validerReponse(estCorrecte);
+    });
+    zone.appendChild(boutonValider);
+  }
+
+  /* ---------- Mini-jeu 6 : La bande des nombres (ranger — drag & drop de tri) ---------- */
+
+  function genererRanger(zone, cfg) {
+    const plage = plageActuelle();
+    const K = etat.index <= 3 ? 4 : 5;
+    const valeurs = melanger(Array.from({ length: plage.max - plage.min + 1 }, (_, i) => plage.min + i)).slice(0, K);
+    const ordreCorrect = [...valeurs].sort((a, b) => a - b);
+    const ordreAffiche = melanger(valeurs);
+
+    zone.appendChild(creerBlocConsigne('Range les escargots du plus petit au plus grand sur la bande !'));
+
+    const zoneRanger = document.createElement('div');
+    zoneRanger.className = 'zone-ranger';
+    const reserve = document.createElement('div');
+    reserve.className = 'reserve-drag';
+    const bande = document.createElement('div');
+    bande.className = 'bande-support';
+
+    const slots = [];
+    for (let i = 0; i < K; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'slot-rang';
+      slot.dataset.index = String(i);
+      slots.push(slot);
+      bande.appendChild(slot);
+    }
+
+    const escargots = {};
+    const boutonValider = document.createElement('button');
+    boutonValider.type = 'button';
+    boutonValider.className = 'bouton-principal';
+    boutonValider.textContent = 'Valider';
+    boutonValider.hidden = true;
+
+    function verifierRemplissage() {
+      const rempli = slots.every((s) => s.querySelector('.escargot-draggable'));
+      boutonValider.hidden = !rempli;
+    }
+
+    ordreAffiche.forEach((val) => {
+      const esc = document.createElement('div');
+      esc.className = 'escargot-draggable';
+      esc.dataset.slot = '';
+      esc.dataset.valeur = String(val);
+      const fond = document.createElement('span');
+      fond.className = 'fond-escargot';
+      fond.textContent = '🐌';
+      const num = document.createElement('span');
+      num.className = 'numero-escargot';
+      num.textContent = String(val);
+      esc.appendChild(fond);
+      esc.appendChild(num);
+      reserve.appendChild(esc);
+      escargots[val] = esc;
+
+      activerDrag(esc, {
+        onDepose(x, y) {
+          const slotCible = slots.find((s) => {
+            const r = s.getBoundingClientRect();
+            return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+          });
+          if (!slotCible) {
+            if (esc.dataset.slot !== '') { reserve.appendChild(esc); esc.dataset.slot = ''; }
+            verifierRemplissage();
+            return;
+          }
+          const occupantActuel = slotCible.querySelector('.escargot-draggable');
+          if (occupantActuel && occupantActuel !== esc) {
+            if (esc.dataset.slot !== '') {
+              const ancienSlot = slots[Number(esc.dataset.slot)];
+              ancienSlot.appendChild(occupantActuel);
+              occupantActuel.dataset.slot = esc.dataset.slot;
+            } else {
+              reserve.appendChild(occupantActuel);
+              occupantActuel.dataset.slot = '';
+            }
+          }
+          slotCible.appendChild(esc);
+          esc.dataset.slot = slotCible.dataset.index;
+          verifierRemplissage();
+        }
+      });
+    });
+
+    // La bande (cible fixe) est placée avant la réserve (source, dont le
+    // remplissage varie) afin que sa position ne bouge jamais pendant la
+    // partie, même quand la réserve se vide et change de nombre de lignes.
+    zoneRanger.appendChild(bande);
+    zoneRanger.appendChild(reserve);
+    zone.appendChild(zoneRanger);
+
+    boutonValider.addEventListener('click', () => {
+      if (etat.verrouille) return;
+      const ordreActuel = slots.map((s) => {
+        const e = s.querySelector('.escargot-draggable');
+        return e ? Number(e.dataset.valeur) : null;
+      });
+      const estCorrecte = ordreActuel.every((v, i) => v === ordreCorrect[i]);
+      slots.forEach((s) => s.classList.add(estCorrecte ? 'rang-correct' : 'rang-incorrect'));
+      Object.values(escargots).forEach((e) => { e.style.pointerEvents = 'none'; });
+      boutonValider.disabled = true;
+      boutonValider.hidden = true;
+      validerReponse(estCorrecte);
+    });
+    zone.appendChild(boutonValider);
+  }
+
+  /* ---------- Initialisation ---------- */
+
+  document.getElementById('bouton-retour').addEventListener('click', retourAccueil);
+  document.getElementById('bouton-suivant').addEventListener('click', questionSuivante);
+
+  construireAccueil();
+})();
+</script>
+</body>
+</html>
+
