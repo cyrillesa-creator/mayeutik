@@ -13,11 +13,11 @@
  */
 'use strict';
 
-const VERSION_CACHE = 'mayeutik-v1';
+const VERSION_CACHE = 'mayeutik-v2';
 const CACHE_POLICES = 'mayeutik-polices-v1';
 
-/* La coquille et tous les jeux : tout ce qu'il faut pour jouer hors ligne. */
-const FICHIERS_LOCAUX = [
+/* Fichiers de la coquille elle-même. */
+const FICHIERS_COQUILLE = [
   './',
   './index.html',
   './manifest.webmanifest',
@@ -27,16 +27,26 @@ const FICHIERS_LOCAUX = [
   './js/profils.js',
   './js/app.js',
   './icons/icon-192.png',
-  './icons/icon-512.png',
-  './jeux/M01-nombres-jusqu-9-cp.html',
-  './jeux/M17-fractions-ce2.html',
-  './jeux/M36-solides.html'
+  './icons/icon-512.png'
 ];
+
+/*
+ * Les jeux sont précachés d'après data/referentiel.json (champ `fichier` de
+ * chaque module) : le référentiel reste la source unique de vérité — ajouter
+ * un module au référentiel suffit pour qu'il soit disponible hors ligne
+ * (après incrément de VERSION_CACHE).
+ */
+async function listerFichiersLocaux() {
+  const reponse = await fetch('./data/referentiel.json');
+  const referentiel = await reponse.json();
+  const jeux = (referentiel.modules || []).map((m) => './' + m.fichier);
+  return FICHIERS_COQUILLE.concat(jeux);
+}
 
 self.addEventListener('install', (evt) => {
   evt.waitUntil(
-    caches.open(VERSION_CACHE)
-      .then((cache) => cache.addAll(FICHIERS_LOCAUX))
+    listerFichiersLocaux()
+      .then((fichiers) => caches.open(VERSION_CACHE).then((cache) => cache.addAll(fichiers)))
       .then(() => self.skipWaiting())
   );
 });
