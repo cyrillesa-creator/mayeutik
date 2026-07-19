@@ -125,14 +125,6 @@
   }
   .bete-jardin.comptee{ animation:pop-bete .35s ease; opacity:.35; filter:grayscale(.6); }
   @keyframes pop-bete{ 0%{transform:translate(-50%,-50%) scale(1);} 50%{transform:translate(-50%,-50%) scale(1.5);} 100%{transform:translate(-50%,-50%) scale(1);} }
-  .compteur-jardin{
-    /* Élément en flux normal (pas superposé à la scène) pour ne jamais
-       masquer ni bloquer le tap d'une bête du jardin. */
-    display:block; width:fit-content; margin:0 auto .5rem; min-width:2.4rem;
-    padding:.3rem .8rem; border-radius:14px;
-    background:var(--couleur-soleil); font-weight:700; font-size:1.3rem; text-align:center;
-    box-shadow:0 3px 0 color-mix(in srgb, var(--couleur-soleil) 55%, black 6%);
-  }
 
   /* pavé numérique diégétique */
   .pave-numerique{
@@ -156,17 +148,22 @@
   .zone-etiquetage{ position:relative; display:flex; gap:1.2rem; margin-top:.6rem; }
   .colonne-etiquetage{ flex:1; display:flex; flex-direction:column; gap:.6rem; }
   .traits-connexion{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
-  .trait-connexion{ stroke:var(--couleur-menthe); stroke-width:3; stroke-linecap:round; }
+  .trait-connexion{ stroke-width:4; stroke-linecap:round; }
   .carte-etiquetage, .etiquette-nombre{
     min-height:3.6rem; border-radius:16px; border:2.5px solid var(--couleur-encre); background:#ffffff;
     display:flex; align-items:center; justify-content:center; padding:.4rem;
   }
   .carte-etiquetage.selectionnee{ border-color:var(--couleur-mandarine); box-shadow:0 0 0 3px color-mix(in srgb, var(--couleur-mandarine) 35%, transparent); }
-  .carte-etiquetage.appariee, .etiquette-nombre.appariee{
-    background:color-mix(in srgb, var(--couleur-menthe) 35%, white); border-color:var(--couleur-menthe); opacity:.75;
+  /* Un lien tracé colore ses deux extrémités avec la couleur qui lui est propre (--couleur-lien, posée en ligne par JS). */
+  .carte-etiquetage.liee, .etiquette-nombre.liee{
+    border-color: var(--couleur-lien); background: color-mix(in srgb, var(--couleur-lien) 22%, white);
   }
-  .carte-etiquetage.secousse, .etiquette-nombre.secousse{ animation:secousse-legere .35s; }
-  @keyframes secousse-legere{ 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+  .carte-etiquetage.appariee, .etiquette-nombre.appariee{
+    border-color:var(--couleur-menthe); border-width:4px; box-shadow:0 0 0 3px color-mix(in srgb, var(--couleur-menthe) 30%, transparent);
+  }
+  .carte-etiquetage.non-appariee, .etiquette-nombre.non-appariee{
+    border-color:var(--couleur-corail); border-width:4px; box-shadow:0 0 0 3px color-mix(in srgb, var(--couleur-corail) 30%, transparent);
+  }
   .etiquette-nombre{ font-size:1.6rem; font-weight:700; }
   .mini-collection{ display:flex; flex-wrap:wrap; gap:2px; max-width:5rem; justify-content:center; font-size:1.1rem; }
   .de-points{ display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:3px; width:2.6rem; height:2.6rem; }
@@ -175,8 +172,10 @@
 
   /* comparer */
   .badge-mot-cle{
-    display:block; width:fit-content; margin:.4rem auto .8rem; padding:.35rem 1rem; border-radius:999px;
-    background:var(--couleur-soleil); color:var(--couleur-encre); font-weight:700; font-size:1.1rem; letter-spacing:.03em;
+    display:flex; align-items:center; justify-content:center;
+    width:3.2rem; height:3.2rem; margin:.4rem auto .8rem; border-radius:50%;
+    background:var(--couleur-soleil); color:var(--couleur-encre); font-weight:700; font-size:2rem;
+    border:3px solid color-mix(in srgb, var(--couleur-soleil) 60%, black 10%);
   }
   .rangee-contenants{ display:flex; gap:.7rem; justify-content:center; flex-wrap:wrap; }
   .bouton-contenant{ border:none; background:none; padding:0; border-radius:18px; }
@@ -210,17 +209,25 @@
     touch-action:none; cursor:grab; user-select:none; border-radius:50%;
   }
   .bete-draggable.en-glisse{ cursor:grabbing; filter:drop-shadow(0 6px 6px rgba(43,43,43,.25)); }
-  .escargot-draggable{
-    position:relative; width:3.4rem; height:3.4rem; font-size:2.2rem;
+  .carte-parade{
+    position:relative; width:4.2rem; height:4.2rem;
     touch-action:none; cursor:grab; user-select:none;
   }
-  .escargot-draggable.en-glisse{ cursor:grabbing; filter:drop-shadow(0 6px 6px rgba(43,43,43,.25)); }
-  .escargot-draggable .fond-escargot{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
-  .escargot-draggable .numero-escargot{
+  .carte-parade.en-glisse{ cursor:grabbing; filter:drop-shadow(0 6px 6px rgba(43,43,43,.25)); }
+  .parade-escargot .fond-escargot{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:2.2rem; }
+  .parade-escargot .numero-escargot{
     position:absolute; bottom:-2px; right:-2px; background:var(--couleur-soleil); color:var(--couleur-encre);
     font-size:1rem; font-weight:700; min-width:1.4rem; height:1.4rem; border-radius:50%;
     display:flex; align-items:center; justify-content:center; border:2px solid var(--couleur-fond);
   }
+  .parade-feuille .fond-feuille{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:2.6rem; opacity:.85; }
+  .parade-feuille .mini-collection{
+    position:absolute; inset:0; display:flex; flex-wrap:wrap; align-items:center; justify-content:center;
+    align-content:center; gap:0; font-size:.62rem; line-height:1; max-width:100%; padding:.3rem;
+  }
+  .anim-parade{ animation:bond-parade .5s ease; }
+  @keyframes bond-parade{ 0%{transform:translateY(0);} 40%{transform:translateY(-10px);} 100%{transform:translateY(0);} }
+  @media (prefers-reduced-motion:reduce){ .anim-parade{ animation:none; } }
 
   /* autant que le modèle */
   .rangee-modele{
@@ -228,23 +235,32 @@
     background:#ffffff; border:2.5px solid color-mix(in srgb, var(--couleur-encre) 12%, white);
   }
   .etiquette-rangee{ font-weight:700; font-size:.8rem; min-width:3.4rem; color:color-mix(in srgb, var(--couleur-encre) 70%, white); }
-  .collection-modele, .collection-cible{ display:flex; flex-wrap:wrap; gap:3px; flex:1; font-size:1.5rem; min-height:2.4rem; }
+  .collection-modele, .collection-cible{ display:grid; gap:3px; flex:1; font-size:1.5rem; min-height:2.4rem; align-content:start; }
   .element-cible{ border:none; background:none; padding:0; font-size:inherit; line-height:1; cursor:pointer; min-width:44px; min-height:44px; }
-  .bouton-ajout-retrait{
-    display:block; margin:.6rem auto; min-height:44px; border-radius:16px; border:none;
-    background:var(--couleur-mandarine); color:#fff; font-weight:700; padding:0 1.4rem;
-    box-shadow:0 4px 0 color-mix(in srgb, var(--couleur-mandarine) 60%, black 10%);
+  .rangee-boutons-cible{ display:flex; gap:.6rem; justify-content:center; margin:.6rem 0; }
+  .bouton-ajouter, .bouton-retirer{
+    display:block; min-height:44px; border-radius:16px; border:none;
+    color:#fff; font-weight:700; padding:0 1.2rem;
   }
+  .bouton-ajouter{
+    background:var(--couleur-menthe);
+    box-shadow:0 4px 0 color-mix(in srgb, var(--couleur-menthe) 60%, black 10%);
+  }
+  .bouton-retirer{
+    background:var(--couleur-corail);
+    box-shadow:0 4px 0 color-mix(in srgb, var(--couleur-corail) 60%, black 10%);
+  }
+  .bouton-ajouter:disabled, .bouton-retirer:disabled{ opacity:.45; box-shadow:none; }
 
   /* ranger */
   .bande-support{
     display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; padding:.6rem; border-radius:16px;
     background:color-mix(in srgb, var(--couleur-menthe) 12%, var(--couleur-fond));
     border:3px solid color-mix(in srgb, var(--couleur-menthe) 45%, var(--couleur-encre) 8%);
-    min-height:4.4rem;
+    min-height:5rem;
   }
   .slot-rang{
-    width:3.6rem; height:3.6rem; border-radius:14px; border:2.5px dashed color-mix(in srgb, var(--couleur-encre) 30%, white);
+    width:4.6rem; height:4.6rem; border-radius:14px; border:2.5px dashed color-mix(in srgb, var(--couleur-encre) 30%, white);
     background:#ffffff; display:flex; align-items:center; justify-content:center;
   }
   .slot-rang.rang-correct{ border-style:solid; border-color:var(--couleur-menthe); background:color-mix(in srgb, var(--couleur-menthe) 30%, white); }
@@ -318,7 +334,7 @@
     { "id": "comparer", "titre": "Plus, moins, autant", "icone": "⚖️", "couleur": "soleil", "description": "Entoure le bon contenant.", "nbQuestions": 6 },
     { "id": "constituer", "titre": "Le compte est juste", "icone": "🐝", "couleur": "corail", "description": "Fais glisser le bon nombre de bêtes.", "nbQuestions": 6 },
     { "id": "autant-que", "titre": "Autant que le modèle", "icone": "🌸", "couleur": "mandarine", "description": "Complète pour avoir autant, un de plus ou un de moins.", "nbQuestions": 6 },
-    { "id": "ranger", "titre": "La bande des nombres", "icone": "🐌", "couleur": "menthe", "description": "Range les escargots du plus petit au plus grand.", "nbQuestions": 6 }
+    { "id": "ranger", "titre": "La parade des escargots", "icone": "🐌", "couleur": "menthe", "description": "Range la parade dans l'ordre demandé, croissant ou décroissant !", "nbQuestions": 6 }
   ]
 }
 </script>
@@ -760,10 +776,10 @@
     const scene = document.createElement('div');
     scene.className = 'zone-jardin';
     const positions = positionsGrille(n);
+    // Aucun compteur affiché : le "pop" de chaque bête confirme juste qu'elle
+    // est déjà comptée (pour ne pas la recompter), mais le total ne doit
+    // jamais apparaître avant que l'enfant ne le saisisse lui-même.
     let compte = 0;
-    const compteurAffiche = document.createElement('div');
-    compteurAffiche.className = 'compteur-jardin';
-    compteurAffiche.textContent = '0';
 
     const zonePave = document.createElement('div');
     zonePave.id = 'zone-pave';
@@ -780,13 +796,11 @@
         bete.classList.add('comptee');
         bete.disabled = true;
         compte++;
-        compteurAffiche.textContent = String(compte);
         jouerSon('tic');
         if (compte === n) setTimeout(afficherPaveNumerique, 350);
       });
       scene.appendChild(bete);
     }
-    zone.appendChild(compteurAffiche);
     zone.appendChild(scene);
     zone.appendChild(zonePave);
 
@@ -846,7 +860,7 @@
     }
     return cont;
   }
-  function dessinerTrait(svg, elA, elB, conteneur) {
+  function dessinerTrait(svg, elA, elB, conteneur, couleur) {
     const rectConteneur = conteneur.getBoundingClientRect();
     const rectA = elA.getBoundingClientRect();
     const rectB = elB.getBoundingClientRect();
@@ -856,21 +870,24 @@
     ligne.setAttribute('x2', String(rectB.left - rectConteneur.left));
     ligne.setAttribute('y2', String(rectB.top + rectB.height / 2 - rectConteneur.top));
     ligne.setAttribute('class', 'trait-connexion');
+    ligne.setAttribute('stroke', couleur);
     svg.appendChild(ligne);
+    return ligne;
   }
+  const PALETTE_LIENS = ['var(--couleur-mandarine)', 'var(--couleur-menthe)', 'var(--couleur-corail)', 'var(--couleur-soleil)'];
 
   function genererEtiqueter(zone, cfg) {
     const plage = plageActuelle();
     const valeurs = melanger(Array.from({ length: plage.max - plage.min + 1 }, (_, i) => plage.min + i)).slice(0, 4);
 
-    zone.appendChild(creerBlocConsigne("Relie chaque collection à son étiquette-nombre !"));
+    zone.appendChild(creerBlocConsigne("Relie chaque collection à son étiquette-nombre, puis valide !"));
 
     const cartesGauche = valeurs.map((n) => {
       const utiliserDe = n <= 6 && Math.random() < 0.35;
       if (utiliserDe) return { n, type: 'de' };
       return { n, type: 'collection', especeId: choisir(Object.keys(donnees.especes)) };
     });
-    const gaucheAffiche = melanger(cartesGauche.map((c, i) => ({ ...c, id: i })));
+    const gaucheAffiche = melanger(cartesGauche.map((c, i) => ({ ...c, id: i, couleur: PALETTE_LIENS[i % PALETTE_LIENS.length] })));
     const droiteAffiche = melanger(valeurs.map((n, i) => ({ n, id: i })));
 
     const zoneMatch = document.createElement('div');
@@ -882,19 +899,54 @@
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('class', 'traits-connexion');
 
-    let selectionGauche = null;
-    let paireRestantes = valeurs.length;
-    let erreurCommise = false;
+    const gauches = {}; // id -> { n, couleur, btn, droiteId, ligne }
+    const droites = {}; // id -> { n, btn, gaucheId }
+    let selectionGaucheId = null;
+
+    function deconnecter(gaucheId) {
+      const g = gauches[gaucheId];
+      if (g.droiteId !== null) {
+        const d = droites[g.droiteId];
+        d.gaucheId = null;
+        d.btn.classList.remove('liee');
+        d.btn.style.removeProperty('--couleur-lien');
+      }
+      if (g.ligne) { g.ligne.remove(); g.ligne = null; }
+      g.droiteId = null;
+      g.btn.classList.remove('liee');
+      g.btn.style.removeProperty('--couleur-lien');
+    }
+
+    function majBoutonValider() {
+      boutonValider.hidden = !Object.values(gauches).every((g) => g.droiteId !== null);
+    }
+
+    function connecter(gaucheId, droiteId) {
+      const g = gauches[gaucheId];
+      const d = droites[droiteId];
+      if (g.droiteId !== null && g.droiteId !== droiteId) deconnecter(gaucheId);
+      if (d.gaucheId !== null && d.gaucheId !== gaucheId) deconnecter(d.gaucheId);
+      g.droiteId = droiteId;
+      d.gaucheId = gaucheId;
+      g.btn.classList.add('liee');
+      g.btn.style.setProperty('--couleur-lien', g.couleur);
+      d.btn.classList.add('liee');
+      d.btn.style.setProperty('--couleur-lien', g.couleur);
+      g.ligne = dessinerTrait(svg, g.btn, d.btn, zoneMatch, g.couleur);
+      jouerSon('tic');
+      majBoutonValider();
+    }
 
     gaucheAffiche.forEach((carte) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'carte-etiquetage';
       btn.appendChild(carte.type === 'de' ? creerDe(carte.n) : creerMiniCollection(carte.especeId, carte.n));
+      gauches[carte.id] = { n: carte.n, couleur: carte.couleur, btn, droiteId: null, ligne: null };
       btn.addEventListener('click', () => {
         if (btn.disabled) return;
-        if (selectionGauche) selectionGauche.el.classList.remove('selectionnee');
-        selectionGauche = { n: carte.n, el: btn };
+        if (selectionGaucheId !== null) gauches[selectionGaucheId].btn.classList.remove('selectionnee');
+        selectionGaucheId = carte.id;
         btn.classList.add('selectionnee');
       });
       colGauche.appendChild(btn);
@@ -905,33 +957,13 @@
       btn.type = 'button';
       btn.className = 'etiquette-nombre';
       btn.textContent = String(etq.n);
+      droites[etq.id] = { n: etq.n, btn, gaucheId: null };
       btn.addEventListener('click', () => {
-        if (btn.disabled || !selectionGauche) return;
-        const estCorrecte = selectionGauche.n === etq.n;
-        if (estCorrecte) {
-          selectionGauche.el.disabled = true;
-          selectionGauche.el.classList.remove('selectionnee');
-          selectionGauche.el.classList.add('appariee');
-          btn.disabled = true;
-          btn.classList.add('appariee');
-          dessinerTrait(svg, selectionGauche.el, btn, zoneMatch);
-          jouerSon('tic');
-          paireRestantes--;
-          selectionGauche = null;
-          if (paireRestantes === 0) setTimeout(() => validerReponse(!erreurCommise), 400);
-        } else {
-          erreurCommise = true;
-          const elGauche = selectionGauche.el;
-          btn.classList.add('secousse');
-          elGauche.classList.add('secousse');
-          jouerSon('rate');
-          setTimeout(() => {
-            btn.classList.remove('secousse');
-            elGauche.classList.remove('secousse');
-            elGauche.classList.remove('selectionnee');
-          }, 350);
-          selectionGauche = null;
-        }
+        if (btn.disabled || selectionGaucheId === null) return;
+        const idASelectionner = selectionGaucheId;
+        gauches[idASelectionner].btn.classList.remove('selectionnee');
+        selectionGaucheId = null;
+        connecter(idASelectionner, etq.id);
       });
       colDroite.appendChild(btn);
     });
@@ -940,6 +972,32 @@
     zoneMatch.appendChild(colGauche);
     zoneMatch.appendChild(colDroite);
     zone.appendChild(zoneMatch);
+
+    // Rien n'est corrigé au fur et à mesure : l'enfant peut refaire ses
+    // liens tant qu'il n'a pas appuyé sur Valider (cf. CHARTE.md — la
+    // correction groupée laisse le droit à l'essai-erreur sans pénaliser
+    // chaque lien pris isolément).
+    const boutonValider = document.createElement('button');
+    boutonValider.type = 'button';
+    boutonValider.className = 'bouton-principal';
+    boutonValider.textContent = 'Valider';
+    boutonValider.hidden = true;
+    boutonValider.addEventListener('click', () => {
+      if (etat.verrouille) return;
+      let tousCorrects = true;
+      Object.values(gauches).forEach((g) => {
+        const d = g.droiteId !== null ? droites[g.droiteId] : null;
+        const bon = !!d && d.n === g.n;
+        g.btn.disabled = true;
+        g.btn.classList.add(bon ? 'appariee' : 'non-appariee');
+        if (d) { d.btn.disabled = true; d.btn.classList.add(bon ? 'appariee' : 'non-appariee'); }
+        if (!bon) tousCorrects = false;
+      });
+      boutonValider.disabled = true;
+      boutonValider.hidden = true;
+      validerReponse(tousCorrects);
+    });
+    zone.appendChild(boutonValider);
   }
 
   /* ---------- Mini-jeu 3 : Plus, moins, autant (comparer — entourer) ---------- */
@@ -972,9 +1030,11 @@
       : `Entoure ${univers.article} ${univers.contenant} qui a LE ${motCle} de ${univers.mot} !`;
     zone.appendChild(creerBlocConsigne(consigneTexte));
 
+    const SYMBOLES_MOT_CLE = { PLUS: '+', MOINS: '−', AUTANT: '=' };
     const badge = document.createElement('div');
     badge.className = 'badge-mot-cle';
-    badge.textContent = motCle;
+    badge.textContent = SYMBOLES_MOT_CLE[motCle];
+    badge.setAttribute('aria-label', motCle);
     zone.appendChild(badge);
 
     const rangee = document.createElement('div');
@@ -1109,8 +1169,10 @@
     const etiqModele = document.createElement('div');
     etiqModele.className = 'etiquette-rangee';
     etiqModele.textContent = 'Modèle';
+    const colonnes = Math.max(1, Math.min(5, Math.max(modele, cible)));
     const collModele = document.createElement('div');
     collModele.className = 'collection-modele';
+    collModele.style.gridTemplateColumns = `repeat(${colonnes}, 1fr)`;
     for (let i = 0; i < modele; i++) {
       const s = document.createElement('span');
       s.textContent = espece.emoji;
@@ -1127,27 +1189,44 @@
     etiqCible.textContent = 'À toi';
     const collCible = document.createElement('div');
     collCible.className = 'collection-cible';
+    collCible.style.gridTemplateColumns = `repeat(${colonnes}, 1fr)`;
     rangeeCible.appendChild(etiqCible);
     rangeeCible.appendChild(collCible);
     zone.appendChild(rangeeCible);
 
     let compte = 0;
     const MAX_AJOUT = 10;
+    const rangeeBoutons = document.createElement('div');
+    rangeeBoutons.className = 'rangee-boutons-cible';
     const boutonAjouter = document.createElement('button');
     boutonAjouter.type = 'button';
-    boutonAjouter.className = 'bouton-ajout-retrait';
+    boutonAjouter.className = 'bouton-ajouter';
     boutonAjouter.textContent = '+ Ajouter';
+    const boutonRetirer = document.createElement('button');
+    boutonRetirer.type = 'button';
+    boutonRetirer.className = 'bouton-retirer';
+    boutonRetirer.textContent = '− Retirer';
+    boutonRetirer.disabled = true;
     boutonAjouter.addEventListener('click', () => {
       if (compte >= MAX_AJOUT) return;
       const s = document.createElement('button');
       s.type = 'button';
       s.className = 'element-cible';
       s.textContent = espece.emoji;
-      s.addEventListener('click', () => { s.remove(); compte--; });
+      s.addEventListener('click', () => { s.remove(); compte--; boutonRetirer.disabled = compte <= 0; });
       collCible.appendChild(s);
       compte++;
+      boutonRetirer.disabled = false;
     });
-    zone.appendChild(boutonAjouter);
+    boutonRetirer.addEventListener('click', () => {
+      if (compte <= 0) return;
+      collCible.lastElementChild.remove();
+      compte--;
+      boutonRetirer.disabled = compte <= 0;
+    });
+    rangeeBoutons.appendChild(boutonAjouter);
+    rangeeBoutons.appendChild(boutonRetirer);
+    zone.appendChild(rangeeBoutons);
 
     const boutonValider = document.createElement('button');
     boutonValider.type = 'button';
@@ -1158,6 +1237,8 @@
       const estCorrecte = compte === cible;
       boutonAjouter.disabled = true;
       boutonAjouter.hidden = true;
+      boutonRetirer.disabled = true;
+      boutonRetirer.hidden = true;
       Array.from(collCible.children).forEach((el) => (el.disabled = true));
       boutonValider.disabled = true;
       boutonValider.hidden = true;
@@ -1166,16 +1247,45 @@
     zone.appendChild(boutonValider);
   }
 
-  /* ---------- Mini-jeu 6 : La bande des nombres (ranger — drag & drop de tri) ---------- */
+  /* ---------- Mini-jeu 6 : La parade des escargots (ranger — glisser-déposer) ---------- */
+
+  function creerElementParade(valeur, type) {
+    const el = document.createElement('div');
+    el.className = type === 'chiffre' ? 'carte-parade parade-escargot' : 'carte-parade parade-feuille';
+    el.dataset.slot = '';
+    el.dataset.valeur = String(valeur);
+    if (type === 'chiffre') {
+      const fond = document.createElement('span');
+      fond.className = 'fond-escargot';
+      fond.textContent = '🐌';
+      const num = document.createElement('span');
+      num.className = 'numero-escargot';
+      num.textContent = String(valeur);
+      el.appendChild(fond);
+      el.appendChild(num);
+    } else {
+      const fond = document.createElement('span');
+      fond.className = 'fond-feuille';
+      fond.textContent = '🍃';
+      el.appendChild(fond);
+      el.appendChild(creerMiniCollection('coccinelle', valeur));
+    }
+    return el;
+  }
 
   function genererRanger(zone, cfg) {
     const plage = plageActuelle();
-    const K = etat.index <= 3 ? 4 : 5;
+    const K = etat.index <= 1 ? 3 : etat.index <= 3 ? 4 : 5;
     const valeurs = melanger(Array.from({ length: plage.max - plage.min + 1 }, (_, i) => plage.min + i)).slice(0, K);
-    const ordreCorrect = [...valeurs].sort((a, b) => a - b);
+    const sens = choisir(['croissant', 'decroissant']);
+    const ordreCorrect = sens === 'croissant' ? [...valeurs].sort((a, b) => a - b) : [...valeurs].sort((a, b) => b - a);
     const ordreAffiche = melanger(valeurs);
+    const variante = choisir(['quantite', 'chiffre', 'mixte']);
+    const typesParValeur = {};
+    valeurs.forEach((v) => { typesParValeur[v] = variante === 'mixte' ? choisir(['quantite', 'chiffre']) : variante; });
 
-    zone.appendChild(creerBlocConsigne('Range les escargots du plus petit au plus grand sur la bande !'));
+    const phraseSens = sens === 'croissant' ? 'du plus petit au plus grand' : 'du plus grand au plus petit';
+    zone.appendChild(creerBlocConsigne(`Range la parade sur le chemin du jardin, ${phraseSens} !`));
 
     const zoneRanger = document.createElement('div');
     zoneRanger.className = 'zone-ranger';
@@ -1193,7 +1303,7 @@
       bande.appendChild(slot);
     }
 
-    const escargots = {};
+    const elements = {};
     const boutonValider = document.createElement('button');
     boutonValider.type = 'button';
     boutonValider.className = 'bouton-principal';
@@ -1201,50 +1311,39 @@
     boutonValider.hidden = true;
 
     function verifierRemplissage() {
-      const rempli = slots.every((s) => s.querySelector('.escargot-draggable'));
+      const rempli = slots.every((s) => s.querySelector('.carte-parade'));
       boutonValider.hidden = !rempli;
     }
 
     ordreAffiche.forEach((val) => {
-      const esc = document.createElement('div');
-      esc.className = 'escargot-draggable';
-      esc.dataset.slot = '';
-      esc.dataset.valeur = String(val);
-      const fond = document.createElement('span');
-      fond.className = 'fond-escargot';
-      fond.textContent = '🐌';
-      const num = document.createElement('span');
-      num.className = 'numero-escargot';
-      num.textContent = String(val);
-      esc.appendChild(fond);
-      esc.appendChild(num);
-      reserve.appendChild(esc);
-      escargots[val] = esc;
+      const el = creerElementParade(val, typesParValeur[val]);
+      reserve.appendChild(el);
+      elements[val] = el;
 
-      activerDrag(esc, {
+      activerDrag(el, {
         onDepose(x, y) {
           const slotCible = slots.find((s) => {
             const r = s.getBoundingClientRect();
             return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
           });
           if (!slotCible) {
-            if (esc.dataset.slot !== '') { reserve.appendChild(esc); esc.dataset.slot = ''; }
+            if (el.dataset.slot !== '') { reserve.appendChild(el); el.dataset.slot = ''; }
             verifierRemplissage();
             return;
           }
-          const occupantActuel = slotCible.querySelector('.escargot-draggable');
-          if (occupantActuel && occupantActuel !== esc) {
-            if (esc.dataset.slot !== '') {
-              const ancienSlot = slots[Number(esc.dataset.slot)];
+          const occupantActuel = slotCible.querySelector('.carte-parade');
+          if (occupantActuel && occupantActuel !== el) {
+            if (el.dataset.slot !== '') {
+              const ancienSlot = slots[Number(el.dataset.slot)];
               ancienSlot.appendChild(occupantActuel);
-              occupantActuel.dataset.slot = esc.dataset.slot;
+              occupantActuel.dataset.slot = el.dataset.slot;
             } else {
               reserve.appendChild(occupantActuel);
               occupantActuel.dataset.slot = '';
             }
           }
-          slotCible.appendChild(esc);
-          esc.dataset.slot = slotCible.dataset.index;
+          slotCible.appendChild(el);
+          el.dataset.slot = slotCible.dataset.index;
           verifierRemplissage();
         }
       });
@@ -1260,15 +1359,39 @@
     boutonValider.addEventListener('click', () => {
       if (etat.verrouille) return;
       const ordreActuel = slots.map((s) => {
-        const e = s.querySelector('.escargot-draggable');
+        const e = s.querySelector('.carte-parade');
         return e ? Number(e.dataset.valeur) : null;
       });
       const estCorrecte = ordreActuel.every((v, i) => v === ordreCorrect[i]);
-      slots.forEach((s) => s.classList.add(estCorrecte ? 'rang-correct' : 'rang-incorrect'));
-      Object.values(escargots).forEach((e) => { e.style.pointerEvents = 'none'; });
-      boutonValider.disabled = true;
-      boutonValider.hidden = true;
-      validerReponse(estCorrecte);
+      if (estCorrecte) {
+        slots.forEach((s, i) => {
+          s.classList.add('rang-correct');
+          const e = s.querySelector('.carte-parade');
+          if (e) { e.style.animationDelay = (i * 0.08) + 's'; e.classList.add('anim-parade'); }
+        });
+        Object.values(elements).forEach((e) => { e.style.pointerEvents = 'none'; });
+        boutonValider.disabled = true;
+        boutonValider.hidden = true;
+        validerReponse(true);
+        return;
+      }
+      // Réponse incorrecte ou incomplète : on signale les éléments mal placés
+      // sans donner la solution, et on laisse l'enfant réessayer — pas de
+      // verrouillage ici, le bouton Valider reste actif pour de nouveaux essais.
+      slots.forEach((s, i) => {
+        const e = s.querySelector('.carte-parade');
+        const correctIci = !!e && Number(e.dataset.valeur) === ordreCorrect[i];
+        s.classList.toggle('rang-incorrect', !!e && !correctIci);
+      });
+      jouerSon('rate');
+      const zoneFeedback = document.getElementById('zone-feedback');
+      zoneFeedback.textContent = 'Regarde bien : certains ne sont pas à la bonne place !';
+      zoneFeedback.className = 'feedback feedback-erreur';
+      setTimeout(() => {
+        slots.forEach((s) => s.classList.remove('rang-incorrect'));
+        zoneFeedback.textContent = '';
+        zoneFeedback.className = 'feedback';
+      }, 1400);
     });
     zone.appendChild(boutonValider);
   }
