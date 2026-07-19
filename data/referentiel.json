@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "programmeParDefaut": "BO-2024",
+  "niveaux": ["CP", "CE1", "CE2", "CM1", "CM2"],
+  "domaines": ["Nombres", "Calcul", "Grandeurs et mesures", "Espace et géométrie"],
+  "modules": [
+    {
+      "id": "M01",
+      "titre": "Le Jardin des Petites Bêtes",
+      "description": "Compte, compare et range les habitants du jardin (nombres de 1 à 9).",
+      "icone": "🐞",
+      "niveau": "CP",
+      "domaine": "Nombres",
+      "theme": "Nombres jusqu'à 9",
+      "programme": "BO-2024",
+      "type": "entrainement",
+      "fichier": "jeux/M01-nombres-jusqu-9-cp.html",
+      "competences": [
+        { "id": "denombrer", "libelle": "Dénombrer une collection jusqu'à 9" },
+        { "id": "etiqueter", "libelle": "Associer une collection à son écriture chiffrée" },
+        { "id": "comparer", "libelle": "Comparer des quantités (plus, moins, autant)" },
+        { "id": "constituer", "libelle": "Constituer une collection d'un nombre donné" },
+        { "id": "autant-que", "libelle": "Réaliser autant, un de plus, un de moins" },
+        { "id": "ranger", "libelle": "Ranger nombres et quantités dans l'ordre" }
+      ]
+    },
+    {
+      "id": "M17",
+      "titre": "Fractions CE2",
+      "description": "Découvre, compare et calcule avec les fractions simples.",
+      "icone": "🍰",
+      "niveau": "CE2",
+      "domaine": "Nombres",
+      "theme": "Fractions",
+      "programme": "BO-2024",
+      "type": "entrainement",
+      "fichier": "jeux/M17-fractions-ce2.html",
+      "competences": [
+        { "id": "decouverte", "libelle": "Lire une fraction représentée" },
+        { "id": "droite", "libelle": "Placer et lire des fractions sur une droite graduée" },
+        { "id": "egales", "libelle": "Reconnaître des fractions égales" },
+        { "id": "comparer", "libelle": "Comparer et ranger des fractions" },
+        { "id": "calculer-facile", "libelle": "Additionner et soustraire des fractions simples", "varianteDifficile": "calculer-difficile" },
+        { "id": "calculer-difficile", "libelle": "Additionner et soustraire des fractions (difficile)" }
+      ]
+    },
+    {
+      "id": "M36",
+      "titre": "Les Solides",
+      "description": "Manipule les solides en 3D : nomme-les, compte leurs faces, plie leurs patrons.",
+      "icone": "🧊",
+      "niveau": "CE2",
+      "domaine": "Espace et géométrie",
+      "theme": "Solides",
+      "programme": "BO-2024",
+      "type": "entrainement",
+      "fichier": "jeux/M36-solides.html",
+      "competences": [
+        { "id": "nomme", "libelle": "Nommer les solides usuels" },
+        { "id": "polyedre", "libelle": "Distinguer polyèdres et non-polyèdres" },
+        { "id": "compte", "libelle": "Dénombrer faces, sommets et arêtes" },
+        { "id": "explore", "libelle": "Explorer les propriétés des solides" },
+        { "id": "devinette", "libelle": "Reconnaître un solide d'après ses propriétés" },
+        { "id": "patrons", "libelle": "Associer un solide à son patron" }
+      ]
+    }
+  ]
+}
