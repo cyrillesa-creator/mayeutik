@@ -239,8 +239,9 @@
       h('h1', { texte: 'Espace parents' })
     ]));
     // Mention obligatoire (CHARTE.md / PRODUIT.md), toujours visible en tête.
-    vue.appendChild(h('p', { class: 'mention-legale',
-      texte: 'Positionnement indicatif basé sur les jeux, inspiré de l’échelle du livret scolaire.' }));
+    // Texte défini une seule fois, dans MayeutikStatuts.MENTION_PARENTALE.
+    const mention = S.MENTION_PARENTALE.charAt(0).toUpperCase() + S.MENTION_PARENTALE.slice(1) + '.';
+    vue.appendChild(h('p', { class: 'mention-legale', texte: mention }));
 
     /* Outils : choix du profil suivi + filtre de niveau. */
     const selectProfil = h('select', { 'aria-label': 'Profil suivi',
