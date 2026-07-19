@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light only">
+<meta name="theme-color" content="#FF8C42">
+<title>Mayeutik — jeux éducatifs</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ---------- Charte (CHARTE.md) : variables, mode clair forcé ---------- */
+  :root {
+    --couleur-fond: #FFF8EF;
+    --couleur-encre: #2B2B2B;
+    --couleur-mandarine: #FF8C42;
+    --couleur-menthe: #4ECDC4;
+    --couleur-corail: #FF6B6B;
+    --couleur-soleil: #FFD93D;
+    color-scheme: light only;
+  }
+  @media (prefers-color-scheme: dark) {
+    html { background-color: var(--couleur-fond); }
+    body { background-color: var(--couleur-fond); color: var(--couleur-encre); }
+    input, select, textarea, button { background-color: #FFFFFF; color: var(--couleur-encre); }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { background: var(--couleur-fond); }
+  body {
+    font-family: 'Fredoka', system-ui, sans-serif; /* repli système si hors ligne */
+    background: var(--couleur-fond);
+    color: var(--couleur-encre);
+    min-height: 100vh;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button { font-family: inherit; font-size: 1rem; cursor: pointer; }
+  input, select { font-family: inherit; font-size: 1rem; }
+  a { color: inherit; }
+  [hidden] { display: none !important; }
+
+  .vue { max-width: 640px; margin: 0 auto; padding: 0 1rem 2rem; }
+
+  /* =====================================================================
+     CÔTÉ ENFANT — ludique et coloré (PRODUIT.md : ton différencié)
+     ===================================================================== */
+
+  .entete-enfant { text-align: center; padding: 1.2rem 0 .6rem; }
+  .entete-enfant h1 {
+    font-size: 2rem; font-weight: 700; color: var(--couleur-mandarine);
+    text-shadow: 2px 2px 0 color-mix(in srgb, var(--couleur-soleil) 55%, transparent);
+  }
+  .entete-enfant .sous-titre { font-weight: 500; opacity: .75; margin-top: .1rem; }
+
+  /* Pastille de profil (coin haut droit) : avatar-initiale + prénom */
+  .pastille-profil {
+    position: absolute; top: .8rem; right: .9rem;
+    display: flex; align-items: center; gap: .4rem;
+    border: none; background: #fff; border-radius: 999px;
+    padding: .25rem .8rem .25rem .3rem; min-height: 44px;
+    box-shadow: 0 2px 8px rgba(43,43,43,.12); font-weight: 600;
+  }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 1.05rem;
+    background: var(--couleur-menthe);
+  }
+  .avatar-mandarine { background: var(--couleur-mandarine); }
+  .avatar-corail { background: var(--couleur-corail); }
+  .avatar-soleil { background: var(--couleur-soleil); color: var(--couleur-encre); }
+
+  /* Recherche + filtres */
+  .barre-recherche {
+    display: block; width: 100%; min-height: 44px; margin: .7rem 0 .5rem;
+    border: 2.5px solid color-mix(in srgb, var(--couleur-encre) 15%, white);
+    border-radius: 999px; padding: 0 1.1rem; background: #fff;
+  }
+  .barre-recherche:focus { outline: none; border-color: var(--couleur-mandarine); }
+  .rangee-filtres { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .4rem; }
+  .puce-filtre {
+    border: 2px solid color-mix(in srgb, var(--couleur-encre) 18%, white);
+    background: #fff; border-radius: 999px; padding: .3rem .8rem;
+    font-weight: 500; min-height: 38px;
+  }
+  .puce-filtre.active { background: var(--couleur-mandarine); border-color: var(--couleur-mandarine); color: #fff; }
+  .puce-filtre-domaine.active { background: var(--couleur-menthe); border-color: var(--couleur-menthe); }
+
+  /* Cartes de jeux */
+  .titre-groupe { font-size: 1.05rem; font-weight: 700; margin: .9rem 0 .4rem; opacity: .8; }
+  .grille-jeux { display: grid; grid-template-columns: 1fr; gap: .7rem; }
+  @media (min-width: 480px) { .grille-jeux { grid-template-columns: 1fr 1fr; } }
+  .carte-jeu {
+    display: flex; gap: .8rem; align-items: center; text-decoration: none;
+    background: #fff; border-radius: 20px; padding: .9rem;
+    border: 3px solid transparent; max-height: 34vh;
+    box-shadow: 0 3px 10px rgba(43,43,43,.08);
+  }
+  .carte-jeu:active { transform: scale(.98); }
+  .carte-mandarine { border-color: color-mix(in srgb, var(--couleur-mandarine) 55%, white); }
+  .carte-menthe { border-color: color-mix(in srgb, var(--couleur-menthe) 55%, white); }
+  .carte-corail { border-color: color-mix(in srgb, var(--couleur-corail) 55%, white); }
+  .carte-soleil { border-color: color-mix(in srgb, var(--couleur-soleil) 75%, white); }
+  .carte-jeu .icone {
+    font-size: 2rem; width: 3.4rem; height: 3.4rem; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 16px; background: color-mix(in srgb, var(--couleur-soleil) 25%, white);
+  }
+  .carte-jeu .infos { min-width: 0; }
+  .carte-jeu .titre { font-weight: 700; font-size: 1.05rem; }
+  .carte-jeu .description { font-size: .85rem; opacity: .75; margin-top: .1rem; }
+  .badges { display: flex; gap: .35rem; margin-top: .3rem; flex-wrap: wrap; }
+  .badge {
+    font-size: .72rem; font-weight: 600; border-radius: 999px; padding: .1rem .55rem;
+    background: color-mix(in srgb, var(--couleur-menthe) 25%, white);
+  }
+  .badge-niveau { background: color-mix(in srgb, var(--couleur-mandarine) 25%, white); }
+  .badge-evaluation { background: color-mix(in srgb, var(--couleur-corail) 25%, white); }
+  .aucun-resultat { text-align: center; opacity: .7; padding: 1.5rem 0; font-weight: 500; }
+
+  /* Choix / création de profil (côté enfant) */
+  .titre-profils { text-align: center; font-size: 1.3rem; font-weight: 700; margin: 1rem 0 .8rem; }
+  .liste-profils { display: flex; flex-direction: column; gap: .6rem; }
+  .carte-profil {
+    display: flex; align-items: center; gap: .8rem; width: 100%;
+    background: #fff; border: 3px solid transparent; border-radius: 18px;
+    padding: .7rem .9rem; min-height: 56px; font-weight: 600; font-size: 1.1rem;
+    box-shadow: 0 3px 10px rgba(43,43,43,.08);
+  }
+  .carte-profil.actif { border-color: var(--couleur-menthe); }
+  .carte-profil .niveau { margin-left: auto; font-size: .85rem; font-weight: 500; opacity: .7; }
+  .formulaire-profil {
+    margin-top: 1rem; background: #fff; border-radius: 18px; padding: 1rem;
+    box-shadow: 0 3px 10px rgba(43,43,43,.08);
+  }
+  .formulaire-profil h3 { font-size: 1.05rem; margin-bottom: .6rem; }
+  .formulaire-profil .champs { display: flex; gap: .5rem; }
+  .formulaire-profil input {
+    flex: 1; min-width: 0; min-height: 44px; border-radius: 12px; padding: 0 .8rem;
+    border: 2.5px solid color-mix(in srgb, var(--couleur-encre) 15%, white);
+  }
+  .formulaire-profil select {
+    min-height: 44px; border-radius: 12px; padding: 0 .5rem;
+    border: 2.5px solid color-mix(in srgb, var(--couleur-encre) 15%, white); background: #fff;
+  }
+  .bouton-principal {
+    display: block; width: 100%; margin-top: .6rem; min-height: 46px;
+    border: none; border-radius: 14px; background: var(--couleur-mandarine);
+    color: #fff; font-weight: 700; font-size: 1.05rem;
+    box-shadow: 0 4px 0 color-mix(in srgb, var(--couleur-mandarine) 60%, black 10%);
+  }
+  .bouton-principal:disabled { opacity: .5; box-shadow: none; }
+
+  /* Accès parent : volontairement à l'écart, discret, en bas de page */
+  .pied-enfant { text-align: center; margin-top: 2.2rem; padding-bottom: 1rem; }
+  .lien-parent {
+    font-size: .85rem; opacity: .55; text-decoration: underline; font-weight: 500;
+    background: none; border: none; padding: .6rem;
+  }
+
+  /* =====================================================================
+     CÔTÉ PARENT — sobre, clair, informatif (PRODUIT.md : ton différencié)
+     ===================================================================== */
+
+  .vue-parent { font-weight: 400; }
+  .entete-parent {
+    display: flex; align-items: center; gap: .8rem; padding: 1rem 0 .4rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--couleur-encre) 12%, white);
+    margin-bottom: .8rem;
+  }
+  .entete-parent h1 { font-size: 1.25rem; font-weight: 600; }
+  .lien-retour-jeux {
+    text-decoration: none; font-size: .9rem; font-weight: 500;
+    border: 1.5px solid color-mix(in srgb, var(--couleur-encre) 25%, white);
+    border-radius: 10px; padding: .45rem .7rem; background: #fff;
+  }
+  .mention-legale {
+    font-size: .78rem; font-style: italic; opacity: .7; margin: .2rem 0 1rem;
+  }
+  .section-parent { margin-bottom: 1.6rem; }
+  .section-parent h2 { font-size: 1.02rem; font-weight: 600; margin-bottom: .5rem; }
+  .rangee-outils-parent { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .rangee-outils-parent label { font-size: .82rem; font-weight: 500; display: block; margin-bottom: .2rem; opacity: .75; }
+  .rangee-outils-parent select {
+    min-height: 42px; border-radius: 10px; padding: 0 .5rem; background: #fff;
+    border: 1.5px solid color-mix(in srgb, var(--couleur-encre) 22%, white);
+  }
+
+  /* Radar */
+  .cadre-radar { background: #fff; border-radius: 14px; padding: .8rem; border: 1px solid color-mix(in srgb, var(--couleur-encre) 10%, white); }
+  .radar-svg { display: block; width: 100%; max-width: 380px; margin: 0 auto; }
+  .radar-grille { fill: none; stroke: color-mix(in srgb, var(--couleur-encre) 14%, white); stroke-width: 1; }
+  .radar-axe { stroke: color-mix(in srgb, var(--couleur-encre) 18%, white); stroke-width: 1; }
+  .radar-valeurs {
+    fill: color-mix(in srgb, var(--couleur-mandarine) 30%, transparent);
+    stroke: var(--couleur-mandarine); stroke-width: 2; stroke-linejoin: round;
+  }
+  .radar-valeurs-ligne { stroke: var(--couleur-mandarine); stroke-width: 2.5; stroke-linecap: round; }
+  .radar-point { fill: var(--couleur-mandarine); }
+  .radar-libelle { font-size: 10.5px; font-weight: 500; fill: var(--couleur-encre); }
+  .radar-libelle-cliquable { cursor: pointer; text-decoration: underline; }
+  .radar-libelle-actif { font-weight: 700; fill: var(--couleur-mandarine); }
+  .radar-sous-libelle { font-size: 8.5px; opacity: .65; }
+  .titre-radar-detail { font-size: .9rem; font-weight: 600; margin: .8rem 0 .3rem; opacity: .85; }
+  .aide-radar { font-size: .8rem; opacity: .65; text-align: center; margin-top: .4rem; }
+
+  /* Légende de l'échelle */
+  .legende-echelle { display: flex; flex-wrap: wrap; gap: .35rem .8rem; margin-top: .6rem; font-size: .78rem; }
+  .legende-echelle span { display: inline-flex; align-items: center; gap: .3rem; }
+  .point-legende { width: .65rem; height: .65rem; border-radius: 50%; display: inline-block; }
+
+  /* Pastilles de statut (couleurs de la charte uniquement) */
+  .statut { font-size: .78rem; font-weight: 600; border-radius: 999px; padding: .15rem .6rem; white-space: nowrap; }
+  .statut-non-travaille { background: color-mix(in srgb, var(--couleur-encre) 10%, white); opacity: .8; }
+  .statut-non-atteints { background: color-mix(in srgb, var(--couleur-corail) 30%, white); }
+  .statut-partiellement { background: color-mix(in srgb, var(--couleur-soleil) 45%, white); }
+  .statut-atteints { background: color-mix(in srgb, var(--couleur-menthe) 40%, white); }
+  .statut-depasses { background: color-mix(in srgb, var(--couleur-mandarine) 40%, white); }
+
+  /* Tableau des compétences */
+  .liste-competences { display: flex; flex-direction: column; gap: .45rem; }
+  .ligne-competence {
+    display: flex; align-items: center; gap: .6rem; background: #fff;
+    border: 1px solid color-mix(in srgb, var(--couleur-encre) 10%, white);
+    border-radius: 12px; padding: .55rem .7rem;
+  }
+  .ligne-competence .libelle { flex: 1; min-width: 0; font-size: .9rem; }
+  .ligne-competence .details { font-size: .75rem; opacity: .65; margin-top: .1rem; }
+
+  /* Recommandations */
+  .carte-reco {
+    display: flex; align-items: center; gap: .6rem; text-decoration: none;
+    background: #fff; border-radius: 12px; padding: .6rem .7rem;
+    border-left: 4px solid var(--couleur-corail); margin-bottom: .45rem;
+    border-top: 1px solid color-mix(in srgb, var(--couleur-encre) 10%, white);
+    border-right: 1px solid color-mix(in srgb, var(--couleur-encre) 10%, white);
+    border-bottom: 1px solid color-mix(in srgb, var(--couleur-encre) 10%, white);
+  }
+  .carte-reco.en-cours { border-left-color: var(--couleur-soleil); }
+  .carte-reco .action { margin-left: auto; font-size: .8rem; font-weight: 600; color: var(--couleur-mandarine); white-space: nowrap; }
+  .vide-section { font-size: .85rem; opacity: .65; }
+
+  /* Historique */
+  .ligne-session {
+    display: flex; align-items: center; gap: .6rem; font-size: .85rem;
+    padding: .45rem .2rem; border-bottom: 1px solid color-mix(in srgb, var(--couleur-encre) 8%, white);
+  }
+  .ligne-session .quand { opacity: .6; font-size: .78rem; white-space: nowrap; }
+  .ligne-session .score { margin-left: auto; font-weight: 600; }
+  .puce-type {
+    font-size: .7rem; font-weight: 600; border-radius: 999px; padding: .08rem .5rem;
+    background: color-mix(in srgb, var(--couleur-menthe) 22%, white);
+  }
+  .puce-type-evaluation { background: color-mix(in srgb, var(--couleur-corail) 25%, white); }
+
+  /* Gestion des profils (côté parent) */
+  .ligne-profil-parent {
+    display: flex; align-items: center; gap: .6rem; background: #fff;
+    border: 1px solid color-mix(in srgb, var(--couleur-encre) 10%, white);
+    border-radius: 12px; padding: .5rem .7rem; margin-bottom: .45rem; font-size: .9rem;
+  }
+  .bouton-supprimer {
+    margin-left: auto; border: 1.5px solid color-mix(in srgb, var(--couleur-corail) 60%, white);
+    background: #fff; color: var(--couleur-corail); border-radius: 10px;
+    padding: .35rem .7rem; font-size: .8rem; font-weight: 600; min-height: 38px;
+  }
+
+  .erreur-chargement {
+    margin: 2rem auto; max-width: 30rem; text-align: center; font-weight: 500;
+    background: color-mix(in srgb, var(--couleur-corail) 15%, white);
+    border-radius: 14px; padding: 1rem;
+  }
+</style>
+</head>
+<body>
+
+<div id="application">
+  <!-- Rendu par js/app.js : vues enfant (profils, accueil) et parent (tableau de bord) -->
+</div>
+
+<script src="js/statuts.js"></script>
+<script src="js/radar.js"></script>
+<script src="js/profils.js"></script>
+<script src="js/app.js"></script>
+<script>
+  // Service worker : uniquement en contexte http(s) — jamais en file:// —
+  // pour que la coquille reste ouvrable en local sans erreur console.
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {
+        // Enregistrement impossible (navigation privée...) : l'app fonctionne sans cache hors ligne.
+      });
+    });
+  }
+</script>
+</body>
+</html>
