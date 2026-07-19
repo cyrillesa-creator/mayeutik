@@ -24,7 +24,8 @@
     filtreNiveau: 'tous',
     filtreDomaine: 'tous',
     domaineParent: null,     // domaine sélectionné sur le radar de synthèse
-    filtreNiveauParent: 'tous'
+    filtreNiveauParent: 'tous',
+    outilsDevOuverts: false  // le panneau dev reste ouvert entre deux rendus
   };
 
   /* ---------- Petits utilitaires ---------- */
@@ -404,7 +405,136 @@
     }
     vue.appendChild(sectionProfils);
 
+    /* Outil de dev replié, tout en bas — n'apparaît jamais côté enfant. */
+    vue.appendChild(sectionOutilsDev(profilId, profil));
+
     conteneur.appendChild(vue);
+  }
+
+  /* ---------- Outils de développement (démo du tableau de bord) ---------- */
+
+  /*
+   * Seul endroit où la coquille ÉCRIT `mayeutik-sessions` (partout ailleurs
+   * elle ne fait que lire : ce sont les jeux qui écrivent). Cet outil de dev
+   * fabrique des sessions réalistes, conformes au contrat v1, pour visualiser
+   * le radar à différents niveaux d'acquisition sans jouer des dizaines de
+   * parties. Les sessions injectées sont indiscernables de vraies parties :
+   * à réserver à un profil de test.
+   */
+  function ecrireSessionsBrutes(sessions) {
+    try {
+      window.localStorage.setItem('mayeutik-sessions', JSON.stringify(sessions));
+    } catch (e) {
+      // stockage indisponible : l'injection ne survivra pas au rechargement.
+    }
+    P.invaliderCache();
+  }
+
+  /* Répartition (en poids) des statuts visés, par preset. */
+  const PRESETS_DEMO = {
+    debutant: { libelle: 'Débutant', poids: [['non-travaille', 35], ['non-atteints', 35], ['partiellement', 25], ['atteints', 5]] },
+    intermediaire: { libelle: 'En progrès', poids: [['non-travaille', 15], ['non-atteints', 15], ['partiellement', 35], ['atteints', 30], ['depasses', 5]] },
+    avance: { libelle: 'Avancé', poids: [['non-travaille', 5], ['partiellement', 15], ['atteints', 50], ['depasses', 30]] }
+  };
+
+  function tirerPondere(poids) {
+    const somme = poids.reduce((acc, [, p]) => acc + p, 0);
+    let seuil = Math.random() * somme;
+    for (const [valeur, p] of poids) {
+      seuil -= p;
+      if (seuil <= 0) return valeur;
+    }
+    return poids[0][0];
+  }
+
+  function genererSessionsDemo(profilId, presetId) {
+    const JOUR = 24 * 3600 * 1000;
+    const maintenant = Date.now();
+    const sessions = [];
+    const alea = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+    // Une session datée d'il y a `ilYaJours` jours, à une heure plausible.
+    function pousser(moduleId, competenceId, score, total, ilYaJours, type) {
+      const s = {
+        profilId,
+        module: moduleId,
+        competence: competenceId,
+        score,
+        total,
+        date: new Date(maintenant - ilYaJours * JOUR - alea(1, 9) * 3600 * 1000).toISOString(),
+        duree: alea(60, 200)
+      };
+      if (type) { s.type = type; s.tempsImparti = 180; s.interrompu = false; }
+      sessions.push(s);
+    }
+
+    (referentiel.modules || []).forEach((module) => {
+      (module.competences || []).forEach((comp) => {
+        const cible = tirerPondere(PRESETS_DEMO[presetId].poids);
+        const T = 6;
+        // Chaque branche fabrique le motif MINIMAL garantissant le statut visé
+        // d'après les seuils de MayeutikStatuts (cf. js/statuts.js).
+        if (cible === 'non-atteints') {
+          pousser(module.id, comp.id, alea(0, 2), T, alea(5, 20));
+          if (Math.random() < 0.5) pousser(module.id, comp.id, alea(1, 2), T, alea(2, 4));
+        } else if (cible === 'partiellement') {
+          pousser(module.id, comp.id, 3, T, alea(6, 14));
+          pousser(module.id, comp.id, 4, T, alea(1, 5));
+        } else if (cible === 'atteints') {
+          // 3 sessions ≥ 80 % sur 3 jours distincts, dernières < 100 %
+          pousser(module.id, comp.id, 5, T, 7);
+          pousser(module.id, comp.id, 6, T, 4);
+          pousser(module.id, comp.id, 5, T, 1);
+        } else if (cible === 'depasses') {
+          pousser(module.id, comp.id, 5, T, 6);
+          pousser(module.id, comp.id, 6, T, 2);
+          pousser(module.id, comp.id, 6, T, 1);
+          if (comp.varianteDifficile) {
+            // « Dépassés » exige les dernières sessions de la variante la
+            // plus difficile à 100 % : on les fournit aussi.
+            pousser(module.id, comp.varianteDifficile, 6, T, 2);
+            pousser(module.id, comp.varianteDifficile, 6, T, 1);
+          }
+        }
+        // cible === 'non-travaille' : aucune session.
+      });
+      // Une évaluation récente par module joué, pour la distinction visuelle.
+      const duModule = sessions.filter((s) => s.module === module.id);
+      if (duModule.length && Math.random() < 0.6) {
+        const derniere = duModule[duModule.length - 1];
+        pousser(module.id, derniere.competence, derniere.score, derniere.total, 0, 'evaluation');
+      }
+    });
+    return sessions;
+  }
+
+  function sectionOutilsDev(profilId, profil) {
+    const nom = profil ? profil.prenom : profilId;
+    const boutons = Object.keys(PRESETS_DEMO).map((presetId) =>
+      h('button', { class: 'bouton-dev', texte: PRESETS_DEMO[presetId].libelle,
+        onclick: () => {
+          const ok = window.confirm('Remplacer les parties de ' + nom +
+            ' par un jeu de démonstration « ' + PRESETS_DEMO[presetId].libelle + ' » ?');
+          if (!ok) return;
+          const autresProfils = P.lireSessions().filter((s) => s.profilId !== profilId);
+          ecrireSessionsBrutes(autresProfils.concat(genererSessionsDemo(profilId, presetId)));
+          rendre();
+        } }));
+    const panneau = h('details', { class: 'outils-dev',
+      ontoggle: (e) => { etat.outilsDevOuverts = e.target.open; } }, [
+      h('summary', { texte: '🛠 Outils de développement' }),
+      h('p', { class: 'vide-section',
+        texte: 'Injecte des sessions de démonstration réalistes pour ce profil (remplace ses parties existantes), afin de visualiser le tableau de bord à différents niveaux d’acquisition.' }),
+      h('div', { class: 'rangee-outils-dev' }, boutons),
+      h('button', { class: 'bouton-dev bouton-dev-danger', texte: 'Vider les sessions de ce profil',
+        onclick: () => {
+          const ok = window.confirm('Effacer toutes les parties enregistrées de ' + nom + ' ? (irréversible)');
+          if (!ok) return;
+          ecrireSessionsBrutes(P.lireSessions().filter((s) => s.profilId !== profilId));
+          rendre();
+        } })
+    ]);
+    if (etat.outilsDevOuverts) panneau.setAttribute('open', '');
+    return panneau;
   }
 
   /* ---------- Routage et cycle de vie ---------- */

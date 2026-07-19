@@ -269,6 +269,21 @@
     padding: .35rem .7rem; font-size: .8rem; font-weight: 600; min-height: 38px;
   }
 
+  /* Outils de développement (espace parent, replié par défaut) */
+  .outils-dev {
+    margin-top: 2.2rem; padding: .6rem .8rem; border-radius: 12px;
+    border: 1.5px dashed color-mix(in srgb, var(--couleur-encre) 22%, white);
+    font-size: .85rem;
+  }
+  .outils-dev summary { cursor: pointer; font-weight: 600; opacity: .6; }
+  .rangee-outils-dev { display: flex; gap: .5rem; flex-wrap: wrap; margin: .6rem 0; }
+  .bouton-dev {
+    border: 1.5px solid color-mix(in srgb, var(--couleur-encre) 30%, white);
+    background: #fff; border-radius: 10px; padding: .4rem .8rem;
+    font-size: .82rem; font-weight: 600; min-height: 38px;
+  }
+  .bouton-dev-danger { border-color: color-mix(in srgb, var(--couleur-corail) 60%, white); color: var(--couleur-corail); }
+
   .erreur-chargement {
     margin: 2rem auto; max-width: 30rem; text-align: center; font-weight: 500;
     background: color-mix(in srgb, var(--couleur-corail) 15%, white);
