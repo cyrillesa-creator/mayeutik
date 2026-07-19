@@ -57,10 +57,10 @@
     const axes = options.axes || [];
     const n = Math.max(axes.length, 1);
     const max = options.max || 4;
-    const TAILLE = 340;               // unités du viewBox (le SVG est responsive)
+    const TAILLE = 400;               // unités du viewBox (le SVG est responsive)
     const cx = TAILLE / 2;
     const cy = TAILLE / 2;
-    const r = 108;                    // rayon de la toile ; le reste = place des libellés
+    const r = 105;                    // rayon de la toile ; le reste = place des libellés
 
     const svg = el('svg', {
       viewBox: '0 0 ' + TAILLE + ' ' + TAILLE,
@@ -85,10 +85,10 @@
       const bout = point(cx, cy, n, i, r);
       svg.appendChild(el('line', { x1: cx, y1: cy, x2: bout.x, y2: bout.y, class: 'radar-axe' }));
 
-      const pLib = point(cx, cy, n, i, r + 14);
+      const pLib = point(cx, cy, n, i, r + 12);
       const cosinus = Math.cos(-Math.PI / 2 + (i * 2 * Math.PI) / n);
       const ancre = Math.abs(cosinus) < 0.25 ? 'middle' : cosinus > 0 ? 'start' : 'end';
-      const lignes = couperLibelle(axe.libelle, 16);
+      const lignes = couperLibelle(axe.libelle, 15);
       const texte = el('text', {
         x: pLib.x,
         y: pLib.y - (lignes.length - 1) * 5,
