@@ -403,6 +403,28 @@
     font-weight: 500;
   }
 
+  /* Retour à la coquille (CHARTE §7) : bouton discret + confirmation */
+  .barre-accueil{ display:flex; margin-bottom:.6rem; }
+  .bouton-menu{
+    min-height:44px; border-radius:14px; padding:0 .9rem;
+    border:2px solid color-mix(in srgb, var(--couleur-encre) 25%, white);
+    background:#ffffff; color:var(--couleur-encre); font-weight:600; font-size:.95rem;
+    display:inline-flex; align-items:center; gap:.35rem;
+  }
+  .bouton-menu:active{ transform:translateY(2px); }
+  .modale-fond{
+    position:fixed; inset:0; z-index:1000; padding:1.2rem;
+    background:color-mix(in srgb, var(--couleur-encre) 55%, transparent);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .modale-boite{
+    background:#ffffff; border-radius:20px; padding:1.4rem 1.2rem; max-width:20rem; width:100%;
+    text-align:center; box-shadow:0 12px 34px rgba(43,43,43,.28);
+  }
+  .modale-boite p{ font-size:1.05rem; font-weight:600; margin:0 0 1.1rem; }
+  .modale-boutons{ display:flex; gap:.7rem; justify-content:center; flex-wrap:wrap; }
+  .modale-boutons .bouton-principal, .modale-boutons .bouton-secondaire{ margin:0; }
+
   /* Calculer */
 
   .bloc-calcul-consigne {
@@ -527,6 +549,9 @@
 
 <!-- ---------- Écran d'accueil ---------- -->
 <main id="ecran-accueil">
+  <div class="barre-accueil">
+    <button type="button" class="bouton-menu" id="bouton-menu">← Menu</button>
+  </div>
   <div class="entete-accueil">
     <h1>Fractions CE2</h1>
     <p id="sous-titre-accueil"></p>
@@ -547,6 +572,16 @@
   <div class="feedback" id="zone-feedback" aria-live="polite"></div>
   <button class="bouton-suivant" id="bouton-suivant" hidden>Suivant →</button>
 </main>
+
+<div class="modale-fond" id="modale-menu" hidden>
+  <div class="modale-boite" role="dialog" aria-modal="true" aria-labelledby="modale-menu-texte">
+    <p id="modale-menu-texte">Revenir au menu principal ? Ta partie en cours sera perdue.</p>
+    <div class="modale-boutons">
+      <button type="button" class="bouton-secondaire" id="modale-menu-rester">Rester</button>
+      <button type="button" class="bouton-principal" id="modale-menu-revenir">Revenir au menu</button>
+    </div>
+  </div>
+</div>
 
 <!-- ---------- Contenu pédagogique (séparé de la logique) ---------- -->
 <script type="application/json" id="donnees-jeu">
@@ -1508,6 +1543,23 @@
 
   construireAccueil();
 })();
+</script>
+<script>
+  /* Bouton « ← Menu » : retour à la coquille avec confirmation (CHARTE §7).
+     Script isolé du moteur de jeu : il n'agit que sur les éléments statiques
+     de la page (le « ← Menu » ne s'affiche que sur l'écran d'accueil). */
+  (function () {
+    var bouton = document.getElementById('bouton-menu');
+    var modale = document.getElementById('modale-menu');
+    if (!bouton || !modale) return;
+    function fermer() { modale.hidden = true; }
+    bouton.addEventListener('click', function () { modale.hidden = false; });
+    document.getElementById('modale-menu-rester').addEventListener('click', fermer);
+    document.getElementById('modale-menu-revenir').addEventListener('click', function () {
+      window.location.href = '../index.html';
+    });
+    modale.addEventListener('click', function (e) { if (e.target === modale) fermer(); });
+  })();
 </script>
 </body>
 </html>

@@ -161,6 +161,11 @@ Bien que chaque fichier HTML soit autonome, la série partage un même patron d'
 - **Cartes de mini-jeux** : une grille de cartes cliquables (`border-radius` prononcé, ombre douce), une carte par mini-jeu/niveau, utilisant les couleurs de la palette pour se différencier.
 - **Système d'étoiles** : chaque carte affiche la progression de l'enfant sous forme d'étoiles (`--couleur-soleil`), typiquement de 0 à 3 étoiles selon la performance, stockées en `localStorage`.
 - **Bouton retour** : présent sur l'écran de jeu pour revenir à l'écran d'accueil/à la sélection des cartes, toujours positionné de façon cohérente (coin supérieur gauche) et stylé selon la charte (mandarine ou encre, jamais une couleur hors palette).
+- **Bouton « ← Menu » (retour à la coquille)** : sur l'**écran d'accueil des mini-jeux uniquement** (jamais à l'intérieur d'un mini-jeu en cours), chaque jeu affiche en **haut à gauche** un bouton discret **« ← Menu »** qui ramène à la coquille PWA de la série (`index.html` à la racine, chemin relatif **`../index.html`** depuis `jeux/`). Règles :
+  - **Position et style** : coin supérieur gauche de l'écran d'accueil, discret (style « secondaire » : fond blanc ou transparent, bordure/texte encre ou mandarine, jamais une couleur hors palette), cible tactile ≥ 44px. Il cohabite avec le titre du jeu sans le masquer.
+  - **Confirmation obligatoire** : tout clic déclenche une confirmation **« Revenir au menu principal ? Ta partie en cours sera perdue. »** avec deux choix clairs — **Rester** (annule) et **Revenir au menu** (navigue) — afin d'éviter les sorties accidentelles. À défaut de modale maison, un `window.confirm` est acceptable.
+  - **Parcours de retour** : depuis un mini-jeu en cours, l'enfant passe **d'abord par le bouton retour interne** (retour à l'écran d'accueil du jeu), **puis** par « ← Menu » pour rejoindre la coquille. Le « ← Menu » n'est donc jamais visible pendant une partie.
+  - **Ouverture hors coquille** : le bouton ne doit **pas casser** le jeu s'il est ouvert directement (hors coquille). Le lien relatif `../index.html` reste inoffensif ; en cas de doute, **l'afficher toujours est acceptable** (pas de détection obligatoire du contexte).
 
 ---
 
@@ -407,7 +412,7 @@ Règle absolue : on ne touche **jamais** au format (nombre d'items, chronométra
 | Récompense visuelle | Confettis JS vanilla à chaque bonne réponse |
 | Récompense sonore | Web Audio API, sons "bravo"/"raté" synthétisés |
 | Contenu | Bloc JSON séparé de la logique du jeu |
-| Accueil | Cartes de mini-jeux + étoiles de progression + bouton retour |
+| Accueil | Cartes de mini-jeux + étoiles de progression + bouton retour + « ← Menu » (retour coquille, avec confirmation) |
 | Responsive | Mobile-first, cartes d'accueil `max-height: 34vh` |
 | Stockage | Variable mémoire = source de vérité, `localStorage` en best-effort via `try/catch` |
 | Test & publication | Test manuel via le fichier "Raw" téléchargé depuis la PR, avant fusion dans `main` |

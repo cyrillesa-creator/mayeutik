@@ -173,6 +173,33 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 #bRejouer{background:var(--mandarine); color:#fff; box-shadow:0 4px 0 var(--mandarine-f);}
 #bMenu{background:var(--carte); color:var(--encre);}
 
+/* ---------- Retour à la coquille (CHARTE §7) : bouton discret + confirmation ---------- */
+.barre-accueil{display:flex; margin:0 0 8px;}
+.bouton-menu{
+  min-height:44px; border-radius:14px; padding:0 14px; cursor:pointer; font-family:inherit;
+  border:2px solid color-mix(in srgb, var(--encre) 25%, white);
+  background:var(--carte); color:var(--encre); font-weight:600; font-size:.95rem;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.bouton-menu:active{transform:translateY(2px);}
+.modale-fond{
+  position:fixed; inset:0; z-index:1000; padding:1.2rem;
+  background:color-mix(in srgb, var(--encre) 55%, transparent);
+  display:flex; align-items:center; justify-content:center;
+}
+.modale-boite{
+  background:var(--carte); border-radius:20px; padding:22px 18px; max-width:20rem; width:100%;
+  text-align:center; box-shadow:0 12px 34px rgba(29,51,84,.3);
+}
+.modale-boite p{font-size:1.05rem; font-weight:600; margin:0 0 18px; color:var(--encre);}
+.modale-boutons{display:flex; gap:10px; justify-content:center; flex-wrap:wrap;}
+.modale-boutons button{
+  border:none; border-radius:16px; padding:12px 20px; font-family:inherit;
+  font-size:1rem; font-weight:700; cursor:pointer; min-height:44px;
+}
+.modale-boutons .m-rester{background:var(--carte); color:var(--encre); border:2px solid var(--encre);}
+.modale-boutons .m-revenir{background:var(--mandarine); color:#fff; box-shadow:0 4px 0 var(--mandarine-f);}
+
 /* ---------- Confettis (CHARTE.md, section 4) ---------- */
 #confettis-conteneur{position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:999;}
 .confetti{position:absolute; top:-12px; width:9px; height:14px; border-radius:2px;
@@ -190,6 +217,15 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 </head>
 <body>
 <div id="confettis-conteneur" aria-hidden="true"></div>
+<div class="modale-fond" id="modale-menu" hidden>
+  <div class="modale-boite" role="dialog" aria-modal="true" aria-labelledby="modale-menu-texte">
+    <p id="modale-menu-texte">Revenir au menu principal ? Ta partie en cours sera perdue.</p>
+    <div class="modale-boutons">
+      <button type="button" class="m-rester" id="modale-menu-rester">Rester</button>
+      <button type="button" class="m-revenir" id="modale-menu-revenir">Revenir au menu</button>
+    </div>
+  </div>
+</div>
 <div id="app">
   <header>
     <button id="btnBack" hidden aria-label="Retour">◀</button>
@@ -200,6 +236,9 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
   <main style="flex:1; display:flex; flex-direction:column;">
 
     <section id="home">
+      <div class="barre-accueil">
+        <button type="button" class="bouton-menu" id="bouton-menu">← Menu</button>
+      </div>
       <h1>Les Solides 🧊</h1>
       <p class="sub">Touche un solide pour le faire tourner !</p>
       <div class="cards">
@@ -1071,6 +1110,21 @@ document.querySelectorAll(".tog").forEach(t => t.addEventListener("click", () =>
 montreEcran("home");
 majEtoilesHome();
 resize();
+
+/* Bouton « ← Menu » : retour à la coquille avec confirmation (CHARTE §7).
+   Le bouton vit dans #home : il n'est visible que sur l'écran d'accueil. */
+(function () {
+  var bouton = document.getElementById('bouton-menu');
+  var modale = document.getElementById('modale-menu');
+  if (!bouton || !modale) return;
+  function fermer() { modale.hidden = true; }
+  bouton.addEventListener('click', function () { modale.hidden = false; });
+  document.getElementById('modale-menu-rester').addEventListener('click', fermer);
+  document.getElementById('modale-menu-revenir').addEventListener('click', function () {
+    window.location.href = '../index.html';
+  });
+  modale.addEventListener('click', function (e) { if (e.target === modale) fermer(); });
+})();
 </script>
 </body>
 </html>
