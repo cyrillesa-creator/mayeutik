@@ -20,7 +20,7 @@
  */
 'use strict';
 
-const VERSION_CACHE = 'mayeutik-v3';
+const VERSION_CACHE = 'mayeutik-v4';
 const CACHE_POLICES = 'mayeutik-polices-v1';
 
 /* Fichiers de la coquille elle-même. */
