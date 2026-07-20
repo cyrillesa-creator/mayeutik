@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="color-scheme" content="light only">
+<title>Boss des tables – Mayeutik</title>
+<!-- ============================================================
+     M99 — BOSS DES TABLES (provisoire, à renuméroter/réindexer)
+     Extrait du prototype "Boss des tables" (protos.boss) de
+     Labo_Mayeutik.html, mis aux standards de la série (charte,
+     contrat de données v1, bouton de retour à la coquille).
+     Numéro de module VOLONTAIREMENT hors-séquence : la vraie
+     référence des tables de multiplication reste à définir.
+     ============================================================ -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --couleur-fond: #FFF8EF;
+    --couleur-encre: #2B2B2B;
+    --couleur-mandarine: #FF8C42;
+    --couleur-menthe: #4ECDC4;
+    --couleur-corail: #FF6B6B;
+    --couleur-soleil: #FFD93D;
+    color-scheme: light only;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    html { background-color: var(--couleur-fond); }
+    body { background-color: var(--couleur-fond); color: var(--couleur-encre); }
+    input, select, textarea, button {
+      background-color: #FFFFFF;
+      color: var(--couleur-encre);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--couleur-fond);
+    color: var(--couleur-encre);
+    overflow-x: hidden;
+  }
+
+  body {
+    font-family: 'Fredoka', system-ui, sans-serif;
+    min-height: 100vh;
+    padding-bottom: 2rem;
+  }
+
+  button { font-family: inherit; cursor: pointer; }
+  h1, h2, h3 { font-weight: 700; margin: 0 0 0.4rem; }
+
+  /* ---------- Écran d'accueil ---------- */
+
+  #ecran-accueil { max-width: 640px; margin: 0 auto; padding: 1.2rem 1rem 2rem; }
+
+  .entete-accueil { text-align: center; margin-bottom: 1rem; }
+  .entete-accueil h1 { font-size: 1.7rem; color: var(--couleur-mandarine); }
+  .entete-accueil p { margin: 0; font-size: 1rem; font-weight: 500; opacity: 0.85; }
+
+  .carte-defi {
+    background: #ffffff;
+    border: 3px solid var(--couleur-mandarine);
+    border-radius: 22px;
+    padding: 1.4rem 1.1rem;
+    text-align: center;
+    box-shadow: 0 4px 0 color-mix(in srgb, var(--couleur-mandarine) 55%, black 6%);
+  }
+  .carte-defi .ico-dragon { font-size: 3.4rem; line-height: 1; }
+  .carte-defi p { margin: 0.5rem 0 0.8rem; font-size: 0.95rem; opacity: 0.85; }
+  .carte-defi .etoiles { display: block; margin: 0.4rem 0 0.9rem; }
+  .legende-regles {
+    text-align: left;
+    font-size: 0.82rem;
+    opacity: 0.85;
+    background: color-mix(in srgb, var(--couleur-soleil) 14%, white);
+    border-radius: 14px;
+    padding: 0.7rem 0.9rem;
+    margin: 0.9rem 0 0;
+  }
+  .legende-regles li { margin-bottom: 0.25rem; }
+  .legende-regles li:last-child { margin-bottom: 0; }
+
+  .etoiles { display: inline-flex; gap: 2px; font-size: 1.3rem; letter-spacing: -1px; }
+  .etoile { color: rgba(43,43,43,0.2); }
+  .etoile.pleine { color: var(--couleur-soleil); text-shadow: 0 0 1px rgba(43,43,43,0.35); }
+
+  /* ---------- Retour à la coquille (CHARTE §7) : bouton discret + confirmation ---------- */
+  .barre-accueil { display: flex; margin-bottom: 0.6rem; }
+  .bouton-menu {
+    min-height: 44px; border-radius: 14px; padding: 0 0.9rem;
+    border: 2px solid color-mix(in srgb, var(--couleur-encre) 25%, white);
+    background: #ffffff; color: var(--couleur-encre); font-weight: 600; font-size: 0.95rem;
+    display: inline-flex; align-items: center; gap: 0.35rem;
+  }
+  .bouton-menu:active { transform: translateY(2px); }
+  .modale-fond {
+    position: fixed; inset: 0; z-index: 1000; padding: 1.2rem;
+    background: color-mix(in srgb, var(--couleur-encre) 55%, transparent);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modale-boite {
+    background: #ffffff; border-radius: 20px; padding: 1.4rem 1.2rem; max-width: 20rem; width: 100%;
+    text-align: center; box-shadow: 0 12px 34px rgba(43,43,43,.28);
+  }
+  .modale-boite p { font-size: 1.05rem; font-weight: 600; margin: 0 0 1.1rem; }
+  .modale-boutons { display: flex; gap: 0.7rem; justify-content: center; flex-wrap: wrap; }
+  .modale-boutons .bouton-principal, .modale-boutons .bouton-secondaire { margin: 0; }
+
+  /* ---------- Écran de jeu ---------- */
+
+  #ecran-jeu { max-width: 640px; margin: 0 auto; padding: 0.8rem 1rem 2.5rem; }
+
+  .entete-jeu { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.8rem; }
+  .bouton-retour {
+    flex: 0 0 auto; min-height: 44px; min-width: 44px; border-radius: 14px; border: none;
+    background: var(--couleur-encre); color: var(--couleur-fond); font-size: 1.2rem; font-weight: 600; padding: 0 0.9rem;
+  }
+  .entete-jeu-titres { flex: 1; min-width: 0; }
+  .entete-jeu-titres h2 { font-size: 1.15rem; color: var(--couleur-mandarine); }
+
+  #zone-jeu {
+    background: #ffffff;
+    border-radius: 20px;
+    border: 3px solid color-mix(in srgb, var(--couleur-encre) 12%, white);
+    padding: 1.1rem 0.9rem;
+    min-height: 40vh;
+  }
+
+  /* Scène du combat */
+  .boss-scene { text-align: center; position: relative; }
+  .boss-emoji { font-size: 4.2rem; display: inline-block; transition: transform .1s; }
+  .boss-emoji.touche { transform: scale(.82) rotate(-8deg); filter: brightness(1.25) saturate(1.4); }
+
+  .pv-barre {
+    height: 20px; border-radius: 999px; overflow: hidden; margin: 0.5rem 0.4rem 0.3rem;
+    background: color-mix(in srgb, var(--couleur-encre) 10%, white);
+    border: 2px solid color-mix(in srgb, var(--couleur-encre) 20%, white);
+  }
+  .pv-fill {
+    height: 100%; border-radius: 999px; transition: width .3s;
+    background: linear-gradient(90deg, var(--couleur-corail), var(--couleur-mandarine));
+  }
+
+  .boss-etat { display: flex; justify-content: space-between; align-items: center; padding: 0 0.4rem; font-size: 1.05rem; }
+  .coeurs { letter-spacing: 2px; }
+  .fievre { font-weight: 700; color: var(--couleur-mandarine); opacity: 0; transition: opacity .2s; }
+  .fievre.on { opacity: 1; animation: pulse-fievre .6s infinite alternate; }
+  @keyframes pulse-fievre { from { transform: scale(1); } to { transform: scale(1.1); } }
+
+  .boss-question { font-size: 2rem; font-weight: 700; text-align: center; margin: 0.7rem 0 0; }
+
+  .dmg-pop {
+    position: absolute; font-weight: 700; font-size: 1.4rem; color: var(--couleur-mandarine);
+    animation: monter-degats .8s forwards; pointer-events: none;
+  }
+  @keyframes monter-degats { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-46px); } }
+
+  .legende-eclair {
+    text-align: center; font-size: 0.8rem; opacity: 0.75; margin: 0.6rem 0 0;
+  }
+
+  /* Pavé numérique diégétique */
+  .pave-numerique { max-width: 250px; margin: 0.7rem auto 0; }
+  .pave-ecran {
+    background: color-mix(in srgb, var(--couleur-encre) 88%, black 8%);
+    color: color-mix(in srgb, var(--couleur-menthe) 70%, white 20%);
+    border-radius: 12px; font-size: 1.7rem; font-weight: 700;
+    text-align: right; padding: 0.5rem 0.9rem; min-height: 2.4rem; letter-spacing: 2px;
+    font-variant-numeric: tabular-nums; box-shadow: inset 0 2px 6px rgba(0,0,0,.35);
+  }
+  .pave-grille { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; margin-top: 8px; }
+  .touche-pave {
+    min-height: 48px; border: none; border-radius: 12px; font-size: 1.25rem; font-weight: 700;
+    background: color-mix(in srgb, var(--couleur-soleil) 22%, white);
+    color: var(--couleur-encre);
+    box-shadow: 0 3px 0 color-mix(in srgb, var(--couleur-encre) 20%, white);
+  }
+  .touche-pave:active { transform: translateY(2px); box-shadow: 0 1px 0 color-mix(in srgb, var(--couleur-encre) 20%, white); }
+  .touche-pave:disabled { opacity: 0.6; }
+  .touche-valider { background: var(--couleur-menthe); color: #ffffff; box-shadow: 0 3px 0 color-mix(in srgb, var(--couleur-menthe) 60%, black 10%); }
+  .touche-effacer { background: var(--couleur-corail); color: #ffffff; box-shadow: 0 3px 0 color-mix(in srgb, var(--couleur-corail) 60%, black 10%); }
+
+  .feedback { text-align: center; font-weight: 700; font-size: 1.05rem; min-height: 1.6rem; margin: 0.8rem 0 0.2rem; }
+  .feedback-succes { color: color-mix(in srgb, var(--couleur-menthe) 70%, black 20%); }
+  .feedback-erreur { color: color-mix(in srgb, var(--couleur-corail) 70%, black 20%); }
+
+  /* Résultats */
+  .bloc-resultats { text-align: center; }
+  .bloc-resultats .etoiles { font-size: 2.6rem; margin: 0.6rem 0; }
+  .bloc-resultats .score-texte { font-size: 1.1rem; font-weight: 500; margin-bottom: 0.3rem; }
+  .bloc-resultats .detail-combat { font-size: 0.9rem; opacity: 0.8; margin-bottom: 1rem; }
+  .boutons-resultats { display: flex; justify-content: center; gap: 0.7rem; flex-wrap: wrap; margin-top: 0.6rem; }
+
+  .bouton-principal {
+    display: block; min-height: 46px; border-radius: 14px; border: none;
+    background: var(--couleur-mandarine); color: #ffffff; font-weight: 700; padding: 0 1.3rem;
+  }
+  .bouton-secondaire {
+    display: block; min-height: 44px; border-radius: 14px; border: 2.5px solid var(--couleur-encre);
+    background: #ffffff; padding: 0 1.1rem; font-weight: 500;
+  }
+
+  /* Confettis */
+  #confettis-conteneur { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 999; }
+  .confetti {
+    position: absolute; top: -12px; width: 9px; height: 14px; border-radius: 2px;
+    animation-name: chute-confetti; animation-timing-function: ease-in; animation-fill-mode: forwards;
+  }
+  @keyframes chute-confetti { to { transform: translateY(105vh) rotate(340deg); opacity: 0.75; } }
+  @media (prefers-reduced-motion: reduce) {
+    .confetti { display: none; animation: none; }
+    .fievre.on { animation: none; }
+  }
+
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="confettis-conteneur" aria-hidden="true"></div>
+
+<!-- ---------- Écran d'accueil ---------- -->
+<main id="ecran-accueil">
+  <div class="barre-accueil">
+    <button type="button" class="bouton-menu" id="bouton-menu">← Menu</button>
+  </div>
+  <div class="entete-accueil">
+    <h1>Boss des tables 🐉</h1>
+    <p id="sous-titre-accueil"></p>
+  </div>
+  <div class="carte-defi">
+    <div class="ico-dragon">🐉</div>
+    <p>Réponds vite et juste pour infliger un maximum de dégâts au dragon !</p>
+    <span class="etoiles" id="etoiles-accueil"></span>
+    <button type="button" class="bouton-principal" id="bouton-combattre" style="margin:0 auto;">Combattre le dragon</button>
+    <ul class="legende-regles">
+      <li>❤️ Tu as 3 cœurs — une erreur en coûte un.</li>
+      <li>⚡ Réponds en moins de 5 secondes : coup critique, dégâts doublés !</li>
+      <li>🔥 3 bonnes réponses d'affilée : mode fièvre, dégâts doublés en continu.</li>
+      <li>🐲 Le dragon devient plus coriace (tables plus dures) à mi-vie.</li>
+    </ul>
+  </div>
+</main>
+
+<!-- ---------- Écran de jeu ---------- -->
+<main id="ecran-jeu" hidden>
+  <div class="entete-jeu">
+    <button class="bouton-retour" id="bouton-retour" aria-label="Retour à l'accueil">←</button>
+    <div class="entete-jeu-titres">
+      <h2>Boss des tables</h2>
+    </div>
+  </div>
+  <div id="zone-jeu"></div>
+</main>
+
+<div class="modale-fond" id="modale-menu" hidden>
+  <div class="modale-boite" role="dialog" aria-modal="true" aria-labelledby="modale-menu-texte">
+    <p id="modale-menu-texte">Revenir au menu principal ? Ta partie en cours sera perdue.</p>
+    <div class="modale-boutons">
+      <button type="button" class="bouton-secondaire" id="modale-menu-rester">Rester</button>
+      <button type="button" class="bouton-principal" id="modale-menu-revenir">Revenir au menu</button>
+    </div>
+  </div>
+</div>
+
+<!-- ---------- Contenu pédagogique (séparé de la logique, CHARTE.md §6) ---------- -->
+<script type="application/json" id="donnees-jeu">
+{
+  "titre": "Boss des tables",
+  "sousTitre": "Un combat de tables de multiplication contre un dragon !",
+  "messagesFeedback": {
+    "bravo": ["Bravo !", "Super !", "Génial !", "Exact !", "Trop fort !", "Parfait !"],
+    "critique": "⚡ COUP CRITIQUE !",
+    "fievre": "🔥 Mode fièvre activé : dégâts doublés !"
+  },
+  "combat": {
+    "pvInitial": 100,
+    "coeursInitial": 3,
+    "degatsBase": 10,
+    "delaiCritiqueMs": 5000,
+    "seuilSerieFievre": 3,
+    "seuilPhase2": 50
+  }
+}
+</script>
+
+<script>
+(function () {
+  'use strict';
+
+  const donnees = JSON.parse(document.getElementById('donnees-jeu').textContent);
+  const C = donnees.combat;
+  const MODULE_ID = 'M99';
+  const COMPETENCE_ID = 'tables-multiplication';
+
+  /* ---------- Utilitaires génériques ---------- */
+
+  function nombreAleatoire(min, max) { return min + Math.floor(Math.random() * (max - min + 1)); }
+  function choisir(tableau) { return tableau[Math.floor(Math.random() * tableau.length)]; }
+
+  /* ---------- Étoiles : stockage sûr (mémoire + localStorage best-effort) ---------- */
+
+  const CLE_STOCKAGE = 'mayeutik-m99-boss-etoiles';
+  let memoireEtoiles = null;
+
+  function lireEtoiles() {
+    if (memoireEtoiles === null) {
+      memoireEtoiles = {};
+      try {
+        const brut = window.localStorage.getItem(CLE_STOCKAGE);
+        if (brut) memoireEtoiles = JSON.parse(brut);
+      } catch (e) {
+        memoireEtoiles = {};
+      }
+    }
+    return memoireEtoiles;
+  }
+  function enregistrerEtoiles(jeuId, valeur) {
+    const tout = lireEtoiles();
+    tout[jeuId] = Math.max(tout[jeuId] || 0, valeur);
+    memoireEtoiles = tout;
+    try {
+      window.localStorage.setItem(CLE_STOCKAGE, JSON.stringify(tout));
+    } catch (e) {
+      // localStorage indisponible : les étoiles restent valables pour la session en cours.
+    }
+  }
+  function creerEtoiles(valeur, max) {
+    max = max || 3;
+    const cont = document.createElement('span');
+    cont.className = 'etoiles';
+    for (let i = 1; i <= max; i++) {
+      const s = document.createElement('span');
+      s.className = 'etoile' + (i <= valeur ? ' pleine' : '');
+      s.textContent = '★';
+      cont.appendChild(s);
+    }
+    return cont;
+  }
+  function calculerEtoiles(score, total) {
+    if (!total) return 0;
+    const pct = score / total;
+    if (pct >= 1) return 3;
+    if (pct >= 0.66) return 2;
+    if (pct >= 0.33) return 1;
+    return 0;
+  }
+
+  /* ---------- Sessions : contrat de données v1 (CHARTE.md, section 11) ---------- */
+
+  const CLE_SESSIONS = 'mayeutik-sessions';
+  const CLE_PROFIL_ACTIF = 'mayeutik-profil-actif';
+  const MAX_SESSIONS_PAR_PROFIL = 500;
+
+  let memoireProfilActif = null;
+  let memoireSessions = null;
+
+  function lireProfilActif() {
+    if (memoireProfilActif === null) {
+      memoireProfilActif = 'p1';
+      try {
+        const brut = window.localStorage.getItem(CLE_PROFIL_ACTIF);
+        if (brut) memoireProfilActif = brut;
+      } catch (e) {
+        memoireProfilActif = 'p1';
+      }
+    }
+    return memoireProfilActif;
+  }
+  function lireSessions() {
+    if (memoireSessions === null) {
+      memoireSessions = [];
+      try {
+        const brut = window.localStorage.getItem(CLE_SESSIONS);
+        if (brut) memoireSessions = JSON.parse(brut);
+      } catch (e) {
+        memoireSessions = [];
+      }
+    }
+    return memoireSessions;
+  }
+
+  // Écrit une session brute à la fin d'un combat TERMINÉ (victoire ou
+  // défaite — jamais pour un combat abandonné via le bouton retour).
+  function enregistrerSession(competence, score, total, duree) {
+    const profilId = lireProfilActif();
+    const toutes = lireSessions();
+    toutes.push({
+      profilId,
+      module: MODULE_ID,
+      competence,
+      score,
+      total,
+      date: new Date().toISOString(),
+      duree
+    });
+
+    let compteur = 0;
+    for (let i = toutes.length - 1; i >= 0; i--) {
+      if (toutes[i].profilId === profilId) {
+        compteur++;
+        if (compteur > MAX_SESSIONS_PAR_PROFIL) toutes.splice(i, 1);
+      }
+    }
+
+    memoireSessions = toutes;
+    try {
+      window.localStorage.setItem(CLE_SESSIONS, JSON.stringify(toutes));
+    } catch (e) {
+      // localStorage indisponible : la session reste valable pour la session en cours.
+    }
+  }
+
+  /* ---------- Confettis ---------- */
+
+  function lancerConfettis(n) {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const conteneur = document.getElementById('confettis-conteneur');
+    const couleurs = [
+      'var(--couleur-mandarine)', 'var(--couleur-menthe)',
+      'var(--couleur-corail)', 'var(--couleur-soleil)'
+    ];
+    const total = n || 24;
+    for (let i = 0; i < total; i++) {
+      const p = document.createElement('div');
+      p.className = 'confetti';
+      p.style.left = Math.random() * 100 + 'vw';
+      p.style.backgroundColor = couleurs[Math.floor(Math.random() * couleurs.length)];
+      p.style.animationDuration = (0.9 + Math.random() * 0.9) + 's';
+      p.style.animationDelay = (Math.random() * 0.15) + 's';
+      p.style.transform = 'rotate(' + Math.floor(Math.random() * 360) + 'deg)';
+      conteneur.appendChild(p);
+      p.addEventListener('animationend', () => p.remove());
+      setTimeout(() => p.remove(), 2500);
+    }
+  }
+
+  /* ---------- Feedback sonore (Web Audio) ---------- */
+
+  let contexteAudio = null;
+  function obtenirContexteAudio() {
+    if (!contexteAudio) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      contexteAudio = new Ctx();
+    }
+    if (contexteAudio.state === 'suspended') contexteAudio.resume();
+    return contexteAudio;
+  }
+  function jouerSon(type) {
+    let ctx;
+    try { ctx = obtenirContexteAudio(); } catch (e) { return; }
+    const maintenant = ctx.currentTime;
+    if (type === 'tic') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.0001, maintenant);
+      gain.gain.exponentialRampToValueAtTime(0.12, maintenant + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, maintenant + 0.08);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(maintenant); osc.stop(maintenant + 0.09);
+      return;
+    }
+    if (type === 'critique') {
+      [880, 1320].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle'; osc.frequency.value = freq;
+        const debut = maintenant + i * 0.07;
+        gain.gain.setValueAtTime(0.0001, debut);
+        gain.gain.exponentialRampToValueAtTime(0.2, debut + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, debut + 0.1);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(debut); osc.stop(debut + 0.11);
+      });
+      return;
+    }
+    const notes = type === 'bravo' ? [523.25, 659.25, 783.99, 1046.5] : [392.0, 293.66];
+    const duree = type === 'bravo' ? 0.11 : 0.17;
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = freq;
+      const debut = maintenant + i * duree;
+      gain.gain.setValueAtTime(0.0001, debut);
+      gain.gain.exponentialRampToValueAtTime(0.22, debut + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, debut + duree);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(debut); osc.stop(debut + duree + 0.02);
+    });
+  }
+
+  /* ---------- Pavé numérique diégétique ---------- */
+
+  function creerPave(onValider) {
+    const conteneur = document.createElement('div');
+    conteneur.className = 'pave-numerique';
+    const ecran = document.createElement('div');
+    ecran.className = 'pave-ecran';
+    ecran.textContent = ' ';
+    const grille = document.createElement('div');
+    grille.className = 'pave-grille';
+    let val = '';
+    const maj = () => { ecran.textContent = val || ' '; };
+    ['7', '8', '9', '4', '5', '6', '1', '2', '3', 'C', '0', '✓'].forEach((t) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'touche-pave';
+      b.textContent = t;
+      if (t === '✓') b.classList.add('touche-valider');
+      if (t === 'C') b.classList.add('touche-effacer');
+      b.addEventListener('click', () => {
+        if (t === 'C') { val = ''; maj(); jouerSon('tic'); }
+        else if (t === '✓') { if (val !== '') onValider(parseInt(val, 10)); }
+        else if (val.length < 2) { val += t; maj(); jouerSon('tic'); }
+      });
+      grille.appendChild(b);
+    });
+    conteneur.appendChild(ecran);
+    conteneur.appendChild(grille);
+    return {
+      el: conteneur,
+      vider: () => { val = ''; maj(); },
+      verrouiller: (v) => grille.querySelectorAll('button').forEach((b) => (b.disabled = v))
+    };
+  }
+
+  /* ---------- État global du combat ---------- */
+
+  let etat = null;
+
+  function etatInitial() {
+    return {
+      pv: C.pvInitial,
+      coeurs: C.coeursInitial,
+      serie: 0,
+      fievre: false,
+      question: null,
+      tDebut: 0,
+      demarreLe: 0,
+      correctes: 0,
+      total: 0
+    };
+  }
+
+  /* ---------- Écran d'accueil ---------- */
+
+  function majEtoilesAccueil() {
+    const t = lireEtoiles();
+    const zone = document.getElementById('etoiles-accueil');
+    zone.innerHTML = '';
+    zone.appendChild(creerEtoiles(t[COMPETENCE_ID] || 0));
+  }
+
+  function retourAccueil() {
+    document.getElementById('ecran-jeu').hidden = true;
+    document.getElementById('ecran-accueil').hidden = false;
+    majEtoilesAccueil();
+  }
+
+  /* ---------- Combat ---------- */
+
+  function demarrerCombat() {
+    etat = etatInitial();
+    etat.demarreLe = Date.now();
+    document.getElementById('ecran-accueil').hidden = true;
+    document.getElementById('ecran-jeu').hidden = false;
+    genererCombat();
+  }
+
+  function genererCombat() {
+    const zone = document.getElementById('zone-jeu');
+    zone.innerHTML = '';
+
+    const scene = document.createElement('div');
+    scene.className = 'boss-scene';
+    const emoji = document.createElement('div');
+    emoji.className = 'boss-emoji';
+    emoji.textContent = '🐉';
+    const barre = document.createElement('div');
+    barre.className = 'pv-barre';
+    const fill = document.createElement('div');
+    fill.className = 'pv-fill';
+    barre.appendChild(fill);
+    const boiteEtat = document.createElement('div');
+    boiteEtat.className = 'boss-etat';
+    const coeursSpan = document.createElement('span');
+    coeursSpan.className = 'coeurs';
+    const fievreSpan = document.createElement('span');
+    fievreSpan.className = 'fievre';
+    fievreSpan.textContent = '🔥 FIÈVRE ×2';
+    boiteEtat.appendChild(coeursSpan);
+    boiteEtat.appendChild(fievreSpan);
+    const question = document.createElement('div');
+    question.className = 'boss-question';
+    scene.appendChild(emoji);
+    scene.appendChild(barre);
+    scene.appendChild(boiteEtat);
+    scene.appendChild(question);
+    zone.appendChild(scene);
+
+    const legendeEclair = document.createElement('p');
+    legendeEclair.className = 'legende-eclair';
+    legendeEclair.textContent = '⚡ Réponds vite pour un coup critique !';
+    zone.appendChild(legendeEclair);
+
+    const pave = creerPave(valider);
+    zone.appendChild(pave.el);
+    const fb = document.createElement('div');
+    fb.className = 'feedback';
+    zone.appendChild(fb);
+
+    function majAffichage() {
+      fill.style.width = Math.max(0, etat.pv) + '%';
+      coeursSpan.textContent = '❤️'.repeat(Math.max(0, etat.coeurs)) + '🤍'.repeat(3 - Math.max(0, etat.coeurs));
+      fievreSpan.classList.toggle('on', etat.fievre);
+      emoji.textContent = etat.pv <= 0 ? '💫' : (etat.pv <= C.seuilPhase2 ? '🐲' : '🐉');
+    }
+
+    function nouvelleQuestion() {
+      const phase2 = etat.pv <= C.seuilPhase2;
+      const a = phase2 ? nombreAleatoire(6, 9) : choisir([2, 3, 4, 5, 10]);
+      const b = nombreAleatoire(2, 9);
+      etat.question = { a, b, rep: a * b };
+      question.textContent = a + ' × ' + b + ' = ?';
+      etat.tDebut = Date.now();
+      pave.vider();
+    }
+
+    function popDegats(texte) {
+      const p = document.createElement('div');
+      p.className = 'dmg-pop';
+      p.textContent = texte;
+      p.style.left = (35 + Math.random() * 30) + '%';
+      p.style.top = '6px';
+      scene.style.position = 'relative';
+      scene.appendChild(p);
+      setTimeout(() => p.remove(), 850);
+    }
+
+    function valider(v) {
+      if (etat.pv <= 0 || etat.coeurs <= 0) return;
+      etat.total++;
+      if (v === etat.question.rep) {
+        const rapide = (Date.now() - etat.tDebut) < C.delaiCritiqueMs;
+        let dmg = C.degatsBase;
+        if (rapide) dmg *= 2;
+        if (etat.fievre) dmg *= 2;
+        etat.pv -= dmg;
+        etat.correctes++;
+        etat.serie++;
+
+        if (etat.serie >= C.seuilSerieFievre && !etat.fievre) {
+          etat.fievre = true;
+          fb.textContent = donnees.messagesFeedback.fievre;
+          fb.className = 'feedback feedback-succes';
+        } else {
+          fb.textContent = (rapide ? donnees.messagesFeedback.critique + ' ' : '') +
+            choisir(donnees.messagesFeedback.bravo) + ' −' + dmg + ' PV';
+          fb.className = 'feedback feedback-succes';
+        }
+        popDegats('−' + dmg);
+        emoji.classList.add('touche');
+        setTimeout(() => emoji.classList.remove('touche'), 140);
+        lancerConfettis(rapide ? 30 : 18);
+        jouerSon(rapide ? 'critique' : 'bravo');
+        majAffichage();
+
+        if (etat.pv <= 0) {
+          pave.verrouiller(true);
+          setTimeout(() => finCombat(true), 700);
+          return;
+        }
+        nouvelleQuestion();
+      } else {
+        etat.coeurs--; etat.serie = 0; etat.fievre = false;
+        fb.textContent = 'Aïe ! ' + etat.question.a + ' × ' + etat.question.b + ' = ' + etat.question.rep;
+        fb.className = 'feedback feedback-erreur';
+        jouerSon('rate');
+        majAffichage();
+
+        if (etat.coeurs <= 0) {
+          pave.verrouiller(true);
+          setTimeout(() => finCombat(false), 800);
+          return;
+        }
+        nouvelleQuestion();
+      }
+    }
+
+    majAffichage();
+    nouvelleQuestion();
+  }
+
+  function finCombat(victoire) {
+    const score = etat.correctes;
+    const total = etat.total;
+    const etoilesGagnees = calculerEtoiles(score, total);
+    enregistrerEtoiles(COMPETENCE_ID, etoilesGagnees);
+    const dureeSecondes = Math.max(0, Math.round((Date.now() - etat.demarreLe) / 1000));
+    enregistrerSession(COMPETENCE_ID, score, total, dureeSecondes);
+
+    const zone = document.getElementById('zone-jeu');
+    zone.innerHTML = '';
+    const bloc = document.createElement('div');
+    bloc.className = 'bloc-resultats';
+
+    const titre = document.createElement('h3');
+    titre.textContent = victoire ? 'Dragon vaincu ! 🏆' : "Le dragon s'est envolé… 🐉💨";
+
+    const etoilesEl = creerEtoiles(etoilesGagnees);
+
+    const scoreTexte = document.createElement('p');
+    scoreTexte.className = 'score-texte';
+    scoreTexte.textContent = score + ' / ' + total + ' bonnes réponses';
+
+    const detail = document.createElement('p');
+    detail.className = 'detail-combat';
+    detail.textContent = victoire
+      ? 'Tu termines avec ' + etat.coeurs + ' cœur' + (etat.coeurs > 1 ? 's' : '') + " — les tables n'ont plus de secret."
+      : 'Pas grave : entraîne-toi et reviens le défier !';
+
+    const boutons = document.createElement('div');
+    boutons.className = 'boutons-resultats';
+    const rejouer = document.createElement('button');
+    rejouer.className = 'bouton-principal';
+    rejouer.textContent = 'Rejouer';
+    rejouer.addEventListener('click', demarrerCombat);
+    const accueilBtn = document.createElement('button');
+    accueilBtn.className = 'bouton-secondaire';
+    accueilBtn.textContent = "Retour à l'accueil";
+    accueilBtn.addEventListener('click', retourAccueil);
+    boutons.appendChild(rejouer);
+    boutons.appendChild(accueilBtn);
+
+    bloc.appendChild(titre);
+    bloc.appendChild(etoilesEl);
+    bloc.appendChild(scoreTexte);
+    bloc.appendChild(detail);
+    bloc.appendChild(boutons);
+    zone.appendChild(bloc);
+
+    if (etoilesGagnees === 3) {
+      lancerConfettis(50);
+      jouerSon('bravo');
+    }
+  }
+
+  /* ---------- Initialisation ---------- */
+
+  document.getElementById('sous-titre-accueil').textContent = donnees.sousTitre;
+  document.getElementById('bouton-combattre').addEventListener('click', demarrerCombat);
+  document.getElementById('bouton-retour').addEventListener('click', retourAccueil);
+  majEtoilesAccueil();
+})();
+</script>
+<script>
+  /* Bouton « ← Menu » : retour à la coquille avec confirmation (CHARTE §7).
+     Script isolé du moteur de jeu : il n'agit que sur les éléments statiques
+     de la page (le « ← Menu » ne s'affiche que sur l'écran d'accueil). */
+  (function () {
+    var bouton = document.getElementById('bouton-menu');
+    var modale = document.getElementById('modale-menu');
+    if (!bouton || !modale) return;
+    function fermer() { modale.hidden = true; }
+    bouton.addEventListener('click', function () { modale.hidden = false; });
+    document.getElementById('modale-menu-rester').addEventListener('click', fermer);
+    document.getElementById('modale-menu-revenir').addEventListener('click', function () {
+      window.location.href = '../index.html';
+    });
+    modale.addEventListener('click', function (e) { if (e.target === modale) fermer(); });
+  })();
+</script>
+</body>
+</html>
