@@ -63,6 +63,21 @@
         { "id": "devinette", "libelle": "Reconnaître un solide d'après ses propriétés" },
         { "id": "patrons", "libelle": "Associer un solide à son patron" }
       ]
+    },
+    {
+      "id": "M99",
+      "titre": "Boss des tables",
+      "description": "Affronte un dragon en duel : réponds vite et juste aux tables de multiplication.",
+      "icone": "🐉",
+      "niveau": "CE1",
+      "domaine": "Calcul",
+      "theme": "Tables de multiplication",
+      "programme": "BO-2024",
+      "type": "entrainement",
+      "fichier": "jeux/M99-boss-des-tables.html",
+      "competences": [
+        { "id": "tables-multiplication", "libelle": "Multiplier avec les tables (de 2 à 10)" }
+      ]
     }
   ]
 }
