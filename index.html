@@ -5,48 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="color-scheme" content="light only">
 <meta name="theme-color" content="#FF8C42">
-<script>
-  /*
-   * KILL-SWITCH SERVICE WORKER (désactivation temporaire — 2026-07).
-   *
-   * POURQUOI : le service worker de la coquille provoquait sur iPhone/Safari
-   * l'erreur « Response served by service worker has redirections » de façon
-   * imprévisible (parfois OK, parfois KO, même après purge complète des données
-   * du site). Après trois tentatives de correction, le bug persiste. Priorité
-   * absolue : la fiabilité pour les tests utilisateurs en cours. Le hors-ligne /
-   * PWA sera retravaillé plus tard (le fichier sw.js est conservé dans le dépôt).
-   *
-   * CE QUE FAIT CE BLOC : dès le tout début du chargement de CHAQUE page de la
-   * coquille (placé en tête de <head>, avant tout autre script/ressource), il
-   * DÉSINSCRIT activement tout service worker encore enregistré depuis une
-   * visite précédente et VIDE tous ses caches. Ainsi, aucun ancien SW ne peut
-   * plus intercepter les requêtes suivantes : après un simple rechargement, un
-   * navigateur qui avait le bug repart proprement, sans manipulation manuelle.
-   *
-   * L'ENREGISTREMENT du service worker est par ailleurs désactivé (commenté)
-   * en bas de ce fichier : plus aucun nouveau SW n'est installé.
-   */
-  (function () {
-    try {
-      if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
-        navigator.serviceWorker.getRegistrations()
-          .then(function (registrations) {
-            registrations.forEach(function (registration) { registration.unregister(); });
-          })
-          .catch(function () { /* API indisponible : rien à désinscrire */ });
-      }
-      if (window.caches && caches.keys) {
-        caches.keys()
-          .then(function (noms) {
-            noms.forEach(function (nom) { caches.delete(nom); });
-          })
-          .catch(function () { /* API indisponible : rien à vider */ });
-      }
-    } catch (e) {
-      /* Navigateur sans ces API (ou accès bloqué) : rien à nettoyer, on continue. */
-    }
-  })();
-</script>
 <title>Mayeutik — jeux éducatifs</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png" type="image/png">
@@ -368,26 +326,15 @@
 <script src="js/profils.js"></script>
 <script src="js/app.js"></script>
 <script>
-  /*
-   * ENREGISTREMENT DU SERVICE WORKER — DÉSACTIVÉ TEMPORAIREMENT (2026-07).
-   *
-   * Le service worker (sw.js) déclenchait sur iPhone/Safari l'erreur
-   * « Response served by service worker has redirections » de façon
-   * imprévisible, non résolue après trois tentatives de correction. Pour
-   * garantir la fiabilité des tests utilisateurs en cours, on n'enregistre
-   * plus aucun SW. Le nettoyage actif des anciennes installations est fait
-   * en tête de <head> (kill-switch). Le fichier sw.js reste dans le dépôt
-   * pour une reprise ultérieure du hors-ligne/PWA, à tête reposée.
-   *
-   * Pour réactiver plus tard (une fois le bug de redirection résolu),
-   * décommenter le bloc ci-dessous ET retirer le kill-switch de <head>.
-   *
-   * if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-   *   window.addEventListener('load', () => {
-   *     navigator.serviceWorker.register('sw.js').catch(() => {});
-   *   });
-   * }
-   */
+  // Service worker : uniquement en contexte http(s) — jamais en file:// —
+  // pour que la coquille reste ouvrable en local sans erreur console.
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {
+        // Enregistrement impossible (navigation privée...) : l'app fonctionne sans cache hors ligne.
+      });
+    });
+  }
 </script>
 </body>
 </html>
