@@ -309,7 +309,10 @@
       axes: analyse.domaines.map((d) => ({
         libelle: d.nom,
         valeur: Math.round(d.valeur * 10) / 10,
-        sousLibelle: d.nbCompetences ? (String(Math.round(d.valeur * 10) / 10).replace('.', ',') + ' / 4') : 'aucun module'
+        sousLibelle: d.nbCompetences ? (String(Math.round(d.valeur * 10) / 10).replace('.', ',') + ' / 4') : 'aucun module',
+        infoBulle: d.nom + ' — ' + (d.nbCompetences
+          ? 'moyenne ' + (String(Math.round(d.valeur * 10) / 10).replace('.', ',')) + ' / 4'
+          : 'aucun module')
       })),
       max: 4,
       indexActif: nomsDomaines.indexOf(etat.domaineParent),
@@ -337,7 +340,12 @@
         sectionDetail.appendChild(h('div', { class: 'titre-radar-detail', texte: radar.titres.join(' · ') }));
         const cadre = h('div', { class: 'cadre-radar' });
         cadre.appendChild(R.dessiner({
-          axes: radar.competences.map((c) => ({ libelle: c.libelle, valeur: c.statut.valeurRadar })),
+          axes: radar.competences.map((c) => ({
+            libelle: c.libelle,
+            valeur: c.statut.valeurRadar,
+            // Bulle d'aide : libellé complet + statut LSU (ex. « … — Atteints »).
+            infoBulle: c.libelle + ' — ' + c.statut.libelle
+          })),
           max: 4
         }));
         sectionDetail.appendChild(cadre);

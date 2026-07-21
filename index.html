@@ -217,10 +217,18 @@
   }
   .radar-valeurs-ligne { stroke: var(--couleur-mandarine); stroke-width: 2.5; stroke-linecap: round; }
   .radar-point { fill: var(--couleur-mandarine); }
-  .radar-libelle { font-size: 10.5px; font-weight: 500; fill: var(--couleur-encre); }
+  /* La taille de police des libellés est fixée par un attribut SVG (adaptative
+     selon la longueur du libellé, cf. js/radar.js) — pas de font-size ici. */
+  .radar-libelle { font-weight: 500; fill: var(--couleur-encre); }
   .radar-libelle-cliquable { cursor: pointer; text-decoration: underline; }
   .radar-libelle-actif { font-weight: 700; fill: var(--couleur-mandarine); }
   .radar-sous-libelle { font-size: 8.5px; opacity: .65; }
+  .radar-infobulle {
+    position: fixed; z-index: 1200; max-width: 15rem; pointer-events: none;
+    background: var(--couleur-encre); color: #fff; font-size: .8rem; font-weight: 600;
+    padding: .35rem .6rem; border-radius: 10px; line-height: 1.25;
+    box-shadow: 0 6px 18px rgba(43,43,43,.3);
+  }
   .titre-radar-detail { font-size: .9rem; font-weight: 600; margin: .8rem 0 .3rem; opacity: .85; }
   .aide-radar { font-size: .8rem; opacity: .65; text-align: center; margin-top: .4rem; }
 

@@ -26,22 +26,86 @@
     return { x: cx + d * Math.cos(angle), y: cy + d * Math.sin(angle) };
   }
 
-  /* Coupe un libellé en 2 lignes max (~motifs de mots), avec ellipse au-delà. */
-  function couperLibelle(texte, maxParLigne) {
-    const mots = String(texte).split(/\s+/);
+  /*
+   * Enveloppe un libellé sur plusieurs lignes (découpe aux espaces), SANS
+   * jamais tronquer : le texte complet est toujours présent. `maxLignes`
+   * borne le nombre de lignes ; si atteint, les mots restants s'accumulent
+   * sur la dernière ligne (toujours pas de troncature).
+   */
+  function envelopper(texte, maxParLigne, maxLignes) {
+    const mots = String(texte).split(/\s+/).filter(Boolean);
     const lignes = [''];
     mots.forEach((mot) => {
       const courante = lignes[lignes.length - 1];
-      if (courante && (courante + ' ' + mot).length > maxParLigne && lignes.length < 2) {
+      const depasse = courante && (courante + ' ' + mot).length > maxParLigne;
+      if (depasse && (!maxLignes || lignes.length < maxLignes)) {
         lignes.push(mot);
       } else {
         lignes[lignes.length - 1] = courante ? courante + ' ' + mot : mot;
       }
     });
-    if (lignes[1] && lignes[1].length > maxParLigne) {
-      lignes[1] = lignes[1].slice(0, maxParLigne - 1) + '…';
+    return lignes.length ? lignes : [''];
+  }
+
+  /* ---------- Bulle d'aide (tooltip) : survol desktop + appui long tactile ---------- */
+
+  let infoBulleEl = null;
+  function obtenirInfoBulle() {
+    if (!infoBulleEl) {
+      infoBulleEl = document.createElement('div');
+      infoBulleEl.className = 'radar-infobulle';
+      infoBulleEl.setAttribute('role', 'tooltip');
+      infoBulleEl.hidden = true;
+      document.body.appendChild(infoBulleEl);
     }
-    return lignes;
+    return infoBulleEl;
+  }
+  function montrerInfoBulle(texte, x, y) {
+    const bulle = obtenirInfoBulle();
+    bulle.textContent = texte;
+    bulle.hidden = false;
+    const marge = 8;
+    let gauche = x - bulle.offsetWidth / 2;
+    gauche = Math.max(marge, Math.min(gauche, window.innerWidth - bulle.offsetWidth - marge));
+    let haut = y - bulle.offsetHeight - 12;
+    if (haut < marge) haut = y + 18; // pas la place au-dessus : on bascule dessous
+    bulle.style.left = gauche + 'px';
+    bulle.style.top = haut + 'px';
+  }
+  function cacherInfoBulle() {
+    if (infoBulleEl) infoBulleEl.hidden = true;
+  }
+  if (typeof window !== 'undefined') {
+    // La bulle est positionnée en coordonnées écran : on la masque si la page
+    // défile ou est redimensionnée, pour ne pas la laisser « flotter ».
+    window.addEventListener('scroll', cacherInfoBulle, { passive: true });
+    window.addEventListener('resize', cacherInfoBulle);
+  }
+
+  /*
+   * Rend une cible (libellé ou point d'axe) porteuse d'une bulle d'aide :
+   *  - desktop : affichage au survol (mouseenter/mousemove), masquage à la sortie ;
+   *  - tactile : appui long (~350 ms) SANS bloquer le défilement — les écouteurs
+   *    sont passifs (aucun preventDefault) et un déplacement du doigt annule.
+   */
+  function activerInfoBulle(cible, texte) {
+    cible.style.cursor = cible.style.cursor || 'help';
+    cible.addEventListener('mouseenter', (e) => montrerInfoBulle(texte, e.clientX, e.clientY));
+    cible.addEventListener('mousemove', (e) => montrerInfoBulle(texte, e.clientX, e.clientY));
+    cible.addEventListener('mouseleave', cacherInfoBulle);
+
+    let minuteur = null;
+    const annuler = () => { if (minuteur) { clearTimeout(minuteur); minuteur = null; } };
+    cible.addEventListener('touchstart', (e) => {
+      const t = e.touches && e.touches[0];
+      if (!t) return;
+      const x = t.clientX, y = t.clientY;
+      annuler();
+      minuteur = setTimeout(() => { montrerInfoBulle(texte, x, y); minuteur = null; }, 350);
+    }, { passive: true });
+    cible.addEventListener('touchmove', annuler, { passive: true });
+    cible.addEventListener('touchend', () => { annuler(); setTimeout(cacherInfoBulle, 1800); }, { passive: true });
+    cible.addEventListener('touchcancel', () => { annuler(); cacherInfoBulle(); }, { passive: true });
   }
 
   /*
@@ -88,30 +152,43 @@
       const pLib = point(cx, cy, n, i, r + 12);
       const cosinus = Math.cos(-Math.PI / 2 + (i * 2 * Math.PI) / n);
       const ancre = Math.abs(cosinus) < 0.25 ? 'middle' : cosinus > 0 ? 'start' : 'end';
-      const lignes = couperLibelle(axe.libelle, 15);
+
+      // Libellé COMPLET : enveloppé sur autant de lignes que nécessaire (jamais
+      // tronqué), avec une police réduite pour les libellés longs afin de tenir
+      // dans l'espace tout en restant lisible.
+      const lignes = envelopper(axe.libelle, 16, 4);
+      const longueurMax = lignes.reduce((m, l) => Math.max(m, l.length), 0);
+      let taille = 10.5;
+      if (lignes.length >= 4 || longueurMax > 20) taille = 8.5;
+      else if (lignes.length === 3 || longueurMax > 15) taille = 9.5;
+      const interligne = taille * 1.08;
+
       const texte = el('text', {
         x: pLib.x,
-        y: pLib.y - (lignes.length - 1) * 5,
+        y: pLib.y - (lignes.length - 1) * (interligne / 2),
         'text-anchor': ancre,
+        'font-size': taille,
         class: 'radar-libelle' + (options.onClicAxe ? ' radar-libelle-cliquable' : '') +
           (options.indexActif === i ? ' radar-libelle-actif' : '')
       });
       lignes.forEach((ligne, j) => {
-        const tspan = el('tspan', { x: pLib.x, dy: j === 0 ? 0 : 11 });
+        const tspan = el('tspan', { x: pLib.x, dy: j === 0 ? 0 : interligne });
         tspan.textContent = ligne;
         texte.appendChild(tspan);
       });
       if (axe.sousLibelle) {
-        const tspan = el('tspan', { x: pLib.x, dy: 11, class: 'radar-sous-libelle' });
+        const tspan = el('tspan', { x: pLib.x, dy: interligne + 1, class: 'radar-sous-libelle' });
         tspan.textContent = axe.sousLibelle;
         texte.appendChild(tspan);
       }
+      // Repli natif (title) conservé, en plus de la bulle personnalisée.
       const titre = el('title', {});
-      titre.textContent = axe.libelle + ' : ' + axe.valeur + ' / ' + max;
+      titre.textContent = axe.infoBulle || (axe.libelle + ' : ' + axe.valeur + ' / ' + max);
       texte.appendChild(titre);
       if (options.onClicAxe) {
         texte.addEventListener('click', () => options.onClicAxe(i));
       }
+      if (axe.infoBulle) activerInfoBulle(texte, axe.infoBulle);
       svg.appendChild(texte);
     });
 
@@ -134,8 +211,9 @@
     ptsValeurs.forEach((p, i) => {
       const cercle = el('circle', { cx: p.x, cy: p.y, r: 3.5, class: 'radar-point' });
       const titre = el('title', {});
-      titre.textContent = axes[i].libelle + ' : ' + axes[i].valeur + ' / ' + max;
+      titre.textContent = axes[i].infoBulle || (axes[i].libelle + ' : ' + axes[i].valeur + ' / ' + max);
       cercle.appendChild(titre);
+      if (axes[i].infoBulle) activerInfoBulle(cercle, axes[i].infoBulle);
       svg.appendChild(cercle);
     });
 
