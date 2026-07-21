@@ -90,6 +90,22 @@
   .puce-filtre.active { background: var(--couleur-mandarine); border-color: var(--couleur-mandarine); color: #fff; }
   .puce-filtre-domaine.active { background: var(--couleur-menthe); border-color: var(--couleur-menthe); }
 
+  /* Filtre par niveau du profil + bascule « voir tous les niveaux » */
+  .barre-niveau { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin: .1rem 0 .5rem; }
+  .etiquette-niveau {
+    font-size: .82rem; font-weight: 700; border-radius: 999px; padding: .2rem .7rem;
+    background: color-mix(in srgb, var(--couleur-mandarine) 22%, white);
+    color: color-mix(in srgb, var(--couleur-mandarine) 55%, black 20%);
+  }
+  .bouton-tous-niveaux {
+    margin-left: auto; border: 1.5px solid color-mix(in srgb, var(--couleur-encre) 22%, white);
+    background: #fff; border-radius: 999px; padding: .3rem .8rem;
+    font-size: .82rem; font-weight: 600; min-height: 38px; color: var(--couleur-encre);
+  }
+  .bouton-tous-niveaux[aria-pressed="true"] {
+    background: var(--couleur-mandarine); border-color: var(--couleur-mandarine); color: #fff;
+  }
+
   /* Cartes de jeux */
   .titre-groupe { font-size: 1.05rem; font-weight: 700; margin: .9rem 0 .4rem; opacity: .8; }
   .grille-jeux { display: grid; grid-template-columns: 1fr; gap: .7rem; }

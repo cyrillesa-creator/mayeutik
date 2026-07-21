@@ -21,7 +21,8 @@
   /* État d'interface uniquement (jamais persisté). */
   const etat = {
     recherche: '',
-    filtreNiveau: 'tous',
+    voirTousNiveaux: false,      // vue enfant : par défaut on filtre sur le niveau du profil actif
+    dernierProfilAccueil: null,  // pour ré-appliquer le filtre par défaut quand on change d'enfant
     filtreDomaine: 'tous',
     domaineParent: null,     // domaine sélectionné sur le radar de synthèse
     filtreNiveauParent: 'tous',
@@ -114,10 +115,12 @@
 
   /* ---------- Vue : accueil / index des jeux (enfant) ---------- */
 
-  function modulesFiltres() {
+  function modulesFiltres(niveauProfil) {
     const recherche = normaliser(etat.recherche.trim());
     return (referentiel.modules || []).filter((m) => {
-      if (etat.filtreNiveau !== 'tous' && m.niveau !== etat.filtreNiveau) return false;
+      // Par défaut, on ne montre que les modules du niveau du profil actif ;
+      // « Voir tous les niveaux » (ou un profil sans niveau) lève ce filtre.
+      if (!etat.voirTousNiveaux && niveauProfil && m.niveau !== niveauProfil) return false;
       if (etat.filtreDomaine !== 'tous' && m.domaine !== etat.filtreDomaine) return false;
       if (recherche) {
         const meule = normaliser([m.titre, m.theme, m.description, m.domaine].join(' '));
@@ -151,6 +154,16 @@
 
   function vueAccueil(conteneur) {
     const profil = P.profilActif();
+    const niveauProfil = profil && profil.niveau ? profil.niveau : null;
+
+    // Ré-applique le filtre par défaut (niveau du profil) dès qu'on change
+    // d'enfant, quel que soit le chemin ayant changé le profil actif.
+    const idProfil = profil ? profil.id : null;
+    if (etat.dernierProfilAccueil !== idProfil) {
+      etat.voirTousNiveaux = false;
+      etat.dernierProfilAccueil = idProfil;
+    }
+
     const vue = h('div', { class: 'vue', style: 'position:relative' });
 
     vue.appendChild(h('button', { class: 'pastille-profil', 'aria-label': 'Changer de joueur',
@@ -167,15 +180,24 @@
       placeholder: '🔍 Chercher un jeu…', value: etat.recherche,
       oninput: (e) => { etat.recherche = e.target.value; rendreListeJeux(); } }));
 
-    // Filtres niveau puis domaine (navigation niveau × domaine × thème).
-    const niveauxAvecModules = (referentiel.niveaux || [])
-      .filter((n) => referentiel.modules.some((m) => m.niveau === n));
-    const rangeeNiveaux = h('div', { class: 'rangee-filtres' },
-      [['tous', 'Tous']].concat(niveauxAvecModules.map((n) => [n, n])).map(([valeur, libelle]) =>
-        h('button', { class: 'puce-filtre' + (etat.filtreNiveau === valeur ? ' active' : ''),
-          texte: libelle,
-          onclick: () => { etat.filtreNiveau = valeur; rendre(); } })));
-    vue.appendChild(rangeeNiveaux);
+    // Filtre par niveau : par défaut on ne montre que les jeux du niveau du
+    // profil ; un bouton discret bascule vers « tous les niveaux ». (Sans
+    // niveau sur le profil, tout est affiché et le bouton n'a pas lieu d'être.)
+    if (niveauProfil) {
+      const barreNiveau = h('div', { class: 'barre-niveau' });
+      if (etat.voirTousNiveaux) {
+        barreNiveau.appendChild(h('span', { class: 'etiquette-niveau', texte: 'Tous les niveaux' }));
+      } else {
+        barreNiveau.appendChild(h('span', { class: 'etiquette-niveau', texte: 'Niveau ' + niveauProfil }));
+      }
+      barreNiveau.appendChild(h('button', {
+        class: 'bouton-tous-niveaux',
+        'aria-pressed': etat.voirTousNiveaux ? 'true' : 'false',
+        texte: etat.voirTousNiveaux ? 'Voir seulement mon niveau' : 'Voir tous les niveaux',
+        onclick: () => { etat.voirTousNiveaux = !etat.voirTousNiveaux; rendre(); }
+      }));
+      vue.appendChild(barreNiveau);
+    }
 
     const domainesAvecModules = (referentiel.domaines || [])
       .filter((d) => referentiel.modules.some((m) => m.domaine === d));
@@ -191,14 +213,20 @@
 
     function rendreListeJeux() {
       zoneJeux.textContent = '';
-      const modules = modulesFiltres();
+      const modules = modulesFiltres(niveauProfil);
       if (!modules.length) {
-        zoneJeux.appendChild(h('p', { class: 'aucun-resultat', texte: 'Aucun jeu trouvé… essaie autre chose !' }));
+        const message = (!etat.voirTousNiveaux && niveauProfil)
+          ? 'Aucun jeu pour le niveau ' + niveauProfil + ' pour l’instant — touche « Voir tous les niveaux ».'
+          : 'Aucun jeu trouvé… essaie autre chose !';
+        zoneJeux.appendChild(h('p', { class: 'aucun-resultat', texte: message }));
         return;
       }
-      // Regroupement par niveau (dans l'ordre du référentiel) quand aucun
-      // niveau précis n'est sélectionné, pour garder une lecture « par classe ».
-      const groupes = etat.filtreNiveau === 'tous'
+      // On regroupe par niveau (avec un titre de section) quand plusieurs
+      // niveaux peuvent coexister à l'écran : « voir tous les niveaux » ou
+      // profil sans niveau. Sinon, une seule grille (tout au même niveau,
+      // le badge de niveau reste visible sur chaque carte).
+      const grouperParNiveau = etat.voirTousNiveaux || !niveauProfil;
+      const groupes = grouperParNiveau
         ? (referentiel.niveaux || []).map((n) => [n, modules.filter((m) => m.niveau === n)]).filter(([, l]) => l.length)
         : [[null, modules]];
       groupes.forEach(([niveau, liste]) => {
