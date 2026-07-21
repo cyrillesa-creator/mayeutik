@@ -23,6 +23,7 @@
     recherche: '',
     voirTousNiveaux: false,      // vue enfant : par défaut on filtre sur le niveau du profil actif
     dernierProfilAccueil: null,  // pour ré-appliquer le filtre par défaut quand on change d'enfant
+    profilEnEdition: null,       // id du profil en cours de modification (#modifier-profil)
     filtreDomaine: 'tous',
     domaineParent: null,     // domaine sélectionné sur le radar de synthèse
     filtreNiveauParent: 'tous',
@@ -80,14 +81,21 @@
 
     const liste = h('div', { class: 'liste-profils' });
     profils.forEach((profil) => {
-      liste.appendChild(h('button', {
+      // Zone principale cliquable (choisir le joueur) + bouton « Modifier »
+      // à part (un bouton ne peut pas en contenir un autre).
+      const principal = h('button', {
         class: 'carte-profil' + (profil.id === actif ? ' actif' : ''),
         onclick: () => { P.definirProfilActif(profil.id); location.hash = '#accueil'; }
       }, [
         avatar(profil),
         h('span', { texte: profil.prenom }),
         h('span', { class: 'niveau', texte: profil.niveau })
-      ]));
+      ]);
+      const modifier = h('button', {
+        class: 'bouton-modifier', 'aria-label': 'Modifier le profil de ' + profil.prenom,
+        onclick: () => { etat.profilEnEdition = profil.id; location.hash = '#modifier-profil'; }
+      }, [h('span', { 'aria-hidden': 'true', texte: '✏️' })]);
+      liste.appendChild(h('div', { class: 'ligne-profil' }, [principal, modifier]));
     });
     vue.appendChild(liste);
 
@@ -111,6 +119,93 @@
 
     vue.appendChild(piedEnfant());
     conteneur.appendChild(vue);
+  }
+
+  /* ---------- Vue : modification / suppression d'un profil ---------- */
+
+  function vueModifierProfil(conteneur) {
+    const profil = P.lireProfils().find((p) => p.id === etat.profilEnEdition);
+    // Profil introuvable (ex. supprimé entre-temps) : on revient à la sélection.
+    if (!profil) { location.hash = '#profils'; return; }
+
+    const vue = h('div', { class: 'vue' });
+    vue.appendChild(h('div', { class: 'entete-enfant' }, [
+      h('h1', { texte: 'Modifier le profil' }),
+      h('p', { class: 'sous-titre', texte: 'Change le prénom ou la classe de ' + profil.prenom + '.' })
+    ]));
+
+    const champPrenom = h('input', { type: 'text', maxlength: '30', value: profil.prenom, 'aria-label': 'Prénom' });
+    const champNiveau = h('select', { 'aria-label': 'Classe' },
+      (referentiel.niveaux || []).map((n) => {
+        const opt = h('option', { value: n, texte: n });
+        if (n === profil.niveau) opt.selected = true;
+        return opt;
+      }));
+
+    const boutonEnregistrer = h('button', { class: 'bouton-principal', texte: 'Enregistrer',
+      onclick: () => {
+        if (!champPrenom.value.trim()) { champPrenom.focus(); return; }
+        // Met à jour le profil : si c'est le profil actif et que sa classe
+        // change, l'écran de choix des jeux ré-appliquera le filtre au nouveau
+        // niveau (niveau recalculé à chaque rendu depuis profilActif()).
+        P.modifierProfil(profil.id, champPrenom.value, champNiveau.value);
+        etat.profilEnEdition = null;
+        location.hash = '#profils';
+      } });
+    const boutonAnnuler = h('button', { class: 'bouton-secondaire', texte: 'Annuler',
+      onclick: () => { etat.profilEnEdition = null; location.hash = '#profils'; } });
+
+    vue.appendChild(h('div', { class: 'formulaire-profil' }, [
+      h('label', { class: 'champ-edition' }, [h('span', { texte: 'Prénom' }), champPrenom]),
+      h('label', { class: 'champ-edition' }, [h('span', { texte: 'Classe' }), champNiveau]),
+      boutonEnregistrer,
+      boutonAnnuler
+    ]));
+
+    // Zone « danger », visuellement à part : suppression définitive.
+    vue.appendChild(h('div', { class: 'zone-danger' }, [
+      h('p', { class: 'zone-danger-note',
+        texte: 'La suppression efface définitivement ce profil et toutes ses données.' }),
+      h('button', { class: 'bouton-supprimer-profil', texte: '🗑 Supprimer ce profil',
+        onclick: () => ouvrirModaleSuppression(profil) })
+    ]));
+
+    conteneur.appendChild(vue);
+  }
+
+  /*
+   * Modale de confirmation de suppression : deux boutons nettement différenciés
+   * (« Annuler » mis en avant, « Supprimer définitivement » en couleur d'alerte).
+   * Ton bienveillant mais message clair sur l'irréversibilité (CHARTE.md).
+   */
+  function ouvrirModaleSuppression(profil) {
+    const conteneur = document.getElementById('application');
+    const fond = h('div', { class: 'modale-fond' });
+    function fermer() { fond.remove(); }
+
+    const boite = h('div', { class: 'modale-boite', role: 'dialog', 'aria-modal': 'true',
+      'aria-labelledby': 'modale-suppr-titre' }, [
+      h('h3', { class: 'modale-titre', id: 'modale-suppr-titre', texte: 'Supprimer ce profil ?' }),
+      h('p', { class: 'modale-texte',
+        texte: 'Supprimer le profil de ' + profil.prenom + ' ? Toutes ses données seront ' +
+          'définitivement perdues : parties jouées, étoiles, progression enregistrée. ' +
+          'Cette action est irréversible.' }),
+      h('div', { class: 'modale-actions' }, [
+        h('button', { class: 'bouton-modale-annuler', texte: 'Annuler', onclick: fermer }),
+        h('button', { class: 'bouton-modale-danger', texte: 'Supprimer définitivement',
+          onclick: () => {
+            // Retire le profil + toutes ses sessions ; réassigne le profil actif
+            // (profil restant, ou « aucun profil actif » si c'était le dernier).
+            P.supprimerProfil(profil.id);
+            etat.profilEnEdition = null;
+            fermer();
+            location.hash = '#profils'; // hashchange -> rendre() (écran de sélection)
+          } })
+      ])
+    ]);
+    fond.appendChild(boite);
+    fond.addEventListener('click', (e) => { if (e.target === fond) fermer(); });
+    conteneur.appendChild(fond);
   }
 
   /* ---------- Vue : accueil / index des jeux (enfant) ---------- */
@@ -586,6 +681,7 @@
 
     if (route === '#parent') vueParent(conteneur);
     else if (route === '#profils') vueProfils(conteneur);
+    else if (route === '#modifier-profil') vueModifierProfil(conteneur);
     else vueAccueil(conteneur);
     window.scrollTo(0, 0);
   }

@@ -101,6 +101,21 @@
   }
 
   /*
+   * Modifie le prénom et/ou le niveau d'un profil existant (id et date de
+   * création conservés). Renvoie le profil mis à jour, ou null s'il n'existe
+   * pas. Écriture via le pattern « stockage sûr » (mémoire + localStorage).
+   */
+  function modifierProfil(id, prenom, niveau) {
+    const profils = lireProfils();
+    const profil = profils.find((p) => p.id === id);
+    if (!profil) return null;
+    profil.prenom = String(prenom || '').trim().slice(0, 30);
+    profil.niveau = niveau || '';
+    enregistrerProfils(profils);
+    return profil;
+  }
+
+  /*
    * Minimisation RGPD : supprimer un profil supprime aussi TOUTES ses
    * sessions (aucune donnée orpheline ne subsiste).
    */
@@ -163,6 +178,7 @@
     invaliderCache,
     lireProfils,
     creerProfil,
+    modifierProfil,
     supprimerProfil,
     lireProfilActif,
     definirProfilActif,
