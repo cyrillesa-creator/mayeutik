@@ -5,6 +5,44 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="color-scheme" content="light only">
 <meta name="theme-color" content="#FF8C42">
+<script>
+  /*
+   * DÉSACTIVATION DURABLE DU SERVICE WORKER (jusqu'à nouvel ordre).
+   *
+   * POURQUOI : sur Safari ET Chrome, un visiteur revenant sur l'URL de
+   * production en navigation NORMALE recevait une version PÉRIMÉE servie par le
+   * service worker, alors que la navigation privée (sans SW) affichait bien la
+   * dernière version déployée. Le mécanisme de mise à jour immédiate
+   * (skipWaiting + clients.claim) n'a pas suffi. Priorité : fiabilité totale
+   * pour les tests utilisateurs, quel que soit le coût en fonctionnalités PWA.
+   * Reprise future documentée dans CHARTE.md (le fichier sw.js est conservé).
+   *
+   * CE BLOC s'exécute AVANT toute autre logique (tout premier script de la
+   * page), à CHAQUE chargement, que le SW soit ou non déjà désactivé : il
+   * désinscrit tout service worker restant et vide tous les caches, afin de
+   * rattraper les visiteurs coincés sur une ancienne version.
+   */
+  (function () {
+    try {
+      if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
+        navigator.serviceWorker.getRegistrations()
+          .then(function (registrations) {
+            registrations.forEach(function (registration) { registration.unregister(); });
+          })
+          .catch(function () { /* API indisponible : rien à désinscrire */ });
+      }
+      if (window.caches && caches.keys) {
+        caches.keys()
+          .then(function (noms) {
+            noms.forEach(function (nom) { caches.delete(nom); });
+          })
+          .catch(function () { /* API indisponible : rien à vider */ });
+      }
+    } catch (e) {
+      /* Navigateur sans ces API (ou accès bloqué) : rien à nettoyer, on continue. */
+    }
+  })();
+</script>
 <title>Mayeutik — jeux éducatifs</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png" type="image/png">
@@ -382,15 +420,21 @@
 <script src="js/profils.js"></script>
 <script src="js/app.js"></script>
 <script>
-  // Service worker : uniquement en contexte http(s) — jamais en file:// —
-  // pour que la coquille reste ouvrable en local sans erreur console.
-  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(() => {
-        // Enregistrement impossible (navigation privée...) : l'app fonctionne sans cache hors ligne.
-      });
-    });
-  }
+  /*
+   * SW désactivé suite à des problèmes récurrents de mise à jour/cache —
+   * voir CHARTE.md pour reprise future.
+   *
+   * L'enregistrement du service worker est volontairement retiré (aucun
+   * nouveau SW n'est installé). Le nettoyage actif des installations
+   * existantes est fait en tête de <head>. Le fichier sw.js reste dans le
+   * dépôt pour une reprise ultérieure, réfléchie.
+   *
+   * if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+   *   window.addEventListener('load', () => {
+   *     navigator.serviceWorker.register('sw.js').catch(() => {});
+   *   });
+   * }
+   */
 </script>
 </body>
 </html>

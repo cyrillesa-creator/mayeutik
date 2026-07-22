@@ -419,3 +419,19 @@ Règle absolue : on ne touche **jamais** au format (nombre d'items, chronométra
 | Progression & acquis | Contrat de données v1 : sessions brutes écrites par les jeux, statuts calculés côté coquille |
 | Mode chronométré | Modules "E" uniquement : temps imparti par exercice (référentiel), arrêt net à expiration, pas de rattrapage |
 | Variété & randomisation | QCM mélangés (Fisher-Yates), questions mélangées par partie, banque ≥ 2-3× le nombre posé ou génération procédurale |
+
+---
+
+## 14. Service worker / PWA — désactivé (reprise différée)
+
+**État actuel : le service worker de la coquille est DÉSACTIVÉ jusqu'à nouvel ordre.**
+
+**Pourquoi.** En production, sur Safari **comme** Chrome, un visiteur revenant sur l'URL en navigation **normale** recevait une version **périmée** servie par le service worker, alors que la navigation privée (sans SW actif) affichait la dernière version déployée. Le mécanisme de mise à jour immédiate (`skipWaiting` + `clients.claim`) n'a pas suffi à corriger ce problème de fond. Priorité donnée à la **fiabilité totale** pour les tests utilisateurs, au prix des fonctionnalités hors-ligne/PWA.
+
+**Ce qui est en place (dans `index.html`).**
+- L'**enregistrement** du service worker (`navigator.serviceWorker.register('sw.js')`) est **retiré** (commenté) : plus aucun nouveau SW n'est installé.
+- Un **nettoyage actif** s'exécute **avant toute autre logique**, en tête de `<head>`, à **chaque** chargement de page : désinscription de tout service worker restant (`getRegistrations()` → `unregister()`) et vidage de tous les caches (`caches.keys()` → `caches.delete()`). Il s'exécute que le SW soit déjà désactivé ou non, pour rattraper les visiteurs coincés sur une ancienne version. Résultat attendu : rendu **identique en navigation normale et privée**, sur plusieurs rechargements consécutifs.
+
+**Le fichier `sw.js` est conservé dans le dépôt** (il n'est simplement plus enregistré), pour une reprise ultérieure réfléchie.
+
+**Pour reprendre le hors-ligne/PWA plus tard**, il faudra : (1) traiter la cause racine de la péremption de cache (stratégie de versionnement/invalidation fiable, testée sur Safari **et** Chrome en navigation normale) ; (2) réactiver l'enregistrement commenté dans `index.html` ; (3) **retirer le nettoyage actif** de `<head>` (sinon il désinscrirait aussitôt le SW réactivé).
