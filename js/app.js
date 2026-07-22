@@ -21,14 +21,51 @@
   /* État d'interface uniquement (jamais persisté). */
   const etat = {
     recherche: '',
-    voirTousNiveaux: false,      // vue enfant : par défaut on filtre sur le niveau du profil actif
-    dernierProfilAccueil: null,  // pour ré-appliquer le filtre par défaut quand on change d'enfant
     profilEnEdition: null,       // id du profil en cours de modification (#modifier-profil)
     filtreDomaine: 'tous',
     domaineParent: null,     // domaine sélectionné sur le radar de synthèse
     filtreNiveauParent: 'tous',
     outilsDevOuverts: false  // le panneau dev reste ouvert entre deux rendus
   };
+
+  /*
+   * État « Voir tous les niveaux » — persistant le temps de la SESSION de
+   * navigation dans la coquille, PAS dans le stockage persistant localStorage.
+   *
+   * Pourquoi sessionStorage plutôt qu'une simple variable mémoire : ouvrir un
+   * jeu quitte la page de la coquille (les jeux sont des fichiers HTML séparés)
+   * et y revenir la RECHARGE — une variable JS serait alors perdue. sessionStorage
+   * survit à ce rechargement tant que l'onglet reste ouvert, et est effacé à la
+   * fermeture de l'onglet (donc non persistant, comme demandé).
+   *
+   * La valeur stockée est l'id du profil pour lequel « voir tous » est actif :
+   * cela encode à la fois le drapeau ET son périmètre (si le profil actif change
+   * par un autre chemin, le drapeau ne s'applique plus → filtre par défaut).
+   * Il est en outre réinitialisé explicitement à l'accès à l'écran des profils.
+   */
+  const CLE_VOIR_TOUS = 'mayeutik-nav-voir-tous-niveaux';
+  let memoireVoirTous = null; // repli si sessionStorage est indisponible (Safari privé…)
+  function lireVoirTous(profilId) {
+    if (!profilId) return false;
+    try {
+      return window.sessionStorage.getItem(CLE_VOIR_TOUS) === profilId;
+    } catch (e) {
+      return memoireVoirTous === profilId;
+    }
+  }
+  function ecrireVoirTous(profilId, actif) {
+    memoireVoirTous = actif ? profilId : null;
+    try {
+      if (actif) window.sessionStorage.setItem(CLE_VOIR_TOUS, profilId);
+      else window.sessionStorage.removeItem(CLE_VOIR_TOUS);
+    } catch (e) {
+      // sessionStorage indisponible : on garde le repli mémoire (dégradé mais sans erreur).
+    }
+  }
+  function reinitialiserVoirTous() {
+    memoireVoirTous = null;
+    try { window.sessionStorage.removeItem(CLE_VOIR_TOUS); } catch (e) { /* rien à faire */ }
+  }
 
   /* ---------- Petits utilitaires ---------- */
 
@@ -70,6 +107,11 @@
   /* ---------- Vue : choix / création de profil (enfant) ---------- */
 
   function vueProfils(conteneur) {
+    // Accéder à l'écran de sélection du profil réinitialise le filtre de niveau :
+    // au retour sur l'écran de choix des jeux, le filtre par défaut (niveau du
+    // profil) sera réappliqué, sans mémoire de l'état précédent.
+    reinitialiserVoirTous();
+
     const profils = P.lireProfils();
     const actif = P.lireProfilActif();
 
@@ -210,12 +252,12 @@
 
   /* ---------- Vue : accueil / index des jeux (enfant) ---------- */
 
-  function modulesFiltres(niveauProfil) {
+  function modulesFiltres(niveauProfil, voirTous) {
     const recherche = normaliser(etat.recherche.trim());
     return (referentiel.modules || []).filter((m) => {
       // Par défaut, on ne montre que les modules du niveau du profil actif ;
       // « Voir tous les niveaux » (ou un profil sans niveau) lève ce filtre.
-      if (!etat.voirTousNiveaux && niveauProfil && m.niveau !== niveauProfil) return false;
+      if (!voirTous && niveauProfil && m.niveau !== niveauProfil) return false;
       if (etat.filtreDomaine !== 'tous' && m.domaine !== etat.filtreDomaine) return false;
       if (recherche) {
         const meule = normaliser([m.titre, m.theme, m.description, m.domaine].join(' '));
@@ -250,14 +292,11 @@
   function vueAccueil(conteneur) {
     const profil = P.profilActif();
     const niveauProfil = profil && profil.niveau ? profil.niveau : null;
-
-    // Ré-applique le filtre par défaut (niveau du profil) dès qu'on change
-    // d'enfant, quel que soit le chemin ayant changé le profil actif.
     const idProfil = profil ? profil.id : null;
-    if (etat.dernierProfilAccueil !== idProfil) {
-      etat.voirTousNiveaux = false;
-      etat.dernierProfilAccueil = idProfil;
-    }
+
+    // Filtre « voir tous les niveaux » : lu depuis l'état de session (persiste
+    // au retour d'un jeu, réinitialisé à l'accès à l'écran des profils).
+    const voirTous = lireVoirTous(idProfil);
 
     const vue = h('div', { class: 'vue', style: 'position:relative' });
 
@@ -280,16 +319,13 @@
     // niveau sur le profil, tout est affiché et le bouton n'a pas lieu d'être.)
     if (niveauProfil) {
       const barreNiveau = h('div', { class: 'barre-niveau' });
-      if (etat.voirTousNiveaux) {
-        barreNiveau.appendChild(h('span', { class: 'etiquette-niveau', texte: 'Tous les niveaux' }));
-      } else {
-        barreNiveau.appendChild(h('span', { class: 'etiquette-niveau', texte: 'Niveau ' + niveauProfil }));
-      }
+      barreNiveau.appendChild(h('span', { class: 'etiquette-niveau',
+        texte: voirTous ? 'Tous les niveaux' : 'Niveau ' + niveauProfil }));
       barreNiveau.appendChild(h('button', {
         class: 'bouton-tous-niveaux',
-        'aria-pressed': etat.voirTousNiveaux ? 'true' : 'false',
-        texte: etat.voirTousNiveaux ? 'Voir seulement mon niveau' : 'Voir tous les niveaux',
-        onclick: () => { etat.voirTousNiveaux = !etat.voirTousNiveaux; rendre(); }
+        'aria-pressed': voirTous ? 'true' : 'false',
+        texte: voirTous ? 'Voir seulement mon niveau' : 'Voir tous les niveaux',
+        onclick: () => { ecrireVoirTous(idProfil, !voirTous); rendre(); }
       }));
       vue.appendChild(barreNiveau);
     }
@@ -308,9 +344,9 @@
 
     function rendreListeJeux() {
       zoneJeux.textContent = '';
-      const modules = modulesFiltres(niveauProfil);
+      const modules = modulesFiltres(niveauProfil, voirTous);
       if (!modules.length) {
-        const message = (!etat.voirTousNiveaux && niveauProfil)
+        const message = (!voirTous && niveauProfil)
           ? 'Aucun jeu pour le niveau ' + niveauProfil + ' pour l’instant — touche « Voir tous les niveaux ».'
           : 'Aucun jeu trouvé… essaie autre chose !';
         zoneJeux.appendChild(h('p', { class: 'aucun-resultat', texte: message }));
@@ -320,7 +356,7 @@
       // niveaux peuvent coexister à l'écran : « voir tous les niveaux » ou
       // profil sans niveau. Sinon, une seule grille (tout au même niveau,
       // le badge de niveau reste visible sur chaque carte).
-      const grouperParNiveau = etat.voirTousNiveaux || !niveauProfil;
+      const grouperParNiveau = voirTous || !niveauProfil;
       const groupes = grouperParNiveau
         ? (referentiel.niveaux || []).map((n) => [n, modules.filter((m) => m.niveau === n)]).filter(([, l]) => l.length)
         : [[null, modules]];
