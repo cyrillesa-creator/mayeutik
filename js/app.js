@@ -22,7 +22,6 @@
   const etat = {
     recherche: '',
     profilEnEdition: null,       // id du profil en cours de modification (#modifier-profil)
-    filtreDomaine: 'tous',
     domaineParent: null,     // domaine sélectionné sur le radar de synthèse
     filtreNiveauParent: 'tous',
     outilsDevOuverts: false  // le panneau dev reste ouvert entre deux rendus
@@ -44,7 +43,11 @@
    * Il est en outre réinitialisé explicitement à l'accès à l'écran des profils.
    */
   const CLE_VOIR_TOUS = 'mayeutik-nav-voir-tous-niveaux';
+  const CLE_DOMAINE = 'mayeutik-nav-filtre-domaine';
+  const SEP = String.fromCharCode(1); // séparateur profilId | valeur (jamais présent dans un nom de domaine)
   let memoireVoirTous = null; // repli si sessionStorage est indisponible (Safari privé…)
+  let memoireDomaine = null;
+
   function lireVoirTous(profilId) {
     if (!profilId) return false;
     try {
@@ -62,9 +65,39 @@
       // sessionStorage indisponible : on garde le repli mémoire (dégradé mais sans erreur).
     }
   }
-  function reinitialiserVoirTous() {
+
+  // Filtre de domaine : même principe, mais la valeur utile est le domaine
+  // choisi (ou 'tous'). On la stocke préfixée par l'id du profil (périmètre) :
+  // si le profil actif change par un autre chemin, le filtre ne s'applique plus.
+  function lireFiltreDomaine(profilId) {
+    if (!profilId) return 'tous';
+    let brut;
+    try { brut = window.sessionStorage.getItem(CLE_DOMAINE); } catch (e) { brut = memoireDomaine; }
+    if (!brut) return 'tous';
+    const sep = brut.indexOf(SEP);
+    if (sep === -1 || brut.slice(0, sep) !== profilId) return 'tous';
+    return brut.slice(sep + 1) || 'tous';
+  }
+  function ecrireFiltreDomaine(profilId, domaine) {
+    const parDefaut = !domaine || domaine === 'tous' || !profilId;
+    memoireDomaine = parDefaut ? null : profilId + SEP + domaine;
+    try {
+      if (parDefaut) window.sessionStorage.removeItem(CLE_DOMAINE);
+      else window.sessionStorage.setItem(CLE_DOMAINE, profilId + SEP + domaine);
+    } catch (e) {
+      // sessionStorage indisponible : repli mémoire.
+    }
+  }
+
+  // Réinitialise TOUS les filtres de navigation (niveau ET domaine) au même
+  // endroit : à l'accès à l'écran de choix du profil (cf. vueProfils).
+  function reinitialiserFiltresNavigation() {
     memoireVoirTous = null;
-    try { window.sessionStorage.removeItem(CLE_VOIR_TOUS); } catch (e) { /* rien à faire */ }
+    memoireDomaine = null;
+    try {
+      window.sessionStorage.removeItem(CLE_VOIR_TOUS);
+      window.sessionStorage.removeItem(CLE_DOMAINE);
+    } catch (e) { /* rien à faire */ }
   }
 
   /* ---------- Petits utilitaires ---------- */
@@ -110,7 +143,7 @@
     // Accéder à l'écran de sélection du profil réinitialise le filtre de niveau :
     // au retour sur l'écran de choix des jeux, le filtre par défaut (niveau du
     // profil) sera réappliqué, sans mémoire de l'état précédent.
-    reinitialiserVoirTous();
+    reinitialiserFiltresNavigation();
 
     const profils = P.lireProfils();
     const actif = P.lireProfilActif();
@@ -252,13 +285,13 @@
 
   /* ---------- Vue : accueil / index des jeux (enfant) ---------- */
 
-  function modulesFiltres(niveauProfil, voirTous) {
+  function modulesFiltres(niveauProfil, voirTous, filtreDomaine) {
     const recherche = normaliser(etat.recherche.trim());
     return (referentiel.modules || []).filter((m) => {
       // Par défaut, on ne montre que les modules du niveau du profil actif ;
       // « Voir tous les niveaux » (ou un profil sans niveau) lève ce filtre.
       if (!voirTous && niveauProfil && m.niveau !== niveauProfil) return false;
-      if (etat.filtreDomaine !== 'tous' && m.domaine !== etat.filtreDomaine) return false;
+      if (filtreDomaine && filtreDomaine !== 'tous' && m.domaine !== filtreDomaine) return false;
       if (recherche) {
         const meule = normaliser([m.titre, m.theme, m.description, m.domaine].join(' '));
         if (meule.indexOf(recherche) === -1) return false;
@@ -294,9 +327,11 @@
     const niveauProfil = profil && profil.niveau ? profil.niveau : null;
     const idProfil = profil ? profil.id : null;
 
-    // Filtre « voir tous les niveaux » : lu depuis l'état de session (persiste
-    // au retour d'un jeu, réinitialisé à l'accès à l'écran des profils).
+    // Filtres « voir tous les niveaux » et « domaine » : lus depuis l'état de
+    // session (persistent au retour d'un jeu, réinitialisés à l'accès à l'écran
+    // des profils — cf. reinitialiserFiltresNavigation dans vueProfils).
     const voirTous = lireVoirTous(idProfil);
+    const filtreDomaine = lireFiltreDomaine(idProfil);
 
     const vue = h('div', { class: 'vue', style: 'position:relative' });
 
@@ -334,9 +369,9 @@
       .filter((d) => referentiel.modules.some((m) => m.domaine === d));
     const rangeeDomaines = h('div', { class: 'rangee-filtres' },
       [['tous', 'Tous les domaines']].concat(domainesAvecModules.map((d) => [d, d])).map(([valeur, libelle]) =>
-        h('button', { class: 'puce-filtre puce-filtre-domaine' + (etat.filtreDomaine === valeur ? ' active' : ''),
+        h('button', { class: 'puce-filtre puce-filtre-domaine' + (filtreDomaine === valeur ? ' active' : ''),
           texte: libelle,
-          onclick: () => { etat.filtreDomaine = valeur; rendre(); } })));
+          onclick: () => { ecrireFiltreDomaine(idProfil, valeur); rendre(); } })));
     vue.appendChild(rangeeDomaines);
 
     const zoneJeux = h('div', { id: 'zone-jeux' });
@@ -344,7 +379,7 @@
 
     function rendreListeJeux() {
       zoneJeux.textContent = '';
-      const modules = modulesFiltres(niveauProfil, voirTous);
+      const modules = modulesFiltres(niveauProfil, voirTous, filtreDomaine);
       if (!modules.length) {
         const message = (!voirTous && niveauProfil)
           ? 'Aucun jeu pour le niveau ' + niveauProfil + ' pour l’instant — touche « Voir tous les niveaux ».'
