@@ -426,6 +426,8 @@ Règle absolue : on ne touche **jamais** au format (nombre d'items, chronométra
 
 **État actuel : le service worker de la coquille est DÉSACTIVÉ jusqu'à nouvel ordre.**
 
+> Le service worker est actuellement **DÉSACTIVÉ** (voir commit correspondant) suite à plusieurs bugs récurrents et difficiles à diagnostiquer : blocage de l'accès aux jeux, réponses de redirection invalides sur Safari, et surtout un défaut de propagation des mises à jour laissant des visiteurs sur d'anciennes versions en cache malgré `skipWaiting()`/`clients.claim()`. Le fichier `sw.js` est conservé dans le dépôt mais non enregistré. **AVANT DE LE RÉACTIVER** : prévoir une session dédiée avec tests systématiques sur Safari ET Chrome, en navigation normale ET privée, sur AU MOINS deux mises à jour successives (pas seulement « ça marche au premier déploiement »), avant tout déploiement en production.
+
 **Pourquoi.** En production, sur Safari **comme** Chrome, un visiteur revenant sur l'URL en navigation **normale** recevait une version **périmée** servie par le service worker, alors que la navigation privée (sans SW actif) affichait la dernière version déployée. Le mécanisme de mise à jour immédiate (`skipWaiting` + `clients.claim`) n'a pas suffi à corriger ce problème de fond. Priorité donnée à la **fiabilité totale** pour les tests utilisateurs, au prix des fonctionnalités hors-ligne/PWA.
 
 **Ce qui est en place (dans `index.html`).**
