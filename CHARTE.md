@@ -421,6 +421,7 @@ Règle absolue : on ne touche **jamais** au format (nombre d'items, chronométra
 | Progression & acquis | Contrat de données v1 : sessions brutes écrites par les jeux, statuts calculés côté coquille |
 | Mode chronométré | Modules "E" uniquement : temps imparti par exercice (référentiel), arrêt net à expiration, pas de rattrapage |
 | Variété & randomisation | QCM mélangés (Fisher-Yates), questions mélangées par partie, banque ≥ 2-3× le nombre posé ou génération procédurale |
+| Modules adaptatifs par niveau | Un seul fichier, contenu JSON par palier, niveau du profil actif lu au démarrage, palier bonus optionnel au-delà de la maîtrise |
 
 ---
 
@@ -441,3 +442,44 @@ Règle absolue : on ne touche **jamais** au format (nombre d'items, chronométra
 **Le fichier `sw.js` est conservé dans le dépôt** (il n'est simplement plus enregistré), pour une reprise ultérieure réfléchie.
 
 **Pour reprendre le hors-ligne/PWA plus tard**, il faudra : (1) traiter la cause racine de la péremption de cache (stratégie de versionnement/invalidation fiable, testée sur Safari **et** Chrome en navigation normale) ; (2) réactiver l'enregistrement commenté dans `index.html` ; (3) **retirer le nettoyage actif** de `<head>` (sinon il désinscrirait aussitôt le SW réactivé).
+
+---
+
+## 15. Modules adaptatifs par niveau (multi-niveaux)
+
+Certains modules couvrent la **même compétence pédagogique sur plusieurs années** du cycle (ex. M39, "Tableaux et diagrammes", CP/CE1/CE2 — cf. `pilotage/backlog.json`), avec des exigences qui montent en complexité d'une année à l'autre plutôt que des compétences totalement différentes. Pour ces modules, on **n'ouvre pas un fichier par niveau** : un seul fichier HTML autonome (même contrainte qu'ailleurs dans la charte) s'adapte au niveau de l'enfant.
+
+### Contenu structuré par palier
+
+Le bloc JSON pédagogique (section 6) est organisé en **paliers**, un par niveau couvert, sous une clé `paliers` indexée par code niveau :
+
+```json
+{
+  "paliers": {
+    "CP": { "miniJeux": [ /* ... */ ] },
+    "CE1": { "miniJeux": [ /* ... */ ] },
+    "CE2": { "miniJeux": [ /* ... */ ] }
+  }
+}
+```
+
+Chaque palier déclare ses propres mini-jeux (structure libre selon le module), avec des paramètres de difficulté croissante (taille de population, bornes numériques, échelle d'axe...) plutôt que des mécaniques dupliquées quand c'est possible.
+
+### Niveau par défaut : lecture du profil actif
+
+Au démarrage, le jeu lit le niveau du **profil actif** en lisant directement `mayeutik-profils` et `mayeutik-profil-actif` dans `localStorage` (pattern « stockage sûr », section 9 — un jeu autonome ne peut pas importer `js/profils.js` de la coquille, il relit les mêmes clés partagées) :
+
+- si le niveau du profil correspond à un palier couvert par le module, c'est le palier **affiché par défaut** à l'ouverture (aucune sélection manuelle requise) ;
+- si le profil n'a pas de niveau, ou un niveau non couvert par le module, on retombe sur le **palier le plus bas** couvert ;
+- un contrôle discret de changement de palier peut rester disponible sur l'écran d'accueil du jeu (utile à un enseignant, ou pour explorer), mais n'est **jamais nécessaire** pour jouer au niveau attendu par défaut.
+
+### Palier bonus (déblocage)
+
+Quand **tous les mini-jeux du palier courant** sont maîtrisés (heuristique simplifiée et locale au jeu — pas le calcul officiel LSU qui reste propriété de la coquille — ex. dernière session de chaque mini-jeu du palier ≥ 80 %), le jeu propose en plus, sur l'écran d'accueil, un aperçu **optionnel** du palier suivant, présenté comme une **récompense** ("Palier bonus 🎁" ou équivalent) plutôt que comme une progression obligatoire. Les parties jouées dans ce palier bonus enregistrent de vraies sessions (avec les identifiants de compétence du palier suivant), donc une vraie maîtrise anticipée y est suivie normalement par la coquille.
+
+### Référentiel et contrat de données
+
+- Chaque **mini-jeu, quel que soit son palier**, a un identifiant de compétence **unique et stable** dans tout le module (ex. `cp-recueil-diagramme`, `ce2-probleme-combine`) : c'est lui qui est écrit dans `competence` de l'objet SESSION (section 11), et c'est la même granularité qui apparaît dans les `competences` du référentiel — la montée en niveau d'un module adaptatif n'introduit donc aucune règle de suivi spéciale côté coquille, chaque mini-jeu de chaque palier est juste une compétence de plus.
+- Dans `data/referentiel.json`, un module adaptatif ajoute un champ **`niveaux`** (tableau, ex. `["CP", "CE1", "CE2"]`) en complément du champ `niveau` existant (qui reste le niveau d'introduction, pour compatibilité et tri) ; la coquille traite alors le module comme appartenant à **tous** ces niveaux pour le filtrage (accueil enfant, tableau de bord parental) — jamais au seul `niveau` d'intro.
+
+---
