@@ -615,7 +615,7 @@
     "anneeIntro": "CP",
     "anneesCouvertes": "CP,CE1,CE2",
     "periodeIntro": "P4",
-    "competence": "Recueillir des données (enquêtes, <40 puis <100 individus) ; tableaux, tableaux à double entrée ; diagrammes en barres",
+    "competence": "CP : (1) recueillir des données et les présenter — tableau puis diagramme en barres, convention 1 case/cube = 1 individu, population qualitative de 2 à 5 valeurs, moins de 40 individus ; (2) construire ET compléter un tableau à double entrée croisant deux critères (ex. forme × couleur), comprendre que la case à l'intersection ligne/colonne identifie un couple précis — objectif CP à part entière, pas réservé au CE2. CE1 : mêmes productions sur une population plus grande (moins de 100), + lire et extraire une information d'un diagramme en barres et d'un tableau à double entrée déjà construits. CE2 : résoudre un problème en combinant un tableau à double entrée et un diagramme en barres à échelle adaptée (case ≠ 1 individu).",
     "mecanique": "Interface dédiée",
     "priorite": "Moyenne",
     "statut": "Terminé",
