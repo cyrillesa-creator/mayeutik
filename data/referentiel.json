@@ -78,6 +78,25 @@
       "competences": [
         { "id": "tables-multiplication", "libelle": "Multiplier avec les tables (de 2 à 10)" }
       ]
+    },
+    {
+      "id": "M40",
+      "titre": "Sens de la division",
+      "description": "Découvre la division comme opération inverse de la multiplication, et le symbole ÷.",
+      "icone": "➗",
+      "niveau": "CE2",
+      "domaine": "Calcul",
+      "domaineProgramme": "Nombres, calcul et résolution de problèmes",
+      "theme": "Division",
+      "programme": "BO-2024",
+      "objectifProgramme": "L'élève montre sa compréhension du sens de la division lors de la résolution de problèmes. La division est l'opération inverse de la multiplication : 7×13=91 donc 91÷7=13 et 91÷13=7.",
+      "type": "entrainement",
+      "statut": "À faire",
+      "competences": [
+        { "id": "division-inverse", "libelle": "Comprendre la division comme opération inverse de la multiplication" },
+        { "id": "symbole-division", "libelle": "Lire et écrire une division avec le symbole ÷" },
+        { "id": "problemes-division", "libelle": "Résoudre des problèmes relevant du sens de la division" }
+      ]
     }
   ]
 }
