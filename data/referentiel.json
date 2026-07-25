@@ -97,6 +97,22 @@
         { "id": "symbole-division", "libelle": "Lire et écrire une division avec le symbole ÷" },
         { "id": "problemes-division", "libelle": "Résoudre des problèmes relevant du sens de la division" }
       ]
+    },
+    {
+      "id": "M41",
+      "titre": "Symétrie axiale",
+      "description": "Repère les axes de symétrie d'une figure et complète des figures symétriques sur quadrillage.",
+      "icone": "🦋",
+      "niveau": "CE2",
+      "domaine": "Espace et géométrie",
+      "theme": "Symétrie axiale",
+      "programme": "BO-2024",
+      "type": "entrainement",
+      "statut": "À faire",
+      "competences": [
+        { "id": "axes-symetrie", "libelle": "Reconnaître si une figure a un ou plusieurs axes de symétrie (pliage, papier calque)" },
+        { "id": "completer-symetrique", "libelle": "Compléter une figure sur quadrillage ou papier pointé pour la rendre symétrique par rapport à un axe donné (horizontal ou vertical)" }
+      ]
     }
   ]
 }
