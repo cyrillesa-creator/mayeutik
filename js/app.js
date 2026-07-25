@@ -165,6 +165,22 @@
     return (referentiel.modules || []).find((m) => m.id === id) || null;
   }
 
+  /*
+   * Pictogrammes par compétence, dans l'esprit des pictogrammes des fiches
+   * Repères : un symbole simple par domaine du programme, pour repérer d'un
+   * coup d'œil la liste de compétences et le radar détaillé. Un seul emoji
+   * par domaine (pas de dépendance externe, pas de jeu d'icônes par thème).
+   */
+  const PICTO_DOMAINE = {
+    'Nombres': '🔢',
+    'Calcul': '➕',
+    'Grandeurs et mesures': '📏',
+    'Espace et géométrie': '📐'
+  };
+  function pictoCompetence(c) {
+    return PICTO_DOMAINE[c.domaine] || '📚';
+  }
+
   /* ---------- Vue : choix / création de profil (enfant) ---------- */
 
   function vueProfils(conteneur) {
@@ -576,7 +592,7 @@
         const cadre = h('div', { class: 'cadre-radar' });
         cadre.appendChild(R.dessiner({
           axes: radar.competences.map((c) => ({
-            libelle: c.libelle,
+            libelle: pictoCompetence(c) + ' ' + c.libelle,
             valeur: c.statut.valeurRadar,
             // Bulle d'aide : libellé complet + statut LSU (ex. « … — Atteints »).
             infoBulle: c.libelle + ' — ' + c.statut.libelle
@@ -596,6 +612,7 @@
           c.nbEvaluations ? '⏱ ' + c.nbEvaluations + ' évaluation' + (c.nbEvaluations > 1 ? 's' : '') : null
         ].filter(Boolean).join(' · ');
         liste.appendChild(h('div', { class: 'ligne-competence' }, [
+          h('span', { class: 'ligne-competence-picto', 'aria-hidden': 'true', texte: pictoCompetence(c) }),
           h('div', { class: 'libelle' }, [
             h('div', { texte: c.libelle }),
             h('div', { class: 'details', texte: details })
