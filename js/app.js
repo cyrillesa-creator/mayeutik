@@ -89,15 +89,43 @@
     }
   }
 
-  // Réinitialise TOUS les filtres de navigation (niveau ET domaine) au même
-  // endroit : à l'accès à l'écran de choix du profil (cf. vueProfils).
-  function reinitialiserFiltresNavigation() {
-    memoireVoirTous = null;
-    memoireDomaine = null;
-    try {
-      window.sessionStorage.removeItem(CLE_VOIR_TOUS);
-      window.sessionStorage.removeItem(CLE_DOMAINE);
-    } catch (e) { /* rien à faire */ }
+  /*
+   * Registre CENTRAL des filtres de navigation. Chaque filtre s'y enregistre
+   * avec : sa clé sessionStorage, la remise à zéro de son repli mémoire, et un
+   * prédicat « diffère-t-il de son état par défaut ? ». Tout NOUVEAU filtre
+   * (par thème, par type de module…) n'a qu'à ajouter une entrée ici pour
+   * hériter AUTOMATIQUEMENT des deux resets — bouton manuel « Réinitialiser les
+   * filtres » ET retour à l'écran de choix du profil — sans risque d'oubli.
+   */
+  const FILTRES_NAVIGATION = [
+    {
+      cle: CLE_VOIR_TOUS,
+      reinitMemoire: function () { memoireVoirTous = null; },
+      // Écart au défaut = « voir tous les niveaux » activé.
+      estModifie: function (profilId) { return lireVoirTous(profilId); }
+    },
+    {
+      cle: CLE_DOMAINE,
+      reinitMemoire: function () { memoireDomaine = null; },
+      // Écart au défaut = un domaine précis est sélectionné (≠ « tous »).
+      estModifie: function (profilId) { return lireFiltreDomaine(profilId) !== 'tous'; }
+    }
+  ];
+
+  // Remet TOUS les filtres à leur état par défaut, d'un seul coup. Point d'entrée
+  // UNIQUE partagé par le bouton « Réinitialiser les filtres » et par le reset
+  // automatique déclenché à l'accès à l'écran de choix du profil (cf. vueProfils).
+  function reinitialiserFiltres() {
+    FILTRES_NAVIGATION.forEach(function (f) {
+      f.reinitMemoire();
+      try { window.sessionStorage.removeItem(f.cle); } catch (e) { /* rien à faire */ }
+    });
+  }
+
+  // Au moins un filtre s'écarte-t-il de son état par défaut ?
+  // (sert à activer/griser le bouton de réinitialisation).
+  function filtresModifies(profilId) {
+    return FILTRES_NAVIGATION.some(function (f) { return f.estModifie(profilId); });
   }
 
   /* ---------- Petits utilitaires ---------- */
@@ -143,7 +171,7 @@
     // Accéder à l'écran de sélection du profil réinitialise le filtre de niveau :
     // au retour sur l'écran de choix des jeux, le filtre par défaut (niveau du
     // profil) sera réappliqué, sans mémoire de l'état précédent.
-    reinitialiserFiltresNavigation();
+    reinitialiserFiltres();
 
     const profils = P.lireProfils();
     const actif = P.lireProfilActif();
@@ -329,7 +357,7 @@
 
     // Filtres « voir tous les niveaux » et « domaine » : lus depuis l'état de
     // session (persistent au retour d'un jeu, réinitialisés à l'accès à l'écran
-    // des profils — cf. reinitialiserFiltresNavigation dans vueProfils).
+    // des profils — cf. reinitialiserFiltres dans vueProfils).
     const voirTous = lireVoirTous(idProfil);
     const filtreDomaine = lireFiltreDomaine(idProfil);
 
@@ -373,6 +401,15 @@
           texte: libelle,
           onclick: () => { ecrireFiltreDomaine(idProfil, valeur); rendre(); } })));
     vue.appendChild(rangeeDomaines);
+
+    // Bouton « Réinitialiser les filtres » : remet niveau + domaine au défaut
+    // en une action (via le point d'entrée central). Grisé s'il n'y a rien à
+    // réinitialiser, pour éviter une action inutile.
+    const boutonReset = h('button', { class: 'bouton-reset-filtres', type: 'button',
+      texte: '↺ Réinitialiser les filtres',
+      onclick: () => { reinitialiserFiltres(); rendre(); } });
+    boutonReset.disabled = !filtresModifies(idProfil);
+    vue.appendChild(h('div', { class: 'barre-reset' }, [boutonReset]));
 
     const zoneJeux = h('div', { id: 'zone-jeux' });
     vue.appendChild(zoneJeux);

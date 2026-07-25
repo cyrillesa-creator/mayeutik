@@ -144,6 +144,15 @@
     background: var(--couleur-mandarine); border-color: var(--couleur-mandarine); color: #fff;
   }
 
+  /* Bouton « Réinitialiser les filtres » (discret, grisé si rien à réinitialiser) */
+  .barre-reset { display: flex; justify-content: flex-end; margin: -.1rem 0 .5rem; }
+  .bouton-reset-filtres {
+    border: 1.5px solid color-mix(in srgb, var(--couleur-encre) 22%, white);
+    background: #fff; border-radius: 999px; padding: .3rem .8rem;
+    font-size: .82rem; font-weight: 600; min-height: 36px; color: var(--couleur-encre);
+  }
+  .bouton-reset-filtres:disabled { opacity: .4; cursor: default; }
+
   /* Cartes de jeux */
   .titre-groupe { font-size: 1.05rem; font-weight: 700; margin: .9rem 0 .4rem; opacity: .8; }
   .grille-jeux { display: grid; grid-template-columns: 1fr; gap: .7rem; }
