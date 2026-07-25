@@ -461,6 +461,31 @@
     return h('span', { class: 'statut statut-' + statut.id, texte: statut.affichage });
   }
 
+  /*
+   * Bandeau de synthèse : trois compteurs (à consolider / en cours / maîtrisées)
+   * recalculés à chaque rendu à partir des statuts LSU déjà calculés — aucune
+   * animation de comptage, puisque ces statuts reflètent une PROGRESSION
+   * CONTINUE (plusieurs jours distincts requis) et non un score du jour
+   * (PRODUIT.md, section « Tableau de bord parental »).
+   */
+  function bandeauSynthese(competences) {
+    let aConsolider = 0, enCours = 0, maitrisees = 0;
+    competences.forEach((c) => {
+      if (c.statut.id === 'non-atteints') aConsolider++;
+      else if (c.statut.id === 'partiellement') enCours++;
+      else if (c.statut.id === 'atteints' || c.statut.id === 'depasses') maitrisees++;
+    });
+    const bloc = (classe, nombre, libelle) => h('div', { class: 'bloc-bandeau ' + classe }, [
+      h('div', { class: 'bloc-bandeau-nombre', texte: String(nombre) }),
+      h('div', { class: 'bloc-bandeau-libelle', texte: libelle })
+    ]);
+    return h('div', { class: 'bandeau-synthese' }, [
+      bloc('bloc-bandeau-danger', aConsolider, 'À consolider'),
+      bloc('bloc-bandeau-warning', enCours, 'En cours'),
+      bloc('bloc-bandeau-succes', maitrisees, 'Maîtrisées')
+    ]);
+  }
+
   function vueParent(conteneur) {
     const profils = P.lireProfils();
     const profilId = P.lireProfilActif();
@@ -478,6 +503,9 @@
     // Texte défini une seule fois, dans MayeutikStatuts.MENTION_PARENTALE.
     const mention = S.MENTION_PARENTALE.charAt(0).toUpperCase() + S.MENTION_PARENTALE.slice(1) + '.';
     vue.appendChild(h('p', { class: 'mention-legale', texte: mention }));
+
+    /* Bandeau de synthèse : à consolider / en cours / maîtrisées (au-dessus du radar). */
+    vue.appendChild(bandeauSynthese(analyse.competences));
 
     /* Outils : choix du profil suivi + filtre de niveau. */
     const selectProfil = h('select', { 'aria-label': 'Profil suivi',

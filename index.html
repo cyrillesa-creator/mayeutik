@@ -309,6 +309,27 @@
     border: 1.5px solid color-mix(in srgb, var(--couleur-encre) 22%, white);
   }
 
+  /* Bandeau de synthèse (compteurs par statut, en tête de tableau de bord) */
+  .bandeau-synthese { display: flex; gap: .6rem; margin-bottom: 1.1rem; }
+  .bloc-bandeau {
+    flex: 1; text-align: center; border-radius: 14px; padding: .7rem .4rem;
+    border: 1.5px solid transparent;
+  }
+  .bloc-bandeau-nombre { font-size: 1.6rem; font-weight: 700; line-height: 1; }
+  .bloc-bandeau-libelle { font-size: .74rem; font-weight: 600; opacity: .8; margin-top: .25rem; }
+  .bloc-bandeau-danger {
+    background: color-mix(in srgb, var(--couleur-corail) 16%, white);
+    border-color: color-mix(in srgb, var(--couleur-corail) 35%, white);
+  }
+  .bloc-bandeau-warning {
+    background: color-mix(in srgb, var(--couleur-soleil) 25%, white);
+    border-color: color-mix(in srgb, var(--couleur-soleil) 50%, white);
+  }
+  .bloc-bandeau-succes {
+    background: color-mix(in srgb, var(--couleur-menthe) 20%, white);
+    border-color: color-mix(in srgb, var(--couleur-menthe) 45%, white);
+  }
+
   /* Radar */
   .cadre-radar { background: #fff; border-radius: 14px; padding: .8rem; border: 1px solid color-mix(in srgb, var(--couleur-encre) 10%, white); }
   .radar-svg { display: block; width: 100%; max-width: 400px; margin: 0 auto; overflow: visible; }
