@@ -316,6 +316,10 @@
   function modulesFiltres(niveauProfil, voirTous, filtreDomaine) {
     const recherche = normaliser(etat.recherche.trim());
     return (referentiel.modules || []).filter((m) => {
+      // Entrées de BACKLOG (module planifié, sans fichier de jeu) : présentes
+      // dans le référentiel pour le pilotage, jamais proposées à l'enfant —
+      // une carte sans jeu associé ne mènerait nulle part.
+      if (!m.fichier) return false;
       // Par défaut, on ne montre que les modules du niveau du profil actif ;
       // « Voir tous les niveaux » (ou un profil sans niveau) lève ce filtre.
       if (!voirTous && niveauProfil && m.niveau !== niveauProfil) return false;

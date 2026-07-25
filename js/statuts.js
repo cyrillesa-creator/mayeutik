@@ -159,6 +159,11 @@
 
     const competences = [];
     (referentiel.modules || []).forEach((module) => {
+      // Entrées de BACKLOG (module planifié, sans fichier de jeu) : elles vivent
+      // dans le référentiel pour le pilotage, mais ne peuvent produire aucune
+      // session. On les exclut de l'analyse pour ne pas polluer les radars et
+      // les recommandations d'axes « Non travaillé » qui ne progresseront jamais.
+      if (!module.fichier) return;
       if (filtreNiveau && module.niveau !== filtreNiveau) return;
       (module.competences || []).forEach((comp) => {
         const sessionsComp = parModuleEtCompetence[module.id + '/' + comp.id] || [];
