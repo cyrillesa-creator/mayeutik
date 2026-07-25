@@ -207,6 +207,59 @@
     return { competences, domaines };
   }
 
+  /* Lundi de la semaine (locale) contenant une date ISO — clé de regroupement. */
+  function lundiDeLaSemaine(iso) {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return null;
+    const jour = d.getDay(); // 0 = dimanche … 6 = samedi
+    const decalage = jour === 0 ? -6 : 1 - jour;
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + decalage);
+    return d;
+  }
+
+  /*
+   * Courbe de progression temporelle d'UNE compétence (PRODUIT.md, complément
+   * du radar instantané) : taux de réussite regroupé par semaine. En dessous
+   * de 3 semaines distinctes (données trop éparses pour une courbe
+   * hebdomadaire lisible), on regroupe par session plutôt que par semaine.
+   * En dessous de 3 sessions au total, il n'y a pas de tendance à montrer.
+   */
+  function courbeProgression(sessions) {
+    if (!sessions || sessions.length < 3) return { assezDeDonnees: false, points: [] };
+
+    const triees = trierParDate(sessions);
+    const semaines = {};
+    triees.forEach((s) => {
+      const lundi = lundiDeLaSemaine(s.date);
+      if (!lundi) return;
+      const cle = lundi.toISOString().slice(0, 10);
+      if (!semaines[cle]) semaines[cle] = { score: 0, total: 0, nb: 0 };
+      semaines[cle].score += s.score;
+      semaines[cle].total += s.total;
+      semaines[cle].nb += 1;
+    });
+    const clesSemaines = Object.keys(semaines).sort();
+
+    if (clesSemaines.length >= 3) {
+      return {
+        assezDeDonnees: true,
+        parSemaine: true,
+        points: clesSemaines.map((cle) => ({
+          date: cle,
+          taux: semaines[cle].total ? semaines[cle].score / semaines[cle].total : 0,
+          nbSessions: semaines[cle].nb
+        }))
+      };
+    }
+    // Trop peu de semaines distinctes : un point par session (données éparses).
+    return {
+      assezDeDonnees: true,
+      parSemaine: false,
+      points: triees.map((s) => ({ date: jourLocal(s.date), taux: tauxReussite(s), nbSessions: 1 }))
+    };
+  }
+
   /*
    * Recommandations (PRODUIT.md) : d'abord les compétences « à consolider »
    * (Objectifs non atteints), puis « en cours » (Partiellement atteints),
@@ -228,6 +281,7 @@
     calculerStatut,
     analyserProfil,
     recommandations,
+    courbeProgression,
     tauxReussite,
     jourLocal
   };

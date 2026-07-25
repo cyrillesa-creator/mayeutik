@@ -253,5 +253,75 @@
     return radars;
   }
 
-  global.MayeutikRadar = { dessiner, scinderEnRadars };
+  /* Date courte (« 20 juil. ») à partir d'une date AAAA-MM-JJ (lundi de semaine ou jour de session). */
+  function formaterDateCourte(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  }
+
+  /*
+   * Courbe de progression temporelle (complément du radar instantané,
+   * PRODUIT.md) : un point par semaine (ou par session si les données sont
+   * trop éparses), taux de réussite en ordonnée. SVG léger, sans librairie.
+   *
+   * options :
+   *  - points : [{ date: 'AAAA-MM-JJ', taux: 0..1, nbSessions }], déjà triés
+   *  - parSemaine : true si les points sont des regroupements hebdomadaires
+   */
+  function dessinerCourbe(options) {
+    const points = options.points || [];
+    const LARGEUR = 400, HAUTEUR = 160;
+    const marge = { haut: 14, bas: 26, gauche: 12, droite: 12 };
+    const zoneL = LARGEUR - marge.gauche - marge.droite;
+    const zoneH = HAUTEUR - marge.haut - marge.bas;
+    const n = points.length;
+
+    const svg = el('svg', { viewBox: '0 0 ' + LARGEUR + ' ' + HAUTEUR, class: 'courbe-svg', role: 'img' });
+
+    const xy = (i, taux) => ({
+      x: marge.gauche + (n <= 1 ? zoneL / 2 : (i / (n - 1)) * zoneL),
+      y: marge.haut + (1 - Math.max(0, Math.min(1, taux))) * zoneH
+    });
+
+    // Lignes de repère horizontales (0 %, 50 %, 100 %).
+    [0, 0.5, 1].forEach((f) => {
+      const y = marge.haut + (1 - f) * zoneH;
+      svg.appendChild(el('line', {
+        x1: marge.gauche, y1: y.toFixed(1), x2: LARGEUR - marge.droite, y2: y.toFixed(1),
+        class: 'courbe-grille'
+      }));
+    });
+
+    if (n) {
+      const chemin = points.map((p, i) => {
+        const c = xy(i, p.taux);
+        return (i === 0 ? 'M' : 'L') + c.x.toFixed(1) + ',' + c.y.toFixed(1);
+      }).join(' ');
+      svg.appendChild(el('path', { d: chemin, class: 'courbe-ligne' }));
+    }
+
+    // N'affiche pas tous les libellés si les points sont nombreux (lisibilité).
+    const pas = n > 6 ? Math.ceil(n / 6) : 1;
+    points.forEach((p, i) => {
+      const c = xy(i, p.taux);
+      const cercle = el('circle', { cx: c.x.toFixed(1), cy: c.y.toFixed(1), r: 3.5, class: 'courbe-point' });
+      const titre = el('title', {});
+      titre.textContent = (options.parSemaine ? 'Semaine du ' : '') + formaterDateCourte(p.date) +
+        ' — ' + Math.round(p.taux * 100) + ' % · ' + p.nbSessions + ' partie' + (p.nbSessions > 1 ? 's' : '');
+      cercle.appendChild(titre);
+      svg.appendChild(cercle);
+      if (i % pas === 0 || i === n - 1) {
+        const texte = el('text', {
+          x: c.x.toFixed(1), y: HAUTEUR - 8, 'text-anchor': 'middle', 'font-size': 8.5, class: 'courbe-libelle'
+        });
+        texte.textContent = formaterDateCourte(p.date);
+        svg.appendChild(texte);
+      }
+    });
+
+    return svg;
+  }
+
+  global.MayeutikRadar = { dessiner, scinderEnRadars, dessinerCourbe };
 })(typeof window !== 'undefined' ? window : globalThis);
