@@ -35,6 +35,7 @@ Ce document consigne les décisions produit de la série Mayeutik (au-delà du d
 
 - **Recommandations** : le tableau de bord met en avant, en priorité, les compétences "à consolider" (Objectifs non atteints), puis "en cours" (Partiellement atteints) — en commençant par les **plus anciennes** (celles où l'enfant n'a pas joué depuis le plus longtemps) — et suggère les jeux correspondants.
 - **Mention obligatoire**, affichée sur toute vue parentale : *« positionnement indicatif basé sur les jeux, inspiré de l'échelle du livret scolaire »*. Ce n'est en aucun cas une évaluation scolaire officielle.
+- **Distinction fondamentale avec les dispositifs d'évaluation nationale (Repères) qui ont inspiré le design du tableau de bord** : ces dispositifs mesurent une performance **ponctuelle** (une passation, un instant T), alors que notre tableau de bord mesure une **progression continue** (sessions réparties dans le temps, critère de plusieurs jours distincts pour le statut "Atteints"). Cette différence doit se refléter dans le vocabulaire de l'interface (parler d'évolution et de régularité, pas de score du jour) et justifie l'ajout d'une vue que les dispositifs ponctuels ne peuvent pas offrir : une **courbe de progression dans le temps par compétence** (nombre de sessions et taux de réussite, semaine après semaine), en complément du radar instantané.
 
 ---
 
