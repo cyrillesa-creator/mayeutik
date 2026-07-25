@@ -87,6 +87,28 @@
       ]
     },
     {
+      "id": "M39",
+      "titre": "Tableaux et diagrammes",
+      "description": "Mène l'enquête dans le jardin : recueille des données, construis et lis des tableaux et des diagrammes.",
+      "icone": "📊",
+      "niveau": "CP",
+      "niveaux": ["CP", "CE1", "CE2"],
+      "adaptatifParNiveau": true,
+      "domaine": "Organisation et gestion de données",
+      "domaineProgramme": "Organisation et gestion de données",
+      "theme": "Tableaux et représentations de données",
+      "programme": "BO-2024",
+      "type": "entrainement",
+      "fichier": "jeux/M39-tableaux-diagrammes.html",
+      "competences": [
+        { "id": "cp-recueil-diagramme", "libelle": "Recueillir des données et construire un diagramme en barres (1 case = 1 individu)", "niveau": "CP" },
+        { "id": "cp-tableau-double-entree", "libelle": "Construire et compléter un tableau à double entrée", "niveau": "CP" },
+        { "id": "ce1-recueil-diagramme", "libelle": "Recueillir des données et construire un diagramme en barres sur une grande population (moins de 100)", "niveau": "CE1" },
+        { "id": "ce1-lecture", "libelle": "Lire et extraire une information d'un diagramme en barres et d'un tableau à double entrée déjà construits", "niveau": "CE1" },
+        { "id": "ce2-probleme-combine", "libelle": "Résoudre un problème en combinant un tableau à double entrée et un diagramme en barres à échelle adaptée", "niveau": "CE2" }
+      ]
+    },
+    {
       "id": "M40",
       "titre": "Sens de la division",
       "description": "Découvre la division comme opération inverse de la multiplication, et le symbole ÷.",

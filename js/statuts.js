@@ -164,7 +164,11 @@
       // session. On les exclut de l'analyse pour ne pas polluer les radars et
       // les recommandations d'axes « Non travaillé » qui ne progresseront jamais.
       if (!module.fichier) return;
-      if (filtreNiveau && module.niveau !== filtreNiveau) return;
+      // Un module adaptatif par niveau (CHARTE.md §15) déclare `niveaux` (tableau)
+      // en plus de `niveau` (niveau d'intro) : il compte pour CHACUN des niveaux
+      // qu'il couvre, pas seulement son niveau d'intro.
+      const niveauxModule = module.niveaux || [module.niveau];
+      if (filtreNiveau && niveauxModule.indexOf(filtreNiveau) === -1) return;
       (module.competences || []).forEach((comp) => {
         const sessionsComp = parModuleEtCompetence[module.id + '/' + comp.id] || [];
         const options = { bandes: comp.bandes };

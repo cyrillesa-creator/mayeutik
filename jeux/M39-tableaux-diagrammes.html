@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="color-scheme" content="light only">
+<title>Tableaux et diagrammes – Mayeutik</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --couleur-fond: #FFF8EF;
+    --couleur-encre: #2B2B2B;
+    --couleur-mandarine: #FF8C42;
+    --couleur-menthe: #4ECDC4;
+    --couleur-corail: #FF6B6B;
+    --couleur-soleil: #FFD93D;
+    color-scheme: light only;
+  }
+  @media (prefers-color-scheme: dark) {
+    html { background-color: var(--couleur-fond); }
+    body { background-color: var(--couleur-fond); color: var(--couleur-encre); }
+    input, select, textarea, button { background-color: #FFFFFF; color: var(--couleur-encre); }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; background:var(--couleur-fond); color:var(--couleur-encre); overflow-x:hidden; }
+  body { font-family:'Fredoka', system-ui, sans-serif; min-height:100vh; padding-bottom:2rem; }
+  button { font-family:inherit; cursor:pointer; }
+  h1,h2,h3{ font-weight:700; margin:0 0 .4rem; }
+
+  #ecran-accueil { max-width:640px; margin:0 auto; padding:1.2rem 1rem 2rem; }
+  .entete-accueil { text-align:center; margin-bottom:.8rem; }
+  .entete-accueil h1 { font-size:1.5rem; color:var(--couleur-mandarine); }
+  .entete-accueil p { margin:0; font-size:1rem; font-weight:500; opacity:.85; }
+
+  /* Sélecteur de palier (CHARTE §15 : niveau du profil actif par défaut, changement possible) */
+  .rangee-paliers{ display:flex; justify-content:center; gap:.5rem; margin:.9rem 0 1rem; flex-wrap:wrap; }
+  .puce-palier{
+    min-height:40px; padding:.35rem 1rem; border-radius:999px; font-weight:700; font-size:.92rem;
+    border:2.5px solid color-mix(in srgb, var(--couleur-encre) 22%, white); background:#ffffff; color:var(--couleur-encre);
+  }
+  .puce-palier.actif{ background:var(--couleur-mandarine); border-color:var(--couleur-mandarine); color:#ffffff; }
+  .note-palier{ text-align:center; font-size:.82rem; opacity:.7; margin:-.3rem 0 .8rem; }
+
+  .grille-jeux { display:grid; grid-template-columns:repeat(2,1fr); gap:.9rem; }
+  @media (max-width:360px){ .grille-jeux{ grid-template-columns:1fr; } }
+  .carte-jeu {
+    --c: var(--couleur-mandarine);
+    display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+    text-align:center; gap:.3rem;
+    background: color-mix(in srgb, var(--c) 16%, white);
+    border:3px solid var(--c); border-radius:20px; padding:.8rem .6rem;
+    max-height:34vh; min-height:9.5rem;
+    box-shadow:0 4px 0 color-mix(in srgb, var(--c) 55%, black 6%);
+  }
+  .carte-jeu:active { transform:translateY(2px); box-shadow:0 2px 0 color-mix(in srgb, var(--c) 55%, black 6%); }
+  .carte-jeu.carte-menthe{ --c:var(--couleur-menthe); }
+  .carte-jeu.carte-corail{ --c:var(--couleur-corail); }
+  .carte-jeu.carte-soleil{ --c:var(--couleur-soleil); }
+  .carte-jeu .icone{ font-size:1.9rem; line-height:1; }
+  .carte-jeu h2{ font-size:1rem; }
+  .carte-jeu p{ font-size:.76rem; font-weight:400; margin:0; opacity:.85; }
+  .etoiles{ display:inline-flex; gap:2px; font-size:1.1rem; letter-spacing:-1px; }
+  .etoile{ color:rgba(43,43,43,.2); }
+  .etoile.pleine{ color:var(--couleur-soleil); text-shadow:0 0 1px rgba(43,43,43,.35); }
+
+  /* Palier bonus : présenté comme une récompense, distinct visuellement (CHARTE §15) */
+  .bloc-bonus{
+    margin-top:1.3rem; border-radius:20px; padding:.9rem .8rem;
+    border:3px dashed var(--couleur-soleil); background:color-mix(in srgb, var(--couleur-soleil) 14%, white);
+  }
+  .bloc-bonus h3{ text-align:center; font-size:1rem; color:color-mix(in srgb, var(--couleur-soleil) 55%, black 25%); margin-bottom:.15rem; }
+  .bloc-bonus .note-palier{ margin:.1rem 0 .7rem; }
+
+  #ecran-jeu{ max-width:640px; margin:0 auto; padding:.8rem 1rem 2.5rem; }
+  .entete-jeu{ display:flex; align-items:center; gap:.6rem; margin-bottom:.8rem; }
+  .bouton-retour{
+    flex:0 0 auto; min-height:44px; min-width:44px; border-radius:14px; border:none;
+    background:var(--couleur-encre); color:var(--couleur-fond); font-size:1.2rem; font-weight:600; padding:0 .9rem;
+  }
+  .entete-jeu-titres{ flex:1; min-width:0; }
+  .entete-jeu-titres h2{ font-size:1.1rem; color:var(--couleur-mandarine); }
+  .entete-jeu-titres .progression{ font-size:.85rem; font-weight:500; opacity:.75; }
+  #zone-jeu{
+    background:#ffffff; border-radius:20px;
+    border:3px solid color-mix(in srgb, var(--couleur-encre) 12%, white);
+    padding:1.1rem .9rem; min-height:40vh;
+  }
+  .consigne{ text-align:center; font-size:1.05rem; font-weight:600; margin:0; }
+  .legende{ text-align:center; font-size:.85rem; font-weight:400; opacity:.85; margin-top:.7rem; }
+
+  .bloc-consigne{ display:flex; align-items:center; justify-content:center; gap:.6rem; margin-bottom:.8rem; flex-wrap:wrap; }
+  .bouton-son{
+    min-width:44px; min-height:44px; border-radius:50%;
+    border:2.5px solid var(--couleur-mandarine); background:#ffffff;
+    font-size:1.3rem; display:flex; align-items:center; justify-content:center; flex:0 0 auto;
+  }
+  .bouton-son:active{ transform:translateY(2px); }
+
+  .bouton-principal{
+    display:block; margin:.8rem auto 0; min-height:44px; border-radius:14px; border:none;
+    background:var(--couleur-mandarine); color:#ffffff; font-weight:700; padding:0 1.3rem; font-size:1rem;
+  }
+  .bouton-principal:disabled{ opacity:.45; }
+  .bouton-secondaire{
+    display:block; margin:0 auto; min-height:44px; border-radius:14px; border:2.5px solid var(--couleur-encre);
+    background:#ffffff; padding:0 1.1rem; font-weight:500;
+  }
+
+  /* Retour à la coquille (CHARTE §7) : bouton discret + confirmation */
+  .barre-accueil{ display:flex; margin-bottom:.6rem; }
+  .bouton-menu{
+    min-height:44px; border-radius:14px; padding:0 .9rem;
+    border:2px solid color-mix(in srgb, var(--couleur-encre) 25%, white);
+    background:#ffffff; color:var(--couleur-encre); font-weight:600; font-size:.95rem;
+    display:inline-flex; align-items:center; gap:.35rem;
+  }
+  .bouton-menu:active{ transform:translateY(2px); }
+  .modale-fond{
+    position:fixed; inset:0; z-index:1000; padding:1.2rem;
+    background:color-mix(in srgb, var(--couleur-encre) 55%, transparent);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .modale-boite{
+    background:#ffffff; border-radius:20px; padding:1.4rem 1.2rem; max-width:20rem; width:100%;
+    text-align:center; box-shadow:0 12px 34px rgba(43,43,43,.28);
+  }
+  .modale-boite p{ font-size:1.05rem; font-weight:600; margin:0 0 1.1rem; }
+  .modale-boutons{ display:flex; gap:.7rem; justify-content:center; flex-wrap:wrap; }
+  .modale-boutons .bouton-principal, .modale-boutons .bouton-secondaire{ margin:0; }
+
+  .feedback{ text-align:center; font-weight:700; font-size:1.05rem; min-height:1.6rem; margin:.8rem 0 .2rem; }
+  .feedback-succes{ color:color-mix(in srgb, var(--couleur-menthe) 70%, black 20%); }
+  .feedback-erreur{ color:color-mix(in srgb, var(--couleur-corail) 70%, black 20%); }
+  .bouton-suivant{
+    display:block; margin:.6rem auto 0; min-height:44px; border-radius:14px; border:none;
+    background:var(--couleur-mandarine); color:#ffffff; font-weight:700; font-size:1rem; padding:0 1.4rem;
+  }
+
+  .bloc-resultats{ text-align:center; }
+  .bloc-resultats .etoiles{ font-size:2.6rem; margin:.6rem 0; }
+  .bloc-resultats .score-texte{ font-size:1.1rem; font-weight:500; margin-bottom:1rem; }
+  .boutons-resultats{ display:flex; justify-content:center; gap:.7rem; flex-wrap:wrap; margin-top:.6rem; }
+
+  /* ---- Recueil : population à compter ---- */
+  .population-jardin{ display:flex; flex-wrap:wrap; gap:.35rem; justify-content:center; padding:.6rem; border-radius:16px;
+    background:color-mix(in srgb, var(--couleur-menthe) 12%, var(--couleur-fond)); border:2.5px solid color-mix(in srgb, var(--couleur-menthe) 35%, white); margin:.6rem 0; }
+  .bete-population{
+    font-size:1.7rem; min-width:40px; min-height:40px; display:flex; align-items:center; justify-content:center;
+    background:#ffffff; border-radius:50%; border:2px solid transparent;
+  }
+  .bete-population.comptee{ opacity:.3; filter:grayscale(.7); border-color:color-mix(in srgb, var(--couleur-encre) 15%, white); }
+  .tableau-tally{ width:100%; border-collapse:collapse; margin-top:.7rem; font-size:.92rem; }
+  .tableau-tally th, .tableau-tally td{ border:1.5px solid color-mix(in srgb, var(--couleur-encre) 15%, white); padding:.35rem .4rem; text-align:center; }
+  .tableau-tally th{ background:color-mix(in srgb, var(--couleur-mandarine) 12%, white); }
+  .tally-marques{ letter-spacing:1px; color:color-mix(in srgb, var(--couleur-mandarine) 70%, black 10%); font-weight:700; }
+
+  /* ---- Diagramme en barres (construction et lecture) ---- */
+  .diagramme{ display:flex; align-items:flex-end; justify-content:center; gap:1.1rem; margin:.9rem 0; min-height:9rem; flex-wrap:wrap; }
+  .colonne-diagramme{ display:flex; flex-direction:column; align-items:center; gap:.35rem; }
+  .pile-cases{ display:flex; flex-direction:column-reverse; gap:2px; min-height:2px; }
+  .case-diagramme{
+    width:1.7rem; height:.85rem; border-radius:3px; border:1.5px solid color-mix(in srgb, var(--couleur-encre) 20%, white);
+    background:#ffffff;
+  }
+  .case-diagramme.remplie{ background:var(--c, var(--couleur-mandarine)); border-color:var(--c, var(--couleur-mandarine)); }
+  .valeur-colonne{ font-weight:700; font-size:.95rem; min-height:1.2em; }
+  .controles-colonne{ display:flex; gap:.3rem; }
+  .bouton-case{
+    min-width:34px; min-height:34px; border-radius:10px; border:2px solid var(--couleur-encre); background:#ffffff; font-weight:700;
+  }
+  .bouton-case:disabled{ opacity:.35; }
+  .etiquette-colonne{ font-size:1.4rem; }
+  .legende-colonne{ font-size:.68rem; opacity:.75; text-align:center; max-width:4rem; }
+
+  /* ---- Tableau à double entrée ---- */
+  .tableau-double{ width:100%; border-collapse:collapse; margin:.7rem 0; }
+  .tableau-double th, .tableau-double td{ border:1.5px solid color-mix(in srgb, var(--couleur-encre) 15%, white); padding:.4rem; text-align:center; font-size:.9rem; }
+  .tableau-double th{ background:color-mix(in srgb, var(--couleur-menthe) 14%, white); font-weight:700; }
+  .tableau-double td.cellule-cliquable{ cursor:pointer; background:#ffffff; }
+  .tableau-double td.cellule-cliquable:active{ background:color-mix(in srgb, var(--couleur-mandarine) 18%, white); }
+  .tableau-double td.cellule-selectionnable{ outline:3px solid var(--couleur-soleil); outline-offset:-3px; }
+  .tableau-double td.cellule-manquante input{
+    width:3rem; min-height:2.2rem; border-radius:8px; border:2px solid var(--couleur-mandarine); text-align:center; font-family:inherit; font-size:1rem;
+  }
+  .pool-population{ display:flex; flex-wrap:wrap; gap:.4rem; justify-content:center; padding:.5rem; border-radius:14px;
+    background:color-mix(in srgb, var(--couleur-fond) 100%, white); border:2px dashed color-mix(in srgb, var(--couleur-encre) 20%, white); margin-bottom:.7rem; min-height:3rem; }
+  .bete-pool{
+    font-size:1.5rem; min-width:40px; min-height:40px; display:flex; align-items:center; justify-content:center;
+    background:#ffffff; border-radius:50%; border:2.5px solid color-mix(in srgb, var(--couleur-encre) 15%, white);
+  }
+  .bete-pool.selectionnee{ border-color:var(--couleur-mandarine); box-shadow:0 0 0 3px color-mix(in srgb, var(--couleur-mandarine) 30%, transparent); }
+
+  /* ---- Lecture (QCM) ---- */
+  .grille-options{ display:grid; grid-template-columns:repeat(2,1fr); gap:.6rem; margin-top:.7rem; }
+  @media (max-width:340px){ .grille-options{ grid-template-columns:1fr; } }
+  .bouton-option{
+    min-height:3.2rem; border-radius:16px; border:2.5px solid var(--couleur-encre); background:#ffffff;
+    display:flex; align-items:center; justify-content:center; padding:.5rem; font-size:.95rem; font-weight:600; text-align:center;
+  }
+  .bouton-option:disabled{ opacity:.6; }
+  .bouton-option.correct{ background:color-mix(in srgb, var(--couleur-menthe) 45%, white); border-color:var(--couleur-menthe); }
+  .bouton-option.incorrect{ background:color-mix(in srgb, var(--couleur-corail) 35%, white); border-color:var(--couleur-corail); }
+
+  /* confettis */
+  #confettis-conteneur{ position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:999; }
+  .confetti{ position:absolute; top:-12px; width:9px; height:14px; border-radius:2px;
+    animation-name:chute-confetti; animation-timing-function:ease-in; animation-fill-mode:forwards; }
+  @keyframes chute-confetti{ to{ transform:translateY(105vh) rotate(340deg); opacity:.75; } }
+  @media (prefers-reduced-motion:reduce){ .confetti{ display:none; animation:none; } }
+
+  [hidden]{ display:none !important; }
+</style>
+</head>
+<body>
+<div id="confettis-conteneur" aria-hidden="true"></div>
+
+<main id="ecran-accueil">
+  <div class="barre-accueil">
+    <button type="button" class="bouton-menu" id="bouton-menu">← Menu</button>
+  </div>
+  <div class="entete-accueil">
+    <h1>Tableaux et diagrammes 📊</h1>
+    <p id="sous-titre-accueil"></p>
+  </div>
+  <div class="rangee-paliers" id="rangee-paliers"></div>
+  <p class="note-palier" id="note-palier"></p>
+  <div class="grille-jeux" id="grille-jeux"></div>
+  <div class="bloc-bonus" id="bloc-bonus" hidden>
+    <h3 id="titre-bonus">Palier bonus 🎁</h3>
+    <p class="note-palier" id="note-bonus"></p>
+    <div class="grille-jeux" id="grille-bonus"></div>
+  </div>
+</main>
+
+<main id="ecran-jeu" hidden>
+  <div class="entete-jeu">
+    <button class="bouton-retour" id="bouton-retour" aria-label="Retour à l'accueil">←</button>
+    <div class="entete-jeu-titres">
+      <h2 id="titre-jeu-courant"></h2>
+      <div class="progression" id="progression-jeu"></div>
+    </div>
+  </div>
+  <div id="zone-jeu"></div>
+  <div class="feedback" id="zone-feedback" aria-live="polite"></div>
+  <button class="bouton-suivant" id="bouton-suivant" hidden>Suivant →</button>
+</main>
+
+<div class="modale-fond" id="modale-menu" hidden>
+  <div class="modale-boite" role="dialog" aria-modal="true" aria-labelledby="modale-menu-texte">
+    <p id="modale-menu-texte">Revenir au menu principal ? Ta partie en cours sera perdue.</p>
+    <div class="modale-boutons">
+      <button type="button" class="bouton-secondaire" id="modale-menu-rester">Rester</button>
+      <button type="button" class="bouton-principal" id="modale-menu-revenir">Revenir au menu</button>
+    </div>
+  </div>
+</div>
+
+<script type="application/json" id="donnees-jeu">
+{
+  "titre": "Tableaux et diagrammes",
+  "sousTitre": "Mène l'enquête dans le jardin !",
+  "especes": {
+    "coccinelle": {"emoji":"🐞","singulier":"coccinelle","pluriel":"coccinelles"},
+    "escargot": {"emoji":"🐌","singulier":"escargot","pluriel":"escargots"},
+    "papillon": {"emoji":"🦋","singulier":"papillon","pluriel":"papillons"},
+    "abeille": {"emoji":"🐝","singulier":"abeille","pluriel":"abeilles"}
+  },
+  "couleurs": [
+    {"id":"rouge","nom":"rouge","emoji":"🔴"},
+    {"id":"jaune","nom":"jaune","emoji":"🟡"},
+    {"id":"bleu","nom":"bleu","emoji":"🔵"}
+  ],
+  "zones": [
+    {"id":"nord","nom":"jardin nord"},
+    {"id":"sud","nom":"jardin sud"}
+  ],
+  "tranchesAge": [
+    {"id":"jeune","nom":"1-2 jours"},
+    {"id":"moyen","nom":"3-5 jours"},
+    {"id":"vieux","nom":"6 jours ou plus"}
+  ],
+  "messagesFeedback": {
+    "bravo": ["Bravo !", "Super !", "Génial !", "Bien joué !", "C'est ça !", "Trop fort !"],
+    "rate": ["Presque !", "Regarde bien le tableau.", "Pas cette fois, courage !", "On y retourne."]
+  },
+  "paliers": {
+    "CP": {
+      "miniJeux": [
+        { "id": "cp-recueil-diagramme", "titre": "Le sondage du jardin", "icone": "📊", "couleur": "mandarine", "description": "Compte les votes et construis le diagramme.", "type": "recueil-diagramme", "nbTours": 3, "nbEspeces": 3, "capParEspece": 8 },
+        { "id": "cp-tableau-double-entree", "titre": "Le grand tableau", "icone": "🗂️", "couleur": "menthe", "description": "Range chaque bête dans la bonne case.", "type": "tableau-double-entree", "nbTours": 3, "nbEspeces": 2, "nbCouleurs": 2, "capParCase": 4 }
+      ]
+    },
+    "CE1": {
+      "miniJeux": [
+        { "id": "ce1-recueil-diagramme", "titre": "Le grand sondage", "icone": "📊", "couleur": "mandarine", "description": "Le jardin s'est agrandi : compte bien tout le monde !", "type": "recueil-diagramme", "nbTours": 2, "nbEspeces": 4, "capParEspece": 16 },
+        { "id": "ce1-lecture", "titre": "Lis le jardin", "icone": "🔍", "couleur": "soleil", "description": "Lis le diagramme et le tableau déjà construits.", "type": "lecture", "nbTours": 5, "nbEspeces": 4, "capParEspece": 16, "nbZones": 2 }
+      ]
+    },
+    "CE2": {
+      "miniJeux": [
+        { "id": "ce2-probleme-combine", "titre": "L'enquête complète", "icone": "🧮", "couleur": "corail", "description": "Complète le tableau grâce au diagramme.", "type": "probleme-combine", "nbTours": 4, "nbEspeces": 3, "capParTranche": 9 }
+      ]
+    }
+  }
+}
+</script>
+<script>
+(function () {
+  'use strict';
+
+  const donnees = JSON.parse(document.getElementById('donnees-jeu').textContent);
+  const ORDRE_PALIERS = ['CP', 'CE1', 'CE2'];
+
+  /* ---------- Utilitaires génériques ---------- */
+
+  function nombreAleatoire(min, max) { return min + Math.floor(Math.random() * (max - min + 1)); }
+  function choisir(tableau) { return tableau[Math.floor(Math.random() * tableau.length)]; }
+  function melanger(tableau) {
+    const copie = [...tableau];
+    for (let i = copie.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copie[i], copie[j]] = [copie[j], copie[i]];
+    }
+    return copie;
+  }
+  function melangerOptions(options, indexCorrect) {
+    const enveloppes = options.map((valeur, i) => ({ valeur, estCorrecte: i === indexCorrect }));
+    const melangees = melanger(enveloppes);
+    return {
+      options: melangees.map((e) => e.valeur),
+      indexCorrect: melangees.findIndex((e) => e.estCorrecte)
+    };
+  }
+  function especesListe(n) {
+    const ids = melanger(Object.keys(donnees.especes)).slice(0, n);
+    return ids.map((id) => Object.assign({ id }, donnees.especes[id]));
+  }
+  // Élision : "de " + mot devient "d'" + mot devant une voyelle (ex. "d'abeilles").
+  function deElision(mot) {
+    return /^[aeiouyàâéèêëîïôöùûü]/i.test(mot) ? 'd’' + mot : 'de ' + mot;
+  }
+
+  /* ---------- Étoiles : stockage sûr (mémoire + localStorage best-effort) ---------- */
+
+  const CLE_STOCKAGE = 'mayeutik-m39-jardin-etoiles';
+  let memoireEtoiles = null;
+
+  function lireEtoiles() {
+    if (memoireEtoiles === null) {
+      memoireEtoiles = {};
+      try {
+        const brut = window.localStorage.getItem(CLE_STOCKAGE);
+        if (brut) memoireEtoiles = JSON.parse(brut);
+      } catch (e) {
+        memoireEtoiles = {};
+      }
+    }
+    return memoireEtoiles;
+  }
+  function enregistrerEtoiles(jeuId, valeur) {
+    const tout = lireEtoiles();
+    tout[jeuId] = Math.max(tout[jeuId] || 0, valeur);
+    memoireEtoiles = tout;
+    try {
+      window.localStorage.setItem(CLE_STOCKAGE, JSON.stringify(tout));
+    } catch (e) {
+      // localStorage indisponible : les étoiles restent valables pour la session en cours.
+    }
+  }
+  function creerEtoiles(valeur, max) {
+    max = max || 3;
+    const cont = document.createElement('span');
+    cont.className = 'etoiles';
+    for (let i = 1; i <= max; i++) {
+      const s = document.createElement('span');
+      s.className = 'etoile' + (i <= valeur ? ' pleine' : '');
+      s.textContent = '★';
+      cont.appendChild(s);
+    }
+    return cont;
+  }
+  function calculerEtoiles(score, total) {
+    const pct = score / total;
+    if (pct >= 1) return 3;
+    if (pct >= 0.66) return 2;
+    if (pct >= 0.33) return 1;
+    return 0;
+  }
+
+  /* ---------- Profil actif : lecture du niveau (CHARTE §15) ---------- */
+  /* Un jeu autonome ne peut pas importer js/profils.js de la coquille : il relit
+     directement les mêmes clés partagées localStorage, en lecture seule. */
+
+  const CLE_PROFILS = 'mayeutik-profils';
+  const CLE_PROFIL_ACTIF = 'mayeutik-profil-actif';
+
+  function lireProfilActifId() {
+    try {
+      return window.localStorage.getItem(CLE_PROFIL_ACTIF) || 'p1';
+    } catch (e) {
+      return 'p1';
+    }
+  }
+  function niveauDuProfilActif() {
+    try {
+      const brut = window.localStorage.getItem(CLE_PROFILS);
+      if (!brut) return null;
+      const profils = JSON.parse(brut);
+      const actif = profils.find((p) => p.id === lireProfilActifId());
+      return (actif && actif.niveau) || null;
+    } catch (e) {
+      return null;
+    }
+  }
+  function palierParDefaut() {
+    const niveau = niveauDuProfilActif();
+    if (niveau && donnees.paliers[niveau]) return niveau;
+    // Niveau absent/non couvert par ce module : on retombe sur le palier le plus bas (CHARTE §15).
+    return ORDRE_PALIERS.find((n) => donnees.paliers[n]) || ORDRE_PALIERS[0];
+  }
+
+  /* ---------- Sessions : contrat de données v1 (CHARTE.md, section 11) ---------- */
+
+  const CLE_SESSIONS = 'mayeutik-sessions';
+  const MODULE_ID = 'M39';
+  const MAX_SESSIONS_PAR_PROFIL = 500;
+
+  let memoireSessions = null;
+
+  function lireSessions() {
+    if (memoireSessions === null) {
+      memoireSessions = [];
+      try {
+        const brut = window.localStorage.getItem(CLE_SESSIONS);
+        if (brut) memoireSessions = JSON.parse(brut);
+      } catch (e) {
+        memoireSessions = [];
+      }
+    }
+    return memoireSessions;
+  }
+  function enregistrerSession(competence, score, total, duree) {
+    const profilId = lireProfilActifId();
+    const toutes = lireSessions();
+    toutes.push({ profilId, module: MODULE_ID, competence, score, total, date: new Date().toISOString(), duree });
+    let compteur = 0;
+    for (let i = toutes.length - 1; i >= 0; i--) {
+      if (toutes[i].profilId === profilId) {
+        compteur++;
+        if (compteur > MAX_SESSIONS_PAR_PROFIL) toutes.splice(i, 1);
+      }
+    }
+    memoireSessions = toutes;
+    try {
+      window.localStorage.setItem(CLE_SESSIONS, JSON.stringify(toutes));
+    } catch (e) {
+      // localStorage indisponible : la session reste valable pour la session en cours.
+    }
+  }
+
+  /*
+   * Maîtrise locale d'un palier (CHARTE §15) : heuristique SIMPLIFIÉE propre à ce
+   * jeu, pas le calcul officiel LSU (qui reste propriété de la coquille, cf.
+   * js/statuts.js). Un mini-jeu est considéré « maîtrisé » si sa DERNIÈRE
+   * session enregistrée atteint au moins 80 %. Le palier est maîtrisé quand
+   * TOUS ses mini-jeux le sont.
+   */
+  const SEUIL_MAITRISE_LOCALE = 0.8;
+  function palierMaitrise(palierNom) {
+    const palier = donnees.paliers[palierNom];
+    if (!palier) return false;
+    const profilId = lireProfilActifId();
+    const sessions = lireSessions().filter((s) => s.profilId === profilId && s.module === MODULE_ID);
+    return palier.miniJeux.every((mj) => {
+      const dernieres = sessions.filter((s) => s.competence === mj.id);
+      if (!dernieres.length) return false;
+      const derniere = dernieres[dernieres.length - 1];
+      return derniere.total > 0 && (derniere.score / derniere.total) >= SEUIL_MAITRISE_LOCALE;
+    });
+  }
+  function palierSuivant(palierNom) {
+    const i = ORDRE_PALIERS.indexOf(palierNom);
+    if (i === -1 || i === ORDRE_PALIERS.length - 1) return null;
+    const suivant = ORDRE_PALIERS[i + 1];
+    return donnees.paliers[suivant] ? suivant : null;
+  }
+
+  /* ---------- Confettis (CHARTE.md, section 4) ---------- */
+
+  function lancerConfettis() {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const conteneur = document.getElementById('confettis-conteneur');
+    const couleurs = ['var(--couleur-mandarine)', 'var(--couleur-menthe)', 'var(--couleur-corail)', 'var(--couleur-soleil)'];
+    const total = 36;
+    for (let i = 0; i < total; i++) {
+      const p = document.createElement('div');
+      p.className = 'confetti';
+      p.style.left = Math.random() * 100 + 'vw';
+      p.style.backgroundColor = couleurs[Math.floor(Math.random() * couleurs.length)];
+      p.style.animationDuration = (0.9 + Math.random() * 0.9) + 's';
+      p.style.animationDelay = (Math.random() * 0.15) + 's';
+      p.style.transform = 'rotate(' + Math.floor(Math.random() * 360) + 'deg)';
+      conteneur.appendChild(p);
+      p.addEventListener('animationend', () => p.remove());
+      setTimeout(() => p.remove(), 2500);
+    }
+  }
+
+  /* ---------- Feedback sonore (Web Audio) ---------- */
+
+  let contexteAudio = null;
+  function obtenirContexteAudio() {
+    if (!contexteAudio) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      contexteAudio = new Ctx();
+    }
+    if (contexteAudio.state === 'suspended') contexteAudio.resume();
+    return contexteAudio;
+  }
+  function jouerSon(type) {
+    let ctx;
+    try { ctx = obtenirContexteAudio(); } catch (e) { return; }
+    const maintenant = ctx.currentTime;
+    const notes = type === 'bravo' ? [523.25, 659.25, 783.99, 1046.5] : [392.0, 293.66];
+    const duree = type === 'bravo' ? 0.11 : 0.17;
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = freq;
+      const debut = maintenant + i * duree;
+      gain.gain.setValueAtTime(0.0001, debut);
+      gain.gain.exponentialRampToValueAtTime(0.22, debut + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, debut + duree);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(debut); osc.stop(debut + duree + 0.02);
+    });
+  }
+
+  /* ---------- Consigne lue à voix haute (SpeechSynthesis, utile aussi en CE1/CE2) ---------- */
+
+  function lireAVoixHaute(texte) {
+    try {
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(texte);
+      u.lang = 'fr-FR';
+      u.rate = 0.95;
+      window.speechSynthesis.speak(u);
+    } catch (e) {
+      // synthèse vocale indisponible : la consigne reste lisible à l'écran.
+    }
+  }
+  function creerBlocConsigne(texte, texteVoix) {
+    const cont = document.createElement('div');
+    cont.className = 'bloc-consigne';
+    const p = document.createElement('p');
+    p.className = 'consigne';
+    p.textContent = texte;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'bouton-son';
+    btn.setAttribute('aria-label', 'Écouter la consigne');
+    btn.textContent = '🔊';
+    const texteALire = texteVoix || texte;
+    btn.addEventListener('click', () => lireAVoixHaute(texteALire));
+    cont.appendChild(p);
+    cont.appendChild(btn);
+    lireAVoixHaute(texteALire);
+    return cont;
+  }
+
+  /* ================================================================
+     Primitives d'affichage réutilisées par plusieurs mini-jeux
+     ================================================================ */
+
+  const COULEUR_PAR_INDICE = ['var(--couleur-mandarine)', 'var(--couleur-menthe)', 'var(--couleur-corail)', 'var(--couleur-soleil)'];
+
+  /*
+   * Diagramme en barres.
+   * options:
+   *  - colonnes: [{id, emoji, label}]
+   *  - valeurs: {id: n} (comptage actuel affiché)
+   *  - maxCases: hauteur maximale d'une colonne, en cases
+   *  - uniteParCase: nombre d'individus représentés par une case (CE2 : peut différer de 1)
+   *  - interactif: true -> boutons +/- par colonne (construction)
+   *  - onChangement(id, nouvelleValeur): appelé en mode interactif
+   *  - afficherValeur: true -> affiche le nombre au-dessus de chaque colonne (lecture)
+   */
+  function construireDiagramme(options) {
+    const { colonnes, valeurs, maxCases, uniteParCase, interactif, onChangement, afficherValeur } = options;
+    const unite = uniteParCase || 1;
+    const conteneur = document.createElement('div');
+    conteneur.className = 'diagramme';
+    colonnes.forEach((col, i) => {
+      const colDiv = document.createElement('div');
+      colDiv.className = 'colonne-diagramme';
+      colDiv.style.setProperty('--c', COULEUR_PAR_INDICE[i % COULEUR_PAR_INDICE.length]);
+
+      const valeurTexte = document.createElement('div');
+      valeurTexte.className = 'valeur-colonne';
+      const valeurActuelle = valeurs[col.id] || 0;
+      valeurTexte.textContent = afficherValeur ? String(valeurActuelle) : '';
+
+      const pile = document.createElement('div');
+      pile.className = 'pile-cases';
+      const nbCases = Math.round(valeurActuelle / unite);
+      for (let c = 0; c < nbCases; c++) {
+        const caseEl = document.createElement('div');
+        caseEl.className = 'case-diagramme remplie';
+        pile.appendChild(caseEl);
+      }
+      if (nbCases === 0) {
+        const vide = document.createElement('div');
+        vide.className = 'case-diagramme';
+        vide.style.visibility = 'hidden';
+        pile.appendChild(vide);
+      }
+
+      const etiquette = document.createElement('div');
+      etiquette.className = 'etiquette-colonne';
+      etiquette.textContent = col.emoji;
+
+      const legende = document.createElement('div');
+      legende.className = 'legende-colonne';
+      legende.textContent = col.label;
+
+      colDiv.appendChild(valeurTexte);
+      colDiv.appendChild(pile);
+      colDiv.appendChild(etiquette);
+      colDiv.appendChild(legende);
+
+      if (interactif) {
+        const controles = document.createElement('div');
+        controles.className = 'controles-colonne';
+        const moins = document.createElement('button');
+        moins.type = 'button'; moins.className = 'bouton-case'; moins.textContent = '−';
+        moins.setAttribute('aria-label', 'Retirer une case ' + col.label);
+        const plus = document.createElement('button');
+        plus.type = 'button'; plus.className = 'bouton-case'; plus.textContent = '+';
+        plus.setAttribute('aria-label', 'Ajouter une case ' + col.label);
+        const cap = maxCases || 20;
+        function maj() {
+          moins.disabled = (valeurs[col.id] || 0) <= 0;
+          plus.disabled = (valeurs[col.id] || 0) >= cap;
+        }
+        plus.addEventListener('click', () => { valeurs[col.id] = (valeurs[col.id] || 0) + unite; onChangement(col.id, valeurs[col.id]); });
+        moins.addEventListener('click', () => { valeurs[col.id] = Math.max(0, (valeurs[col.id] || 0) - unite); onChangement(col.id, valeurs[col.id]); });
+        maj();
+        controles.appendChild(moins);
+        controles.appendChild(plus);
+        colDiv.appendChild(controles);
+      }
+
+      conteneur.appendChild(colDiv);
+    });
+    return conteneur;
+  }
+
+  /*
+   * Tableau à double entrée.
+   * options:
+   *  - lignes: [{id, emoji, label}], colonnes: [{id, label}]
+   *  - valeurs: {ligneId: {colonneId: n}}
+   *  - cellulesMasquees: Set('ligneId|colonneId') -> saisie numérique (mode complétion)
+   *  - modeSelection: true -> cellules cliquables pour y déposer l'élément sélectionné (mode construction)
+   *  - onCelluleClic(ligneId, colonneId)
+   */
+  function construireTableauDouble(options) {
+    const { lignes, colonnes, valeurs, cellulesMasquees, modeSelection, onCelluleClic } = options;
+    const table = document.createElement('table');
+    table.className = 'tableau-double';
+    const thead = document.createElement('thead');
+    const trHead = document.createElement('tr');
+    trHead.appendChild(document.createElement('th'));
+    colonnes.forEach((col) => {
+      const th = document.createElement('th');
+      th.textContent = col.label;
+      trHead.appendChild(th);
+    });
+    thead.appendChild(trHead);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    lignes.forEach((ligne) => {
+      const tr = document.createElement('tr');
+      const thLigne = document.createElement('th');
+      thLigne.textContent = (ligne.emoji ? ligne.emoji + ' ' : '') + ligne.label;
+      tr.appendChild(thLigne);
+      colonnes.forEach((col) => {
+        const td = document.createElement('td');
+        const cle = ligne.id + '|' + col.id;
+        const valeur = (valeurs[ligne.id] && valeurs[ligne.id][col.id]) || 0;
+        if (cellulesMasquees && cellulesMasquees.has(cle)) {
+          td.className = 'cellule-manquante';
+          const input = document.createElement('input');
+          input.type = 'number';
+          input.min = '0';
+          input.inputMode = 'numeric';
+          input.setAttribute('aria-label', 'Complète : ' + ligne.label + ' × ' + col.label);
+          input.dataset.ligne = ligne.id;
+          input.dataset.colonne = col.id;
+          td.appendChild(input);
+        } else {
+          td.textContent = String(valeur);
+          if (modeSelection) {
+            td.className = 'cellule-cliquable';
+            td.addEventListener('click', () => onCelluleClic(ligne.id, col.id));
+          }
+        }
+        td.dataset.ligne = ligne.id;
+        td.dataset.colonne = col.id;
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    return table;
+  }
+
+  /* ================================================================
+     Contrôleur général de jeu
+     ================================================================ */
+
+  let etatPalierAffiche = palierParDefaut();
+  let etat = null; // { miniJeuId, palier, index, score, verrouille, demarreLe }
+
+  function trouverMiniJeu(id) {
+    for (const nom of ORDRE_PALIERS) {
+      const palier = donnees.paliers[nom];
+      if (!palier) continue;
+      const trouve = palier.miniJeux.find((mj) => mj.id === id);
+      if (trouve) return { cfg: trouve, palier: nom };
+    }
+    return null;
+  }
+
+  function construireCarteJeu(cfg) {
+    const carte = document.createElement('button');
+    carte.className = 'carte-jeu carte-' + cfg.couleur;
+    carte.dataset.jeu = cfg.id;
+    const icone = document.createElement('div');
+    icone.className = 'icone';
+    icone.textContent = cfg.icone;
+    const titre = document.createElement('h2');
+    titre.textContent = cfg.titre;
+    const desc = document.createElement('p');
+    desc.textContent = cfg.description;
+    const tout = lireEtoiles();
+    const etoiles = creerEtoiles(tout[cfg.id] || 0);
+    carte.appendChild(icone);
+    carte.appendChild(titre);
+    carte.appendChild(desc);
+    carte.appendChild(etoiles);
+    carte.addEventListener('click', () => demarrerJeu(cfg.id));
+    return carte;
+  }
+
+  function construireAccueil() {
+    document.getElementById('sous-titre-accueil').textContent = donnees.sousTitre;
+
+    const rangee = document.getElementById('rangee-paliers');
+    rangee.innerHTML = '';
+    ORDRE_PALIERS.filter((n) => donnees.paliers[n]).forEach((n) => {
+      const puce = document.createElement('button');
+      puce.type = 'button';
+      puce.className = 'puce-palier' + (n === etatPalierAffiche ? ' actif' : '');
+      puce.textContent = n;
+      puce.addEventListener('click', () => { etatPalierAffiche = n; construireAccueil(); });
+      rangee.appendChild(puce);
+    });
+    const niveauProfil = niveauDuProfilActif();
+    document.getElementById('note-palier').textContent = niveauProfil
+      ? 'Niveau de ' + (niveauProfil === etatPalierAffiche ? 'ton profil' : 'ton profil : ' + niveauProfil + ' — tu regardes le palier ' + etatPalierAffiche)
+      : '';
+
+    const grille = document.getElementById('grille-jeux');
+    grille.innerHTML = '';
+    (donnees.paliers[etatPalierAffiche] ? donnees.paliers[etatPalierAffiche].miniJeux : [])
+      .forEach((cfg) => grille.appendChild(construireCarteJeu(cfg)));
+
+    /* Palier bonus (CHARTE §15) : uniquement si le palier courant est maîtrisé
+       ET qu'un palier suivant existe. */
+    const suivant = palierSuivant(etatPalierAffiche);
+    const blocBonus = document.getElementById('bloc-bonus');
+    if (suivant && palierMaitrise(etatPalierAffiche)) {
+      blocBonus.hidden = false;
+      document.getElementById('note-bonus').textContent =
+        'Tu maîtrises tout le palier ' + etatPalierAffiche + ' : essaie un aperçu du palier ' + suivant + ' !';
+      const grilleBonus = document.getElementById('grille-bonus');
+      grilleBonus.innerHTML = '';
+      donnees.paliers[suivant].miniJeux.forEach((cfg) => grilleBonus.appendChild(construireCarteJeu(cfg)));
+    } else {
+      blocBonus.hidden = true;
+    }
+  }
+
+  function retourAccueil() {
+    if (window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch (e) { /* ignore */ } }
+    document.getElementById('ecran-jeu').hidden = true;
+    document.getElementById('ecran-accueil').hidden = false;
+    construireAccueil();
+  }
+
+  function demarrerJeu(miniJeuId) {
+    const trouve = trouverMiniJeu(miniJeuId);
+    if (!trouve) return;
+    etat = { miniJeuId, cfg: trouve.cfg, palier: trouve.palier, index: 0, score: 0, verrouille: false, demarreLe: Date.now(), donneesTour: null };
+    document.getElementById('ecran-accueil').hidden = true;
+    document.getElementById('ecran-jeu').hidden = false;
+    document.getElementById('titre-jeu-courant').textContent = trouve.cfg.titre;
+    tourSuivant();
+  }
+
+  function majProgression() {
+    document.getElementById('progression-jeu').textContent = 'Manche ' + etat.index + ' / ' + etat.cfg.nbTours;
+  }
+
+  function tourSuivant() {
+    if (etat.index >= etat.cfg.nbTours) { afficherResultats(); return; }
+    etat.index++;
+    etat.verrouille = false;
+    majProgression();
+    const zone = document.getElementById('zone-jeu');
+    zone.innerHTML = '';
+    document.getElementById('zone-feedback').textContent = '';
+    document.getElementById('zone-feedback').className = 'feedback';
+    document.getElementById('bouton-suivant').hidden = true;
+    const type = etat.cfg.type;
+    if (type === 'recueil-diagramme') genererRecueilDiagramme(zone, etat.cfg);
+    else if (type === 'tableau-double-entree') genererTableauDoubleEntree(zone, etat.cfg);
+    else if (type === 'lecture') genererLecture(zone, etat.cfg);
+    else if (type === 'probleme-combine') genererProblemeCombine(zone, etat.cfg);
+  }
+
+  function validerTour(estCorrecte, boutonAValider) {
+    if (etat.verrouille) return;
+    etat.verrouille = true;
+    if (boutonAValider) boutonAValider.disabled = true;
+    const zoneFeedback = document.getElementById('zone-feedback');
+    if (estCorrecte) {
+      etat.score++;
+      zoneFeedback.textContent = choisir(donnees.messagesFeedback.bravo);
+      zoneFeedback.className = 'feedback feedback-succes';
+      lancerConfettis();
+      jouerSon('bravo');
+    } else {
+      zoneFeedback.textContent = choisir(donnees.messagesFeedback.rate);
+      zoneFeedback.className = 'feedback feedback-erreur';
+      jouerSon('rate');
+    }
+    document.getElementById('bouton-suivant').hidden = false;
+  }
+
+  function afficherResultats() {
+    const cfg = etat.cfg;
+    document.getElementById('progression-jeu').textContent = 'Résultats';
+    document.getElementById('bouton-suivant').hidden = true;
+    document.getElementById('zone-feedback').textContent = '';
+    const etoilesGagnees = calculerEtoiles(etat.score, cfg.nbTours);
+    enregistrerEtoiles(cfg.id, etoilesGagnees);
+    const dureeSecondes = Math.max(0, Math.round((Date.now() - etat.demarreLe) / 1000));
+    enregistrerSession(cfg.id, etat.score, cfg.nbTours, dureeSecondes);
+
+    const zone = document.getElementById('zone-jeu');
+    zone.innerHTML = '';
+    const bloc = document.createElement('div');
+    bloc.className = 'bloc-resultats';
+
+    const titre = document.createElement('h3');
+    titre.textContent = 'Fin du jeu !';
+
+    const score = document.createElement('p');
+    score.className = 'score-texte';
+    score.textContent = etat.score + ' / ' + cfg.nbTours + ' manches réussies';
+
+    const etoiles = creerEtoiles(etoilesGagnees);
+
+    const boutons = document.createElement('div');
+    boutons.className = 'boutons-resultats';
+
+    const rejouer = document.createElement('button');
+    rejouer.className = 'bouton-principal';
+    rejouer.textContent = 'Rejouer';
+    rejouer.addEventListener('click', () => demarrerJeu(cfg.id));
+
+    const accueilBtn = document.createElement('button');
+    accueilBtn.className = 'bouton-secondaire';
+    accueilBtn.textContent = "Retour à l'accueil";
+    accueilBtn.addEventListener('click', retourAccueil);
+
+    boutons.appendChild(rejouer);
+    boutons.appendChild(accueilBtn);
+
+    bloc.appendChild(titre);
+    bloc.appendChild(etoiles);
+    bloc.appendChild(score);
+    bloc.appendChild(boutons);
+    zone.appendChild(bloc);
+
+    if (etoilesGagnees === 3) lancerConfettis();
+  }
+
+  /* ================================================================
+     Mini-jeu : Recueil + diagramme (CP et CE1, gabarit partagé)
+     ================================================================ */
+
+  function genererRecueilDiagramme(zone, cfg) {
+    const especes = especesListe(cfg.nbEspeces);
+    const valeursVraies = {};
+    especes.forEach((e) => { valeursVraies[e.id] = nombreAleatoire(2, cfg.capParEspece); });
+
+    let population = [];
+    especes.forEach((e) => { for (let i = 0; i < valeursVraies[e.id]; i++) population.push(e.id); });
+    population = melanger(population);
+
+    const question = 'Quelle est ta petite bête préférée dans le jardin ?';
+    zone.appendChild(creerBlocConsigne(
+      'Clique sur chaque bête du sondage « ' + question + ' » pour la compter.',
+      'Compte les votes du sondage, puis construis le diagramme.'
+    ));
+
+    const zonePopulation = document.createElement('div');
+    zonePopulation.className = 'population-jardin';
+    const comptesActuels = {};
+    especes.forEach((e) => { comptesActuels[e.id] = 0; });
+    let nbComptees = 0;
+
+    const tableauTally = document.createElement('table');
+    tableauTally.className = 'tableau-tally';
+    const theadTally = document.createElement('thead');
+    theadTally.innerHTML = '<tr><th>Bête</th><th>Décompte</th><th>Total</th></tr>';
+    tableauTally.appendChild(theadTally);
+    const tbodyTally = document.createElement('tbody');
+    const cellulesTally = {};
+    especes.forEach((e) => {
+      const tr = document.createElement('tr');
+      const tdBete = document.createElement('td');
+      tdBete.textContent = e.emoji + ' ' + e.pluriel;
+      const tdMarques = document.createElement('td');
+      tdMarques.className = 'tally-marques';
+      const tdTotal = document.createElement('td');
+      tdTotal.textContent = '0';
+      tr.appendChild(tdBete); tr.appendChild(tdMarques); tr.appendChild(tdTotal);
+      tbodyTally.appendChild(tr);
+      cellulesTally[e.id] = { marques: tdMarques, total: tdTotal };
+    });
+    tableauTally.appendChild(tbodyTally);
+
+    const boutonSuiteRecueil = document.createElement('button');
+    boutonSuiteRecueil.type = 'button';
+    boutonSuiteRecueil.className = 'bouton-principal';
+    boutonSuiteRecueil.textContent = 'Construire le diagramme →';
+    boutonSuiteRecueil.disabled = true;
+
+    population.forEach((especeId, i) => {
+      const especeInfo = donnees.especes[especeId];
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'bete-population';
+      btn.textContent = especeInfo.emoji;
+      btn.setAttribute('aria-label', 'Compter ' + especeInfo.singulier + ' ' + (i + 1));
+      btn.addEventListener('click', () => {
+        if (btn.classList.contains('comptee')) return;
+        btn.classList.add('comptee');
+        comptesActuels[especeId]++;
+        nbComptees++;
+        cellulesTally[especeId].marques.textContent += '|';
+        cellulesTally[especeId].total.textContent = String(comptesActuels[especeId]);
+        if (nbComptees === population.length) boutonSuiteRecueil.disabled = false;
+      });
+      zonePopulation.appendChild(btn);
+    });
+
+    zone.appendChild(zonePopulation);
+    zone.appendChild(tableauTally);
+    zone.appendChild(boutonSuiteRecueil);
+
+    boutonSuiteRecueil.addEventListener('click', () => {
+      zone.innerHTML = '';
+      zone.appendChild(creerBlocConsigne(
+        'Construis le diagramme : une case pour chaque bête comptée.',
+        'Ajoute une case par bête comptée pour chaque colonne, puis valide.'
+      ));
+      const valeursDiagramme = {};
+      especes.forEach((e) => { valeursDiagramme[e.id] = 0; });
+      const diagramme = construireDiagramme({
+        colonnes: especes.map((e) => ({ id: e.id, emoji: e.emoji, label: e.pluriel })),
+        valeurs: valeursDiagramme,
+        maxCases: cfg.capParEspece,
+        interactif: true,
+        afficherValeur: true,
+        onChangement: () => {}
+      });
+      zone.appendChild(diagramme);
+      zone.appendChild(Object.assign(document.createElement('p'), {
+        className: 'legende', textContent: 'Rappel : une case = une bête (mes décomptes ci-dessus t\'aident).'
+      }));
+
+      const boutonValider = document.createElement('button');
+      boutonValider.type = 'button';
+      boutonValider.className = 'bouton-principal';
+      boutonValider.textContent = 'Valider mon diagramme';
+      boutonValider.addEventListener('click', () => {
+        const correct = especes.every((e) => valeursDiagramme[e.id] === comptesActuels[e.id]);
+        validerTour(correct, boutonValider);
+      });
+      zone.appendChild(boutonValider);
+    });
+  }
+
+  /* ================================================================
+     Mini-jeu : Tableau à double entrée (CP)
+     ================================================================ */
+
+  function genererTableauDoubleEntree(zone, cfg) {
+    const especes = especesListe(cfg.nbEspeces);
+    const couleurs = melanger(donnees.couleurs).slice(0, cfg.nbCouleurs);
+    const valeursVraies = {};
+    especes.forEach((e) => {
+      valeursVraies[e.id] = {};
+      couleurs.forEach((c) => { valeursVraies[e.id][c.id] = nombreAleatoire(1, cfg.capParCase); });
+    });
+
+    let pool = [];
+    especes.forEach((e) => couleurs.forEach((c) => {
+      for (let i = 0; i < valeursVraies[e.id][c.id]; i++) pool.push({ especeId: e.id, couleurId: c.id });
+    }));
+    pool = melanger(pool);
+
+    zone.appendChild(creerBlocConsigne(
+      'Clique sur une bête, puis clique sur sa case dans le tableau.',
+      'Choisis une bête dans le jardin, puis pose-la dans la bonne case du tableau : ligne de son espèce, colonne de sa couleur.'
+    ));
+
+    const valeursActuelles = {};
+    especes.forEach((e) => { valeursActuelles[e.id] = {}; couleurs.forEach((c) => { valeursActuelles[e.id][c.id] = 0; }); });
+
+    const zonePool = document.createElement('div');
+    zonePool.className = 'pool-population';
+
+    let selection = null;
+
+    const table = construireTableauDouble({
+      lignes: especes.map((e) => ({ id: e.id, emoji: e.emoji, label: e.pluriel })),
+      colonnes: couleurs.map((c) => ({ id: c.id, label: c.emoji + ' ' + c.nom })),
+      valeurs: valeursActuelles,
+      modeSelection: true,
+      onCelluleClic: (ligneId, colonneId) => {
+        if (!selection) return;
+        if (selection.especeId !== ligneId || selection.couleurId !== colonneId) return; // seule la bonne case accepte la bête
+        valeursActuelles[ligneId][colonneId]++;
+        const cellule = table.querySelector('td[data-ligne="' + ligneId + '"][data-colonne="' + colonneId + '"]');
+        if (cellule) cellule.textContent = String(valeursActuelles[ligneId][colonneId]);
+        selection.el.remove();
+        pool = pool.filter((p) => p !== selection.item);
+        selection = null;
+        Array.from(zonePool.children).forEach((c) => c.classList.remove('selectionnee'));
+        if (pool.length === 0) boutonValider.disabled = false;
+      }
+    });
+
+    function rendrePool() {
+      zonePool.innerHTML = '';
+      pool.forEach((item) => {
+        const especeInfo = donnees.especes[item.especeId];
+        const couleurInfo = couleurs.find((c) => c.id === item.couleurId);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'bete-pool';
+        btn.textContent = especeInfo.emoji;
+        btn.style.boxShadow = 'inset 0 -4px 0 ' + (couleurInfo.id === 'rouge' ? '#FF6B6B' : couleurInfo.id === 'jaune' ? '#FFD93D' : '#4ECDC4');
+        btn.setAttribute('aria-label', especeInfo.singulier + ' ' + couleurInfo.nom);
+        btn.addEventListener('click', () => {
+          Array.from(zonePool.children).forEach((c) => c.classList.remove('selectionnee'));
+          btn.classList.add('selectionnee');
+          selection = { especeId: item.especeId, couleurId: item.couleurId, el: btn, item };
+        });
+        zonePool.appendChild(btn);
+      });
+    }
+    rendrePool();
+
+    zone.appendChild(zonePool);
+    zone.appendChild(table);
+
+    const boutonValider = document.createElement('button');
+    boutonValider.type = 'button';
+    boutonValider.className = 'bouton-principal';
+    boutonValider.textContent = 'Valider mon tableau';
+    boutonValider.disabled = true;
+    boutonValider.addEventListener('click', () => {
+      const correct = especes.every((e) => couleurs.every((c) => valeursActuelles[e.id][c.id] === valeursVraies[e.id][c.id]));
+      validerTour(correct, boutonValider);
+    });
+    zone.appendChild(boutonValider);
+  }
+
+  /* ================================================================
+     Mini-jeu : Lecture de diagramme + tableau déjà construits (CE1)
+     ================================================================ */
+
+  function genererLecture(zone, cfg) {
+    if (!etat.donneesTour || etat.tourGenerePour !== 'lecture-dataset') {
+      const especes = especesListe(cfg.nbEspeces);
+      const zones = melanger(donnees.zones).slice(0, cfg.nbZones);
+      const valeurs = {};
+      const parZone = {};
+      especes.forEach((e) => {
+        parZone[e.id] = {};
+        let total = 0;
+        zones.forEach((z, i) => {
+          const v = nombreAleatoire(2, Math.max(3, Math.round(cfg.capParEspece / cfg.nbZones)));
+          parZone[e.id][z.id] = v;
+          total += v;
+        });
+        valeurs[e.id] = total;
+      });
+      etat.donneesTour = { especes, zones, valeurs, parZone };
+      etat.tourGenerePour = 'lecture-dataset';
+      etat.questionsPosees = [];
+    }
+    const { especes, zones, valeurs, parZone } = etat.donneesTour;
+
+    // Banque de questions possibles à partir du jeu de données courant.
+    const banque = [];
+    const especeMax = especes.slice().sort((a, b) => valeurs[b.id] - valeurs[a.id])[0];
+    const especeMin = especes.slice().sort((a, b) => valeurs[a.id] - valeurs[b.id])[0];
+    // Question max/min posée seulement si la réponse est SANS AMBIGUÏTÉ (pas d'égalité).
+    if (especes.every((e) => e.id === especeMax.id || valeurs[e.id] < valeurs[especeMax.id])) {
+      banque.push({
+        cle: 'max',
+        texte: 'Quelle est la bête la plus présente dans le jardin ?',
+        bonne: especeMax.pluriel,
+        options: especes.map((e) => e.pluriel)
+      });
+    }
+    if (especes.every((e) => e.id === especeMin.id || valeurs[e.id] > valeurs[especeMin.id])) {
+      banque.push({
+        cle: 'min',
+        texte: 'Quelle est la bête la moins présente dans le jardin ?',
+        bonne: especeMin.pluriel,
+        options: especes.map((e) => e.pluriel)
+      });
+    }
+    especes.forEach((e) => {
+      banque.push({
+        cle: 'total-' + e.id,
+        texte: 'Combien ' + deElision(e.pluriel) + ' en tout dans le diagramme ?',
+        bonne: String(valeurs[e.id]),
+        options: [String(valeurs[e.id]), String(Math.max(0, valeurs[e.id] - 2)), String(valeurs[e.id] + 2), String(Math.max(0, valeurs[e.id] - 4))]
+      });
+    });
+    if (zones.length >= 2) {
+      especes.forEach((e) => {
+        banque.push({
+          cle: 'zone-' + e.id,
+          texte: 'Combien ' + deElision(e.pluriel) + ' dans le ' + zones[0].nom + ' ?',
+          bonne: String(parZone[e.id][zones[0].id]),
+          options: [String(parZone[e.id][zones[0].id]), String(parZone[e.id][zones[1].id]), String(parZone[e.id][zones[0].id] + 2), String(Math.max(0, parZone[e.id][zones[0].id] - 2))]
+        });
+        // Question de comparaison posée seulement si les deux zones diffèrent (pas d'égalité ambiguë).
+        if (parZone[e.id][zones[0].id] !== parZone[e.id][zones[1].id]) {
+          banque.push({
+            cle: 'compare-' + e.id,
+            texte: 'Y a-t-il plus ' + deElision(e.pluriel) + ' dans le ' + zones[0].nom + ' ou le ' + zones[1].nom + ' ?',
+            bonne: parZone[e.id][zones[0].id] > parZone[e.id][zones[1].id] ? zones[0].nom : zones[1].nom,
+            options: [zones[0].nom, zones[1].nom]
+          });
+        }
+      });
+    }
+
+    const disponibles = banque.filter((q) => etat.questionsPosees.indexOf(q.cle) === -1);
+    const question = choisir(disponibles.length ? disponibles : banque);
+    etat.questionsPosees.push(question.cle);
+
+    zone.appendChild(creerBlocConsigne(question.texte, question.texte));
+
+    const diagramme = construireDiagramme({
+      colonnes: especes.map((e) => ({ id: e.id, emoji: e.emoji, label: e.pluriel })),
+      valeurs,
+      afficherValeur: true,
+      interactif: false
+    });
+    zone.appendChild(diagramme);
+
+    if (zones.length >= 2) {
+      const lignesTableau = especes.map((e) => ({ id: e.id, emoji: e.emoji, label: e.pluriel }));
+      const valeursTableau = {};
+      especes.forEach((e) => { valeursTableau[e.id] = parZone[e.id]; });
+      const table = construireTableauDouble({
+        lignes: lignesTableau,
+        colonnes: zones.map((z) => ({ id: z.id, label: z.nom })),
+        valeurs: valeursTableau
+      });
+      zone.appendChild(table);
+    }
+
+    const optionsUniques = Array.from(new Set(question.options));
+    const indexBonne = optionsUniques.indexOf(question.bonne);
+    const { options: optionsMelangees, indexCorrect } = melangerOptions(optionsUniques, indexBonne);
+
+    const grille = document.createElement('div');
+    grille.className = 'grille-options';
+    optionsMelangees.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'bouton-option';
+      btn.textContent = opt;
+      btn.addEventListener('click', () => {
+        Array.from(grille.children).forEach((b) => { b.disabled = true; });
+        btn.classList.add(i === indexCorrect ? 'correct' : 'incorrect');
+        if (i !== indexCorrect) grille.children[indexCorrect].classList.add('correct');
+        validerTour(i === indexCorrect, btn);
+      });
+      grille.appendChild(btn);
+    });
+    zone.appendChild(grille);
+  }
+
+  /* ================================================================
+     Mini-jeu : Problème combiné tableau + diagramme (CE2)
+     ================================================================ */
+
+  function genererProblemeCombine(zone, cfg) {
+    const especes = especesListe(cfg.nbEspeces);
+    const tranches = donnees.tranchesAge;
+    const uniteParCase = choisir([2, 3]); // échelle d'axe adaptée : pas toujours de 1 en 1 (CHARTE, énoncé M39)
+
+    const valeursVraies = {};
+    const totauxParEspece = {};
+    especes.forEach((e) => {
+      valeursVraies[e.id] = {};
+      let total = 0;
+      tranches.forEach((t) => {
+        const v = nombreAleatoire(1, cfg.capParTranche);
+        valeursVraies[e.id][t.id] = v;
+        total += v;
+      });
+      totauxParEspece[e.id] = total;
+    });
+
+    // Une seule case manquante, dans une ligne (espèce) tirée au hasard.
+    const especeCachee = choisir(especes);
+    const trancheCachee = choisir(tranches);
+    const cleCachee = especeCachee.id + '|' + trancheCachee.id;
+
+    zone.appendChild(creerBlocConsigne(
+      'Le diagramme donne le total par bête. Trouve le nombre manquant dans le tableau.',
+      'Utilise le total du diagramme et les autres cases du tableau pour trouver le nombre manquant.'
+    ));
+
+    const diagramme = construireDiagramme({
+      colonnes: especes.map((e) => ({ id: e.id, emoji: e.emoji, label: e.pluriel })),
+      valeurs: totauxParEspece,
+      uniteParCase,
+      afficherValeur: true,
+      interactif: false
+    });
+    zone.appendChild(diagramme);
+    zone.appendChild(Object.assign(document.createElement('p'), {
+      className: 'legende', textContent: 'Attention : ici, une case du diagramme vaut ' + uniteParCase + ' bêtes.'
+    }));
+
+    const table = construireTableauDouble({
+      lignes: especes.map((e) => ({ id: e.id, emoji: e.emoji, label: e.pluriel })),
+      colonnes: tranches.map((t) => ({ id: t.id, label: t.nom })),
+      valeurs: valeursVraies,
+      cellulesMasquees: new Set([cleCachee])
+    });
+    zone.appendChild(table);
+
+    const input = table.querySelector('input');
+    const boutonValider = document.createElement('button');
+    boutonValider.type = 'button';
+    boutonValider.className = 'bouton-principal';
+    boutonValider.textContent = 'Valider';
+    boutonValider.addEventListener('click', () => {
+      const attendu = valeursVraies[especeCachee.id][trancheCachee.id];
+      const saisie = parseInt(input.value, 10);
+      validerTour(saisie === attendu, boutonValider);
+    });
+    zone.appendChild(boutonValider);
+  }
+
+  /* ---------- Initialisation ---------- */
+
+  document.getElementById('bouton-retour').addEventListener('click', retourAccueil);
+  document.getElementById('bouton-suivant').addEventListener('click', tourSuivant);
+
+  construireAccueil();
+})();
+</script>
+<script>
+  /* Bouton « ← Menu » : retour à la coquille avec confirmation (CHARTE §7).
+     Script isolé du moteur de jeu : il n'agit que sur les éléments statiques
+     de la page (le « ← Menu » ne s'affiche que sur l'écran d'accueil). */
+  (function () {
+    var bouton = document.getElementById('bouton-menu');
+    var modale = document.getElementById('modale-menu');
+    if (!bouton || !modale) return;
+    function fermer() { modale.hidden = true; }
+    bouton.addEventListener('click', function () { modale.hidden = false; });
+    document.getElementById('modale-menu-rester').addEventListener('click', fermer);
+    document.getElementById('modale-menu-revenir').addEventListener('click', function () {
+      window.location.href = '../index.html';
+    });
+    modale.addEventListener('click', function (e) { if (e.target === modale) fermer(); });
+  })();
+</script>
+</body>
+</html>

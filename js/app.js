@@ -166,6 +166,22 @@
   }
 
   /*
+   * Niveaux couverts par un module (CHARTE.md §15, modules adaptatifs par
+   * niveau) : un module adaptatif déclare `niveaux` (tableau) en plus de
+   * `niveau` (niveau d'intro, conservé pour compatibilité) ; un module
+   * classique n'a que `niveau`. Point d'entrée UNIQUE pour tout filtrage par
+   * niveau, afin qu'un module multi-niveaux apparaisse pour chacun des
+   * niveaux qu'il couvre plutôt que pour son seul niveau d'intro.
+   */
+  function niveauxModule(m) {
+    return m.niveaux || [m.niveau];
+  }
+  function libelleNiveauxModule(m) {
+    const niveaux = niveauxModule(m);
+    return niveaux.length > 1 ? niveaux[0] + '→' + niveaux[niveaux.length - 1] : niveaux[0];
+  }
+
+  /*
    * Pictogrammes par compétence, dans l'esprit des pictogrammes des fiches
    * Repères : un symbole simple par domaine du programme, pour repérer d'un
    * coup d'œil la liste de compétences et le radar détaillé. Un seul emoji
@@ -338,7 +354,8 @@
       if (!m.fichier) return false;
       // Par défaut, on ne montre que les modules du niveau du profil actif ;
       // « Voir tous les niveaux » (ou un profil sans niveau) lève ce filtre.
-      if (!voirTous && niveauProfil && m.niveau !== niveauProfil) return false;
+      // Un module adaptatif (§15) compte pour CHACUN des niveaux qu'il couvre.
+      if (!voirTous && niveauProfil && niveauxModule(m).indexOf(niveauProfil) === -1) return false;
       if (filtreDomaine && filtreDomaine !== 'tous' && m.domaine !== filtreDomaine) return false;
       if (recherche) {
         const meule = normaliser([m.titre, m.theme, m.description, m.domaine].join(' '));
@@ -352,7 +369,7 @@
 
   function carteJeu(module, indice) {
     const badges = [
-      h('span', { class: 'badge badge-niveau', texte: module.niveau }),
+      h('span', { class: 'badge badge-niveau', texte: libelleNiveauxModule(module) }),
       h('span', { class: 'badge', texte: module.domaine }),
       h('span', { class: 'badge', texte: module.theme })
     ];
@@ -450,7 +467,7 @@
       // le badge de niveau reste visible sur chaque carte).
       const grouperParNiveau = voirTous || !niveauProfil;
       const groupes = grouperParNiveau
-        ? (referentiel.niveaux || []).map((n) => [n, modules.filter((m) => m.niveau === n)]).filter(([, l]) => l.length)
+        ? (referentiel.niveaux || []).map((n) => [n, modules.filter((m) => niveauxModule(m).indexOf(n) !== -1)]).filter(([, l]) => l.length)
         : [[null, modules]];
       groupes.forEach(([niveau, liste]) => {
         if (niveau) zoneJeux.appendChild(h('div', { class: 'titre-groupe', texte: niveau }));
