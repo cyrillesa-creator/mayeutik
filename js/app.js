@@ -172,10 +172,10 @@
    * par domaine (pas de dépendance externe, pas de jeu d'icônes par thème).
    */
   const PICTO_DOMAINE = {
-    'Nombres': '🔢',
-    'Calcul': '➕',
+    'Nombres et calcul': '🔢',
     'Grandeurs et mesures': '📏',
-    'Espace et géométrie': '📐'
+    'Espace et géométrie': '📐',
+    'Organisation et gestion de données': '📊'
   };
   function pictoCompetence(c) {
     return PICTO_DOMAINE[c.domaine] || '📚';
@@ -478,6 +478,16 @@
   }
 
   /*
+   * Libellé court d'un domaine pour l'AXE du radar de synthèse uniquement
+   * (place limitée à 4 axes) : le nom complet reste affiché en sous-libellé,
+   * bulle d'aide et titre de section détaillée — seul l'axe est abrégé.
+   */
+  const LIBELLE_AXE_DOMAINE = { 'Organisation et gestion de données': 'Données' };
+  function libelleAxeDomaine(nom) {
+    return LIBELLE_AXE_DOMAINE[nom] || nom;
+  }
+
+  /*
    * Bandeau de synthèse : trois compteurs (à consolider / en cours / maîtrisées)
    * recalculés à chaque rendu à partir des statuts LSU déjà calculés — aucune
    * animation de comptage, puisque ces statuts reflètent une PROGRESSION
@@ -515,10 +525,10 @@
     'Tables de multiplication': 'Privilégiez des séances courtes et régulières plutôt que de longues révisions : la fluence se construit par petites doses répétées.'
   };
   const CONSEILS_DOMAINE = {
-    'Nombres': 'Encouragez la manipulation concrète avant l\'écriture chiffrée.',
-    'Calcul': 'Laissez le temps de poser la démarche à voix haute avant de chercher le résultat.',
+    'Nombres et calcul': 'Encouragez la manipulation concrète (jetons, doigts) avant l\'écriture chiffrée, et laissez le temps de poser la démarche à voix haute avant de chercher le résultat.',
     'Grandeurs et mesures': 'Reliez la notion à des mesures réelles du quotidien (cuisine, bricolage, trajets).',
-    'Espace et géométrie': 'Encouragez à dessiner, plier ou manipuler des formes avant de décrire ou comparer.'
+    'Espace et géométrie': 'Encouragez à dessiner, plier ou manipuler des formes avant de décrire ou comparer.',
+    'Organisation et gestion de données': 'Repérez ensemble des tableaux et des graphiques du quotidien (météo, résultats sportifs) pour donner du sens à la lecture de données.'
   };
   function conseilAccompagnement(c, module) {
     const theme = module && module.theme;
@@ -659,7 +669,7 @@
     }
     cadreSynthese.appendChild(R.dessiner({
       axes: analyse.domaines.map((d) => ({
-        libelle: d.nom,
+        libelle: libelleAxeDomaine(d.nom),
         valeur: Math.round(d.valeur * 10) / 10,
         sousLibelle: d.nbCompetences ? (String(Math.round(d.valeur * 10) / 10).replace('.', ',') + ' / 4') : 'aucun module',
         infoBulle: d.nom + ' — ' + (d.nbCompetences
