@@ -66,6 +66,9 @@
     },
     {
       "id": "M99",
+      "moduleParent": "M07",
+      "moduleParentTitre": "Tables de multiplication (fluence)",
+      "noteBacklog": "Ce jeu fait partie du module M07 (tables de multiplication, fluence). L'identifiant technique reste M99 car le fichier jeux/M99-boss-des-tables.html écrit ses sessions avec module=\"M99\" (contrat de données v1) : renuméroter l'id ici rendrait orphelines toutes les parties déjà enregistrées. La bascule vers M07 se fera en même temps que le renommage du fichier et de son MODULE_ID.",
       "titre": "Boss des tables",
       "description": "Affronte un dragon en duel : réponds vite et juste aux tables de multiplication.",
       "icone": "🐉",
