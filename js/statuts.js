@@ -207,6 +207,22 @@
     return { competences, domaines };
   }
 
+  /*
+   * « Lecture du résultat » d'UNE compétence (fiche détail, PRODUIT.md) :
+   * PAS une performance ponctuelle (« X bonnes réponses aujourd'hui »), mais
+   * la place de la répétition dans le temps — sur combien de dernières
+   * parties, et sur combien de jours distincts. Une session est « réussie »
+   * au même seuil que celui qui compte pour le statut « Atteints ».
+   */
+  const FENETRE_LECTURE = 10; // on ne remonte pas plus loin, pour rester lisible
+  function lectureResultat(sessions) {
+    if (!sessions || sessions.length === 0) return null;
+    const fenetre = trierParDate(sessions).slice(-FENETRE_LECTURE);
+    const nbReussies = fenetre.filter((s) => tauxReussite(s) >= SEUILS.tauxAtteint).length;
+    const nbJoursDistincts = new Set(fenetre.map((s) => jourLocal(s.date)).filter(Boolean)).size;
+    return { nbReussies, nbSessions: fenetre.length, nbJoursDistincts };
+  }
+
   /* Lundi de la semaine (locale) contenant une date ISO — clé de regroupement. */
   function lundiDeLaSemaine(iso) {
     const d = new Date(iso);
@@ -281,6 +297,7 @@
     calculerStatut,
     analyserProfil,
     recommandations,
+    lectureResultat,
     courbeProgression,
     tauxReussite,
     jourLocal

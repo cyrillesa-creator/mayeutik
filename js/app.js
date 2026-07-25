@@ -502,6 +502,107 @@
     ]);
   }
 
+  /*
+   * Bibliothèque de conseils « Pour l'accompagner » (fiche détail), bienveillante
+   * et générique — pas d'IA générative nécessaire. Clé par thème du référentiel
+   * quand un conseil précis existe, sinon repli par domaine, sinon message
+   * générique.
+   */
+  const CONSEILS_THEME = {
+    'Fractions': 'Encouragez à dessiner ou à découper avant de comparer les fractions : le sens vient avant le calcul.',
+    'Nombres jusqu\'à 9': 'Manipulez des objets concrets (jetons, doigts) avant de passer aux chiffres seuls.',
+    'Solides': 'Proposez de manipuler de vrais objets (boîtes, balles, dés) pour retrouver les solides de la leçon.',
+    'Tables de multiplication': 'Privilégiez des séances courtes et régulières plutôt que de longues révisions : la fluence se construit par petites doses répétées.'
+  };
+  const CONSEILS_DOMAINE = {
+    'Nombres': 'Encouragez la manipulation concrète avant l\'écriture chiffrée.',
+    'Calcul': 'Laissez le temps de poser la démarche à voix haute avant de chercher le résultat.',
+    'Grandeurs et mesures': 'Reliez la notion à des mesures réelles du quotidien (cuisine, bricolage, trajets).',
+    'Espace et géométrie': 'Encouragez à dessiner, plier ou manipuler des formes avant de décrire ou comparer.'
+  };
+  function conseilAccompagnement(c, module) {
+    const theme = module && module.theme;
+    return (theme && CONSEILS_THEME[theme]) || CONSEILS_DOMAINE[c.domaine] ||
+      'Valorisez les progrès, même petits : la régularité compte plus que la performance d\'un jour.';
+  }
+
+  function blocFiche(titre, texte) {
+    return h('div', { class: 'fiche-bloc' }, [
+      h('h4', { texte: titre }),
+      h('p', { texte: texte })
+    ]);
+  }
+
+  function accordSingulierPluriel(n, mot) {
+    return n + ' ' + mot + (n > 1 ? 's' : '');
+  }
+
+  /*
+   * Fiche détail d'une compétence : ouverte depuis un axe du radar détaillé ou
+   * une ligne de la liste des compétences (côté parent). Reformule la logique
+   * des fiches de restitution Repères pour une progression CONTINUE (jamais de
+   * « score du jour ») — cf. PRODUIT.md, section « Tableau de bord parental ».
+   */
+  function ouvrirFicheDetail(c, profilId) {
+    const conteneur = document.getElementById('application');
+    const module = moduleParId(c.moduleId);
+    const sessionsComp = P.sessionsDuProfil(profilId)
+      .filter((s) => s.module === c.moduleId && s.competence === c.competenceId);
+
+    const fond = h('div', { class: 'modale-fond' });
+    function fermer() { fond.remove(); }
+
+    const blocs = h('div', { class: 'fiche-blocs' });
+
+    blocs.appendChild(blocFiche('Pourquoi cet exercice',
+      'Ce jeu entraîne la compétence « ' + c.libelle + ' »' +
+        (module && module.description ? '. ' + module.description : '.')));
+
+    const lecture = S.lectureResultat(sessionsComp);
+    blocs.appendChild(blocFiche('Lecture du résultat',
+      lecture
+        ? accordSingulierPluriel(lecture.nbReussies, 'session') + ' réussie' + (lecture.nbReussies > 1 ? 's' : '') +
+          ' sur les ' + accordSingulierPluriel(lecture.nbSessions, 'dernière') +
+          ', réparties sur ' + accordSingulierPluriel(lecture.nbJoursDistincts, 'jour') + ' distinct' + (lecture.nbJoursDistincts > 1 ? 's' : '') + '.'
+        : 'Aucune partie enregistrée pour cette compétence pour l’instant.'));
+
+    blocs.appendChild(blocFiche('Ce qu’il faut savoir',
+      'Maîtriser cette compétence, c’est être capable de : « ' + c.libelle + ' ».'));
+
+    blocs.appendChild(blocFiche('Pour l’accompagner', conseilAccompagnement(c, module)));
+
+    const blocCourbe = h('div', { class: 'fiche-bloc' }, [h('h4', { texte: 'Évolution dans le temps' })]);
+    const courbe = S.courbeProgression(sessionsComp);
+    if (!courbe.assezDeDonnees) {
+      blocCourbe.appendChild(h('p', { class: 'vide-section',
+        texte: 'Pas encore assez de parties pour voir une tendance.' }));
+    } else {
+      blocCourbe.appendChild(R.dessinerCourbe({ points: courbe.points, parSemaine: courbe.parSemaine }));
+      blocCourbe.appendChild(h('p', { class: 'aide-radar',
+        texte: courbe.parSemaine
+          ? 'Taux de réussite, semaine après semaine.'
+          : 'Taux de réussite, partie après partie (encore trop peu de semaines distinctes pour un regroupement hebdomadaire).' }));
+    }
+    blocs.appendChild(blocCourbe);
+
+    const boite = h('div', { class: 'modale-boite modale-fiche', role: 'dialog', 'aria-modal': 'true',
+      'aria-labelledby': 'fiche-titre' }, [
+      h('div', { class: 'fiche-entete' }, [
+        h('span', { class: 'fiche-picto', 'aria-hidden': 'true', texte: pictoCompetence(c) }),
+        h('div', { class: 'infos-titre' }, [
+          h('h3', { class: 'modale-titre', id: 'fiche-titre', texte: c.libelle }),
+          h('div', { class: 'details', texte: c.moduleTitre })
+        ])
+      ]),
+      badgeStatut(c.statut),
+      blocs,
+      h('button', { class: 'bouton-modale-annuler', texte: 'Fermer', onclick: fermer })
+    ]);
+    fond.appendChild(boite);
+    fond.addEventListener('click', (e) => { if (e.target === fond) fermer(); });
+    conteneur.appendChild(fond);
+  }
+
   function vueParent(conteneur) {
     const profils = P.lireProfils();
     const profilId = P.lireProfilActif();
@@ -587,6 +688,8 @@
       sectionDetail.appendChild(h('p', { class: 'vide-section',
         texte: 'Aucun module de ce domaine dans le référentiel' + (filtreNiveau ? ' pour le niveau ' + filtreNiveau : '') + ' pour l’instant.' }));
     } else {
+      sectionDetail.appendChild(h('p', { class: 'aide-radar',
+        texte: 'Touchez un axe du radar ou une compétence dans la liste pour voir le détail.' }));
       R.scinderEnRadars(duDomaine, 8).forEach((radar) => {
         sectionDetail.appendChild(h('div', { class: 'titre-radar-detail', texte: radar.titres.join(' · ') }));
         const cadre = h('div', { class: 'cadre-radar' });
@@ -597,7 +700,8 @@
             // Bulle d'aide : libellé complet + statut LSU (ex. « … — Atteints »).
             infoBulle: c.libelle + ' — ' + c.statut.libelle
           })),
-          max: 4
+          max: 4,
+          onClicAxe: (i) => ouvrirFicheDetail(radar.competences[i], profilId)
         }));
         sectionDetail.appendChild(cadre);
       });
@@ -611,7 +715,8 @@
           c.nbSessions ? 'dernière : ' + formaterDate(c.derniereDate) : null,
           c.nbEvaluations ? '⏱ ' + c.nbEvaluations + ' évaluation' + (c.nbEvaluations > 1 ? 's' : '') : null
         ].filter(Boolean).join(' · ');
-        liste.appendChild(h('div', { class: 'ligne-competence' }, [
+        liste.appendChild(h('button', { class: 'ligne-competence', type: 'button',
+          onclick: () => ouvrirFicheDetail(c, profilId) }, [
           h('span', { class: 'ligne-competence-picto', 'aria-hidden': 'true', texte: pictoCompetence(c) }),
           h('div', { class: 'libelle' }, [
             h('div', { texte: c.libelle }),
