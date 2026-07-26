@@ -430,10 +430,15 @@
       vue.appendChild(barreNiveau);
     }
 
-    const domainesAvecModules = (referentiel.domaines || [])
-      .filter((d) => referentiel.modules.some((m) => m.domaine === d));
+    // Dérivé dynamiquement de la liste des domaines du référentiel (source
+    // unique, la même que celle utilisée par le radar de synthèse — cf.
+    // analyserProfil dans js/statuts.js) plutôt que restreint aux domaines
+    // ayant déjà un module jouable : un domaine sans jeu pour l'instant
+    // (ex. « Grandeurs et mesures » avant M23) reste sélectionnable, avec le
+    // message « Aucun jeu trouvé » habituel s'il ne ramène rien.
+    const domainesDuReferentiel = referentiel.domaines || [];
     const rangeeDomaines = h('div', { class: 'rangee-filtres' },
-      [['tous', 'Tous les domaines']].concat(domainesAvecModules.map((d) => [d, d])).map(([valeur, libelle]) =>
+      [['tous', 'Tous les domaines']].concat(domainesDuReferentiel.map((d) => [d, d])).map(([valeur, libelle]) =>
         h('button', { class: 'puce-filtre puce-filtre-domaine' + (filtreDomaine === valeur ? ' active' : ''),
           texte: libelle,
           onclick: () => { ecrireFiltreDomaine(idProfil, valeur); rendre(); } })));
