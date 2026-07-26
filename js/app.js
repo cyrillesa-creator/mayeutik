@@ -500,6 +500,21 @@
   }
 
   /*
+   * Légende de l'échelle LSU (couleurs/niveaux), réutilisée telle quelle sous
+   * chaque graphique du tableau de bord (radar de synthèse, chaque radar
+   * détaillé, courbe de progression) plutôt qu'une seule fois en haut de
+   * page — mêmes couleurs, mêmes libellés à chaque fois. `compacte` réduit
+   * l'encombrement pour les emplacements répétés sous les graphiques.
+   */
+  function legendeEchelle(compacte) {
+    return h('div', { class: 'legende-echelle' + (compacte ? ' legende-echelle-compacte' : '') },
+      S.STATUTS.map((s) => h('span', {}, [
+        h('span', { class: 'point-legende statut-' + s.id }),
+        h('span', { texte: s.valeurRadar + ' · ' + s.libelle })
+      ])));
+  }
+
+  /*
    * Bandeau de synthèse : trois compteurs (à consolider / en cours / maîtrisées)
    * recalculés à chaque rendu à partir des statuts LSU déjà calculés — aucune
    * animation de comptage, puisque ces statuts reflètent une PROGRESSION
@@ -604,7 +619,7 @@
       blocCourbe.appendChild(h('p', { class: 'vide-section',
         texte: 'Pas encore assez de parties pour voir une tendance.' }));
     } else {
-      // Même carte (fond dégradé, bordure) que les radars, pour un habillage cohérent.
+      // Même carte (bordure) que les radars, pour un habillage cohérent.
       const cadreCourbe = h('div', { class: 'cadre-radar' });
       cadreCourbe.appendChild(R.dessinerCourbe({ points: courbe.points, parSemaine: courbe.parSemaine }));
       cadreCourbe.appendChild(h('p', { class: 'aide-radar',
@@ -612,6 +627,7 @@
           ? 'Taux de réussite, semaine après semaine.'
           : 'Taux de réussite, partie après partie (encore trop peu de semaines distinctes pour un regroupement hebdomadaire).' }));
       blocCourbe.appendChild(cadreCourbe);
+      blocCourbe.appendChild(legendeEchelle(true));
     }
     blocs.appendChild(blocCourbe);
 
@@ -715,11 +731,7 @@
     cadreSynthese.appendChild(h('p', { class: 'aide-radar',
       texte: 'Touchez un domaine pour voir le détail par compétence.' }));
     sectionSynthese.appendChild(cadreSynthese);
-    sectionSynthese.appendChild(h('div', { class: 'legende-echelle' },
-      S.STATUTS.map((s) => h('span', {}, [
-        h('span', { class: 'point-legende statut-' + s.id }),
-        h('span', { texte: s.valeurRadar + ' · ' + s.libelle })
-      ]))));
+    sectionSynthese.appendChild(legendeEchelle());
     vue.appendChild(sectionSynthese);
 
     /* Radars détaillés du domaine sélectionné (8 axes max par radar). */
@@ -746,6 +758,7 @@
           onClicAxe: (i) => ouvrirFicheDetail(radar.competences[i], profilId)
         }));
         sectionDetail.appendChild(cadre);
+        sectionDetail.appendChild(legendeEchelle(true));
       });
 
       /* Liste des compétences du domaine, avec statut et repères. */

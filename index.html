@@ -424,9 +424,12 @@
   .fiche-bloc p { font-size: .9rem; line-height: 1.42; }
 
   /* Légende de l'échelle */
+  /* Légende de l'échelle : répétée (en version compacte) sous chaque graphique. */
   .legende-echelle { display: flex; flex-wrap: wrap; gap: .35rem .8rem; margin-top: .6rem; font-size: .78rem; }
   .legende-echelle span { display: inline-flex; align-items: center; gap: .3rem; }
   .point-legende { width: .65rem; height: .65rem; border-radius: 50%; display: inline-block; }
+  .legende-echelle-compacte { gap: .25rem .55rem; margin-top: .45rem; font-size: .68rem; opacity: .85; }
+  .legende-echelle-compacte .point-legende { width: .55rem; height: .55rem; }
 
   /* Pastilles de statut (couleurs de la charte uniquement) */
   .statut { font-size: .78rem; font-weight: 600; border-radius: 999px; padding: .15rem .6rem; white-space: nowrap; }
