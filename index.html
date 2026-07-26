@@ -353,8 +353,18 @@
     border-color: color-mix(in srgb, var(--couleur-menthe) 45%, white);
   }
 
-  /* Radar */
-  .cadre-radar { background: #fff; border-radius: 14px; padding: .8rem; border: 1px solid color-mix(in srgb, var(--couleur-encre) 10%, white); }
+  /* Radar (et courbe de progression, qui réutilise la même carte) : fond en
+     dégradé très léger, dans l'ordre de la légende des statuts LSU affichée
+     juste en dessous (corail -> soleil -> menthe -> mandarine, cf.
+     .legende-echelle) — décor discret, jamais au-dessus des tracés. */
+  .cadre-radar {
+    background: linear-gradient(135deg,
+      color-mix(in srgb, var(--couleur-corail) 7%, white) 0%,
+      color-mix(in srgb, var(--couleur-soleil) 7%, white) 35%,
+      color-mix(in srgb, var(--couleur-menthe) 7%, white) 65%,
+      color-mix(in srgb, var(--couleur-mandarine) 7%, white) 100%);
+    border-radius: 14px; padding: .8rem; border: 1px solid color-mix(in srgb, var(--couleur-encre) 10%, white);
+  }
   .radar-svg { display: block; width: 100%; max-width: 400px; margin: 0 auto; overflow: visible; }
   .radar-grille { fill: none; stroke: color-mix(in srgb, var(--couleur-encre) 14%, white); stroke-width: 1; }
   .radar-axe { stroke: color-mix(in srgb, var(--couleur-encre) 18%, white); stroke-width: 1; }

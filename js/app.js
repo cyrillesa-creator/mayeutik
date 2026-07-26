@@ -599,11 +599,14 @@
       blocCourbe.appendChild(h('p', { class: 'vide-section',
         texte: 'Pas encore assez de parties pour voir une tendance.' }));
     } else {
-      blocCourbe.appendChild(R.dessinerCourbe({ points: courbe.points, parSemaine: courbe.parSemaine }));
-      blocCourbe.appendChild(h('p', { class: 'aide-radar',
+      // Même carte (fond dégradé, bordure) que les radars, pour un habillage cohérent.
+      const cadreCourbe = h('div', { class: 'cadre-radar' });
+      cadreCourbe.appendChild(R.dessinerCourbe({ points: courbe.points, parSemaine: courbe.parSemaine }));
+      cadreCourbe.appendChild(h('p', { class: 'aide-radar',
         texte: courbe.parSemaine
           ? 'Taux de réussite, semaine après semaine.'
           : 'Taux de réussite, partie après partie (encore trop peu de semaines distinctes pour un regroupement hebdomadaire).' }));
+      blocCourbe.appendChild(cadreCourbe);
     }
     blocs.appendChild(blocCourbe);
 
