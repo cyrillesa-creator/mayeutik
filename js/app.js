@@ -643,15 +643,13 @@
     const mention = S.MENTION_PARENTALE.charAt(0).toUpperCase() + S.MENTION_PARENTALE.slice(1) + '.';
     vue.appendChild(h('p', { class: 'mention-legale', texte: mention }));
 
-    /* Bandeau de synthèse : à consolider / en cours / maîtrisées (au-dessus du radar). */
-    vue.appendChild(bandeauSynthese(analyse.competences));
-
-    /* Outils : choix du profil suivi + filtre de niveau. */
+    /* Outils : choix du profil suivi + filtre de niveau — première chose visible
+       après la mention légale, avant tout bloc de récapitulatif (bandeau, radar). */
     const selectProfil = h('select', { 'aria-label': 'Profil suivi',
       onchange: (e) => { P.definirProfilActif(e.target.value); rendre(); } },
       profils.length
         ? profils.map((p) => {
-            const opt = h('option', { value: p.id, texte: p.prenom + ' (' + p.niveau + ')' });
+            const opt = h('option', { value: p.id, texte: p.prenom });
             if (p.id === profilId) opt.selected = true;
             return opt;
           })
@@ -665,9 +663,18 @@
           return opt;
         })));
     vue.appendChild(h('div', { class: 'rangee-outils-parent' }, [
-      h('div', {}, [h('label', { texte: 'Enfant suivi' }), selectProfil]),
-      h('div', {}, [h('label', { texte: 'Niveau' }), selectNiveau])
+      h('div', { class: 'champ-select' }, [
+        h('label', { texte: 'Enfant suivi' }),
+        h('div', { class: 'select-enveloppe' }, [selectProfil])
+      ]),
+      h('div', { class: 'champ-select' }, [
+        h('label', { texte: 'Niveau' }),
+        h('div', { class: 'select-enveloppe' }, [selectNiveau])
+      ])
     ]));
+
+    /* Bandeau de synthèse : à consolider / en cours / maîtrisées (au-dessus du radar). */
+    vue.appendChild(bandeauSynthese(analyse.competences));
 
     /* Radar de synthèse : 4 axes = les 4 domaines du programme. */
     const sectionSynthese = h('div', { class: 'section-parent' });
