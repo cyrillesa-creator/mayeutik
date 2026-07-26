@@ -506,14 +506,19 @@
    * CONTINUE (plusieurs jours distincts requis) et non un score du jour
    * (PRODUIT.md, section « Tableau de bord parental »).
    */
-  function bandeauSynthese(competences) {
+  function bandeauSynthese(competences, onClicWidget) {
     let aConsolider = 0, enCours = 0, maitrisees = 0;
     competences.forEach((c) => {
       if (c.statut.id === 'non-atteints') aConsolider++;
       else if (c.statut.id === 'partiellement') enCours++;
       else if (c.statut.id === 'atteints' || c.statut.id === 'depasses') maitrisees++;
     });
-    const bloc = (classe, nombre, libelle) => h('div', { class: 'bloc-bandeau ' + classe }, [
+    // Boutons (pas des div) : cliquables/focusables au clavier, font défiler
+    // vers la liste complète des compétences plus bas — jamais de filtrage,
+    // la liste reste toujours entière à l'arrivée.
+    const bloc = (classe, nombre, libelle) => h('button', { type: 'button', class: 'bloc-bandeau ' + classe,
+      'aria-label': 'Voir la liste des compétences (' + nombre + ' ' + libelle.toLowerCase() + ')',
+      onclick: onClicWidget }, [
       h('div', { class: 'bloc-bandeau-nombre', texte: String(nombre) }),
       h('div', { class: 'bloc-bandeau-libelle', texte: libelle })
     ]);
@@ -676,8 +681,13 @@
       ])
     ]));
 
-    /* Bandeau de synthèse : à consolider / en cours / maîtrisées (au-dessus du radar). */
-    vue.appendChild(bandeauSynthese(analyse.competences));
+    /* Bandeau de synthèse : à consolider / en cours / maîtrisées (au-dessus du radar).
+       Cliquer un widget fait défiler vers la liste complète des compétences plus bas
+       (jamais de filtrage : la liste reste entière à l'arrivée). */
+    vue.appendChild(bandeauSynthese(analyse.competences, () => {
+      const cible = document.getElementById('section-detail-competences');
+      if (cible) cible.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
 
     /* Radar de synthèse : 4 axes = les 4 domaines du programme. */
     const sectionSynthese = h('div', { class: 'section-parent' });
@@ -714,7 +724,7 @@
 
     /* Radars détaillés du domaine sélectionné (8 axes max par radar). */
     const duDomaine = analyse.competences.filter((c) => c.domaine === etat.domaineParent);
-    const sectionDetail = h('div', { class: 'section-parent' });
+    const sectionDetail = h('div', { class: 'section-parent', id: 'section-detail-competences' });
     sectionDetail.appendChild(h('h2', { texte: 'Détail — ' + (etat.domaineParent || '') }));
     if (!duDomaine.length) {
       sectionDetail.appendChild(h('p', { class: 'vide-section',

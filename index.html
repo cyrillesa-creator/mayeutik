@@ -336,8 +336,13 @@
   .bandeau-synthese { display: flex; gap: .6rem; margin-bottom: 1.1rem; }
   .bloc-bandeau {
     flex: 1; text-align: center; border-radius: 14px; padding: .7rem .4rem;
-    border: 1.5px solid transparent;
+    border: 1.5px solid transparent; cursor: pointer; font: inherit;
+    transition: transform .12s ease, box-shadow .12s ease;
   }
+  .bloc-bandeau:hover, .bloc-bandeau:focus-visible {
+    transform: translateY(-2px); box-shadow: 0 4px 10px rgba(43,43,43,.14);
+  }
+  .bloc-bandeau:active { transform: translateY(0); box-shadow: none; }
   .bloc-bandeau-nombre { font-size: 1.6rem; font-weight: 700; line-height: 1; }
   .bloc-bandeau-libelle { font-size: .74rem; font-weight: 600; opacity: .8; margin-top: .25rem; }
   .bloc-bandeau-danger {
