@@ -22,6 +22,7 @@
   const etat = {
     recherche: '',
     profilEnEdition: null,       // id du profil en cours de modification (#modifier-profil)
+    origineEditionProfil: null,  // 'profils' ou 'parent' : où revenir après #modifier-profil
     domaineParent: null,     // domaine sélectionné sur le radar de synthèse
     filtreNiveauParent: 'tous',
     outilsDevOuverts: false  // le panneau dev reste ouvert entre deux rendus
@@ -228,7 +229,11 @@
       ]);
       const modifier = h('button', {
         class: 'bouton-modifier', 'aria-label': 'Modifier le profil de ' + profil.prenom,
-        onclick: () => { etat.profilEnEdition = profil.id; location.hash = '#modifier-profil'; }
+        onclick: () => {
+          etat.profilEnEdition = profil.id;
+          etat.origineEditionProfil = 'profils';
+          location.hash = '#modifier-profil';
+        }
       }, [h('span', { 'aria-hidden': 'true', texte: '✏️' })]);
       liste.appendChild(h('div', { class: 'ligne-profil' }, [principal, modifier]));
     });
@@ -258,10 +263,19 @@
 
   /* ---------- Vue : modification / suppression d'un profil ---------- */
 
+  // Où revenir après #modifier-profil : origine 'parent' -> tableau de bord,
+  // sinon (par défaut) -> écran de sélection des profils (comportement historique).
+  function retourApresEditionProfil() {
+    const destination = etat.origineEditionProfil === 'parent' ? '#parent' : '#profils';
+    etat.profilEnEdition = null;
+    etat.origineEditionProfil = null;
+    location.hash = destination;
+  }
+
   function vueModifierProfil(conteneur) {
     const profil = P.lireProfils().find((p) => p.id === etat.profilEnEdition);
     // Profil introuvable (ex. supprimé entre-temps) : on revient à la sélection.
-    if (!profil) { location.hash = '#profils'; return; }
+    if (!profil) { retourApresEditionProfil(); return; }
 
     const vue = h('div', { class: 'vue' });
     vue.appendChild(h('div', { class: 'entete-enfant' }, [
@@ -284,11 +298,10 @@
         // change, l'écran de choix des jeux ré-appliquera le filtre au nouveau
         // niveau (niveau recalculé à chaque rendu depuis profilActif()).
         P.modifierProfil(profil.id, champPrenom.value, champNiveau.value);
-        etat.profilEnEdition = null;
-        location.hash = '#profils';
+        retourApresEditionProfil();
       } });
     const boutonAnnuler = h('button', { class: 'bouton-secondaire', texte: 'Annuler',
-      onclick: () => { etat.profilEnEdition = null; location.hash = '#profils'; } });
+      onclick: retourApresEditionProfil });
 
     vue.appendChild(h('div', { class: 'formulaire-profil' }, [
       h('label', { class: 'champ-edition' }, [h('span', { texte: 'Prénom' }), champPrenom]),
@@ -332,9 +345,8 @@
             // Retire le profil + toutes ses sessions ; réassigne le profil actif
             // (profil restant, ou « aucun profil actif » si c'était le dernier).
             P.supprimerProfil(profil.id);
-            etat.profilEnEdition = null;
             fermer();
-            location.hash = '#profils'; // hashchange -> rendre() (écran de sélection)
+            retourApresEditionProfil(); // hashchange -> rendre() (écran d'origine)
           } })
       ])
     ]);
@@ -832,18 +844,20 @@
     }
     vue.appendChild(sectionHistorique);
 
-    /* Gestion des profils : côté parent (l'enfant ne peut pas supprimer). */
+    /* Gestion des profils : côté parent. La suppression n'est accessible que
+     * depuis l'écran de modification du profil (#modifier-profil), jamais
+     * directement depuis cette liste. */
     const sectionProfils = h('div', { class: 'section-parent' });
     sectionProfils.appendChild(h('h2', { texte: 'Profils' }));
     profils.forEach((p) => {
       sectionProfils.appendChild(h('div', { class: 'ligne-profil-parent' }, [
         avatar(p),
         h('span', { texte: p.prenom + ' · ' + p.niveau }),
-        h('button', { class: 'bouton-supprimer', texte: 'Supprimer',
+        h('button', { class: 'bouton-modifier-profil', texte: 'Modifier',
           onclick: () => {
-            const ok = window.confirm('Supprimer le profil de ' + p.prenom +
-              ' ? Toutes ses parties enregistrées seront effacées (irréversible).');
-            if (ok) { P.supprimerProfil(p.id); rendre(); }
+            etat.profilEnEdition = p.id;
+            etat.origineEditionProfil = 'parent';
+            location.hash = '#modifier-profil';
           } })
       ]));
     });
