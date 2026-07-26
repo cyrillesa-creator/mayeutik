@@ -500,16 +500,6 @@
   }
 
   /*
-   * Libellé court d'un domaine pour l'AXE du radar de synthèse uniquement
-   * (place limitée à 4 axes) : le nom complet reste affiché en sous-libellé,
-   * bulle d'aide et titre de section détaillée — seul l'axe est abrégé.
-   */
-  const LIBELLE_AXE_DOMAINE = { 'Organisation et gestion de données': 'Données' };
-  function libelleAxeDomaine(nom) {
-    return LIBELLE_AXE_DOMAINE[nom] || nom;
-  }
-
-  /*
    * Bandeau de synthèse : trois compteurs (à consolider / en cours / maîtrisées)
    * recalculés à chaque rendu à partir des statuts LSU déjà calculés — aucune
    * animation de comptage, puisque ces statuts reflètent une PROGRESSION
@@ -691,7 +681,7 @@
     }
     cadreSynthese.appendChild(R.dessiner({
       axes: analyse.domaines.map((d) => ({
-        libelle: libelleAxeDomaine(d.nom),
+        libelle: d.nom,
         valeur: Math.round(d.valeur * 10) / 10,
         sousLibelle: d.nbCompetences ? (String(Math.round(d.valeur * 10) / 10).replace('.', ',') + ' / 4') : 'aucun module',
         infoBulle: d.nom + ' — ' + (d.nbCompetences
