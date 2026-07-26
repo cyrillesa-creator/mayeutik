@@ -302,11 +302,34 @@
   }
   .section-parent { margin-bottom: 1.6rem; }
   .section-parent h2 { font-size: 1.02rem; font-weight: 600; margin-bottom: .5rem; }
-  .rangee-outils-parent { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 1rem; }
-  .rangee-outils-parent label { font-size: .82rem; font-weight: 500; display: block; margin-bottom: .2rem; opacity: .75; }
-  .rangee-outils-parent select {
-    min-height: 42px; border-radius: 10px; padding: 0 .5rem; background: #fff;
-    border: 1.5px solid color-mix(in srgb, var(--couleur-encre) 22%, white);
+  .rangee-outils-parent { display: flex; gap: .7rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .champ-select { flex: 1; min-width: 8rem; }
+  /* Le champ Niveau porte des libellés plus longs (« Tous les niveaux ») que
+     des prénoms : lui laisser une part un peu plus large évite les coupures. */
+  .champ-select + .champ-select { flex: 1.4; }
+  .champ-select label { font-size: .82rem; font-weight: 600; display: block; margin-bottom: .3rem; opacity: .75; }
+  /* Habillage CSS d'un <select> natif (clavier/lecteur d'écran intacts) : la
+     flèche du système est masquée (appearance: none) et remplacée par un
+     chevron dessiné en ::after sur l'enveloppe, positionné indépendamment du
+     select pour rester bien centré quel que soit son contenu. */
+  .select-enveloppe { position: relative; }
+  .select-enveloppe::after {
+    content: ''; position: absolute; top: 50%; right: .85rem; width: .45rem; height: .45rem;
+    border-right: 2.5px solid var(--couleur-mandarine); border-bottom: 2.5px solid var(--couleur-mandarine);
+    transform: translateY(-65%) rotate(45deg); pointer-events: none;
+  }
+  .champ-select select {
+    appearance: none; -webkit-appearance: none;
+    width: 100%; min-height: 44px; padding: 0 1.9rem 0 .8rem; border-radius: 12px;
+    background: #fff; color: var(--couleur-encre); font-weight: 600; font-size: .92rem;
+    border: 1.5px solid color-mix(in srgb, var(--couleur-encre) 18%, white);
+    box-shadow: 0 2px 6px rgba(43,43,43,.06);
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .champ-select select:hover { border-color: color-mix(in srgb, var(--couleur-mandarine) 50%, white); }
+  .champ-select select:focus-visible {
+    outline: none; border-color: var(--couleur-mandarine);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--couleur-mandarine) 25%, transparent);
   }
 
   /* Bandeau de synthèse (compteurs par statut, en tête de tableau de bord) */
