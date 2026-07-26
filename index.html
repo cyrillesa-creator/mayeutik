@@ -353,30 +353,42 @@
     border-color: color-mix(in srgb, var(--couleur-menthe) 45%, white);
   }
 
-  /* Radar (et courbe de progression, qui réutilise la même carte) : fond en
-     dégradé très léger, dans l'ordre de la légende des statuts LSU affichée
-     juste en dessous (corail -> soleil -> menthe -> mandarine, cf.
-     .legende-echelle) — décor discret, jamais au-dessus des tracés. */
+  /* Radar (et courbe de progression, qui réutilise la même carte) : carte
+     blanche neutre — le fond en dégradé testé précédemment réduisait la
+     lisibilité des libellés de domaines et a été retiré (régression). */
   .cadre-radar {
-    background: linear-gradient(135deg,
-      color-mix(in srgb, var(--couleur-corail) 7%, white) 0%,
-      color-mix(in srgb, var(--couleur-soleil) 7%, white) 35%,
-      color-mix(in srgb, var(--couleur-menthe) 7%, white) 65%,
-      color-mix(in srgb, var(--couleur-mandarine) 7%, white) 100%);
+    background: #fff;
     border-radius: 14px; padding: .8rem; border: 1px solid color-mix(in srgb, var(--couleur-encre) 10%, white);
   }
   .radar-svg { display: block; width: 100%; max-width: 400px; margin: 0 auto; overflow: visible; }
-  .radar-grille { fill: none; stroke: color-mix(in srgb, var(--couleur-encre) 14%, white); stroke-width: 1; }
-  .radar-axe { stroke: color-mix(in srgb, var(--couleur-encre) 18%, white); stroke-width: 1; }
+  /* Bandes concentriques par niveau LSU (1 à 4), couleur plate — mêmes
+     couleurs EXACTES que les badges de statut ci-dessous (.statut-*),
+     dans l'esprit des radars des évaluations Repères (anneaux successifs,
+     pas un dégradé continu). Un mince liseré (couleur de la carte) sépare
+     visuellement chaque anneau du suivant. */
+  .radar-bande { stroke: #fff; stroke-width: 1.5; }
+  .radar-bande-1 { fill: color-mix(in srgb, var(--couleur-corail) 30%, white); }   /* Objectifs non atteints */
+  .radar-bande-2 { fill: color-mix(in srgb, var(--couleur-soleil) 45%, white); }   /* Partiellement atteints */
+  .radar-bande-3 { fill: color-mix(in srgb, var(--couleur-menthe) 40%, white); }   /* Atteints */
+  .radar-bande-4 { fill: color-mix(in srgb, var(--couleur-mandarine) 40%, white); } /* Dépassés */
+  .radar-axe { stroke: color-mix(in srgb, var(--couleur-encre) 30%, white); stroke-width: 1.2; }
+  /* Profil de l'enfant : en encre (jamais une des couleurs de bande), pour
+     rester nettement contrasté quel que soit l'anneau derrière le tracé. */
   .radar-valeurs {
-    fill: color-mix(in srgb, var(--couleur-mandarine) 30%, transparent);
-    stroke: var(--couleur-mandarine); stroke-width: 2; stroke-linejoin: round;
+    fill: color-mix(in srgb, var(--couleur-encre) 16%, transparent);
+    stroke: var(--couleur-encre); stroke-width: 2.5; stroke-linejoin: round;
   }
-  .radar-valeurs-ligne { stroke: var(--couleur-mandarine); stroke-width: 2.5; stroke-linecap: round; }
-  .radar-point { fill: var(--couleur-mandarine); }
+  .radar-valeurs-ligne { stroke: var(--couleur-encre); stroke-width: 3; stroke-linecap: round; }
+  .radar-point { fill: var(--couleur-encre); stroke: #fff; stroke-width: 1.5; }
   /* La taille de police des libellés est fixée par un attribut SVG (adaptative
-     selon la longueur du libellé, cf. js/radar.js) — pas de font-size ici. */
-  .radar-libelle { font-weight: 500; fill: var(--couleur-encre); }
+     selon la longueur du libellé, cf. js/radar.js) — pas de font-size ici.
+     Halo blanc (paint-order + stroke) : garantit le contraste du texte quel
+     que soit ce qu'il y a derrière, même si un libellé enveloppé déborde
+     près d'une bande colorée. */
+  .radar-libelle {
+    font-weight: 500; fill: var(--couleur-encre);
+    paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round;
+  }
   .radar-libelle-cliquable { cursor: pointer; text-decoration: underline; }
   .radar-libelle-actif { font-weight: 700; fill: var(--couleur-mandarine); }
   .radar-sous-libelle { font-size: 8.5px; opacity: .65; }

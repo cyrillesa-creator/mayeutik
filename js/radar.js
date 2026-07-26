@@ -132,16 +132,28 @@
       role: 'img'
     });
 
-    // Anneaux de la grille : un polygone concentrique par palier de l'échelle.
-    for (let k = 1; k <= max; k++) {
+    /*
+     * Bandes concentriques par niveau de l'échelle LSU (1..max), couleur
+     * PLATE par bande — dans l'esprit des radars des évaluations Repères
+     * (anneaux successifs, pas un dégradé continu). Les couleurs sont
+     * exactement celles des badges de statut (index.html, .statut-*) :
+     * .radar-bande-N reprend la même formule color-mix que .statut-* pour
+     * le statut de valeurRadar N.
+     *
+     * Dessinées de la plus grande (niveau max) à la plus petite (niveau 1) :
+     * chaque bande plus petite recouvre le centre de la précédente, ce qui
+     * crée visuellement l'anneau par simple empilement (peintre), sans
+     * calcul de découpe de forme annulaire.
+     */
+    for (let k = max; k >= 1; k--) {
       const pts = [];
       for (let i = 0; i < n; i++) {
         const p = point(cx, cy, n, i, (k / max) * r);
         pts.push(p.x.toFixed(1) + ',' + p.y.toFixed(1));
       }
       svg.appendChild(el(n >= 3 ? 'polygon' : 'circle', n >= 3
-        ? { points: pts.join(' '), class: 'radar-grille' }
-        : { cx, cy, r: (k / max) * r, class: 'radar-grille' }));
+        ? { points: pts.join(' '), class: 'radar-bande radar-bande-' + k }
+        : { cx, cy, r: (k / max) * r, class: 'radar-bande radar-bande-' + k }));
     }
 
     // Rayons (un par axe) + libellés.
