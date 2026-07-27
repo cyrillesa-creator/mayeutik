@@ -109,6 +109,29 @@
       ]
     },
     {
+      "id": "M23",
+      "titre": "Longueurs",
+      "description": "Pars à l'aventure dans la Forêt aux Cent Arbres : compare, range, mesure et convertis des longueurs.",
+      "icone": "🌳",
+      "niveau": "CP",
+      "niveaux": ["CP", "CE1", "CE2"],
+      "adaptatifParNiveau": true,
+      "domaine": "Grandeurs et mesures",
+      "domaineProgramme": "Grandeurs et mesures",
+      "theme": "Longueurs",
+      "programme": "BO-2024",
+      "type": "entrainement",
+      "fichier": "jeux/M23-longueurs.html",
+      "competences": [
+        { "id": "comparer-cp", "libelle": "Comparer deux longueurs par superposition ou par report (vocabulaire long/court/près/loin)", "niveau": "CP" },
+        { "id": "mesurer-cp", "libelle": "Ranger des longueurs et mesurer en centimètres avec une règle graduée", "niveau": "CP" },
+        { "id": "mesurer-ce1", "libelle": "Mesurer avec une règle graduée (m/cm/km) et convertir par relations simples (1m=100cm, 1km=1000m)", "niveau": "CE1" },
+        { "id": "encadrer-ce1", "libelle": "Encadrer une longueur entre deux nombres entiers de centimètres", "niveau": "CE1" },
+        { "id": "conversions-ce2", "libelle": "Convertir des longueurs par relations explicites (mm/cm/dm/m/km), sans tableau de conversion", "niveau": "CE2" },
+        { "id": "perimetre-ce2", "libelle": "Comparer et mesurer le périmètre d'un polygone (report au compas, somme des côtés)", "niveau": "CE2" }
+      ]
+    },
+    {
       "id": "M40",
       "titre": "Sens de la division",
       "description": "Découvre la division comme opération inverse de la multiplication, et le symbole ÷.",
