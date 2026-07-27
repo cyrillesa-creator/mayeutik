@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="color-scheme" content="light only">
+<title>Longueurs – Mayeutik</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --couleur-fond: #FFF8EF;
+    --couleur-encre: #2B2B2B;
+    --couleur-mandarine: #FF8C42;
+    --couleur-menthe: #4ECDC4;
+    --couleur-corail: #FF6B6B;
+    --couleur-soleil: #FFD93D;
+    color-scheme: light only;
+  }
+  @media (prefers-color-scheme: dark) {
+    html { background-color: var(--couleur-fond); }
+    body { background-color: var(--couleur-fond); color: var(--couleur-encre); }
+    input, select, textarea, button { background-color: #FFFFFF; color: var(--couleur-encre); }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; background:var(--couleur-fond); color:var(--couleur-encre); overflow-x:hidden; }
+  body { font-family:'Fredoka', system-ui, sans-serif; min-height:100vh; padding-bottom:2rem; }
+  button { font-family:inherit; cursor:pointer; }
+  h1,h2,h3{ font-weight:700; margin:0 0 .4rem; }
+
+  #ecran-accueil { max-width:640px; margin:0 auto; padding:1.2rem 1rem 2rem; }
+  .entete-accueil { text-align:center; margin-bottom:.8rem; }
+  .entete-accueil h1 { font-size:1.5rem; color:var(--couleur-mandarine); }
+  .entete-accueil p { margin:0; font-size:1rem; font-weight:500; opacity:.85; }
+
+  /* Sélecteur de palier (CHARTE §15 : niveau du profil actif par défaut, changement possible) */
+  .rangee-paliers{ display:flex; justify-content:center; gap:.5rem; margin:.9rem 0 1rem; flex-wrap:wrap; }
+  .puce-palier{
+    min-height:40px; padding:.35rem 1rem; border-radius:999px; font-weight:700; font-size:.92rem;
+    border:2.5px solid color-mix(in srgb, var(--couleur-encre) 22%, white); background:#ffffff; color:var(--couleur-encre);
+  }
+  .puce-palier.actif{ background:var(--couleur-mandarine); border-color:var(--couleur-mandarine); color:#ffffff; }
+  .note-palier{ text-align:center; font-size:.82rem; opacity:.7; margin:-.3rem 0 .8rem; }
+
+  .grille-jeux { display:grid; grid-template-columns:repeat(2,1fr); gap:.9rem; }
+  @media (max-width:360px){ .grille-jeux{ grid-template-columns:1fr; } }
+  .carte-jeu {
+    --c: var(--couleur-mandarine);
+    display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+    text-align:center; gap:.3rem;
+    background: color-mix(in srgb, var(--c) 16%, white);
+    border:3px solid var(--c); border-radius:20px; padding:.8rem .6rem;
+    max-height:34vh; min-height:9.5rem;
+    box-shadow:0 4px 0 color-mix(in srgb, var(--c) 55%, black 6%);
+  }
+  .carte-jeu:active { transform:translateY(2px); box-shadow:0 2px 0 color-mix(in srgb, var(--c) 55%, black 6%); }
+  .carte-jeu.carte-menthe{ --c:var(--couleur-menthe); }
+  .carte-jeu.carte-corail{ --c:var(--couleur-corail); }
+  .carte-jeu.carte-soleil{ --c:var(--couleur-soleil); }
+  .carte-jeu .icone{ font-size:1.9rem; line-height:1; }
+  .carte-jeu h2{ font-size:1rem; }
+  .carte-jeu p{ font-size:.76rem; font-weight:400; margin:0; opacity:.85; }
+  .etoiles{ display:inline-flex; gap:2px; font-size:1.1rem; letter-spacing:-1px; }
+  .etoile{ color:rgba(43,43,43,.2); }
+  .etoile.pleine{ color:var(--couleur-soleil); text-shadow:0 0 1px rgba(43,43,43,.35); }
+
+  /* Palier bonus : présenté comme une récompense, distinct visuellement (CHARTE §15) */
+  .bloc-bonus{
+    margin-top:1.3rem; border-radius:20px; padding:.9rem .8rem;
+    border:3px dashed var(--couleur-soleil); background:color-mix(in srgb, var(--couleur-soleil) 14%, white);
+  }
+  .bloc-bonus h3{ text-align:center; font-size:1rem; color:color-mix(in srgb, var(--couleur-soleil) 55%, black 25%); margin-bottom:.15rem; }
+  .bloc-bonus .note-palier{ margin:.1rem 0 .7rem; }
+
+  #ecran-jeu{ max-width:640px; margin:0 auto; padding:.8rem 1rem 2.5rem; }
+  .entete-jeu{ display:flex; align-items:center; gap:.6rem; margin-bottom:.8rem; }
+  .bouton-retour{
+    flex:0 0 auto; min-height:44px; min-width:44px; border-radius:14px; border:none;
+    background:var(--couleur-encre); color:var(--couleur-fond); font-size:1.2rem; font-weight:600; padding:0 .9rem;
+  }
+  .entete-jeu-titres{ flex:1; min-width:0; }
+  .entete-jeu-titres h2{ font-size:1.1rem; color:var(--couleur-mandarine); }
+  .entete-jeu-titres .progression{ font-size:.85rem; font-weight:500; opacity:.75; }
+  #zone-jeu{
+    background:#ffffff; border-radius:20px;
+    border:3px solid color-mix(in srgb, var(--couleur-encre) 12%, white);
+    padding:1.1rem .9rem; min-height:40vh;
+  }
+  .consigne{ text-align:center; font-size:1.05rem; font-weight:600; margin:0; }
+  .legende{ text-align:center; font-size:.85rem; font-weight:400; opacity:.85; margin-top:.7rem; }
+
+  .bloc-consigne{ display:flex; align-items:center; justify-content:center; gap:.6rem; margin-bottom:.8rem; flex-wrap:wrap; }
+  .bouton-son{
+    min-width:44px; min-height:44px; border-radius:50%;
+    border:2.5px solid var(--couleur-mandarine); background:#ffffff;
+    font-size:1.3rem; display:flex; align-items:center; justify-content:center; flex:0 0 auto;
+  }
+  .bouton-son:active{ transform:translateY(2px); }
+
+  .bouton-principal{
+    display:block; margin:.8rem auto 0; min-height:44px; border-radius:14px; border:none;
+    background:var(--couleur-mandarine); color:#ffffff; font-weight:700; padding:0 1.3rem; font-size:1rem;
+  }
+  .bouton-principal:disabled{ opacity:.45; }
+  .bouton-secondaire{
+    display:block; margin:0 auto; min-height:44px; border-radius:14px; border:2.5px solid var(--couleur-encre);
+    background:#ffffff; padding:0 1.1rem; font-weight:500;
+  }
+
+  /* Retour à la coquille (CHARTE §7) : bouton discret + confirmation */
+  .barre-accueil{ display:flex; margin-bottom:.6rem; }
+  .bouton-menu{
+    min-height:44px; border-radius:14px; padding:0 .9rem;
+    border:2px solid color-mix(in srgb, var(--couleur-encre) 25%, white);
+    background:#ffffff; color:var(--couleur-encre); font-weight:600; font-size:.95rem;
+    display:inline-flex; align-items:center; gap:.35rem;
+  }
+  .bouton-menu:active{ transform:translateY(2px); }
+  .modale-fond{
+    position:fixed; inset:0; z-index:1000; padding:1.2rem;
+    background:color-mix(in srgb, var(--couleur-encre) 55%, transparent);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .modale-boite{
+    background:#ffffff; border-radius:20px; padding:1.4rem 1.2rem; max-width:20rem; width:100%;
+    text-align:center; box-shadow:0 12px 34px rgba(43,43,43,.28);
+  }
+  .modale-boite p{ font-size:1.05rem; font-weight:600; margin:0 0 1.1rem; }
+  .modale-boutons{ display:flex; gap:.7rem; justify-content:center; flex-wrap:wrap; }
+  .modale-boutons .bouton-principal, .modale-boutons .bouton-secondaire{ margin:0; }
+
+  .feedback{ text-align:center; font-weight:700; font-size:1.05rem; min-height:1.6rem; margin:.8rem 0 .2rem; }
+  .feedback-succes{ color:color-mix(in srgb, var(--couleur-menthe) 70%, black 20%); }
+  .feedback-erreur{ color:color-mix(in srgb, var(--couleur-corail) 70%, black 20%); }
+  .bouton-suivant{
+    display:block; margin:.6rem auto 0; min-height:44px; border-radius:14px; border:none;
+    background:var(--couleur-mandarine); color:#ffffff; font-weight:700; font-size:1rem; padding:0 1.4rem;
+  }
+
+  .bloc-resultats{ text-align:center; }
+  .bloc-resultats .etoiles{ font-size:2.6rem; margin:.6rem 0; }
+  .bloc-resultats .score-texte{ font-size:1.1rem; font-weight:500; margin-bottom:1rem; }
+  .boutons-resultats{ display:flex; justify-content:center; gap:.7rem; flex-wrap:wrap; margin-top:.6rem; }
+
+  /* ---- Lecture (QCM) ---- */
+  .grille-options{ display:grid; grid-template-columns:repeat(2,1fr); gap:.6rem; margin-top:.7rem; }
+  @media (max-width:340px){ .grille-options{ grid-template-columns:1fr; } }
+  .bouton-option{
+    min-height:3.2rem; border-radius:16px; border:2.5px solid var(--couleur-encre); background:#ffffff;
+    display:flex; align-items:center; justify-content:center; padding:.5rem; font-size:.95rem; font-weight:600; text-align:center;
+  }
+  .bouton-option:disabled{ opacity:.6; }
+  .bouton-option.correct{ background:color-mix(in srgb, var(--couleur-menthe) 45%, white); border-color:var(--couleur-menthe); }
+  .bouton-option.incorrect{ background:color-mix(in srgb, var(--couleur-corail) 35%, white); border-color:var(--couleur-corail); }
+  .bouton-option-bonus{ min-height:2.7rem; font-size:.85rem; }
+
+  .bonus-estimation{ margin-top:1rem; padding-top:.8rem; border-top:2px dashed color-mix(in srgb, var(--couleur-soleil) 55%, white); }
+  .grille-options-bonus{ margin-top:.5rem; }
+
+  /* ---- Règle graduée virtuelle (composant réutilisé par plusieurs mini-jeux) ---- */
+  .regle-scroll{ overflow-x:auto; margin:.9rem 0; padding-bottom:.3rem; }
+  .regle-graduee{
+    position:relative; height:64px;
+    background:linear-gradient(180deg, color-mix(in srgb, var(--couleur-mandarine) 16%, white), color-mix(in srgb, var(--couleur-encre) 6%, white));
+    border:2.5px solid color-mix(in srgb, var(--couleur-encre) 25%, white); border-radius:10px;
+  }
+  .regle-tick{ position:absolute; bottom:0; width:2px; height:12px; background:var(--couleur-encre); opacity:.55; }
+  .regle-tick-forte{ height:20px; width:2.5px; opacity:.9; }
+  .regle-label{ position:absolute; bottom:22px; transform:translateX(-50%); font-size:.66rem; font-weight:700; opacity:.8; }
+  .regle-unite{ position:absolute; bottom:22px; font-size:.7rem; font-weight:700; opacity:.7; }
+  .regle-barre{
+    position:absolute; top:8px; left:0; height:13px; border-radius:4px;
+    background:var(--couleur-corail); border:2px solid color-mix(in srgb, var(--couleur-corail) 60%, black 10%);
+  }
+  .regle-zone{ position:absolute; top:0; height:100%; background:transparent; border:none; padding:0; }
+  .regle-zone.selectionnee{ background:color-mix(in srgb, var(--couleur-soleil) 45%, transparent); border-radius:4px; }
+
+  /* ---- Comparaison directe (brindilles alignées) ---- */
+  .comparaison-objets{ display:flex; flex-direction:column; gap:.9rem; margin:.9rem 0; }
+  .rangee-brindille{ display:flex; }
+  .brindille-btn{ border:none; background:transparent; padding:.3rem; display:flex; align-items:center; min-height:44px; }
+  .brindille-barre{ height:16px; border-radius:8px; background:var(--couleur-menthe); border:2px solid color-mix(in srgb, var(--couleur-menthe) 60%, black 10%); }
+
+  /* ---- File des brindilles (rangement par ordre) ---- */
+  .file-brindilles{ display:flex; flex-direction:column; gap:.5rem; margin:.9rem 0; }
+  .brindille-btn.placee .brindille-barre{ background:var(--couleur-soleil); border-color:color-mix(in srgb, var(--couleur-soleil) 60%, black 10%); }
+  .brindille-btn.secousse{ animation:secousse-anim .35s; }
+  @keyframes secousse-anim{ 0%,100%{ transform:translateX(0); } 25%{ transform:translateX(-6px); } 75%{ transform:translateX(6px); } }
+
+  /* ---- Report indirect (arbres fixes + ficelle) ---- */
+  .comparaison-report{ display:flex; justify-content:center; gap:1.8rem; align-items:flex-end; margin:1rem 0; min-height:9.5rem; }
+  .arbre-col{ border:none; background:transparent; display:flex; flex-direction:column; align-items:center; gap:.15rem; min-width:64px; min-height:44px; }
+  .arbre-cime{ font-size:1.7rem; line-height:1; }
+  .arbre-tronc-barre{ width:16px; border-radius:3px; background:color-mix(in srgb, var(--couleur-mandarine) 55%, var(--couleur-encre) 20%); }
+  .arbre-label{ font-size:.8rem; font-weight:700; margin-top:.2rem; }
+
+  /* ---- Distances sur le sentier (près/loin) ---- */
+  .sentier{ position:relative; margin:1.1rem .5rem 1.8rem; height:3rem; }
+  .sentier-depart{ position:absolute; left:0; top:.35rem; font-size:1.4rem; }
+  .sentier-piste{ position:relative; margin-left:2.4rem; height:100%; border-bottom:3px dashed color-mix(in srgb, var(--couleur-encre) 25%, white); }
+  .clairiere-btn{ position:absolute; bottom:-.15rem; min-width:44px; min-height:44px; border:none; background:transparent; font-size:1.6rem; }
+
+  /* ---- Périmètre : côtés à reporter au compas ---- */
+  .bloc-polygone{ text-align:center; font-weight:700; margin-bottom:.3rem; }
+  .rangee-cotes{ display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; margin:.4rem 0 .7rem; }
+  .cote-rod{ min-height:44px; min-width:44px; border-radius:10px; border:2px solid color-mix(in srgb, var(--couleur-encre) 15%, white); background:#ffffff; display:flex; align-items:center; justify-content:center; padding:0 .5rem; }
+  .cote-rod:disabled{ opacity:.3; }
+  .rod-barre{ display:block; height:14px; border-radius:4px; }
+  .ligne-report{ display:flex; align-items:center; min-height:30px; padding:.4rem; border-radius:10px;
+    background:color-mix(in srgb, var(--couleur-fond) 100%, white); border:2px dashed color-mix(in srgb, var(--couleur-encre) 22%, white); margin-bottom:.8rem; }
+  .segment-report{ display:block; height:16px; }
+  .segment-report:first-child{ border-top-left-radius:8px; border-bottom-left-radius:8px; }
+  .segment-report:last-child{ border-top-right-radius:8px; border-bottom-right-radius:8px; }
+
+  /* ---- Saisies numériques (conversions, périmètre mesuré) ---- */
+  .saisie-longueur{ display:block; margin:.9rem auto; width:6.5rem; min-height:2.8rem; border-radius:10px; border:2px solid var(--couleur-mandarine); text-align:center; font-family:inherit; font-size:1.1rem; }
+  .saisie-decomposition{ display:flex; gap:.7rem; justify-content:center; margin:.9rem 0; flex-wrap:wrap; }
+  .champ-decomposition{ display:flex; flex-direction:column; align-items:center; gap:.3rem; font-size:.82rem; font-weight:700; }
+  .champ-decomposition input{ width:4.4rem; min-height:2.6rem; border-radius:10px; border:2px solid var(--couleur-mandarine); text-align:center; font-family:inherit; font-size:1.05rem; }
+
+  /* confettis */
+  #confettis-conteneur{ position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:999; }
+  .confetti{ position:absolute; top:-12px; width:9px; height:14px; border-radius:2px;
+    animation-name:chute-confetti; animation-timing-function:ease-in; animation-fill-mode:forwards; }
+  @keyframes chute-confetti{ to{ transform:translateY(105vh) rotate(340deg); opacity:.75; } }
+  @media (prefers-reduced-motion:reduce){ .confetti{ display:none; animation:none; } }
+
+  [hidden]{ display:none !important; }
+</style>
+</head>
+<body>
+<div id="confettis-conteneur" aria-hidden="true"></div>
+
+<main id="ecran-accueil">
+  <div class="barre-accueil">
+    <button type="button" class="bouton-menu" id="bouton-menu">← Menu</button>
+  </div>
+  <div class="entete-accueil">
+    <h1>Longueurs 🌳</h1>
+    <p id="sous-titre-accueil"></p>
+  </div>
+  <div class="rangee-paliers" id="rangee-paliers"></div>
+  <p class="note-palier" id="note-palier"></p>
+  <div class="grille-jeux" id="grille-jeux"></div>
+  <div class="bloc-bonus" id="bloc-bonus" hidden>
+    <h3 id="titre-bonus">Palier bonus 🎁</h3>
+    <p class="note-palier" id="note-bonus"></p>
+    <div class="grille-jeux" id="grille-bonus"></div>
+  </div>
+</main>
+
+<main id="ecran-jeu" hidden>
+  <div class="entete-jeu">
+    <button class="bouton-retour" id="bouton-retour" aria-label="Retour à l'accueil">←</button>
+    <div class="entete-jeu-titres">
+      <h2 id="titre-jeu-courant"></h2>
+      <div class="progression" id="progression-jeu"></div>
+    </div>
+  </div>
+  <div id="zone-jeu"></div>
+  <div class="feedback" id="zone-feedback" aria-live="polite"></div>
+  <button class="bouton-suivant" id="bouton-suivant" hidden>Suivant →</button>
+</main>
+
+<div class="modale-fond" id="modale-menu" hidden>
+  <div class="modale-boite" role="dialog" aria-modal="true" aria-labelledby="modale-menu-texte">
+    <p id="modale-menu-texte">Revenir au menu principal ? Ta partie en cours sera perdue.</p>
+    <div class="modale-boutons">
+      <button type="button" class="bouton-secondaire" id="modale-menu-rester">Rester</button>
+      <button type="button" class="bouton-principal" id="modale-menu-revenir">Revenir au menu</button>
+    </div>
+  </div>
+</div>
+
+<script type="application/json" id="donnees-jeu">
+{
+  "titre": "Longueurs",
+  "sousTitre": "Pars à l'aventure dans la Forêt aux Cent Arbres !",
+  "messagesFeedback": {
+    "bravo": ["Bravo !", "Super !", "Génial !", "Bien joué !", "C'est ça !", "Trop fort !"],
+    "rate": ["Presque !", "Regarde bien la longueur.", "Pas cette fois, courage !", "On y retourne."]
+  },
+  "estimationsCP": [
+    { "texte": "Une fourmi mesure plutôt…", "options": ["2 cm", "20 cm", "1 m"], "bonne": "2 cm" },
+    { "texte": "Une brindille mesure plutôt…", "options": ["2 cm", "20 cm", "1 m"], "bonne": "20 cm" },
+    { "texte": "Un enfant de ton âge mesure plutôt…", "options": ["2 cm", "20 cm", "1 m"], "bonne": "1 m" },
+    { "texte": "Un trombone mesure plutôt…", "options": ["2 cm", "20 cm", "1 m"], "bonne": "2 cm" }
+  ],
+  "estimationsCE1": [
+    { "texte": "La largeur du sentier forestier mesure plutôt…", "options": ["1 m", "10 m", "1 km"], "bonne": "1 m" },
+    { "texte": "La distance jusqu'à la clairière mesure plutôt…", "options": ["50 cm", "50 m", "50 km"], "bonne": "50 m" },
+    { "texte": "Un grand chêne mesure plutôt…", "options": ["2 m", "20 m", "200 m"], "bonne": "20 m" },
+    { "texte": "Le tour de la forêt en promenade mesure plutôt…", "options": ["3 m", "3 km", "300 km"], "bonne": "3 km" }
+  ],
+  "paliers": {
+    "CP": {
+      "miniJeux": [
+        { "id": "comparer-cp", "titre": "Long ou court ?", "icone": "🌿", "couleur": "menthe", "description": "Compare deux longueurs dans la forêt.", "type": "comparer", "nbTours": 6 },
+        { "id": "mesurer-cp", "titre": "La file des brindilles", "icone": "📏", "couleur": "mandarine", "description": "Range les brindilles, puis mesure-les.", "type": "ranger-mesurer", "nbTours": 6, "nbBrindillesMax": 5, "capCm": 20 }
+      ]
+    },
+    "CE1": {
+      "miniJeux": [
+        { "id": "mesurer-ce1", "titre": "La règle du garde forestier", "icone": "🧭", "couleur": "soleil", "description": "Mesure, convertis et estime des longueurs.", "type": "garde-forestier", "nbTours": 6, "capCm": 30 },
+        { "id": "encadrer-ce1", "titre": "Entre deux graduations", "icone": "📍", "couleur": "corail", "description": "Trouve entre quels nombres se situe la longueur.", "type": "encadrer", "nbTours": 6, "capCm": 20 }
+      ]
+    },
+    "CE2": {
+      "miniJeux": [
+        { "id": "conversions-ce2", "titre": "Le décimètre du bûcheron", "icone": "🪓", "couleur": "menthe", "description": "Convertis des longueurs de troncs et de sentiers.", "type": "conversions", "nbTours": 6 },
+        { "id": "perimetre-ce2", "titre": "Le tour de la clairière", "icone": "📐", "couleur": "mandarine", "description": "Compare et mesure le tour de figures.", "type": "perimetre", "nbTours": 6 }
+      ]
+    }
+  }
+}
+</script>
+<script>
+(function () {
+  'use strict';
+
+  const donnees = JSON.parse(document.getElementById('donnees-jeu').textContent);
+  const ORDRE_PALIERS = ['CP', 'CE1', 'CE2'];
+
+  /* ---------- Utilitaires génériques ---------- */
+
+  function nombreAleatoire(min, max) { return min + Math.floor(Math.random() * (max - min + 1)); }
+  function choisir(tableau) { return tableau[Math.floor(Math.random() * tableau.length)]; }
+  function melanger(tableau) {
+    const copie = [...tableau];
+    for (let i = copie.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copie[i], copie[j]] = [copie[j], copie[i]];
+    }
+    return copie;
+  }
+  function melangerOptions(options, indexCorrect) {
+    const enveloppes = options.map((valeur, i) => ({ valeur, estCorrecte: i === indexCorrect }));
+    const melangees = melanger(enveloppes);
+    return {
+      options: melangees.map((e) => e.valeur),
+      indexCorrect: melangees.findIndex((e) => e.estCorrecte)
+    };
+  }
+
+  /* ---------- Étoiles : stockage sûr (mémoire + localStorage best-effort) ---------- */
+
+  const CLE_STOCKAGE = 'mayeutik-m23-foret-etoiles';
+  let memoireEtoiles = null;
+
+  function lireEtoiles() {
+    if (memoireEtoiles === null) {
+      memoireEtoiles = {};
+      try {
+        const brut = window.localStorage.getItem(CLE_STOCKAGE);
+        if (brut) memoireEtoiles = JSON.parse(brut);
+      } catch (e) {
+        memoireEtoiles = {};
+      }
+    }
+    return memoireEtoiles;
+  }
+  function enregistrerEtoiles(jeuId, valeur) {
+    const tout = lireEtoiles();
+    tout[jeuId] = Math.max(tout[jeuId] || 0, valeur);
+    memoireEtoiles = tout;
+    try {
+      window.localStorage.setItem(CLE_STOCKAGE, JSON.stringify(tout));
+    } catch (e) {
+      // localStorage indisponible : les étoiles restent valables pour la session en cours.
+    }
+  }
+  function creerEtoiles(valeur, max) {
+    max = max || 3;
+    const cont = document.createElement('span');
+    cont.className = 'etoiles';
+    for (let i = 1; i <= max; i++) {
+      const s = document.createElement('span');
+      s.className = 'etoile' + (i <= valeur ? ' pleine' : '');
+      s.textContent = '★';
+      cont.appendChild(s);
+    }
+    return cont;
+  }
+  function calculerEtoiles(score, total) {
+    const pct = score / total;
+    if (pct >= 1) return 3;
+    if (pct >= 0.66) return 2;
+    if (pct >= 0.33) return 1;
+    return 0;
+  }
+
+  /* ---------- Profil actif : lecture du niveau (CHARTE §15) ---------- */
+  /* Un jeu autonome ne peut pas importer js/profils.js de la coquille : il relit
+     directement les mêmes clés partagées localStorage, en lecture seule. */
+
+  const CLE_PROFILS = 'mayeutik-profils';
+  const CLE_PROFIL_ACTIF = 'mayeutik-profil-actif';
+
+  function lireProfilActifId() {
+    try {
+      return window.localStorage.getItem(CLE_PROFIL_ACTIF) || 'p1';
+    } catch (e) {
+      return 'p1';
+    }
+  }
+  function niveauDuProfilActif() {
+    try {
+      const brut = window.localStorage.getItem(CLE_PROFILS);
+      if (!brut) return null;
+      const profils = JSON.parse(brut);
+      const actif = profils.find((p) => p.id === lireProfilActifId());
+      return (actif && actif.niveau) || null;
+    } catch (e) {
+      return null;
+    }
+  }
+  function palierParDefaut() {
+    const niveau = niveauDuProfilActif();
+    if (niveau && donnees.paliers[niveau]) return niveau;
+    // Niveau absent/non couvert par ce module : on retombe sur le palier le plus bas (CHARTE §15).
+    return ORDRE_PALIERS.find((n) => donnees.paliers[n]) || ORDRE_PALIERS[0];
+  }
+
+  /* ---------- Sessions : contrat de données v1 (CHARTE.md, section 11) ---------- */
+
+  const CLE_SESSIONS = 'mayeutik-sessions';
+  const MODULE_ID = 'M23';
+  const MAX_SESSIONS_PAR_PROFIL = 500;
+
+  let memoireSessions = null;
+
+  function lireSessions() {
+    if (memoireSessions === null) {
+      memoireSessions = [];
+      try {
+        const brut = window.localStorage.getItem(CLE_SESSIONS);
+        if (brut) memoireSessions = JSON.parse(brut);
+      } catch (e) {
+        memoireSessions = [];
+      }
+    }
+    return memoireSessions;
+  }
+  function enregistrerSession(competence, score, total, duree) {
+    const profilId = lireProfilActifId();
+    const toutes = lireSessions();
+    toutes.push({ profilId, module: MODULE_ID, competence, score, total, date: new Date().toISOString(), duree });
+    let compteur = 0;
+    for (let i = toutes.length - 1; i >= 0; i--) {
+      if (toutes[i].profilId === profilId) {
+        compteur++;
+        if (compteur > MAX_SESSIONS_PAR_PROFIL) toutes.splice(i, 1);
+      }
+    }
+    memoireSessions = toutes;
+    try {
+      window.localStorage.setItem(CLE_SESSIONS, JSON.stringify(toutes));
+    } catch (e) {
+      // localStorage indisponible : la session reste valable pour la session en cours.
+    }
+  }
+
+  /*
+   * Maîtrise locale d'un palier (CHARTE §15) : heuristique SIMPLIFIÉE propre à ce
+   * jeu, pas le calcul officiel LSU (qui reste propriété de la coquille, cf.
+   * js/statuts.js). Un mini-jeu est considéré « maîtrisé » si sa DERNIÈRE
+   * session enregistrée atteint au moins 80 %. Le palier est maîtrisé quand
+   * TOUS ses mini-jeux le sont.
+   */
+  const SEUIL_MAITRISE_LOCALE = 0.8;
+  function palierMaitrise(palierNom) {
+    const palier = donnees.paliers[palierNom];
+    if (!palier) return false;
+    const profilId = lireProfilActifId();
+    const sessions = lireSessions().filter((s) => s.profilId === profilId && s.module === MODULE_ID);
+    return palier.miniJeux.every((mj) => {
+      const dernieres = sessions.filter((s) => s.competence === mj.id);
+      if (!dernieres.length) return false;
+      const derniere = dernieres[dernieres.length - 1];
+      return derniere.total > 0 && (derniere.score / derniere.total) >= SEUIL_MAITRISE_LOCALE;
+    });
+  }
+  function palierSuivant(palierNom) {
+    const i = ORDRE_PALIERS.indexOf(palierNom);
+    if (i === -1 || i === ORDRE_PALIERS.length - 1) return null;
+    const suivant = ORDRE_PALIERS[i + 1];
+    return donnees.paliers[suivant] ? suivant : null;
+  }
+
+  /* ---------- Confettis (CHARTE.md, section 4) ---------- */
+
+  function lancerConfettis() {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const conteneur = document.getElementById('confettis-conteneur');
+    const couleurs = ['var(--couleur-mandarine)', 'var(--couleur-menthe)', 'var(--couleur-corail)', 'var(--couleur-soleil)'];
+    const total = 36;
+    for (let i = 0; i < total; i++) {
+      const p = document.createElement('div');
+      p.className = 'confetti';
+      p.style.left = Math.random() * 100 + 'vw';
+      p.style.backgroundColor = couleurs[Math.floor(Math.random() * couleurs.length)];
+      p.style.animationDuration = (0.9 + Math.random() * 0.9) + 's';
+      p.style.animationDelay = (Math.random() * 0.15) + 's';
+      p.style.transform = 'rotate(' + Math.floor(Math.random() * 360) + 'deg)';
+      conteneur.appendChild(p);
+      p.addEventListener('animationend', () => p.remove());
+      setTimeout(() => p.remove(), 2500);
+    }
+  }
+
+  /* ---------- Feedback sonore (Web Audio) ---------- */
+
+  let contexteAudio = null;
+  function obtenirContexteAudio() {
+    if (!contexteAudio) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      contexteAudio = new Ctx();
+    }
+    if (contexteAudio.state === 'suspended') contexteAudio.resume();
+    return contexteAudio;
+  }
+  function jouerSon(type) {
+    let ctx;
+    try { ctx = obtenirContexteAudio(); } catch (e) { return; }
+    const maintenant = ctx.currentTime;
+    const notes = type === 'bravo' ? [523.25, 659.25, 783.99, 1046.5] : [392.0, 293.66];
+    const duree = type === 'bravo' ? 0.11 : 0.17;
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = freq;
+      const debut = maintenant + i * duree;
+      gain.gain.setValueAtTime(0.0001, debut);
+      gain.gain.exponentialRampToValueAtTime(0.22, debut + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, debut + duree);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(debut); osc.stop(debut + duree + 0.02);
+    });
+  }
+
+  /* ---------- Consigne lue à voix haute (SpeechSynthesis) ---------- */
+
+  function lireAVoixHaute(texte) {
+    try {
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(texte);
+      u.lang = 'fr-FR';
+      u.rate = 0.95;
+      window.speechSynthesis.speak(u);
+    } catch (e) {
+      // synthèse vocale indisponible : la consigne reste lisible à l'écran.
+    }
+  }
+  function creerBlocConsigne(texte, texteVoix) {
+    const cont = document.createElement('div');
+    cont.className = 'bloc-consigne';
+    const p = document.createElement('p');
+    p.className = 'consigne';
+    p.textContent = texte;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'bouton-son';
+    btn.setAttribute('aria-label', 'Écouter la consigne');
+    btn.textContent = '🔊';
+    const texteALire = texteVoix || texte;
+    btn.addEventListener('click', () => lireAVoixHaute(texteALire));
+    cont.appendChild(p);
+    cont.appendChild(btn);
+    lireAVoixHaute(texteALire);
+    return cont;
+  }
+
+  /* ================================================================
+     Primitives d'affichage réutilisées par plusieurs mini-jeux
+     ================================================================ */
+
+  /* Règle graduée virtuelle : ticks, étiquettes, barre d'objet mesuré (optionnelle),
+     zones cliquables entre deux graduations entières (mode « encadrer »). */
+  function pxParUniteRegle(longueurUnites) {
+    return Math.max(9, Math.min(30, Math.floor(280 / longueurUnites)));
+  }
+  function construireRegle(options) {
+    const { longueurUnites, objetLongueur, unite, zonesCliquables, onZoneClic, zoneSelectionnee } = options;
+    const px = pxParUniteRegle(longueurUnites);
+    const wrap = document.createElement('div');
+    wrap.className = 'regle-scroll';
+    const regle = document.createElement('div');
+    regle.className = 'regle-graduee';
+    regle.style.width = (longueurUnites * px + 24) + 'px';
+
+    if (objetLongueur != null) {
+      const barre = document.createElement('div');
+      barre.className = 'regle-barre';
+      barre.style.width = Math.max(2, objetLongueur * px) + 'px';
+      regle.appendChild(barre);
+    }
+
+    const espacementLabel = px < 16 ? 5 : (px < 22 ? 2 : 1);
+    for (let i = 0; i <= longueurUnites; i++) {
+      const tick = document.createElement('div');
+      tick.className = 'regle-tick' + (i % espacementLabel === 0 ? ' regle-tick-forte' : '');
+      tick.style.left = (i * px) + 'px';
+      regle.appendChild(tick);
+      if (i % espacementLabel === 0) {
+        const lab = document.createElement('div');
+        lab.className = 'regle-label';
+        lab.style.left = (i * px) + 'px';
+        lab.textContent = String(i);
+        regle.appendChild(lab);
+      }
+    }
+    const uniteLab = document.createElement('div');
+    uniteLab.className = 'regle-unite';
+    uniteLab.textContent = unite || 'cm';
+    uniteLab.style.left = (longueurUnites * px + 6) + 'px';
+    regle.appendChild(uniteLab);
+
+    if (zonesCliquables) {
+      for (let i = 0; i < longueurUnites; i++) {
+        const zone = document.createElement('button');
+        zone.type = 'button';
+        zone.className = 'regle-zone' + (zoneSelectionnee === i ? ' selectionnee' : '');
+        zone.style.left = (i * px) + 'px';
+        zone.style.width = px + 'px';
+        zone.setAttribute('aria-label', 'Entre ' + i + ' et ' + (i + 1) + ' ' + (unite || 'cm'));
+        zone.addEventListener('click', () => onZoneClic(i));
+        regle.appendChild(zone);
+      }
+    }
+
+    wrap.appendChild(regle);
+    return wrap;
+  }
+
+  /* ================================================================
+     Contrôleur général de jeu
+     ================================================================ */
+
+  let etatPalierAffiche = palierParDefaut();
+  let etat = null; // { miniJeuId, palier, index, score, verrouille, demarreLe, ... }
+
+  function trouverMiniJeu(id) {
+    for (const nom of ORDRE_PALIERS) {
+      const palier = donnees.paliers[nom];
+      if (!palier) continue;
+      const trouve = palier.miniJeux.find((mj) => mj.id === id);
+      if (trouve) return { cfg: trouve, palier: nom };
+    }
+    return null;
+  }
+
+  function construireCarteJeu(cfg) {
+    const carte = document.createElement('button');
+    carte.className = 'carte-jeu carte-' + cfg.couleur;
+    carte.dataset.jeu = cfg.id;
+    const icone = document.createElement('div');
+    icone.className = 'icone';
+    icone.textContent = cfg.icone;
+    const titre = document.createElement('h2');
+    titre.textContent = cfg.titre;
+    const desc = document.createElement('p');
+    desc.textContent = cfg.description;
+    const tout = lireEtoiles();
+    const etoiles = creerEtoiles(tout[cfg.id] || 0);
+    carte.appendChild(icone);
+    carte.appendChild(titre);
+    carte.appendChild(desc);
+    carte.appendChild(etoiles);
+    carte.addEventListener('click', () => demarrerJeu(cfg.id));
+    return carte;
+  }
+
+  function construireAccueil() {
+    document.getElementById('sous-titre-accueil').textContent = donnees.sousTitre;
+
+    const rangee = document.getElementById('rangee-paliers');
+    rangee.innerHTML = '';
+    ORDRE_PALIERS.filter((n) => donnees.paliers[n]).forEach((n) => {
+      const puce = document.createElement('button');
+      puce.type = 'button';
+      puce.className = 'puce-palier' + (n === etatPalierAffiche ? ' actif' : '');
+      puce.textContent = n;
+      puce.addEventListener('click', () => { etatPalierAffiche = n; construireAccueil(); });
+      rangee.appendChild(puce);
+    });
+    const niveauProfil = niveauDuProfilActif();
+    document.getElementById('note-palier').textContent = niveauProfil
+      ? 'Niveau de ' + (niveauProfil === etatPalierAffiche ? 'ton profil' : 'ton profil : ' + niveauProfil + ' — tu regardes le palier ' + etatPalierAffiche)
+      : '';
+
+    const grille = document.getElementById('grille-jeux');
+    grille.innerHTML = '';
+    (donnees.paliers[etatPalierAffiche] ? donnees.paliers[etatPalierAffiche].miniJeux : [])
+      .forEach((cfg) => grille.appendChild(construireCarteJeu(cfg)));
+
+    /* Palier bonus (CHARTE §15) : uniquement si le palier courant est maîtrisé
+       ET qu'un palier suivant existe. */
+    const suivant = palierSuivant(etatPalierAffiche);
+    const blocBonus = document.getElementById('bloc-bonus');
+    if (suivant && palierMaitrise(etatPalierAffiche)) {
+      blocBonus.hidden = false;
+      document.getElementById('note-bonus').textContent =
+        'Tu maîtrises tout le palier ' + etatPalierAffiche + ' : essaie un aperçu du palier ' + suivant + ' !';
+      const grilleBonus = document.getElementById('grille-bonus');
+      grilleBonus.innerHTML = '';
+      donnees.paliers[suivant].miniJeux.forEach((cfg) => grilleBonus.appendChild(construireCarteJeu(cfg)));
+    } else {
+      blocBonus.hidden = true;
+    }
+  }
+
+  function retourAccueil() {
+    if (window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch (e) { /* ignore */ } }
+    document.getElementById('ecran-jeu').hidden = true;
+    document.getElementById('ecran-accueil').hidden = false;
+    construireAccueil();
+  }
+
+  function demarrerJeu(miniJeuId) {
+    const trouve = trouverMiniJeu(miniJeuId);
+    if (!trouve) return;
+    etat = { miniJeuId, cfg: trouve.cfg, palier: trouve.palier, index: 0, score: 0, verrouille: false, demarreLe: Date.now(), dernierSousType: null };
+    document.getElementById('ecran-accueil').hidden = true;
+    document.getElementById('ecran-jeu').hidden = false;
+    document.getElementById('titre-jeu-courant').textContent = trouve.cfg.titre;
+    tourSuivant();
+  }
+
+  function majProgression() {
+    document.getElementById('progression-jeu').textContent = 'Manche ' + etat.index + ' / ' + etat.cfg.nbTours;
+  }
+
+  function tourSuivant() {
+    if (etat.index >= etat.cfg.nbTours) { afficherResultats(); return; }
+    etat.index++;
+    etat.verrouille = false;
+    majProgression();
+    const zone = document.getElementById('zone-jeu');
+    zone.innerHTML = '';
+    document.getElementById('zone-feedback').textContent = '';
+    document.getElementById('zone-feedback').className = 'feedback';
+    document.getElementById('bouton-suivant').hidden = true;
+    const type = etat.cfg.type;
+    if (type === 'comparer') genererComparer(zone, etat.cfg);
+    else if (type === 'ranger-mesurer') genererRangerMesurer(zone, etat.cfg);
+    else if (type === 'garde-forestier') genererGardeForestier(zone, etat.cfg);
+    else if (type === 'encadrer') genererEncadrer(zone, etat.cfg);
+    else if (type === 'conversions') genererConversionsCE2(zone, etat.cfg);
+    else if (type === 'perimetre') genererPerimetre(zone, etat.cfg);
+  }
+
+  function validerTour(estCorrecte, boutonAValider) {
+    if (etat.verrouille) return;
+    etat.verrouille = true;
+    if (boutonAValider) boutonAValider.disabled = true;
+    const zoneFeedback = document.getElementById('zone-feedback');
+    if (estCorrecte) {
+      etat.score++;
+      zoneFeedback.textContent = choisir(donnees.messagesFeedback.bravo);
+      zoneFeedback.className = 'feedback feedback-succes';
+      lancerConfettis();
+      jouerSon('bravo');
+    } else {
+      zoneFeedback.textContent = choisir(donnees.messagesFeedback.rate);
+      zoneFeedback.className = 'feedback feedback-erreur';
+      jouerSon('rate');
+    }
+    document.getElementById('bouton-suivant').hidden = false;
+  }
+
+  function afficherResultats() {
+    const cfg = etat.cfg;
+    document.getElementById('progression-jeu').textContent = 'Résultats';
+    document.getElementById('bouton-suivant').hidden = true;
+    document.getElementById('zone-feedback').textContent = '';
+    const etoilesGagnees = calculerEtoiles(etat.score, cfg.nbTours);
+    enregistrerEtoiles(cfg.id, etoilesGagnees);
+    const dureeSecondes = Math.max(0, Math.round((Date.now() - etat.demarreLe) / 1000));
+    enregistrerSession(cfg.id, etat.score, cfg.nbTours, dureeSecondes);
+
+    const zone = document.getElementById('zone-jeu');
+    zone.innerHTML = '';
+    const bloc = document.createElement('div');
+    bloc.className = 'bloc-resultats';
+
+    const titre = document.createElement('h3');
+    titre.textContent = 'Fin du jeu !';
+
+    const score = document.createElement('p');
+    score.className = 'score-texte';
+    score.textContent = etat.score + ' / ' + cfg.nbTours + ' manches réussies';
+
+    const etoiles = creerEtoiles(etoilesGagnees);
+
+    const boutons = document.createElement('div');
+    boutons.className = 'boutons-resultats';
+
+    const rejouer = document.createElement('button');
+    rejouer.className = 'bouton-principal';
+    rejouer.textContent = 'Rejouer';
+    rejouer.addEventListener('click', () => demarrerJeu(cfg.id));
+
+    const accueilBtn = document.createElement('button');
+    accueilBtn.className = 'bouton-secondaire';
+    accueilBtn.textContent = "Retour à l'accueil";
+    accueilBtn.addEventListener('click', retourAccueil);
+
+    boutons.appendChild(rejouer);
+    boutons.appendChild(accueilBtn);
+
+    bloc.appendChild(titre);
+    bloc.appendChild(etoiles);
+    bloc.appendChild(score);
+    bloc.appendChild(boutons);
+    zone.appendChild(bloc);
+
+    if (etoilesGagnees === 3) lancerConfettis();
+  }
+
+  /* ================================================================
+     Mini-jeu : « Long ou court ? » (comparaison, CP)
+     ================================================================ */
+
+  function genererComparer(zone, cfg) {
+    const variante = choisir(['objets', 'report', 'distance']);
+    if (variante === 'objets') {
+      const longA = nombreAleatoire(3, 18);
+      let longB = nombreAleatoire(3, 18);
+      while (longB === longA) longB = nombreAleatoire(3, 18);
+      const demanderLong = Math.random() < 0.5;
+      zone.appendChild(creerBlocConsigne(
+        'Ces deux brindilles sont déjà alignées. Touche la ' + (demanderLong ? 'plus longue' : 'plus courte') + '.',
+        'Regarde bien les deux brindilles alignées au même départ, et touche celle qui est la ' + (demanderLong ? 'plus longue' : 'plus courte') + '.'
+      ));
+      const cont = document.createElement('div');
+      cont.className = 'comparaison-objets';
+      [['A', longA], ['B', longB]].forEach(([lettre, longueur]) => {
+        const rangee = document.createElement('div');
+        rangee.className = 'rangee-brindille';
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'brindille-btn';
+        const barre = document.createElement('span');
+        barre.className = 'brindille-barre';
+        barre.style.width = (longueur * 12) + 'px';
+        btn.appendChild(barre);
+        btn.setAttribute('aria-label', 'Brindille ' + lettre);
+        btn.addEventListener('click', () => {
+          const estLaBonne = demanderLong ? longueur === Math.max(longA, longB) : longueur === Math.min(longA, longB);
+          Array.from(cont.querySelectorAll('.brindille-btn')).forEach((b) => { b.disabled = true; });
+          validerTour(estLaBonne, btn);
+        });
+        rangee.appendChild(btn);
+        cont.appendChild(rangee);
+      });
+      zone.appendChild(cont);
+    } else if (variante === 'report') {
+      const hA = nombreAleatoire(4, 16);
+      let hB = nombreAleatoire(4, 16);
+      while (hB === hA) hB = nombreAleatoire(4, 16);
+      const demanderHaut = Math.random() < 0.5;
+      zone.appendChild(creerBlocConsigne(
+        'Ces arbres ne peuvent pas bouger. Touche l\'arbre le ' + (demanderHaut ? 'plus haut' : 'plus petit') + '.',
+        'La ficelle reporte la taille de chaque arbre. Touche l\'arbre le ' + (demanderHaut ? 'plus haut' : 'plus petit') + '.'
+      ));
+      const cont = document.createElement('div');
+      cont.className = 'comparaison-report';
+      [['A', hA], ['B', hB]].forEach(([lettre, hauteur]) => {
+        const col = document.createElement('button');
+        col.type = 'button'; col.className = 'arbre-col';
+        const cime = document.createElement('span');
+        cime.className = 'arbre-cime'; cime.textContent = '🌳';
+        const tronc = document.createElement('span');
+        tronc.className = 'arbre-tronc-barre';
+        tronc.style.height = (hauteur * 9) + 'px';
+        const label = document.createElement('span');
+        label.className = 'arbre-label'; label.textContent = 'Arbre ' + lettre;
+        col.appendChild(cime);
+        col.appendChild(tronc);
+        col.appendChild(label);
+        col.setAttribute('aria-label', 'Arbre ' + lettre);
+        col.addEventListener('click', () => {
+          const estLaBonne = demanderHaut ? hauteur === Math.max(hA, hB) : hauteur === Math.min(hA, hB);
+          Array.from(cont.querySelectorAll('.arbre-col')).forEach((b) => { b.disabled = true; });
+          validerTour(estLaBonne, col);
+        });
+        cont.appendChild(col);
+      });
+      zone.appendChild(cont);
+      zone.appendChild(Object.assign(document.createElement('p'), {
+        className: 'legende',
+        textContent: '🧵 La ficelle reporte la longueur d\'un arbre à l\'autre, même si on ne peut pas les rapprocher.'
+      }));
+    } else {
+      const dA = nombreAleatoire(2, 12);
+      let dB = nombreAleatoire(2, 12);
+      while (dB === dA) dB = nombreAleatoire(2, 12);
+      const demanderProche = Math.random() < 0.5;
+      zone.appendChild(creerBlocConsigne(
+        'Sur ce sentier, touche la clairière la plus ' + (demanderProche ? 'proche' : 'éloignée') + ' du départ.',
+        'Regarde la distance entre le départ du sentier et chaque clairière, et touche la clairière la plus ' + (demanderProche ? 'proche' : 'éloignée') + '.'
+      ));
+      const sentier = document.createElement('div');
+      sentier.className = 'sentier';
+      const depart = document.createElement('span'); depart.className = 'sentier-depart'; depart.textContent = '🚏';
+      sentier.appendChild(depart);
+      const piste = document.createElement('div'); piste.className = 'sentier-piste';
+      [['A', dA], ['B', dB]].forEach(([lettre, distance]) => {
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'clairiere-btn';
+        btn.style.left = (distance * 16) + 'px';
+        btn.textContent = '🏕️';
+        btn.setAttribute('aria-label', 'Clairière ' + lettre);
+        btn.addEventListener('click', () => {
+          const estLaBonne = demanderProche ? distance === Math.min(dA, dB) : distance === Math.max(dA, dB);
+          Array.from(piste.querySelectorAll('.clairiere-btn')).forEach((b) => { b.disabled = true; });
+          validerTour(estLaBonne, btn);
+        });
+        piste.appendChild(btn);
+      });
+      sentier.appendChild(piste);
+      zone.appendChild(sentier);
+    }
+  }
+
+  /* ================================================================
+     Mini-jeu : « La file des brindilles » (ranger + mesurer, CP)
+     ================================================================ */
+
+  function genererRangerMesurer(zone, cfg) {
+    const sousType = (etat.index % 2 === 1) ? 'ranger' : 'mesurer';
+    if (sousType === 'ranger') genererRangerBrindilles(zone, cfg);
+    else genererMesurer(zone, cfg, { banqueBonus: donnees.estimationsCP });
+  }
+
+  function genererRangerBrindilles(zone, cfg) {
+    const n = nombreAleatoire(3, cfg.nbBrindillesMax || 5);
+    const longueurs = [];
+    while (longueurs.length < n) {
+      const v = nombreAleatoire(2, 18);
+      if (longueurs.indexOf(v) === -1) longueurs.push(v);
+    }
+    const ordreCorrect = [...longueurs].sort((a, b) => a - b);
+    const ordreAffiche = melanger(longueurs);
+
+    zone.appendChild(creerBlocConsigne(
+      'Touche les brindilles dans l\'ordre : de la plus courte à la plus longue.',
+      'Touche d\'abord la brindille la plus courte, puis la suivante, jusqu\'à la plus longue.'
+    ));
+
+    const cont = document.createElement('div');
+    cont.className = 'file-brindilles';
+    let prochainIndex = 0;
+    let uneErreur = false;
+    ordreAffiche.forEach((longueur) => {
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'brindille-btn';
+      const barre = document.createElement('span');
+      barre.className = 'brindille-barre';
+      barre.style.width = (longueur * 12) + 'px';
+      btn.appendChild(barre);
+      btn.setAttribute('aria-label', 'Brindille de longueur ' + longueur);
+      btn.addEventListener('click', () => {
+        if (btn.disabled || etat.verrouille) return;
+        if (longueur === ordreCorrect[prochainIndex]) {
+          btn.disabled = true;
+          btn.classList.add('placee');
+          prochainIndex++;
+          if (prochainIndex === ordreCorrect.length) validerTour(!uneErreur, btn);
+        } else {
+          uneErreur = true;
+          btn.classList.add('secousse');
+          jouerSon('rate');
+          setTimeout(() => btn.classList.remove('secousse'), 350);
+        }
+      });
+      cont.appendChild(btn);
+    });
+    zone.appendChild(cont);
+  }
+
+  function genererMesurer(zone, cfg, opts) {
+    const cap = cfg.capCm || 20;
+    const longueur = nombreAleatoire(3, cap - 2);
+    zone.appendChild(creerBlocConsigne(
+      'Lis la règle : quelle est la longueur de cette brindille ?',
+      'Regarde où s\'arrête la brindille sur la règle graduée, et choisis la bonne longueur en centimètres.'
+    ));
+    zone.appendChild(construireRegle({ longueurUnites: cap, objetLongueur: longueur, unite: 'cm' }));
+
+    const distracteurs = new Set([longueur]);
+    let tentatives = 0;
+    while (distracteurs.size < 4 && tentatives < 30) {
+      tentatives++;
+      const d = longueur + choisir([-3, -2, -1, 1, 2, 3]);
+      if (d >= 1 && d <= cap) distracteurs.add(d);
+    }
+    const options = Array.from(distracteurs).map(String);
+    const indexBonne = options.indexOf(String(longueur));
+    const { options: optionsMelangees, indexCorrect } = melangerOptions(options, indexBonne);
+
+    const grille = document.createElement('div');
+    grille.className = 'grille-options';
+    optionsMelangees.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'bouton-option'; btn.textContent = opt + ' cm';
+      btn.addEventListener('click', () => {
+        Array.from(grille.children).forEach((b) => { b.disabled = true; });
+        const correct = i === indexCorrect;
+        btn.classList.add(correct ? 'correct' : 'incorrect');
+        if (!correct) grille.children[indexCorrect].classList.add('correct');
+        if (opts && opts.banqueBonus) afficherBonusEstimation(zone, correct, btn, opts.banqueBonus);
+        else validerTour(correct, btn);
+      });
+      grille.appendChild(btn);
+    });
+    zone.appendChild(grille);
+  }
+
+  function afficherBonusEstimation(zone, correctPrincipal, boutonPrincipal, banque) {
+    const item = choisir(banque);
+    const bloc = document.createElement('div');
+    bloc.className = 'bonus-estimation';
+    const titre = document.createElement('p');
+    titre.className = 'legende';
+    titre.textContent = '🎁 Bonus : ' + item.texte;
+    bloc.appendChild(titre);
+    const rangee = document.createElement('div');
+    rangee.className = 'grille-options grille-options-bonus';
+    item.options.forEach((opt) => {
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'bouton-option bouton-option-bonus'; btn.textContent = opt;
+      btn.addEventListener('click', () => {
+        Array.from(rangee.children).forEach((b) => { b.disabled = true; });
+        const correct = opt === item.bonne;
+        btn.classList.add(correct ? 'correct' : 'incorrect');
+        if (!correct) {
+          const bonneBtn = Array.from(rangee.children).find((b) => b.textContent === item.bonne);
+          if (bonneBtn) bonneBtn.classList.add('correct');
+        }
+        validerTour(correctPrincipal, boutonPrincipal);
+      });
+      rangee.appendChild(btn);
+    });
+    bloc.appendChild(rangee);
+    zone.appendChild(bloc);
+  }
+
+  /* ================================================================
+     Mini-jeu : « La règle du garde forestier » (mesurer/convertir/estimer, CE1)
+     ================================================================ */
+
+  function genererGardeForestier(zone, cfg) {
+    const types = ['mesurer', 'conversion', 'estimation'];
+    const dispo = types.filter((t) => t !== etat.dernierSousType);
+    const sousType = choisir(dispo.length ? dispo : types);
+    etat.dernierSousType = sousType;
+    if (sousType === 'mesurer') genererMesurer(zone, { capCm: cfg.capCm || 30 }, null);
+    else if (sousType === 'conversion') genererConversionCE1(zone, cfg);
+    else genererEstimation(zone, donnees.estimationsCE1);
+  }
+
+  function genererConversionCE1(zone, cfg) {
+    const type = choisir(['m-cm-somme', 'km-m', 'm-cm-simple']);
+    let texte, reponse;
+    if (type === 'm-cm-somme') {
+      const m = nombreAleatoire(1, 3);
+      const cm = nombreAleatoire(1, 90);
+      texte = m + ' m + ' + cm + ' cm = combien de cm en tout ?';
+      reponse = m * 100 + cm;
+    } else if (type === 'km-m') {
+      const km = nombreAleatoire(1, 5);
+      texte = km + ' km = combien de m ?';
+      reponse = km * 1000;
+    } else {
+      const m = nombreAleatoire(1, 9);
+      texte = m + ' m = combien de cm ?';
+      reponse = m * 100;
+    }
+    zone.appendChild(creerBlocConsigne(texte, texte));
+    zone.appendChild(Object.assign(document.createElement('p'), {
+      className: 'legende', textContent: 'Rappel : 1 m = 100 cm et 1 km = 1000 m.'
+    }));
+    creerSaisieSimple(zone, reponse, 'cm ou m');
+  }
+
+  function genererEstimation(zone, banque) {
+    const item = choisir(banque);
+    zone.appendChild(creerBlocConsigne(item.texte, item.texte));
+    const grille = document.createElement('div');
+    grille.className = 'grille-options';
+    item.options.forEach((opt) => {
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'bouton-option'; btn.textContent = opt;
+      btn.addEventListener('click', () => {
+        Array.from(grille.children).forEach((b) => { b.disabled = true; });
+        const correct = opt === item.bonne;
+        btn.classList.add(correct ? 'correct' : 'incorrect');
+        if (!correct) {
+          const bonneBtn = Array.from(grille.children).find((b) => b.textContent === item.bonne);
+          if (bonneBtn) bonneBtn.classList.add('correct');
+        }
+        validerTour(correct, btn);
+      });
+      grille.appendChild(btn);
+    });
+    zone.appendChild(grille);
+  }
+
+  function creerSaisieSimple(zone, reponse) {
+    const input = document.createElement('input');
+    input.type = 'number'; input.min = '0'; input.inputMode = 'numeric'; input.className = 'saisie-longueur';
+    input.setAttribute('aria-label', 'Ta réponse');
+    const boutonValider = document.createElement('button');
+    boutonValider.type = 'button'; boutonValider.className = 'bouton-principal'; boutonValider.textContent = 'Valider';
+    boutonValider.addEventListener('click', () => {
+      const saisie = parseInt(input.value, 10);
+      validerTour(saisie === reponse, boutonValider);
+    });
+    zone.appendChild(input);
+    zone.appendChild(boutonValider);
+  }
+
+  /* ================================================================
+     Mini-jeu : « Entre deux graduations » (encadrer, CE1)
+     ================================================================ */
+
+  function genererEncadrer(zone, cfg) {
+    const cap = cfg.capCm || 20;
+    const entier = nombreAleatoire(2, cap - 2);
+    const longueur = entier + choisir([0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]);
+    const indexBas = Math.floor(longueur);
+
+    zone.appendChild(creerBlocConsigne(
+      'Cette longueur ne tombe pas juste sur une graduation. Touche la règle entre les deux bons nombres entiers.',
+      'Regarde entre quels deux nombres entiers de centimètres se trouve la fin de la barre, puis touche cette zone sur la règle.'
+    ));
+
+    let zoneSelectionnee = null;
+    let regleActuelle = null;
+    const note = document.createElement('p');
+    note.className = 'legende';
+
+    const boutonValider = document.createElement('button');
+    boutonValider.type = 'button'; boutonValider.className = 'bouton-principal'; boutonValider.textContent = 'Valider';
+    boutonValider.disabled = true;
+    boutonValider.addEventListener('click', () => {
+      validerTour(zoneSelectionnee === indexBas, boutonValider);
+    });
+
+    function majNote() {
+      note.textContent = zoneSelectionnee != null
+        ? 'Zone choisie : entre ' + zoneSelectionnee + ' et ' + (zoneSelectionnee + 1) + ' cm.'
+        : 'Touche une zone entre deux graduations.';
+    }
+
+    function rerendreRegle() {
+      const nouvelle = construireRegle({
+        longueurUnites: cap, objetLongueur: longueur, unite: 'cm',
+        zonesCliquables: true, zoneSelectionnee,
+        onZoneClic: (i) => {
+          if (etat.verrouille) return;
+          zoneSelectionnee = i;
+          majNote();
+          boutonValider.disabled = false;
+          rerendreRegle();
+        }
+      });
+      if (regleActuelle) regleActuelle.replaceWith(nouvelle);
+      else zone.insertBefore(nouvelle, note);
+      regleActuelle = nouvelle;
+    }
+
+    zone.appendChild(note);
+    majNote();
+    rerendreRegle();
+    zone.appendChild(boutonValider);
+  }
+
+  /* ================================================================
+     Mini-jeu : « Le décimètre du bûcheron » (conversions par relations, CE2)
+     ================================================================ */
+
+  function genererConversionsCE2(zone, cfg) {
+    const type = choisir(['cm-vers-mdc', 'km-vers-m', 'm-vers-cm', 'mm-vers-cm']);
+    if (type === 'cm-vers-mdc') {
+      const total = nombreAleatoire(105, 987);
+      const m = Math.floor(total / 100);
+      const dm = Math.floor((total % 100) / 10);
+      const cm = total % 10;
+      zone.appendChild(creerBlocConsigne(
+        'Un tronc mesure ' + total + ' cm. Écris cette longueur avec des mètres, des décimètres et des centimètres.',
+        'Décompose ' + total + ' centimètres en mètres, décimètres et centimètres.'
+      ));
+      creerSaisieDecomposition(zone, ['m', 'dm', 'cm'], [m, dm, cm]);
+    } else if (type === 'km-vers-m') {
+      const km = nombreAleatoire(1, 9);
+      const texte = 'Le sentier de la forêt mesure ' + km + ' km. Combien de mètres cela fait-il ?';
+      zone.appendChild(creerBlocConsigne(texte, texte));
+      creerSaisieSimple(zone, km * 1000);
+    } else if (type === 'm-vers-cm') {
+      const m = nombreAleatoire(2, 9);
+      const texte = 'Un sentier mesure ' + m + ' m. Combien de centimètres cela fait-il ?';
+      zone.appendChild(creerBlocConsigne(texte, texte));
+      creerSaisieSimple(zone, m * 100);
+    } else {
+      const totalMm = nombreAleatoire(23, 98);
+      const cm = Math.floor(totalMm / 10);
+      const mm = totalMm % 10;
+      zone.appendChild(creerBlocConsigne(
+        'Une brindille mesure ' + totalMm + ' mm. Écris cette longueur avec des centimètres et des millimètres.',
+        'Décompose ' + totalMm + ' millimètres en centimètres et millimètres.'
+      ));
+      creerSaisieDecomposition(zone, ['cm', 'mm'], [cm, mm]);
+    }
+  }
+
+  function creerSaisieDecomposition(zone, unites, reponses) {
+    const cont = document.createElement('div');
+    cont.className = 'saisie-decomposition';
+    const champs = unites.map((unite) => {
+      const wrap = document.createElement('label');
+      wrap.className = 'champ-decomposition';
+      const input = document.createElement('input');
+      input.type = 'number'; input.min = '0'; input.inputMode = 'numeric';
+      input.setAttribute('aria-label', unite);
+      const spanU = document.createElement('span'); spanU.textContent = unite;
+      wrap.appendChild(input); wrap.appendChild(spanU);
+      cont.appendChild(wrap);
+      return input;
+    });
+    zone.appendChild(cont);
+    const boutonValider = document.createElement('button');
+    boutonValider.type = 'button'; boutonValider.className = 'bouton-principal'; boutonValider.textContent = 'Valider';
+    boutonValider.addEventListener('click', () => {
+      const saisies = champs.map((c) => parseInt(c.value, 10));
+      const correct = saisies.every((v, i) => v === reponses[i]);
+      validerTour(correct, boutonValider);
+    });
+    zone.appendChild(boutonValider);
+  }
+
+  /* ================================================================
+     Mini-jeu : « Le tour de la clairière » (périmètre, CE2)
+     ================================================================ */
+
+  function genererPerimetre(zone, cfg) {
+    const sousType = (etat.index % 2 === 1) ? 'comparer' : 'mesurer';
+    if (sousType === 'comparer') genererPerimetreComparer(zone, cfg);
+    else genererPerimetreMesurer(zone, cfg);
+  }
+
+  const COULEURS_COTES = ['var(--couleur-mandarine)', 'var(--couleur-menthe)', 'var(--couleur-corail)', 'var(--couleur-soleil)'];
+
+  function genererPerimetreComparer(zone, cfg) {
+    const UNITE_PX = 14;
+    function polygoneAleatoire() {
+      const n = choisir([3, 3, 4]);
+      const cotes = [];
+      for (let i = 0; i < n; i++) cotes.push(nombreAleatoire(2, 9));
+      return cotes;
+    }
+    const cotesA = polygoneAleatoire();
+    let cotesB = polygoneAleatoire();
+    let garde = 0;
+    while (cotesA.reduce((a, b) => a + b, 0) === cotesB.reduce((a, b) => a + b, 0) && garde < 10) {
+      cotesB = polygoneAleatoire();
+      garde++;
+    }
+    const demanderPlusGrand = Math.random() < 0.5;
+
+    zone.appendChild(creerBlocConsigne(
+      'Sans les mesurer, reporte chaque côté sur la ligne pour comparer les deux tours de clairière.',
+      'Clique sur chaque côté de la clairière A, puis de la clairière B, pour reporter sa longueur sur la ligne de comparaison.'
+    ));
+
+    function construireBlocPolygone(lettre, cotes, ligneReport, restant, verifierFin) {
+      const bloc = document.createElement('div');
+      const titre = document.createElement('div');
+      titre.className = 'bloc-polygone';
+      titre.textContent = 'Clairière ' + lettre;
+      bloc.appendChild(titre);
+      const rangee = document.createElement('div');
+      rangee.className = 'rangee-cotes';
+      cotes.forEach((longueur, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'cote-rod';
+        const barre = document.createElement('span');
+        barre.className = 'rod-barre';
+        barre.style.width = (longueur * UNITE_PX) + 'px';
+        barre.style.background = COULEURS_COTES[i % COULEURS_COTES.length];
+        btn.appendChild(barre);
+        btn.setAttribute('aria-label', 'Reporter le côté ' + (i + 1) + ' de la clairière ' + lettre);
+        btn.addEventListener('click', () => {
+          if (btn.disabled) return;
+          btn.disabled = true;
+          const seg = document.createElement('span');
+          seg.className = 'segment-report';
+          seg.style.width = (longueur * UNITE_PX) + 'px';
+          seg.style.background = COULEURS_COTES[i % COULEURS_COTES.length];
+          ligneReport.appendChild(seg);
+          restant.n--;
+          if (restant.n === 0) verifierFin();
+        });
+        rangee.appendChild(btn);
+      });
+      bloc.appendChild(rangee);
+      return bloc;
+    }
+
+    const ligneA = document.createElement('div'); ligneA.className = 'ligne-report';
+    const ligneB = document.createElement('div'); ligneB.className = 'ligne-report';
+    const restant = { n: cotesA.length + cotesB.length };
+
+    const grille = document.createElement('div');
+    grille.className = 'grille-options';
+    grille.hidden = true;
+
+    function verifierFin() {
+      const totalA = cotesA.reduce((a, b) => a + b, 0);
+      const totalB = cotesB.reduce((a, b) => a + b, 0);
+      const bonneLettre = demanderPlusGrand
+        ? (totalA > totalB ? 'A' : 'B')
+        : (totalA < totalB ? 'A' : 'B');
+      grille.hidden = false;
+      ['A', 'B'].forEach((lettre) => {
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'bouton-option';
+        btn.textContent = 'Clairière ' + lettre;
+        btn.addEventListener('click', () => {
+          Array.from(grille.children).forEach((b) => { b.disabled = true; });
+          const correct = lettre === bonneLettre;
+          btn.classList.add(correct ? 'correct' : 'incorrect');
+          if (!correct) {
+            const bonneBtn = Array.from(grille.children).find((b) => b.textContent === 'Clairière ' + bonneLettre);
+            if (bonneBtn) bonneBtn.classList.add('correct');
+          }
+          validerTour(correct, btn);
+        });
+        grille.appendChild(btn);
+      });
+    }
+
+    zone.appendChild(construireBlocPolygone('A', cotesA, ligneA, restant, verifierFin));
+    zone.appendChild(ligneA);
+    zone.appendChild(construireBlocPolygone('B', cotesB, ligneB, restant, verifierFin));
+    zone.appendChild(ligneB);
+    zone.appendChild(Object.assign(document.createElement('p'), {
+      className: 'legende',
+      textContent: 'Quelle clairière a le tour le plus ' + (demanderPlusGrand ? 'grand' : 'petit') + ' ?'
+    }));
+    zone.appendChild(grille);
+  }
+
+  function genererPerimetreMesurer(zone, cfg) {
+    const forme = choisir(['triangle', 'carre', 'rectangle', 'quadrilatere']);
+    let cotes = [];
+    let texteFormeLabel = '';
+    let astuce = null;
+    let total;
+    if (forme === 'triangle') {
+      cotes = [nombreAleatoire(3, 9), nombreAleatoire(3, 9), nombreAleatoire(3, 9)];
+      texteFormeLabel = 'triangle';
+      total = cotes.reduce((a, b) => a + b, 0);
+    } else if (forme === 'quadrilatere') {
+      cotes = [nombreAleatoire(3, 9), nombreAleatoire(3, 9), nombreAleatoire(3, 9), nombreAleatoire(3, 9)];
+      texteFormeLabel = 'quadrilatère';
+      total = cotes.reduce((a, b) => a + b, 0);
+    } else if (forme === 'carre') {
+      const c = nombreAleatoire(3, 9);
+      cotes = [c];
+      texteFormeLabel = 'carré';
+      astuce = 'Astuce : dans un carré, les 4 côtés ont la même longueur — pas besoin de tous les mesurer !';
+      total = c * 4;
+    } else {
+      const l = nombreAleatoire(4, 9);
+      const L = nombreAleatoire(l + 1, 12);
+      cotes = [L, l];
+      texteFormeLabel = 'rectangle';
+      astuce = 'Astuce : dans un rectangle, les côtés opposés ont la même longueur — pas besoin de tous les mesurer !';
+      total = (L + l) * 2;
+    }
+
+    zone.appendChild(creerBlocConsigne(
+      'Le tour de cette clairière (' + texteFormeLabel + ') fait combien de centimètres en tout ?',
+      'Utilise les longueurs données pour trouver le tour complet de la clairière, en centimètres.'
+    ));
+
+    const infosCotes = document.createElement('p');
+    infosCotes.className = 'legende';
+    if (forme === 'carre') infosCotes.textContent = 'Un côté mesure ' + cotes[0] + ' cm.';
+    else if (forme === 'rectangle') infosCotes.textContent = 'Longueur : ' + cotes[0] + ' cm — Largeur : ' + cotes[1] + ' cm.';
+    else infosCotes.textContent = 'Côtés : ' + cotes.map((c) => c + ' cm').join(' · ');
+    zone.appendChild(infosCotes);
+
+    if (astuce) {
+      zone.appendChild(Object.assign(document.createElement('p'), { className: 'legende', textContent: astuce }));
+    }
+
+    creerSaisieSimple(zone, total);
+  }
+
+  /* ---------- Initialisation ---------- */
+
+  document.getElementById('bouton-retour').addEventListener('click', retourAccueil);
+  document.getElementById('bouton-suivant').addEventListener('click', tourSuivant);
+
+  construireAccueil();
+})();
+</script>
+<script>
+  /* Bouton « ← Menu » : retour à la coquille avec confirmation (CHARTE §7).
+     Script isolé du moteur de jeu : il n'agit que sur les éléments statiques
+     de la page (le « ← Menu » ne s'affiche que sur l'écran d'accueil). */
+  (function () {
+    var bouton = document.getElementById('bouton-menu');
+    var modale = document.getElementById('modale-menu');
+    if (!bouton || !modale) return;
+    function fermer() { modale.hidden = true; }
+    bouton.addEventListener('click', function () { modale.hidden = false; });
+    document.getElementById('modale-menu-rester').addEventListener('click', fermer);
+    document.getElementById('modale-menu-revenir').addEventListener('click', function () {
+      window.location.href = '../index.html';
+    });
+    modale.addEventListener('click', function (e) { if (e.target === modale) fermer(); });
+  })();
+</script>
+</body>
+</html>
