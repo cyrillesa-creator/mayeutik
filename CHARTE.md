@@ -483,3 +483,38 @@ Quand **tous les mini-jeux du palier courant** sont maîtrisés (heuristique sim
 - Dans `data/referentiel.json`, un module adaptatif ajoute un champ **`niveaux`** (tableau, ex. `["CP", "CE1", "CE2"]`) en complément du champ `niveau` existant (qui reste le niveau d'introduction, pour compatibilité et tri) ; la coquille traite alors le module comme appartenant à **tous** ces niveaux pour le filtrage (accueil enfant, tableau de bord parental) — jamais au seul `niveau` d'intro.
 
 ---
+
+## 16. Anticipation : lancement paramétré et généricité future
+
+Deux règles d'architecture à respecter **dès maintenant**, même si les fonctionnalités qu'elles anticipent (deep-linking depuis la coquille, extension du périmètre pédagogique) ne sont pas encore construites. L'objectif : ne pas fermer de portes par des raccourcis pris aujourd'hui, sans pour autant construire ces fonctionnalités par avance.
+
+### Lancement paramétré d'un mini-jeu
+
+Par défaut, ouvrir le fichier HTML d'un module affiche son écran d'accueil général (grille de mini-jeux, éventuellement un sélecteur de palier — cf. section 15). **Tout nouveau module produit à partir de maintenant** doit en plus savoir démarrer **directement** sur un mini-jeu et un palier précis, via des paramètres d'URL :
+
+```
+jeux/M23-longueurs.html?competence=encadrer-ce1&palier=ce1
+```
+
+- `competence` : l'id du mini-jeu à lancer (même granularité que `competence` dans l'objet SESSION, section 11) ;
+- `palier` (modules adaptatifs uniquement, section 15) : le code niveau à afficher (`cp`, `ce1`, `ce2`…), insensible à la casse.
+
+Comportement attendu à l'ouverture :
+
+- si `competence` correspond à un mini-jeu existant du module, le jeu démarre directement dessus (équivalent à un clic sur sa carte), en sautant l'écran d'accueil ;
+- si `palier` est fourni et valide, il prime sur le palier déduit du niveau du profil actif (section 15) pour le choix de l'accueil éventuellement affiché ensuite (bouton retour, rejouer) ;
+- si un paramètre est absent, invalide, ou ne correspond à rien dans le module, on retombe silencieusement sur le comportement par défaut (écran d'accueil, palier du profil actif) — **jamais d'erreur visible**, ce n'est qu'un raccourci d'entrée.
+
+Cette règle complète le standard « Modules adaptatifs par niveau » (section 15) : elle s'applique aussi bien à un module classique (mono-niveau, paramètre `competence` seul) qu'à un module adaptatif (`competence` + `palier`). Elle prépare, sans l'implémenter ici, un futur lien direct depuis le tableau de bord parental (ex. « rejouer cette compétence ») ou depuis un futur mode enseignant — la coquille n'a pas encore besoin de générer ces liens, mais le jeu doit déjà savoir les recevoir.
+
+### Généricité du référentiel
+
+`data/referentiel.json` et les champs du contrat de données (section 11 : `domaine`, `theme`/`sousTheme`, `competence`, `niveau`/`niveaux`…) sont des **chaînes de caractères déclaratives**, jamais des énumérations figées en dur dans le code de la coquille. Concrètement :
+
+- le code de la coquille (`js/app.js`, `js/statuts.js`, `js/radar.js`) déduit ses listes de domaines, niveaux, thèmes et modules **dynamiquement** à partir de `referentiel.json` (champs `domaines`, `niveaux`, `modules[].domaine`…) — jamais d'une liste recopiée en dur dans un fichier `.js`, qui se désynchroniserait silencieusement du référentiel au premier ajout ;
+- un nouveau domaine, un nouveau niveau (ex. CM1/CM2 quand leurs modules seront produits) ou un nouveau type de module doit pouvoir être ajouté en éditant `referentiel.json` (et, si besoin, une correspondance couleur/icône minimale), **sans restructuration** des fonctions de filtrage, de calcul de statuts ou d'affichage existantes ;
+- exemple concret déjà rencontré à éviter : un domaine présent dans `referentiel.json.domaines` mais sans module associé avait disparu du filtre enfant parce que ce filtre était dérivé de la présence de modules plutôt que de la liste `domaines` elle-même — corrigé en dérivant strictement du référentiel déclaré, pas des données qui s'y trouvent actuellement.
+
+Avant toute modification touchant le filtrage ou l'affichage par domaine/niveau/thème, vérifier qu'elle continue de fonctionner pour une valeur **absente aujourd'hui** des données mais déclarée dans le référentiel (domaine sans module, niveau sans module, palier bonus au-delà du dernier niveau couvert) — c'est le test de non-régression implicite de cette section.
+
+---
