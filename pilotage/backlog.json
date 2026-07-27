@@ -359,13 +359,13 @@
     "anneeIntro": "CP",
     "anneesCouvertes": "CP,CE1,CE2",
     "periodeIntro": "P2",
-    "competence": "CP : (1) comparer deux longueurs par superposition directe ou report (ficelle), vocabulaire long/court/près/loin ; (2) ranger jusqu'à 5 brindilles par longueur, mesurer en cm avec une règle graduée, estimation qualitative. CE1 : (3) mesurer avec une règle m/cm/km, relations 1m=100cm et 1km=1000m, estimation de distances repères ; (4) encadrer une longueur entre deux entiers de cm (curseur entre deux graduations). CE2 : (5) conversions par relations explicites mm/cm/dm/m/km, jamais de tableau ; (6) périmètre — comparer sans règle (report au compas sur une droite) et mesurer à la règle (somme des côtés), découverte de la symétrie carré/rectangle sans formule.",
+    "competence": "CP : lexique long/court/près/loin ; comparer par superposition directe (objets déplaçables) ou report par ficelle (non déplaçables) ; ordonner 5 objets ; mesurer à la règle en cm ; estimer qualitativement. CE1 : + unités m/km, relations 1m=100cm 1km=1000m ; ENCADRER une longueur entre 2 entiers (pas seulement mesurer exactement) ; estimer avec distances de référence. CE2 : + unités dm/mm, conversions par RELATIONS (jamais tableau) ; PÉRIMÈTRE — comparer sans règle au compas (report des côtés sur une droite), mesurer avec règle, carré/rectangle sans formule (mais sans mesurer chaque côté).",
     "mecanique": "Saisie + manipulation",
     "priorite": "Moyenne",
     "statut": "Terminé",
     "effortEstime": 6,
-    "effortReel": 9,
-    "notes": "✔ FAIT (jeux/M23-longueurs.html). Module adaptatif CP/CE1/CE2 (standard \"modules adaptatifs par niveau\", CHARTE.md §15) : 6 mini-jeux (2 CP, 2 CE1, 2 CE2), univers \"La Forêt aux Cent Arbres\" 🌳, palier par défaut = niveau du profil actif, palier bonus au-delà de la maîtrise du palier courant. FUSIONNE l'ancien module M31 (Périmètre) : le mini-jeu \"Le tour de la clairière\" (compétence perimetre-ce2) couvre entièrement son périmètre pédagogique (comparaison sans règle par report au compas + mesure à la règle + découverte carré/rectangle sans formule) — M31 est donc retiré du backlog en tant qu'entrée séparée, voir sa fiche pour la note de fusion. ⚠ SANS tableau de conversion (interdit) : décompositions par relations."
+    "effortReel": 7,
+    "notes": "✔ FAIT. Univers 'La Forêt aux Cent Arbres'. FUSION AVEC M31 (périmètre) : le texte officiel traite le périmètre comme le palier CE2 avancé du MÊME sous-thème 'Les longueurs', pas une notion séparée — M31 n'existe plus comme entrée indépendante (voir ligne M31)."
   },
   {
     "id": "M24",
@@ -490,10 +490,10 @@
     "competence": "Périmètre = longueur du contour ; comparer au compas (report) ; mesurer à la règle ; carré/rectangle sans formule",
     "mecanique": "Manipulation + saisie",
     "priorite": "Moyenne",
-    "statut": "Fusionné dans M23",
+    "statut": "Fusionné",
     "effortEstime": 5,
     "effortReel": null,
-    "notes": "⚠ FUSIONNÉ : M31 n'est plus livré comme module séparé. Son périmètre pédagogique complet (comparer deux périmètres sans règle par report au compas sur une droite, mesurer un périmètre à la règle par somme des côtés, découvrir sans formule que carré/rectangle n'exigent pas de mesurer chaque côté) est devenu le palier CE2 avancé de M23 \"Longueurs\" (jeux/M23-longueurs.html), mini-jeu \"Le tour de la clairière\" — compétence perimetre-ce2. Identifiant M31 confirmé propre (pas de conflit avec l'ancien M31 v1 = solides, qui est M36) ; il reste réservé/inutilisé pour éviter toute confusion future."
+    "notes": "FUSIONNÉ DANS M23 (2026-07). Le texte officiel intégral confirme que le périmètre est le palier CE2 avancé du sous-thème « Les longueurs » (même continuum que M23), pas une notion séparée. Cette ligne est conservée à titre d'historique/traçabilité ; ne pas produire de fichier M31 distinct. Voir M23 pour l'implémentation (mini-jeu « Le tour de la clairière »)."
   },
   {
     "id": "M32",
@@ -525,7 +525,7 @@
     "statut": "À faire",
     "effortEstime": 8,
     "effortReel": null,
-    "notes": "Le 'robot virtuel' remplace idéalement le robot physique."
+    "notes": "Réutilise M32 (vocabulaire position). Vocabulaire de codage précis confirmé par le texte : en langage naturel « avancer, reculer, tourner à droite/gauche, monter, descendre » ; pour un robot sur tapis quadrillé « avancer d'une case, pivoter d'un quart de tour à droite/gauche ». CP : ≤10 instructions dont 2 virages max (confirmé)."
   },
   {
     "id": "M34",
@@ -535,13 +535,13 @@
     "anneeIntro": "CP",
     "anneesCouvertes": "CP,CE1,CE2",
     "periodeIntro": "P2",
-    "competence": "CP : disque/carré/rectangle/triangle, sommets/côtés ; CE1 : + triangle rectangle, angles ; CE2 : + losange, polygone, quadrilatère, pentagone, hexagone, diagonale, rayon, diamètre",
+    "competence": "CP : reconnaître disque/carré/rectangle/triangle dans un assemblage ; nommer, décrire avec « sommet »/« côté » ; décrire des RELATIONS entre formes juxtaposées/superposées (ex. « deux carrés avec un côté en commun », « un triangle dans un carré »). CE1 : + triangle rectangle, angle droit, nombre de côtés/longueurs égales. CE2 : + losange, polygone, quadrilatère, pentagone, hexagone, diagonale, rayon, diamètre ; nommer/justifier par propriétés.",
     "mecanique": "QCM + drag & drop",
     "priorite": "Moyenne",
     "statut": "À faire",
     "effortEstime": 5,
     "effortReel": null,
-    "notes": "⚠ ENRICHIR : vocabulaire CE2 nettement plus riche (losange, diagonale, rayon, diamètre) — à bien intégrer."
+    "notes": "Réutilise M14 (vocabulaire). Vocabulaire CE2 nettement plus riche (losange, diagonale, rayon, diamètre) — confirmé par lecture intégrale. Point CP à ne pas oublier : relations entre formes juxtaposées/superposées, pas seulement reconnaissance isolée."
   },
   {
     "id": "M35",
@@ -557,7 +557,7 @@
     "statut": "À faire",
     "effortEstime": 7,
     "effortReel": null,
-    "notes": "⚠ ENRICHIR : ajouter le compas (cercle centre+point) et le milieu par pliage (CE1), absents de la v2 initiale."
+    "notes": "Réutilise M33/M35. CE1 : ajouter explicitement le compas (tracer un cercle centre+point donné), le milieu d'un segment par pliage, ET LE CODAGE DES ÉGALITÉS DE LONGUEUR (marques sur les côtés égaux) — ce dernier point est nouveau, confirmé par lecture intégrale, absent des notes précédentes."
   },
   {
     "id": "M36",
@@ -573,7 +573,7 @@
     "statut": "Terminé",
     "effortEstime": 8,
     "effortReel": 8,
-    "notes": "✔ FAIT (ex-M31 v1, renommé après l'audit de numérotation). ⚠ Vérifier la présence du raisonnement 'est-ce un patron valide ?' (CE1), qui s'ajoute à la construction productive (CE2) déjà couverte."
+    "notes": "✔ FAIT (ex-M31 v1, renommé après l'audit de numérotation). Points de vigilance confirmés par lecture intégrale : (1) au CP, le cube n'est PAS considéré comme un pavé (distinction explicite à respecter) ; (2) le terme officiel « pavé » désigne le parallélépipède rectangle (« pavé droit » ou « pavé » interchangeables en classe) ; (3) CE2 introduit la PERSPECTIVE CAVALIÈRE (faces/arêtes non visibles en pointillés), absent de nos notes jusqu'ici — à vérifier/ajouter. (4) Raisonnement « est-ce un patron valide ? » (CE1) distinct de la construction productive (CE2), déjà noté en « Points à enrichir »."
   },
   {
     "id": "M37",
@@ -615,13 +615,13 @@
     "anneeIntro": "CP",
     "anneesCouvertes": "CP,CE1,CE2",
     "periodeIntro": "P4",
-    "competence": "CP : (1) recueillir des données et les présenter — tableau puis diagramme en barres, convention 1 case/cube = 1 individu, population qualitative de 2 à 5 valeurs, moins de 40 individus ; (2) construire ET compléter un tableau à double entrée croisant deux critères (ex. forme × couleur), comprendre que la case à l'intersection ligne/colonne identifie un couple précis — objectif CP à part entière, pas réservé au CE2. CE1 : mêmes productions sur une population plus grande (moins de 100), + lire et extraire une information d'un diagramme en barres et d'un tableau à double entrée déjà construits. CE2 : résoudre un problème en combinant un tableau à double entrée et un diagramme en barres à échelle adaptée (case ≠ 1 individu).",
+    "competence": "CP : (1) collecter des données qualitatives (2-5 valeurs, <40 individus) et les présenter en tableau puis diagramme en barres (convention 1 case = 1 individu) ; (2) construire ET COMPLÉTER un tableau à DOUBLE ENTRÉE (croiser 2 critères, ex. forme × couleur, identifier la case à l'intersection ligne/colonne). CE1 : mêmes productions sur <100 individus ; + LIRE/EXTRAIRE des documents déjà construits (diagramme en barres ET tableau à double entrée). CE2 : caractères aussi quantitatifs (pas seulement qualitatifs) ; RÉSOUDRE des problèmes à partir de tableaux à double entrée ou diagrammes (compléter un tableau partiel, choisir une échelle adaptée).",
     "mecanique": "Interface dédiée",
     "priorite": "Moyenne",
     "statut": "Terminé",
     "effortEstime": 5,
-    "effortReel": 7,
-    "notes": "Mini-enquêtes ludiques (sondages dans une classe virtuelle). ✔ FAIT (jeux/M39-tableaux-diagrammes.html). Module adaptatif CP/CE1/CE2 (standard \"modules adaptatifs par niveau\", CHARTE.md §15) : 5 mini-jeux (2 CP, 2 CE1, 1 CE2), palier par défaut = niveau du profil actif, palier bonus au-delà de la maîtrise du palier courant."
+    "effortReel": 6,
+    "notes": "✔ FAIT. Recueil/diagramme (CP), tableau à double entrée CP distinct (2 mini-jeux CP), lecture de documents construits (CE1), résolution de problèmes (CE2). Univers Jardin des Petites Bêtes. Progression CP/CE1/CE2 vérifiée mot pour mot sur le texte intégral du programme (page 37 + section complète)."
   },
   {
     "id": "M40",
@@ -653,6 +653,6 @@
     "statut": "À faire",
     "effortEstime": 6,
     "effortReel": null,
-    "notes": "NOUVEAU (audit programme). Manquant confirmé — absent du backlog v2 (retiré par erreur lors du passage v1→v2, le doute est levé : elle est bien au programme 2024)."
+    "notes": "NOUVEAU (audit programme). Symétrie axiale CE2 : reconnaissance sur objets CULTURELS CONCRETS confirmés par le texte (cœur, carreau, pique, trèfle, panneaux routiers, lettres majuscules) — excellent matériau pour habiller le jeu, bien plus parlant qu'un exercice abstrait. Compléter une figure sur quadrillé/pointé par rapport à un axe horizontal/vertical."
   }
 ]
