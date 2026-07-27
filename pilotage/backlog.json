@@ -359,13 +359,13 @@
     "anneeIntro": "CP",
     "anneesCouvertes": "CP,CE1,CE2",
     "periodeIntro": "P2",
-    "competence": "CP : lexique, comparaison, règle graduée, m/cm ; CE1 : km, relations 1m=100cm 1km=1000m, estimation ; CE2 : dm/mm, conversions par relations, tracés précis",
+    "competence": "CP : (1) comparer deux longueurs par superposition directe ou report (ficelle), vocabulaire long/court/près/loin ; (2) ranger jusqu'à 5 brindilles par longueur, mesurer en cm avec une règle graduée, estimation qualitative. CE1 : (3) mesurer avec une règle m/cm/km, relations 1m=100cm et 1km=1000m, estimation de distances repères ; (4) encadrer une longueur entre deux entiers de cm (curseur entre deux graduations). CE2 : (5) conversions par relations explicites mm/cm/dm/m/km, jamais de tableau ; (6) périmètre — comparer sans règle (report au compas sur une droite) et mesurer à la règle (somme des côtés), découverte de la symétrie carré/rectangle sans formule.",
     "mecanique": "Saisie + manipulation",
     "priorite": "Moyenne",
-    "statut": "À faire",
+    "statut": "Terminé",
     "effortEstime": 6,
-    "effortReel": null,
-    "notes": "⚠ SANS tableau de conversion (interdit) : décompositions par relations."
+    "effortReel": 9,
+    "notes": "✔ FAIT (jeux/M23-longueurs.html). Module adaptatif CP/CE1/CE2 (standard \"modules adaptatifs par niveau\", CHARTE.md §15) : 6 mini-jeux (2 CP, 2 CE1, 2 CE2), univers \"La Forêt aux Cent Arbres\" 🌳, palier par défaut = niveau du profil actif, palier bonus au-delà de la maîtrise du palier courant. FUSIONNE l'ancien module M31 (Périmètre) : le mini-jeu \"Le tour de la clairière\" (compétence perimetre-ce2) couvre entièrement son périmètre pédagogique (comparaison sans règle par report au compas + mesure à la règle + découverte carré/rectangle sans formule) — M31 est donc retiré du backlog en tant qu'entrée séparée, voir sa fiche pour la note de fusion. ⚠ SANS tableau de conversion (interdit) : décompositions par relations."
   },
   {
     "id": "M24",
@@ -490,10 +490,10 @@
     "competence": "Périmètre = longueur du contour ; comparer au compas (report) ; mesurer à la règle ; carré/rectangle sans formule",
     "mecanique": "Manipulation + saisie",
     "priorite": "Moyenne",
-    "statut": "À faire",
+    "statut": "Fusionné dans M23",
     "effortEstime": 5,
     "effortReel": null,
-    "notes": "⚠ VÉRIFIÉ : identifiant M31 confirmé propre (pas de conflit avec l'ancien M31 v1 = solides, qui est M36)."
+    "notes": "⚠ FUSIONNÉ : M31 n'est plus livré comme module séparé. Son périmètre pédagogique complet (comparer deux périmètres sans règle par report au compas sur une droite, mesurer un périmètre à la règle par somme des côtés, découvrir sans formule que carré/rectangle n'exigent pas de mesurer chaque côté) est devenu le palier CE2 avancé de M23 \"Longueurs\" (jeux/M23-longueurs.html), mini-jeu \"Le tour de la clairière\" — compétence perimetre-ce2. Identifiant M31 confirmé propre (pas de conflit avec l'ancien M31 v1 = solides, qui est M36) ; il reste réservé/inutilisé pour éviter toute confusion future."
   },
   {
     "id": "M32",
