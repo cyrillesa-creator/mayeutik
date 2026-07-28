@@ -122,12 +122,13 @@
     color: #fff; font-weight: 700; font-size: 1.05rem;
     background: var(--couleur-menthe); flex: 0 0 auto;
   }
-  .avatar-petit { width: 28px; height: 28px; font-size: .92rem; }
-  .avatar-petit.avatar-texte-double { font-size: .64rem; }
-  .avatar-texte-double { font-size: .78rem; }
   .avatar-mandarine { background: var(--couleur-mandarine); }
   .avatar-corail { background: var(--couleur-corail); }
   .avatar-soleil { background: var(--couleur-soleil); color: var(--couleur-encre); }
+  /* Variante réduite (icône d'en-tête) et variante deux caractères (initiales) */
+  .avatar-petit { width: 28px; height: 28px; font-size: .92rem; }
+  .avatar-petit.avatar-texte-double { font-size: .64rem; }
+  .avatar-texte-double { font-size: .78rem; }
 
   /* Recherche + filtres */
   .barre-recherche {
@@ -145,12 +146,14 @@
   .puce-filtre.active { background: var(--couleur-mandarine); border-color: var(--couleur-mandarine); color: #fff; }
   .puce-filtre-domaine.active { background: var(--couleur-menthe); border-color: var(--couleur-menthe); }
 
-  /* Filtre par niveau : sélection MULTIPLE par cases à cocher (CP, CE1, CE2…),
-     avec deux raccourcis rapides (« Mon niveau », « Tous les niveaux ») pour
-     garder l'usage courant à un seul clic. Le libellé du bouton fermé résume
-     la sélection (« Mon niveau », « Tous les niveaux », « CP, CE2 »…) pour
-     que l'état actif reste visible sans rouvrir le menu. */
-  .menu-niveaux { margin: .1rem 0 .5rem; }
+  /* Filtre par niveau : DEUX contrôles synchronisés (même source de vérité,
+     `niveauxSelectionnes`) — un bouton coloré à droite (raccourci rapide,
+     bascule Mon niveau ↔ Tous les niveaux) et un menu déroulant à gauche pour
+     la sélection multiple fine (ex. « CP + CE2 »). Le libellé du bouton fermé
+     du menu résume la sélection (« Mon niveau », « Tous les niveaux »,
+     « CP, CE2 »…) pour que l'état actif reste visible sans le rouvrir. */
+  .rangee-niveau { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin: .1rem 0 .5rem; }
+  .menu-niveaux { margin: 0; }
   .bouton-niveaux {
     display: inline-flex; align-items: center; gap: .5rem; cursor: pointer; list-style: none;
     border: 1.5px solid color-mix(in srgb, var(--couleur-encre) 22%, white);
@@ -166,19 +169,18 @@
     background: #fff; border: 1.5px solid color-mix(in srgb, var(--couleur-encre) 15%, white);
     box-shadow: 0 4px 10px rgba(43,43,43,.08);
   }
-  .raccourcis-niveaux {
-    display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .6rem; padding-bottom: .6rem;
-    border-bottom: 1.5px solid color-mix(in srgb, var(--couleur-encre) 10%, white);
-  }
-  .puce-raccourci-niveau {
-    border: 1.5px solid color-mix(in srgb, var(--couleur-mandarine) 45%, white);
-    background: color-mix(in srgb, var(--couleur-mandarine) 10%, white);
-    color: color-mix(in srgb, var(--couleur-mandarine) 60%, black 15%);
-    border-radius: 999px; padding: .3rem .7rem; font-size: .78rem; font-weight: 600; min-height: 34px;
-  }
   .cases-niveaux { display: flex; flex-direction: column; gap: .5rem; }
   .case-niveau { display: flex; align-items: center; gap: .5rem; font-weight: 600; font-size: .92rem; min-height: 32px; }
-  .case-niveau input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--couleur-mandarine);
+  .case-niveau input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--couleur-mandarine); }
+  /* Bouton coloré : même langage visuel que l'ancienne bascule rapide (mandarine
+     quand « Tous les niveaux » est actif, neutre sinon). */
+  .bouton-niveau-rapide {
+    margin-left: auto; border: 1.5px solid color-mix(in srgb, var(--couleur-encre) 22%, white);
+    background: #fff; border-radius: 999px; padding: .3rem .8rem;
+    font-size: .82rem; font-weight: 600; min-height: 38px; color: var(--couleur-encre);
+  }
+  .bouton-niveau-rapide[aria-pressed="true"] {
+    background: var(--couleur-mandarine); border-color: var(--couleur-mandarine); color: #fff;
   }
 
   /* Bouton « Réinitialiser les filtres » (discret, grisé si rien à réinitialiser) */

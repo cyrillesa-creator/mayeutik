@@ -511,13 +511,13 @@
     const niveauxSelectionnes = niveauProfil ? lireNiveauxSelectionnes(idProfil) : niveauxDisponibles;
     const filtreDomaine = lireFiltreDomaine(idProfil);
 
+    const vue = h('div', { class: 'vue', style: 'position:relative' });
+
     // Icône du joueur (petite, choix libre — cf. #modifier-profil) + chevron,
     // en haut à droite : taille fixe et réduite, donc un positionnement absolu
     // reste sûr ici (contrairement à l'ancienne capsule avec le prénom en toutes
     // lettres, dont la largeur variable pouvait chevaucher le titre). Le titre
     // « Mayeutik » reste centré en grand, comme à l'origine.
-    const vue = h('div', { class: 'vue', style: 'position:relative' });
-
     vue.appendChild(h('button', { class: 'icone-joueur',
       'aria-label': profil ? 'Changer de joueur (' + profil.prenom + ')' : 'Choisir un joueur',
       onclick: () => { location.hash = '#profils'; } },
@@ -533,10 +533,16 @@
       placeholder: '🔍 Chercher un jeu…', value: etat.recherche,
       oninput: (e) => { etat.recherche = e.target.value; rendreListeJeux(); } }));
 
-    // Filtre par niveau : sélection MULTIPLE par cases à cocher (ex. « CP +
-    // CE2 » pour une fratrie à niveaux non contigus), avec deux raccourcis
-    // rapides en haut du menu pour garder l'usage courant à un seul clic.
-    // (Sans niveau sur le profil, tout est affiché et le menu n'a pas lieu d'être.)
+    // Filtre par niveau : DEUX contrôles complémentaires, synchronisés (même
+    // source de vérité `niveauxSelectionnes`, ré-affichés ensemble à chaque
+    // rendu) :
+    //  - un bouton coloré à droite, raccourci à un clic pour le cas d'usage le
+    //    plus courant (bascule Mon niveau ↔ Tous les niveaux) ;
+    //  - un menu déroulant à gauche pour la sélection multiple fine (ex. « CP +
+    //    CE2 » pour une fratrie à niveaux non contigus), simplifié dans sa
+    //    présentation (plus de raccourcis internes, désormais redondants avec
+    //    le bouton coloré) mais gardant sa fonction de sélection multiple.
+    // (Sans niveau sur le profil, tout est affiché et ces contrôles n'ont pas lieu d'être.)
     if (niveauProfil) {
       function choisirNiveaux(niveaux, fermerMenu) {
         ecrireNiveauxSelectionnes(idProfil, niveaux);
@@ -560,12 +566,6 @@
           [h('span', { texte: libelleNiveauxSelectionnes(niveauxSelectionnes, niveauProfil, niveauxDisponibles) }),
            h('span', { class: 'chevron-pastille', 'aria-hidden': 'true' })]),
         h('div', { class: 'panneau-niveaux' }, [
-          h('div', { class: 'raccourcis-niveaux' }, [
-            h('button', { type: 'button', class: 'puce-raccourci-niveau',
-              texte: 'Mon niveau', onclick: () => choisirNiveaux([niveauProfil], true) }),
-            h('button', { type: 'button', class: 'puce-raccourci-niveau',
-              texte: 'Tous les niveaux', onclick: () => choisirNiveaux(niveauxDisponibles.slice(), true) })
-          ]),
           h('div', { class: 'cases-niveaux' }, niveauxDisponibles.map((n) => {
             const caseACocher = h('input', { type: 'checkbox', onchange: () => basculerNiveau(n) });
             caseACocher.checked = niveauxSelectionnes.indexOf(n) !== -1;
@@ -574,7 +574,14 @@
         ])
       ]);
       if (etat.menuNiveauxOuvert) menuNiveaux.setAttribute('open', '');
-      vue.appendChild(menuNiveaux);
+
+      const tousSelectionnes = niveauxSelectionnes.length === niveauxDisponibles.length;
+      const boutonRapide = h('button', { type: 'button', class: 'bouton-niveau-rapide',
+        'aria-pressed': tousSelectionnes ? 'true' : 'false',
+        texte: tousSelectionnes ? 'Voir seulement mon niveau' : 'Voir tous les niveaux',
+        onclick: () => choisirNiveaux(tousSelectionnes ? [niveauProfil] : niveauxDisponibles.slice(), true) });
+
+      vue.appendChild(h('div', { class: 'rangee-niveau' }, [menuNiveaux, boutonRapide]));
     }
 
     // Dérivé dynamiquement de la liste des domaines du référentiel (source
