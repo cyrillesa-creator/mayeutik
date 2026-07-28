@@ -94,25 +94,22 @@
   }
   .entete-enfant .sous-titre { font-weight: 500; opacity: .75; margin-top: .1rem; }
 
-  /* Pastille de profil (coin haut droit) : avatar-initiale + prénom + chevron.
-     Titre « Mayeutik » redevenu centré et grand (.entete-enfant, ci-dessus) :
-     position absolue à nouveau sûre ici, la capsule ne partage plus la même
-     ligne que le titre. */
-  .pastille-profil {
-    position: absolute; top: .8rem; right: .9rem;
-    display: flex; align-items: center; gap: .4rem;
-    border: none; background: #fff; border-radius: 999px;
-    padding: .25rem .8rem .25rem .3rem; min-height: 44px;
-    box-shadow: 0 2px 8px rgba(43,43,43,.12); font-weight: 600;
-    max-width: 60%;
+  /* Icône du joueur actif (coin haut droit de l'accueil) : petite, taille fixe,
+     donc un positionnement absolu reste sûr (contrairement à l'ancienne capsule
+     avec le prénom en toutes lettres, de largeur variable). Le titre reste
+     centré et inchangé (.entete-enfant, ci-dessus) : les deux ne se chevauchent
+     jamais puisque l'icône est minuscule et cantonnée au coin. */
+  .icone-joueur {
+    position: absolute; top: .7rem; right: .7rem;
+    display: flex; align-items: center; justify-content: center; gap: .3rem;
+    border: none; background: transparent; padding: .4rem;
+    min-height: 44px; min-width: 44px;
   }
-  .pastille-prenom {
-    display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
+  .icone-joueur:active { transform: scale(.94); }
   /* Chevron discret : même technique que les select déroulants de l'espace
      parent (bordure en coin pivotée), en plus petit et plus sobre, pour
-     indiquer que la pastille du joueur est cliquable (ouvre le changement
-     de joueur) sans attirer l'œil autant qu'un contrôle de formulaire. */
+     indiquer que l'icône du joueur est cliquable (ouvre le changement de
+     joueur) sans attirer l'œil autant qu'un contrôle de formulaire. */
   .chevron-pastille {
     display: inline-block; width: .4rem; height: .4rem; flex: 0 0 auto; margin-bottom: .1rem;
     border-right: 2px solid color-mix(in srgb, var(--couleur-encre) 45%, white);
@@ -125,6 +122,9 @@
     color: #fff; font-weight: 700; font-size: 1.05rem;
     background: var(--couleur-menthe); flex: 0 0 auto;
   }
+  .avatar-petit { width: 28px; height: 28px; font-size: .92rem; }
+  .avatar-petit.avatar-texte-double { font-size: .64rem; }
+  .avatar-texte-double { font-size: .78rem; }
   .avatar-mandarine { background: var(--couleur-mandarine); }
   .avatar-corail { background: var(--couleur-corail); }
   .avatar-soleil { background: var(--couleur-soleil); color: var(--couleur-encre); }

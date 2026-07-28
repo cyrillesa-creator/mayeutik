@@ -188,6 +188,30 @@
       texte: (profil.prenom || '?').charAt(0).toUpperCase() });
   }
 
+  /*
+   * Icône de profil choisie par le parent/enfant (écran de modification,
+   * #modifier-profil) : une lettre, deux initiales, ou un emoji au choix.
+   * `profil.icone` vaut 'initiale' | 'initiales' | un emoji littéral ; toute
+   * valeur absente/inconnue retombe sur 'initiale' (défaut sensé pour les
+   * profils existants qui n'ont pas encore fait ce choix).
+   */
+  function contenuIcone(profil) {
+    const icone = profil.icone;
+    const prenom = (profil.prenom || '?').trim() || '?';
+    if (icone && icone !== 'initiale' && icone !== 'initiales') return icone; // emoji stocké tel quel
+    if (icone === 'initiales') return prenom.slice(0, 2).toUpperCase();
+    return prenom.charAt(0).toUpperCase();
+  }
+  // Icône « en tête » (petite, coin supérieur droit de l'accueil) : mêmes
+  // couleurs de rotation que avatar(), mais taille réduite et contenu
+  // dérivé du choix d'icône plutôt que toujours la seule initiale.
+  function avatarEnTete(profil) {
+    const indice = Math.max(0, P.lireProfils().findIndex((p) => p.id === profil.id));
+    const contenu = contenuIcone(profil);
+    return h('span', { class: 'avatar avatar-petit' + (contenu.length > 1 ? ' avatar-texte-double' : '') +
+      ' ' + CLASSES_AVATAR[indice % CLASSES_AVATAR.length], texte: contenu });
+  }
+
   function moduleParId(id) {
     return (referentiel.modules || []).find((m) => m.id === id) || null;
   }
@@ -449,20 +473,18 @@
     const niveauxSelectionnes = niveauProfil ? lireNiveauxSelectionnes(idProfil) : niveauxDisponibles;
     const filtreDomaine = lireFiltreDomaine(idProfil);
 
-    // Titre centré et grande police (retour à l'état d'origine, avant les
-    // essais de repositionnement) : la capsule du joueur est repositionnée en
-    // absolu (coin haut droit), ce qui redevient sûr car son contenu (prénom +
-    // chevron) reste identique par ailleurs — seule sa position change ici.
+    // Icône du joueur (petite, choix libre — cf. #modifier-profil) + chevron,
+    // en haut à droite : taille fixe et réduite, donc un positionnement absolu
+    // reste sûr ici (contrairement à l'ancienne capsule avec le prénom en toutes
+    // lettres, dont la largeur variable pouvait chevaucher le titre). Le titre
+    // « Mayeutik » reste centré en grand, comme à l'origine.
     const vue = h('div', { class: 'vue', style: 'position:relative' });
 
-    const pastille = h('button', { class: 'pastille-profil', 'aria-label': 'Changer de joueur',
+    vue.appendChild(h('button', { class: 'icone-joueur',
+      'aria-label': profil ? 'Changer de joueur (' + profil.prenom + ')' : 'Choisir un joueur',
       onclick: () => { location.hash = '#profils'; } },
-      profil
-        ? [avatar(profil), h('span', { class: 'pastille-prenom', texte: profil.prenom }),
-           h('span', { class: 'chevron-pastille', 'aria-hidden': 'true' })]
-        : [h('span', { class: 'avatar', texte: '?' }), h('span', { class: 'pastille-prenom', texte: 'Choisir' }),
-           h('span', { class: 'chevron-pastille', 'aria-hidden': 'true' })]);
-    vue.appendChild(pastille);
+      [profil ? avatarEnTete(profil) : h('span', { class: 'avatar avatar-petit', texte: '?' }),
+       h('span', { class: 'chevron-pastille', 'aria-hidden': 'true' })]));
 
     vue.appendChild(h('div', { class: 'entete-enfant' }, [
       h('h1', { texte: 'Mayeutik' }),
