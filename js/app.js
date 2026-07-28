@@ -410,17 +410,23 @@
     const voirTous = lireVoirTous(idProfil);
     const filtreDomaine = lireFiltreDomaine(idProfil);
 
-    const vue = h('div', { class: 'vue', style: 'position:relative' });
+    const vue = h('div', { class: 'vue' });
 
-    vue.appendChild(h('button', { class: 'pastille-profil', 'aria-label': 'Changer de joueur',
+    // Nom du joueur à gauche, nom de l'app à droite : la disposition partage la
+    // même ligne flex plutôt qu'un positionnement absolu, afin qu'un prénom long
+    // ne puisse jamais chevaucher « Mayeutik » — chaque élément se contente de
+    // sa part de largeur, avec troncature en ellipse si besoin.
+    const pastille = h('button', { class: 'pastille-profil', 'aria-label': 'Changer de joueur',
       onclick: () => { location.hash = '#profils'; } },
-      profil ? [avatar(profil), h('span', { texte: profil.prenom })]
-             : [h('span', { class: 'avatar', texte: '?' }), h('span', { texte: 'Choisir' })]));
+      profil
+        ? [avatar(profil), h('span', { class: 'pastille-prenom', texte: profil.prenom })]
+        : [h('span', { class: 'avatar', texte: '?' }), h('span', { class: 'pastille-prenom', texte: 'Choisir' })]);
 
-    vue.appendChild(h('div', { class: 'entete-enfant' }, [
-      h('h1', { texte: 'Mayeutik' }),
-      h('p', { class: 'sous-titre', texte: 'À quoi veux-tu jouer ?' })
+    vue.appendChild(h('div', { class: 'entete-ligne' }, [
+      pastille,
+      h('h1', { class: 'nom-app', texte: 'Mayeutik' })
     ]));
+    vue.appendChild(h('p', { class: 'sous-titre-accueil', texte: 'À quoi veux-tu jouer ?' }));
 
     vue.appendChild(h('input', { class: 'barre-recherche', type: 'search',
       placeholder: '🔍 Chercher un jeu…', value: etat.recherche,
