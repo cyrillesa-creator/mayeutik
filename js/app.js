@@ -458,7 +458,7 @@
     // message « Aucun jeu trouvé » habituel s'il ne ramène rien.
     const domainesDuReferentiel = referentiel.domaines || [];
     const rangeeDomaines = h('div', { class: 'rangee-filtres' },
-      [['tous', 'Tous les domaines']].concat(domainesDuReferentiel.map((d) => [d, d])).map(([valeur, libelle]) =>
+      domainesDuReferentiel.map((d) => [d, d]).concat([['tous', 'Tous les domaines']]).map(([valeur, libelle]) =>
         h('button', { class: 'puce-filtre puce-filtre-domaine' + (filtreDomaine === valeur ? ' active' : ''),
           texte: libelle,
           onclick: () => { ecrireFiltreDomaine(idProfil, valeur); rendre(); } })));
