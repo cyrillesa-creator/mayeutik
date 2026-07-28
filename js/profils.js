@@ -101,16 +101,19 @@
   }
 
   /*
-   * Modifie le prénom et/ou le niveau d'un profil existant (id et date de
-   * création conservés). Renvoie le profil mis à jour, ou null s'il n'existe
-   * pas. Écriture via le pattern « stockage sûr » (mémoire + localStorage).
+   * Modifie le prénom, le niveau et/ou l'icône d'un profil existant (id et
+   * date de création conservés). `icone` est optionnel (4ᵉ argument) : vaut
+   * 'initiale' | 'initiales' | un emoji littéral ; omis (undefined), le
+   * champ existant n'est pas touché. Renvoie le profil mis à jour, ou null
+   * s'il n'existe pas. Écriture via le pattern « stockage sûr ».
    */
-  function modifierProfil(id, prenom, niveau) {
+  function modifierProfil(id, prenom, niveau, icone) {
     const profils = lireProfils();
     const profil = profils.find((p) => p.id === id);
     if (!profil) return null;
     profil.prenom = String(prenom || '').trim().slice(0, 30);
     profil.niveau = niveau || '';
+    if (icone !== undefined) profil.icone = icone;
     enregistrerProfils(profils);
     return profil;
   }

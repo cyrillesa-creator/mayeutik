@@ -195,6 +195,7 @@
    * valeur absente/inconnue retombe sur 'initiale' (défaut sensé pour les
    * profils existants qui n'ont pas encore fait ce choix).
    */
+  const EMOJIS_PROFIL = ['😀', '😎', '🤓', '🥳', '🥰', '😺', '🐶', '🦊', '🐼', '🦁', '🐵', '🦄', '🐧', '🐢', '🦋', '🐙'];
   function contenuIcone(profil) {
     const icone = profil.icone;
     const prenom = (profil.prenom || '?').trim() || '?';
@@ -341,13 +342,49 @@
         return opt;
       }));
 
+    // Sélecteur d'icône de profil : lettre / initiales / emoji au choix. État
+    // local (comme prénom/classe) : rien n'est écrit tant que « Enregistrer »
+    // n'est pas cliqué. La prévisualisation suit le prénom en cours de saisie.
+    let iconeChoisie = profil.icone || 'initiale';
+    const selecteurIcone = h('div', { class: 'champ-edition selecteur-icone' });
+    function rendreSelecteurIcone() {
+      selecteurIcone.textContent = '';
+      const typeActuel = iconeChoisie === 'initiale' || !iconeChoisie ? 'initiale'
+        : iconeChoisie === 'initiales' ? 'initiales' : 'emoji';
+      const contenuApercu = contenuIcone({ prenom: champPrenom.value, icone: iconeChoisie });
+      const apercu = h('span', { class: 'avatar avatar-apercu' + (contenuApercu.length > 1 ? ' avatar-texte-double' : '') },
+        []);
+      apercu.textContent = contenuApercu;
+
+      const options = [['initiale', 'Une lettre'], ['initiales', 'Initiales'], ['emoji', 'Emoji']].map(([type, libelle]) =>
+        h('button', { type: 'button', class: 'option-type-icone' + (typeActuel === type ? ' active' : ''),
+          texte: libelle,
+          onclick: () => {
+            if (type === 'emoji') { if (typeActuel !== 'emoji') iconeChoisie = EMOJIS_PROFIL[0]; }
+            else iconeChoisie = type;
+            rendreSelecteurIcone();
+          } }));
+
+      selecteurIcone.appendChild(h('span', { texte: 'Icône du profil' }));
+      selecteurIcone.appendChild(h('div', { class: 'rangee-apercu-type' }, [apercu, h('div', { class: 'options-type-icone' }, options)]));
+
+      if (typeActuel === 'emoji') {
+        selecteurIcone.appendChild(h('div', { class: 'grille-emoji' }, EMOJIS_PROFIL.map((emoji) =>
+          h('button', { type: 'button', class: 'case-emoji' + (iconeChoisie === emoji ? ' active' : ''),
+            'aria-label': 'Choisir cet emoji', texte: emoji,
+            onclick: () => { iconeChoisie = emoji; rendreSelecteurIcone(); } }))));
+      }
+    }
+    rendreSelecteurIcone();
+    champPrenom.addEventListener('input', rendreSelecteurIcone);
+
     const boutonEnregistrer = h('button', { class: 'bouton-principal', texte: 'Enregistrer',
       onclick: () => {
         if (!champPrenom.value.trim()) { champPrenom.focus(); return; }
         // Met à jour le profil : si c'est le profil actif et que sa classe
         // change, l'écran de choix des jeux ré-appliquera le filtre au nouveau
         // niveau (niveau recalculé à chaque rendu depuis profilActif()).
-        P.modifierProfil(profil.id, champPrenom.value, champNiveau.value);
+        P.modifierProfil(profil.id, champPrenom.value, champNiveau.value, iconeChoisie);
         retourApresEditionProfil();
       } });
     const boutonAnnuler = h('button', { class: 'bouton-secondaire', texte: 'Annuler',
@@ -356,6 +393,7 @@
     vue.appendChild(h('div', { class: 'formulaire-profil' }, [
       h('label', { class: 'champ-edition' }, [h('span', { texte: 'Prénom' }), champPrenom]),
       h('label', { class: 'champ-edition' }, [h('span', { texte: 'Classe' }), champNiveau]),
+      selecteurIcone,
       boutonEnregistrer,
       boutonAnnuler
     ]));

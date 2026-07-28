@@ -273,6 +273,26 @@
   .champ-edition > span { display: block; font-size: .85rem; font-weight: 600; opacity: .75; margin-bottom: .25rem; }
   .formulaire-profil .champ-edition input,
   .formulaire-profil .champ-edition select { width: 100%; }
+
+  /* Sélecteur d'icône de profil (lettre / initiales / emoji) : aperçu à gauche,
+     boutons de type à droite, grille d'emoji en dessous quand ce type est actif. */
+  .rangee-apercu-type { display: flex; align-items: center; gap: .7rem; flex-wrap: wrap; }
+  .avatar-apercu { width: 48px; height: 48px; font-size: 1.3rem; flex-shrink: 0; }
+  .avatar-apercu.avatar-texte-double { font-size: 1rem; }
+  .options-type-icone { display: flex; gap: .4rem; flex-wrap: wrap; }
+  .option-type-icone {
+    border: 1.5px solid color-mix(in srgb, var(--couleur-encre) 20%, white);
+    background: #fff; border-radius: 999px; padding: .35rem .8rem;
+    font-size: .82rem; font-weight: 600; min-height: 36px;
+  }
+  .option-type-icone.active { background: var(--couleur-mandarine); border-color: var(--couleur-mandarine); color: #fff; }
+  .grille-emoji { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .6rem; }
+  .case-emoji {
+    width: 42px; height: 42px; border-radius: 12px; font-size: 1.3rem;
+    border: 2px solid color-mix(in srgb, var(--couleur-encre) 12%, white); background: #fff;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .case-emoji.active { border-color: var(--couleur-mandarine); background: color-mix(in srgb, var(--couleur-mandarine) 15%, white); }
   .zone-danger {
     margin-top: 1.4rem; border-radius: 16px; padding: .9rem 1rem;
     background: color-mix(in srgb, var(--couleur-corail) 9%, white);
