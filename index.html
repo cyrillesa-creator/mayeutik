@@ -115,6 +115,16 @@
   .pastille-prenom {
     display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
+  /* Chevron discret : même technique que les select déroulants de l'espace
+     parent (bordure en coin pivotée), en plus petit et plus sobre, pour
+     indiquer que la pastille du joueur est cliquable (ouvre le changement
+     de joueur) sans attirer l'œil autant qu'un contrôle de formulaire. */
+  .chevron-pastille {
+    display: inline-block; width: .4rem; height: .4rem; flex: 0 0 auto; margin: 0 0 .1rem .05rem;
+    border-right: 2px solid color-mix(in srgb, var(--couleur-encre) 45%, white);
+    border-bottom: 2px solid color-mix(in srgb, var(--couleur-encre) 45%, white);
+    transform: rotate(45deg);
+  }
   .nom-app {
     margin: 0; flex: 0 0 auto; text-align: right;
     font-size: 1.5rem; font-weight: 700; color: var(--couleur-mandarine);

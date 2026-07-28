@@ -419,8 +419,10 @@
     const pastille = h('button', { class: 'pastille-profil', 'aria-label': 'Changer de joueur',
       onclick: () => { location.hash = '#profils'; } },
       profil
-        ? [avatar(profil), h('span', { class: 'pastille-prenom', texte: profil.prenom })]
-        : [h('span', { class: 'avatar', texte: '?' }), h('span', { class: 'pastille-prenom', texte: 'Choisir' })]);
+        ? [avatar(profil), h('span', { class: 'pastille-prenom', texte: profil.prenom }),
+           h('span', { class: 'chevron-pastille', 'aria-hidden': 'true' })]
+        : [h('span', { class: 'avatar', texte: '?' }), h('span', { class: 'pastille-prenom', texte: 'Choisir' }),
+           h('span', { class: 'chevron-pastille', 'aria-hidden': 'true' })]);
 
     vue.appendChild(h('div', { class: 'entete-ligne' }, [
       pastille,
