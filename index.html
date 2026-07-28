@@ -94,26 +94,17 @@
   }
   .entete-enfant .sous-titre { font-weight: 500; opacity: .75; margin-top: .1rem; }
 
-  /* En-tête de l'accueil enfant : nom de l'app à gauche, joueur actif (avatar +
-     prénom) à droite, dans une même ligne flexible plutôt qu'un positionnement
-     absolu qui ignorerait la largeur réelle du contenu. « Mayeutik » garde
-     toujours sa taille naturelle (flex-shrink: 0, texte fixe et court) ; c'est
-     la pastille du joueur qui absorbe l'espace restant et tronque en ellipse
-     le prénom si besoin — un prénom long ne peut donc jamais chevaucher ni
-     écraser le nom de l'app. */
-  .entete-ligne {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: .6rem; padding: 1.2rem 0 0;
-  }
-  /* La capsule épouse la largeur réelle de son contenu (largeur intrinsèque,
-     pas de flex-grow qui l'étirerait) et ne se réduit qu'en dernier recours —
-     troncature en ellipse du prénom — quand l'espace vient vraiment à manquer. */
+  /* Pastille de profil (coin haut droit) : avatar-initiale + prénom + chevron.
+     Titre « Mayeutik » redevenu centré et grand (.entete-enfant, ci-dessus) :
+     position absolue à nouveau sûre ici, la capsule ne partage plus la même
+     ligne que le titre. */
   .pastille-profil {
+    position: absolute; top: .8rem; right: .9rem;
     display: flex; align-items: center; gap: .4rem;
     border: none; background: #fff; border-radius: 999px;
     padding: .25rem .8rem .25rem .3rem; min-height: 44px;
     box-shadow: 0 2px 8px rgba(43,43,43,.12); font-weight: 600;
-    flex: 0 1 auto; width: fit-content; min-width: 84px;
+    max-width: 60%;
   }
   .pastille-prenom {
     display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -121,22 +112,13 @@
   /* Chevron discret : même technique que les select déroulants de l'espace
      parent (bordure en coin pivotée), en plus petit et plus sobre, pour
      indiquer que la pastille du joueur est cliquable (ouvre le changement
-     de joueur) sans attirer l'œil autant qu'un contrôle de formulaire.
-     L'espacement avec le prénom vient du `gap` de .pastille-profil, uniforme
-     quel que soit le prénom (pas de marge additionnelle qui le désaligne). */
+     de joueur) sans attirer l'œil autant qu'un contrôle de formulaire. */
   .chevron-pastille {
     display: inline-block; width: .4rem; height: .4rem; flex: 0 0 auto; margin-bottom: .1rem;
     border-right: 2px solid color-mix(in srgb, var(--couleur-encre) 45%, white);
     border-bottom: 2px solid color-mix(in srgb, var(--couleur-encre) 45%, white);
     transform: rotate(45deg);
   }
-  .nom-app {
-    margin: 0; flex: 0 0 auto; text-align: left;
-    font-size: 1.65rem; font-weight: 700; color: var(--couleur-mandarine);
-    text-shadow: 2px 2px 0 color-mix(in srgb, var(--couleur-soleil) 55%, transparent);
-    white-space: nowrap;
-  }
-  .sous-titre-accueil { text-align: center; font-weight: 500; opacity: .75; margin: .3rem 0 .6rem; }
   .avatar {
     width: 34px; height: 34px; border-radius: 50%;
     display: inline-flex; align-items: center; justify-content: center;

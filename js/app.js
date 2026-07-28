@@ -449,12 +449,12 @@
     const niveauxSelectionnes = niveauProfil ? lireNiveauxSelectionnes(idProfil) : niveauxDisponibles;
     const filtreDomaine = lireFiltreDomaine(idProfil);
 
-    const vue = h('div', { class: 'vue' });
+    // Titre centré et grande police (retour à l'état d'origine, avant les
+    // essais de repositionnement) : la capsule du joueur est repositionnée en
+    // absolu (coin haut droit), ce qui redevient sûr car son contenu (prénom +
+    // chevron) reste identique par ailleurs — seule sa position change ici.
+    const vue = h('div', { class: 'vue', style: 'position:relative' });
 
-    // Nom de l'app à gauche, nom du joueur à droite : la disposition partage la
-    // même ligne flex plutôt qu'un positionnement absolu, afin qu'un prénom long
-    // ne puisse jamais chevaucher « Mayeutik » — chaque élément se contente de
-    // sa part de largeur, avec troncature en ellipse si besoin.
     const pastille = h('button', { class: 'pastille-profil', 'aria-label': 'Changer de joueur',
       onclick: () => { location.hash = '#profils'; } },
       profil
@@ -462,12 +462,12 @@
            h('span', { class: 'chevron-pastille', 'aria-hidden': 'true' })]
         : [h('span', { class: 'avatar', texte: '?' }), h('span', { class: 'pastille-prenom', texte: 'Choisir' }),
            h('span', { class: 'chevron-pastille', 'aria-hidden': 'true' })]);
+    vue.appendChild(pastille);
 
-    vue.appendChild(h('div', { class: 'entete-ligne' }, [
-      h('h1', { class: 'nom-app', texte: 'Mayeutik' }),
-      pastille
+    vue.appendChild(h('div', { class: 'entete-enfant' }, [
+      h('h1', { texte: 'Mayeutik' }),
+      h('p', { class: 'sous-titre', texte: 'À quoi veux-tu jouer ?' })
     ]));
-    vue.appendChild(h('p', { class: 'sous-titre-accueil', texte: 'À quoi veux-tu jouer ?' }));
 
     vue.appendChild(h('input', { class: 'barre-recherche', type: 'search',
       placeholder: '🔍 Chercher un jeu…', value: etat.recherche,
