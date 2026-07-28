@@ -412,7 +412,7 @@
 
     const vue = h('div', { class: 'vue' });
 
-    // Nom du joueur à gauche, nom de l'app à droite : la disposition partage la
+    // Nom de l'app à gauche, nom du joueur à droite : la disposition partage la
     // même ligne flex plutôt qu'un positionnement absolu, afin qu'un prénom long
     // ne puisse jamais chevaucher « Mayeutik » — chaque élément se contente de
     // sa part de largeur, avec troncature en ellipse si besoin.
@@ -425,8 +425,8 @@
            h('span', { class: 'chevron-pastille', 'aria-hidden': 'true' })]);
 
     vue.appendChild(h('div', { class: 'entete-ligne' }, [
-      pastille,
-      h('h1', { class: 'nom-app', texte: 'Mayeutik' })
+      h('h1', { class: 'nom-app', texte: 'Mayeutik' }),
+      pastille
     ]));
     vue.appendChild(h('p', { class: 'sous-titre-accueil', texte: 'À quoi veux-tu jouer ?' }));
 

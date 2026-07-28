@@ -94,13 +94,13 @@
   }
   .entete-enfant .sous-titre { font-weight: 500; opacity: .75; margin-top: .1rem; }
 
-  /* En-tête de l'accueil enfant : joueur actif (avatar + prénom) à gauche, nom
-     de l'app à droite, dans une même ligne flexible plutôt qu'un
-     positionnement absolu qui ignorerait la largeur réelle du contenu.
-     « Mayeutik » garde toujours sa taille naturelle (flex-shrink: 0, texte
-     fixe et court) ; c'est la pastille du joueur qui absorbe l'espace restant
-     et tronque en ellipse le prénom si besoin — un prénom long ne peut donc
-     jamais chevaucher ni écraser le nom de l'app. */
+  /* En-tête de l'accueil enfant : nom de l'app à gauche, joueur actif (avatar +
+     prénom) à droite, dans une même ligne flexible plutôt qu'un positionnement
+     absolu qui ignorerait la largeur réelle du contenu. « Mayeutik » garde
+     toujours sa taille naturelle (flex-shrink: 0, texte fixe et court) ; c'est
+     la pastille du joueur qui absorbe l'espace restant et tronque en ellipse
+     le prénom si besoin — un prénom long ne peut donc jamais chevaucher ni
+     écraser le nom de l'app. */
   .entete-ligne {
     display: flex; align-items: center; justify-content: space-between;
     gap: .6rem; padding: 1.2rem 0 0;
@@ -126,7 +126,7 @@
     transform: rotate(45deg);
   }
   .nom-app {
-    margin: 0; flex: 0 0 auto; text-align: right;
+    margin: 0; flex: 0 0 auto; text-align: left;
     font-size: 1.5rem; font-weight: 700; color: var(--couleur-mandarine);
     text-shadow: 2px 2px 0 color-mix(in srgb, var(--couleur-soleil) 55%, transparent);
     white-space: nowrap;
