@@ -25,12 +25,14 @@
     origineEditionProfil: null,  // 'profils' ou 'parent' : où revenir après #modifier-profil
     domaineParent: null,     // domaine sélectionné sur le radar de synthèse
     filtreNiveauParent: 'tous',
+    menuNiveauxOuvert: false,  // le menu de sélection des niveaux reste ouvert entre deux rendus
     outilsDevOuverts: false  // le panneau dev reste ouvert entre deux rendus
   };
 
   /*
-   * État « Voir tous les niveaux » — persistant le temps de la SESSION de
-   * navigation dans la coquille, PAS dans le stockage persistant localStorage.
+   * État « Niveaux affichés » (sélection multiple : CP, CE1, CE2… cochables
+   * indépendamment) — persistant le temps de la SESSION de navigation dans la
+   * coquille, PAS dans le stockage persistant localStorage.
    *
    * Pourquoi sessionStorage plutôt qu'une simple variable mémoire : ouvrir un
    * jeu quitte la page de la coquille (les jeux sont des fichiers HTML séparés)
@@ -38,30 +40,50 @@
    * survit à ce rechargement tant que l'onglet reste ouvert, et est effacé à la
    * fermeture de l'onglet (donc non persistant, comme demandé).
    *
-   * La valeur stockée est l'id du profil pour lequel « voir tous » est actif :
-   * cela encode à la fois le drapeau ET son périmètre (si le profil actif change
-   * par un autre chemin, le drapeau ne s'applique plus → filtre par défaut).
-   * Il est en outre réinitialisé explicitement à l'accès à l'écran des profils.
+   * La valeur stockée est préfixée par l'id du profil (périmètre) : si le
+   * profil actif change par un autre chemin, la sélection ne s'applique plus
+   * → retour au défaut (« Mon niveau »). Il est en outre réinitialisé
+   * explicitement à l'accès à l'écran des profils.
    */
-  const CLE_VOIR_TOUS = 'mayeutik-nav-voir-tous-niveaux';
+  const CLE_NIVEAUX = 'mayeutik-nav-filtre-niveaux';
   const CLE_DOMAINE = 'mayeutik-nav-filtre-domaine';
   const SEP = String.fromCharCode(1); // séparateur profilId | valeur (jamais présent dans un nom de domaine)
-  let memoireVoirTous = null; // repli si sessionStorage est indisponible (Safari privé…)
+  let memoireNiveaux = null; // repli si sessionStorage est indisponible (Safari privé…)
   let memoireDomaine = null;
 
-  function lireVoirTous(profilId) {
-    if (!profilId) return false;
-    try {
-      return window.sessionStorage.getItem(CLE_VOIR_TOUS) === profilId;
-    } catch (e) {
-      return memoireVoirTous === profilId;
-    }
+  // Niveau du profil désigné par cet id (indépendant du profil ACTIF courant,
+  // utile pour calculer le défaut « Mon niveau » sans dépendre de l'ordre
+  // d'appel dans vueAccueil).
+  function niveauDuProfilId(profilId) {
+    if (!profilId) return null;
+    const p = P.lireProfils().find((pp) => pp.id === profilId);
+    return (p && p.niveau) || null;
   }
-  function ecrireVoirTous(profilId, actif) {
-    memoireVoirTous = actif ? profilId : null;
+
+  // Défaut « Mon niveau » : uniquement le niveau du profil, ou TOUS les
+  // niveaux du référentiel si le profil n'a pas de niveau renseigné (rien à
+  // filtrer dans ce cas).
+  function niveauxParDefaut(profilId) {
+    const n = niveauDuProfilId(profilId);
+    return n ? [n] : (referentiel.niveaux || []).slice();
+  }
+
+  function lireNiveauxSelectionnes(profilId) {
+    if (!profilId) return niveauxParDefaut(profilId);
+    let brut;
+    try { brut = window.sessionStorage.getItem(CLE_NIVEAUX); } catch (e) { brut = memoireNiveaux; }
+    if (!brut) return niveauxParDefaut(profilId);
+    const sep = brut.indexOf(SEP);
+    if (sep === -1 || brut.slice(0, sep) !== profilId) return niveauxParDefaut(profilId);
+    const niveaux = brut.slice(sep + 1).split(',').filter(Boolean);
+    return niveaux.length ? niveaux : niveauxParDefaut(profilId);
+  }
+  function ecrireNiveauxSelectionnes(profilId, niveaux) {
+    if (!profilId || !niveaux || !niveaux.length) return;
+    const valeur = profilId + SEP + niveaux.join(',');
+    memoireNiveaux = valeur;
     try {
-      if (actif) window.sessionStorage.setItem(CLE_VOIR_TOUS, profilId);
-      else window.sessionStorage.removeItem(CLE_VOIR_TOUS);
+      window.sessionStorage.setItem(CLE_NIVEAUX, valeur);
     } catch (e) {
       // sessionStorage indisponible : on garde le repli mémoire (dégradé mais sans erreur).
     }
@@ -100,10 +122,14 @@
    */
   const FILTRES_NAVIGATION = [
     {
-      cle: CLE_VOIR_TOUS,
-      reinitMemoire: function () { memoireVoirTous = null; },
-      // Écart au défaut = « voir tous les niveaux » activé.
-      estModifie: function (profilId) { return lireVoirTous(profilId); }
+      cle: CLE_NIVEAUX,
+      reinitMemoire: function () { memoireNiveaux = null; },
+      // Écart au défaut = la sélection de niveaux diffère de « Mon niveau ».
+      estModifie: function (profilId) {
+        const actuel = lireNiveauxSelectionnes(profilId).slice().sort();
+        const defaut = niveauxParDefaut(profilId).slice().sort();
+        return actuel.length !== defaut.length || actuel.some((v, i) => v !== defaut[i]);
+      }
     },
     {
       cle: CLE_DOMAINE,
@@ -357,17 +383,17 @@
 
   /* ---------- Vue : accueil / index des jeux (enfant) ---------- */
 
-  function modulesFiltres(niveauProfil, voirTous, filtreDomaine) {
+  function modulesFiltres(niveauxSelectionnes, filtreDomaine) {
     const recherche = normaliser(etat.recherche.trim());
     return (referentiel.modules || []).filter((m) => {
       // Entrées de BACKLOG (module planifié, sans fichier de jeu) : présentes
       // dans le référentiel pour le pilotage, jamais proposées à l'enfant —
       // une carte sans jeu associé ne mènerait nulle part.
       if (!m.fichier) return false;
-      // Par défaut, on ne montre que les modules du niveau du profil actif ;
-      // « Voir tous les niveaux » (ou un profil sans niveau) lève ce filtre.
-      // Un module adaptatif (§15) compte pour CHACUN des niveaux qu'il couvre.
-      if (!voirTous && niveauProfil && niveauxModule(m).indexOf(niveauProfil) === -1) return false;
+      // Union des niveaux cochés : un module correspond dès qu'il couvre AU
+      // MOINS UN des niveaux sélectionnés. Un module adaptatif (§15) compte
+      // pour CHACUN des niveaux qu'il couvre.
+      if (!niveauxModule(m).some((n) => niveauxSelectionnes.indexOf(n) !== -1)) return false;
       if (filtreDomaine && filtreDomaine !== 'tous' && m.domaine !== filtreDomaine) return false;
       if (recherche) {
         const meule = normaliser([m.titre, m.theme, m.description, m.domaine].join(' '));
@@ -399,15 +425,28 @@
     ]);
   }
 
+  // Libellé compact du bouton fermé du menu Niveau, pour que l'état actif soit
+  // visible sans avoir à rouvrir le menu (ex. « Mon niveau », « Tous les
+  // niveaux », « CP, CE2 », « 3 niveaux »).
+  function libelleNiveauxSelectionnes(niveauxSelectionnes, niveauProfil, niveauxDisponibles) {
+    if (niveauxSelectionnes.length === niveauxDisponibles.length) return 'Tous les niveaux';
+    if (niveauxSelectionnes.length === 1) {
+      return niveauxSelectionnes[0] === niveauProfil ? 'Mon niveau' : 'Niveau ' + niveauxSelectionnes[0];
+    }
+    if (niveauxSelectionnes.length === 2) return niveauxSelectionnes.join(', ');
+    return niveauxSelectionnes.length + ' niveaux';
+  }
+
   function vueAccueil(conteneur) {
     const profil = P.profilActif();
     const niveauProfil = profil && profil.niveau ? profil.niveau : null;
     const idProfil = profil ? profil.id : null;
 
-    // Filtres « voir tous les niveaux » et « domaine » : lus depuis l'état de
+    // Filtres « niveaux affichés » et « domaine » : lus depuis l'état de
     // session (persistent au retour d'un jeu, réinitialisés à l'accès à l'écran
     // des profils — cf. reinitialiserFiltres dans vueProfils).
-    const voirTous = lireVoirTous(idProfil);
+    const niveauxDisponibles = referentiel.niveaux || [];
+    const niveauxSelectionnes = niveauProfil ? lireNiveauxSelectionnes(idProfil) : niveauxDisponibles;
     const filtreDomaine = lireFiltreDomaine(idProfil);
 
     const vue = h('div', { class: 'vue' });
@@ -434,20 +473,48 @@
       placeholder: '🔍 Chercher un jeu…', value: etat.recherche,
       oninput: (e) => { etat.recherche = e.target.value; rendreListeJeux(); } }));
 
-    // Filtre par niveau : par défaut on ne montre que les jeux du niveau du
-    // profil ; un bouton discret bascule vers « tous les niveaux ». (Sans
-    // niveau sur le profil, tout est affiché et le bouton n'a pas lieu d'être.)
+    // Filtre par niveau : sélection MULTIPLE par cases à cocher (ex. « CP +
+    // CE2 » pour une fratrie à niveaux non contigus), avec deux raccourcis
+    // rapides en haut du menu pour garder l'usage courant à un seul clic.
+    // (Sans niveau sur le profil, tout est affiché et le menu n'a pas lieu d'être.)
     if (niveauProfil) {
-      const barreNiveau = h('div', { class: 'barre-niveau' });
-      barreNiveau.appendChild(h('span', { class: 'etiquette-niveau',
-        texte: voirTous ? 'Tous les niveaux' : 'Niveau ' + niveauProfil }));
-      barreNiveau.appendChild(h('button', {
-        class: 'bouton-tous-niveaux',
-        'aria-pressed': voirTous ? 'true' : 'false',
-        texte: voirTous ? 'Voir seulement mon niveau' : 'Voir tous les niveaux',
-        onclick: () => { ecrireVoirTous(idProfil, !voirTous); rendre(); }
-      }));
-      vue.appendChild(barreNiveau);
+      function choisirNiveaux(niveaux, fermerMenu) {
+        ecrireNiveauxSelectionnes(idProfil, niveaux);
+        etat.menuNiveauxOuvert = !fermerMenu;
+        rendre();
+      }
+      function basculerNiveau(n) {
+        const actuel = new Set(niveauxSelectionnes);
+        if (actuel.has(n)) {
+          if (actuel.size === 1) return; // au moins un niveau doit rester coché
+          actuel.delete(n);
+        } else {
+          actuel.add(n);
+        }
+        choisirNiveaux(Array.from(actuel), false);
+      }
+
+      const menuNiveaux = h('details', { class: 'menu-niveaux',
+        ontoggle: (e) => { etat.menuNiveauxOuvert = e.target.open; } }, [
+        h('summary', { class: 'bouton-niveaux' },
+          [h('span', { texte: libelleNiveauxSelectionnes(niveauxSelectionnes, niveauProfil, niveauxDisponibles) }),
+           h('span', { class: 'chevron-pastille', 'aria-hidden': 'true' })]),
+        h('div', { class: 'panneau-niveaux' }, [
+          h('div', { class: 'raccourcis-niveaux' }, [
+            h('button', { type: 'button', class: 'puce-raccourci-niveau',
+              texte: 'Mon niveau', onclick: () => choisirNiveaux([niveauProfil], true) }),
+            h('button', { type: 'button', class: 'puce-raccourci-niveau',
+              texte: 'Tous les niveaux', onclick: () => choisirNiveaux(niveauxDisponibles.slice(), true) })
+          ]),
+          h('div', { class: 'cases-niveaux' }, niveauxDisponibles.map((n) => {
+            const caseACocher = h('input', { type: 'checkbox', onchange: () => basculerNiveau(n) });
+            caseACocher.checked = niveauxSelectionnes.indexOf(n) !== -1;
+            return h('label', { class: 'case-niveau' }, [caseACocher, h('span', { texte: n })]);
+          }))
+        ])
+      ]);
+      if (etat.menuNiveauxOuvert) menuNiveaux.setAttribute('open', '');
+      vue.appendChild(menuNiveaux);
     }
 
     // Dérivé dynamiquement de la liste des domaines du référentiel (source
@@ -478,21 +545,27 @@
 
     function rendreListeJeux() {
       zoneJeux.textContent = '';
-      const modules = modulesFiltres(niveauProfil, voirTous, filtreDomaine);
+      const modules = modulesFiltres(niveauxSelectionnes, filtreDomaine);
       if (!modules.length) {
-        const message = (!voirTous && niveauProfil)
-          ? 'Aucun jeu pour le niveau ' + niveauProfil + ' pour l’instant — touche « Voir tous les niveaux ».'
+        const message = niveauxSelectionnes.length < niveauxDisponibles.length
+          ? 'Aucun jeu pour ' + (niveauxSelectionnes.length === 1 ? 'le niveau ' + niveauxSelectionnes[0] : 'ces niveaux')
+            + ' pour l’instant — touche le menu Niveau pour en afficher d’autres.'
           : 'Aucun jeu trouvé… essaie autre chose !';
         zoneJeux.appendChild(h('p', { class: 'aucun-resultat', texte: message }));
         return;
       }
-      // On regroupe par niveau (avec un titre de section) quand plusieurs
-      // niveaux peuvent coexister à l'écran : « voir tous les niveaux » ou
-      // profil sans niveau. Sinon, une seule grille (tout au même niveau,
-      // le badge de niveau reste visible sur chaque carte).
-      const grouperParNiveau = voirTous || !niveauProfil;
+      // On regroupe par niveau (avec un titre de section) dès que PLUSIEURS
+      // niveaux peuvent coexister à l'écran (2 niveaux cochés, « tous les
+      // niveaux », ou profil sans niveau). Sinon, une seule grille (tout au
+      // même niveau, le badge de niveau reste visible sur chaque carte).
+      // Les groupes sont limités aux niveaux SÉLECTIONNÉS (dans l'ordre du
+      // référentiel) : un module adaptatif qui déborde sur un niveau non
+      // coché (ex. CP+CE2 cochés, module couvrant aussi CE1) ne doit pas
+      // faire apparaître une section CE1 fantôme.
+      const grouperParNiveau = niveauxSelectionnes.length > 1;
+      const niveauxAGrouper = (referentiel.niveaux || []).filter((n) => niveauxSelectionnes.indexOf(n) !== -1);
       const groupes = grouperParNiveau
-        ? (referentiel.niveaux || []).map((n) => [n, modules.filter((m) => niveauxModule(m).indexOf(n) !== -1)]).filter(([, l]) => l.length)
+        ? niveauxAGrouper.map((n) => [n, modules.filter((m) => niveauxModule(m).indexOf(n) !== -1)]).filter(([, l]) => l.length)
         : [[null, modules]];
       groupes.forEach(([niveau, liste]) => {
         if (niveau) zoneJeux.appendChild(h('div', { class: 'titre-groupe', texte: niveau }));

@@ -163,20 +163,40 @@
   .puce-filtre.active { background: var(--couleur-mandarine); border-color: var(--couleur-mandarine); color: #fff; }
   .puce-filtre-domaine.active { background: var(--couleur-menthe); border-color: var(--couleur-menthe); }
 
-  /* Filtre par niveau du profil + bascule « voir tous les niveaux » */
-  .barre-niveau { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin: .1rem 0 .5rem; }
-  .etiquette-niveau {
-    font-size: .82rem; font-weight: 700; border-radius: 999px; padding: .2rem .7rem;
-    background: color-mix(in srgb, var(--couleur-mandarine) 22%, white);
+  /* Filtre par niveau : sélection MULTIPLE par cases à cocher (CP, CE1, CE2…),
+     avec deux raccourcis rapides (« Mon niveau », « Tous les niveaux ») pour
+     garder l'usage courant à un seul clic. Le libellé du bouton fermé résume
+     la sélection (« Mon niveau », « Tous les niveaux », « CP, CE2 »…) pour
+     que l'état actif reste visible sans rouvrir le menu. */
+  .menu-niveaux { margin: .1rem 0 .5rem; }
+  .bouton-niveaux {
+    display: inline-flex; align-items: center; gap: .5rem; cursor: pointer; list-style: none;
+    border: 1.5px solid color-mix(in srgb, var(--couleur-encre) 22%, white);
+    background: #fff; border-radius: 999px; padding: .3rem .9rem;
+    font-size: .82rem; font-weight: 700; min-height: 38px;
     color: color-mix(in srgb, var(--couleur-mandarine) 55%, black 20%);
   }
-  .bouton-tous-niveaux {
-    margin-left: auto; border: 1.5px solid color-mix(in srgb, var(--couleur-encre) 22%, white);
-    background: #fff; border-radius: 999px; padding: .3rem .8rem;
-    font-size: .82rem; font-weight: 600; min-height: 38px; color: var(--couleur-encre);
+  .bouton-niveaux::-webkit-details-marker { display: none; }
+  .bouton-niveaux .chevron-pastille { border-color: color-mix(in srgb, var(--couleur-mandarine) 55%, black 20%); }
+  .menu-niveaux[open] .bouton-niveaux .chevron-pastille { transform: rotate(225deg); }
+  .panneau-niveaux {
+    margin-top: .5rem; padding: .7rem .8rem; border-radius: 14px; max-width: 16rem;
+    background: #fff; border: 1.5px solid color-mix(in srgb, var(--couleur-encre) 15%, white);
+    box-shadow: 0 4px 10px rgba(43,43,43,.08);
   }
-  .bouton-tous-niveaux[aria-pressed="true"] {
-    background: var(--couleur-mandarine); border-color: var(--couleur-mandarine); color: #fff;
+  .raccourcis-niveaux {
+    display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .6rem; padding-bottom: .6rem;
+    border-bottom: 1.5px solid color-mix(in srgb, var(--couleur-encre) 10%, white);
+  }
+  .puce-raccourci-niveau {
+    border: 1.5px solid color-mix(in srgb, var(--couleur-mandarine) 45%, white);
+    background: color-mix(in srgb, var(--couleur-mandarine) 10%, white);
+    color: color-mix(in srgb, var(--couleur-mandarine) 60%, black 15%);
+    border-radius: 999px; padding: .3rem .7rem; font-size: .78rem; font-weight: 600; min-height: 34px;
+  }
+  .cases-niveaux { display: flex; flex-direction: column; gap: .5rem; }
+  .case-niveau { display: flex; align-items: center; gap: .5rem; font-weight: 600; font-size: .92rem; min-height: 32px; }
+  .case-niveau input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--couleur-mandarine);
   }
 
   /* Bouton « Réinitialiser les filtres » (discret, grisé si rien à réinitialiser) */
