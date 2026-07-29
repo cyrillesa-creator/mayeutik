@@ -205,6 +205,19 @@
   .brindille-icone{ font-size:1rem; margin-right:.35rem; }
   .lisiere-lettre{ font-weight:700; margin-left:.4rem; opacity:.75; font-size:.85rem; }
 
+  /* ---- Palier CP : « Le Bois » — balade (ordonner 5 bâtons) ----
+     Emplacements FIXES : glisser un bâton sur un autre échange leur place
+     (aucune case ne reste jamais vide). Le DOM des 5 boutons ne bouge jamais
+     pendant le geste, seule la valeur affichée (largeur de la barre) est
+     échangée — cf. commentaire dans genererOrdonnerBatons (js). */
+  .bande-batons{ display:flex; gap:.6rem; justify-content:center; align-items:flex-end; margin:1rem 0; flex-wrap:wrap; }
+  .baton-case{ position:relative; display:flex; align-items:flex-end; justify-content:center; padding:.3rem; border-radius:12px; }
+  .baton-case.case-selectionnee{ background:color-mix(in srgb, var(--couleur-soleil) 40%, transparent); }
+  .baton-btn{ position:relative; border:none; background:transparent; padding:.2rem; min-height:44px; min-width:44px;
+    display:flex; align-items:flex-end; touch-action:none; cursor:grab; }
+  .baton-btn.baton-glisse{ z-index:5; cursor:grabbing; }
+  .baton-barre{ display:block; height:16px; border-radius:8px; background:var(--couleur-corail); border:2px solid color-mix(in srgb, var(--couleur-corail) 60%, black 10%); }
+
   /* ---- Périmètre : côtés à reporter au compas ---- */
   .bloc-polygone{ text-align:center; font-weight:700; margin-bottom:.3rem; }
   .rangee-cotes{ display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; margin:.4rem 0 .7rem; }
@@ -301,7 +314,8 @@
     "CP": {
       "sousTitre": "Une balade dans le Bois, entre lisière et cabane ! 🌲",
       "miniJeux": [
-        { "id": "vocabulaire-longueurs-cp", "titre": "La lisière du bois", "icone": "🌲", "couleur": "menthe", "description": "Trouve les bons mots : long, court, près, loin.", "type": "vocabulaire-cp", "nbTours": 6 }
+        { "id": "vocabulaire-longueurs-cp", "titre": "La lisière du bois", "icone": "🌲", "couleur": "menthe", "description": "Trouve les bons mots : long, court, près, loin.", "type": "vocabulaire-cp", "nbTours": 6 },
+        { "id": "comparer-longueurs-cp", "titre": "La balade", "icone": "🥾", "couleur": "mandarine", "description": "Compare des longueurs, puis range 5 bâtons.", "type": "balade-cp", "nbTours": 5 }
       ]
     },
     "CE1": {
@@ -682,11 +696,40 @@
     { axe: 'distance', label: 'chêne', icone: '🌳' }
   ];
 
+  /* Niveau 2 — « La balade » (comparaison) : les 5 gabarits officiels du
+     programme, chacun dans les deux sens (grand/petit, proche/loin…) = 10
+     combinaisons (> 4 manches par partie), un tirage sans redondance par
+     partie. La 5ᵉ et dernière manche est toujours l'ordonnancement des
+     bâtons (cf. genererBaladeCP), pas tirée de cette banque. */
+  const GABARITS_BALADE = [
+    { axe: 'hauteur', icone: '🌳', consigne: "Touche l'arbre le plus grand.",
+      consigneVoix: 'Regarde bien la hauteur de chaque arbre, et touche celui qui est le plus grand.', cible: 'max' },
+    { axe: 'hauteur', icone: '🌳', consigne: "Touche l'arbre le plus petit.",
+      consigneVoix: 'Regarde bien la hauteur de chaque arbre, et touche celui qui est le plus petit.', cible: 'min' },
+    { axe: 'longueur', icone: '🪢', consigne: 'Touche la corde la plus courte.',
+      consigneVoix: 'Regarde bien la longueur de chaque corde, et touche la plus courte.', cible: 'min' },
+    { axe: 'longueur', icone: '🪢', consigne: 'Touche la corde la plus longue.',
+      consigneVoix: 'Regarde bien la longueur de chaque corde, et touche la plus longue.', cible: 'max' },
+    { axe: 'longueur', icone: '🥾', consigne: 'Touche le chemin le plus court.',
+      consigneVoix: 'Regarde bien la longueur de chaque chemin, et touche le plus court.', cible: 'min' },
+    { axe: 'longueur', icone: '🥾', consigne: 'Touche le chemin le plus long.',
+      consigneVoix: 'Regarde bien la longueur de chaque chemin, et touche le plus long.', cible: 'max' },
+    { axe: 'distance', icone: '🛖', consigne: 'Touche la cabane la plus proche.',
+      consigneVoix: "Regarde la distance jusqu'à chaque cabane, et touche la plus proche du départ.", cible: 'min' },
+    { axe: 'distance', icone: '🛖', consigne: 'Touche la cabane la plus loin.',
+      consigneVoix: "Regarde la distance jusqu'à chaque cabane, et touche la plus éloignée du départ.", cible: 'max' },
+    { axe: 'distance', icone: '🌤️', consigne: 'Touche la clairière la plus proche.',
+      consigneVoix: "Regarde la distance jusqu'à chaque clairière, et touche la plus proche du départ.", cible: 'min' },
+    { axe: 'distance', icone: '🌤️', consigne: 'Touche la clairière la plus loin.',
+      consigneVoix: "Regarde la distance jusqu'à chaque clairière, et touche la plus éloignée du départ.", cible: 'max' }
+  ];
+
   // Tirage SANS REDONDANCE, précalculé une seule fois par partie (cf.
   // demarrerJeu) : un mini-jeu à banque déclare ici sa séquence de gabarits ;
   // les autres types (procéduraux, sans banque figée) renvoient null.
   function construireSequenceJeu(cfg) {
     if (cfg.type === 'vocabulaire-cp') return melanger(GABARITS_LISIERE).slice(0, cfg.nbTours);
+    if (cfg.type === 'balade-cp') return melanger(GABARITS_BALADE).slice(0, cfg.nbTours - 1);
     return null;
   }
 
@@ -810,6 +853,7 @@
     document.getElementById('bouton-suivant').hidden = true;
     const type = etat.cfg.type;
     if (type === 'vocabulaire-cp') genererLisiereCP(zone, etat.cfg);
+    else if (type === 'balade-cp') genererBaladeCP(zone, etat.cfg);
     else if (type === 'garde-forestier') genererGardeForestier(zone, etat.cfg);
     else if (type === 'encadrer') genererEncadrer(zone, etat.cfg);
     else if (type === 'conversions') genererConversionsCE2(zone, etat.cfg);
@@ -962,6 +1006,208 @@
       grille.appendChild(btn);
     });
     zone.appendChild(grille);
+  }
+
+  /* ================================================================
+     Palier CP — Niveau 2 : « La balade » (comparaison, puis ordonnancement)
+     4 manches de comparaison (2 à 4 éléments, tirées sans redondance dans
+     GABARITS_BALADE) puis, en dernière manche, « Ordonner 5 bâtons ».
+     ================================================================ */
+
+  function genererBaladeCP(zone, cfg) {
+    if (etat.index === cfg.nbTours) { genererOrdonnerBatons(zone, cfg); return; }
+    genererBaladeComparaison(zone, etat.sequence[etat.index - 1]);
+  }
+
+  function genererBaladeComparaison(zone, gabarit) {
+    const n = choisir([2, 2, 3, 4]);
+    const valeurs = gabarit.axe === 'distance'
+      ? valeursEspacees(n, 2, 20, 3)
+      : nombresDistincts(n, gabarit.axe === 'hauteur' ? 4 : 3, gabarit.axe === 'hauteur' ? 16 : 18);
+    const cible = gabarit.cible === 'max' ? Math.max(...valeurs) : Math.min(...valeurs);
+
+    zone.appendChild(creerBlocConsigne(gabarit.consigne, gabarit.consigneVoix));
+
+    if (gabarit.axe === 'hauteur') {
+      const cont = document.createElement('div');
+      cont.className = 'comparaison-report';
+      valeurs.forEach((hauteur, i) => {
+        const col = document.createElement('button');
+        col.type = 'button'; col.className = 'arbre-col';
+        const cime = document.createElement('span'); cime.className = 'arbre-cime'; cime.textContent = gabarit.icone;
+        const tronc = document.createElement('span'); tronc.className = 'arbre-tronc-barre'; tronc.style.height = (hauteur * 8) + 'px';
+        col.appendChild(cime); col.appendChild(tronc);
+        col.setAttribute('aria-label', 'Arbre ' + (i + 1));
+        col.addEventListener('click', () => {
+          Array.from(cont.querySelectorAll('.arbre-col')).forEach((b) => { b.disabled = true; });
+          validerTour(hauteur === cible, col);
+        });
+        cont.appendChild(col);
+      });
+      zone.appendChild(cont);
+    } else if (gabarit.axe === 'longueur') {
+      const cont = document.createElement('div');
+      cont.className = 'comparaison-objets';
+      valeurs.forEach((longueur, i) => {
+        const rangee = document.createElement('div'); rangee.className = 'rangee-brindille';
+        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'brindille-btn';
+        const icone = document.createElement('span'); icone.className = 'brindille-icone'; icone.textContent = gabarit.icone;
+        const barre = document.createElement('span'); barre.className = 'brindille-barre'; barre.style.width = (longueur * 11) + 'px';
+        btn.appendChild(icone); btn.appendChild(barre);
+        btn.setAttribute('aria-label', 'Élément ' + (i + 1));
+        btn.addEventListener('click', () => {
+          Array.from(cont.querySelectorAll('.brindille-btn')).forEach((b) => { b.disabled = true; });
+          validerTour(longueur === cible, btn);
+        });
+        rangee.appendChild(btn);
+        cont.appendChild(rangee);
+      });
+      zone.appendChild(cont);
+    } else {
+      const sentier = document.createElement('div'); sentier.className = 'sentier';
+      const depart = document.createElement('span'); depart.className = 'sentier-depart'; depart.textContent = '🚏';
+      sentier.appendChild(depart);
+      const piste = document.createElement('div'); piste.className = 'sentier-piste';
+      valeurs.forEach((distance, i) => {
+        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'clairiere-btn';
+        btn.style.left = (distance * 15) + 'px';
+        btn.textContent = gabarit.icone;
+        btn.setAttribute('aria-label', 'Élément ' + (i + 1));
+        btn.addEventListener('click', () => {
+          Array.from(piste.querySelectorAll('.clairiere-btn')).forEach((b) => { b.disabled = true; });
+          validerTour(distance === cible, btn);
+        });
+        piste.appendChild(btn);
+      });
+      sentier.appendChild(piste);
+      zone.appendChild(sentier);
+    }
+  }
+
+  /*
+   * Ordonner 5 bâtons, par glisser-déposer, dans 5 emplacements FIXES : les
+   * bâtons occupent toujours les 5 cases (aucune case vide), et glisser un
+   * bâton sur un autre ÉCHANGE leur place — modifiable autant de fois que
+   * nécessaire avant « Valider l'ordre » (pas de validation automatique au
+   * premier placement, cf. spécification).
+   *
+   * Le DOM n'est JAMAIS reparenté pendant le geste : seule la VALEUR (et donc
+   * la largeur affichée) de chaque case est échangée, les 5 boutons restant
+   * toujours à leur position DOM d'origine. Cette leçon vient du réordonnancement
+   * des profils de la coquille (cf. js/app.js, activerReordonnerProfils) : sous
+   * Chromium, reparenter l'élument capturé PENDANT le glisser fait perdre la
+   * capture du pointeur et casse le pointerup final.
+   *
+   * Double interaction, pour l'accessibilité tactile : glisser un bâton sur un
+   * autre (drag natif), OU toucher un bâton puis un second pour les échanger
+   * (tap-tap, sans glisser).
+   */
+  function genererOrdonnerBatons(zone, cfg) {
+    const n = 5;
+    const longueurs = nombresDistincts(n, 2, 20);
+    let ordre = melanger(longueurs);
+    const estTrie = (t) => t.every((v, i) => i === 0 || t[i - 1] <= v);
+    let garde = 0;
+    while (estTrie(ordre) && garde < 10) { ordre = melanger(longueurs); garde++; }
+
+    zone.appendChild(creerBlocConsigne(
+      'Glisse les bâtons pour les ranger du plus court au plus long.',
+      'Fais glisser un bâton sur un autre pour échanger leur place, jusqu\'à ce qu\'ils soient rangés du plus court au plus long. Tu peux aussi toucher un bâton, puis un second, pour les échanger.'
+    ));
+
+    const bande = document.createElement('div');
+    bande.className = 'bande-batons';
+    const PX_PAR_UNITE = 10;
+    const cases = [];
+    let selection = null;
+    let ignorerProchainClic = false;
+
+    function rendreCase(i) {
+      const barre = cases[i].querySelector('.baton-barre');
+      barre.style.width = (ordre[i] * PX_PAR_UNITE + 18) + 'px';
+      cases[i].querySelector('.baton-btn').setAttribute('aria-label', 'Bâton en position ' + (i + 1));
+    }
+    function deselectionner() {
+      if (selection === null) return;
+      cases[selection].classList.remove('case-selectionnee');
+      selection = null;
+    }
+    function echanger(i, j) {
+      if (i === j) return;
+      const tmp = ordre[i]; ordre[i] = ordre[j]; ordre[j] = tmp;
+      rendreCase(i); rendreCase(j);
+    }
+
+    for (let i = 0; i < n; i++) {
+      const caseDiv = document.createElement('div');
+      caseDiv.className = 'baton-case';
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'baton-btn';
+      const barre = document.createElement('span');
+      barre.className = 'baton-barre';
+      btn.appendChild(barre);
+      caseDiv.appendChild(btn);
+      bande.appendChild(caseDiv);
+      cases.push(caseDiv);
+
+      btn.addEventListener('click', () => {
+        if (etat.verrouille) return;
+        if (ignorerProchainClic) { ignorerProchainClic = false; return; }
+        if (selection === null) {
+          selection = i;
+          caseDiv.classList.add('case-selectionnee');
+        } else if (selection === i) {
+          deselectionner();
+        } else {
+          const precedente = selection;
+          deselectionner();
+          echanger(precedente, i);
+        }
+      });
+
+      let enGlissement = false;
+      let departX = 0, departY = 0;
+      btn.addEventListener('pointerdown', (e) => {
+        if (etat.verrouille) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        enGlissement = true;
+        departX = e.clientX; departY = e.clientY;
+        try { btn.setPointerCapture(e.pointerId); } catch (err) { /* pointeur déjà relâché : tant pis */ }
+      });
+      btn.addEventListener('pointermove', (e) => {
+        if (!enGlissement) return;
+        e.preventDefault();
+        btn.style.transform = 'translate(' + (e.clientX - departX) + 'px,' + (e.clientY - departY) + 'px)';
+        btn.classList.add('baton-glisse');
+      });
+      function relacherGlissement(e) {
+        if (!enGlissement) return;
+        enGlissement = false;
+        btn.style.transform = '';
+        btn.classList.remove('baton-glisse');
+        const distanceGlissee = Math.hypot(e.clientX - departX, e.clientY - departY);
+        if (distanceGlissee < 8) return; // simple appui : laissé au gestionnaire 'click'
+        ignorerProchainClic = true;
+        deselectionner();
+        const cible = cases.findIndex((c) => {
+          const r = c.getBoundingClientRect();
+          return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+        });
+        if (cible !== -1) echanger(i, cible);
+      }
+      btn.addEventListener('pointerup', relacherGlissement);
+      btn.addEventListener('pointercancel', () => { enGlissement = false; btn.style.transform = ''; btn.classList.remove('baton-glisse'); });
+    }
+
+    zone.appendChild(bande);
+    cases.forEach((_, i) => rendreCase(i));
+
+    const boutonValider = document.createElement('button');
+    boutonValider.type = 'button'; boutonValider.className = 'bouton-principal'; boutonValider.textContent = "Valider l'ordre";
+    boutonValider.addEventListener('click', () => {
+      validerTour(ordre.every((v, i) => i === 0 || ordre[i - 1] <= v), boutonValider);
+    });
+    zone.appendChild(boutonValider);
   }
 
   /*
