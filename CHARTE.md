@@ -379,7 +379,9 @@ function melangerOptions(options, indexCorrect) {
 
 L'ordre des questions d'un mini-jeu est **mélangé par défaut à chaque partie** (même algorithme de Fisher-Yates, appliqué au tableau de questions).
 
-Exception : un mini-jeu peut déclarer une **contrainte d'ordre explicite** entre deux questions (ex. « la question B doit suivre la question A », pour une progression pédagogique précise). Dans ce cas : mélanger d'abord normalement, **puis** rétablir la contrainte en repositionnant les questions concernées après coup — la contrainte ne dispense jamais du mélange du reste.
+**Règle par défaut** (sauf contre-ordre ou précision explicite dans la spec d'un module) : au sein d'une même partie, l'ordre de présentation des questions doit être **aléatoire**, et **aucune question ne doit se répéter** (pas de redondance) tant que la banque de questions disponibles pour cette partie n'est pas épuisée. Si un mini-jeu déclare explicitement un nombre de questions par partie (ex. 6 questions), la banque source doit contenir **significativement plus d'entrées** que ce nombre (viser **au moins 2 à 3 fois plus**), pour que le tirage sans redondance soit réellement varié d'une partie à l'autre et non systématiquement les mêmes N questions juste mélangées dans un ordre différent.
+
+Cette règle s'applique **par défaut à tous les mini-jeux de tous les modules**, sauf si une contrainte d'ordre pédagogique explicite est documentée pour un mini-jeu précis — auquel cas : mélanger d'abord normalement (ex. « la question B doit suivre la question A », pour une progression pédagogique précise), **puis** rétablir la contrainte en repositionnant les questions concernées après coup. La contrainte ne dispense jamais du mélange du reste ni de l'absence de redondance.
 
 ### Variété entre sessions
 
@@ -420,7 +422,7 @@ Règle absolue : on ne touche **jamais** au format (nombre d'items, chronométra
 | Test & publication | Test manuel via le fichier "Raw" téléchargé depuis la PR, avant fusion dans `main` |
 | Progression & acquis | Contrat de données v1 : sessions brutes écrites par les jeux, statuts calculés côté coquille |
 | Mode chronométré | Modules "E" uniquement : temps imparti par exercice (référentiel), arrêt net à expiration, pas de rattrapage |
-| Variété & randomisation | QCM mélangés (Fisher-Yates), questions mélangées par partie, banque ≥ 2-3× le nombre posé ou génération procédurale |
+| Variété & randomisation | QCM mélangés (Fisher-Yates), questions mélangées par partie SANS redondance jusqu'à épuisement de la banque, banque ≥ 2-3× le nombre posé ou génération procédurale |
 | Modules adaptatifs par niveau | Un seul fichier, contenu JSON par palier, niveau du profil actif lu au démarrage, palier bonus optionnel au-delà de la maîtrise |
 
 ---
