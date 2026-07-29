@@ -799,8 +799,15 @@
 
   function genererDenombrer(zone, cfg) {
     const plage = plageActuelle();
-    const n = nombreAleatoire(plage.min, plage.max);
-    const especeId = choisir(Object.keys(donnees.especes));
+    // Évite de reposer la même question (même nombre, même espèce) que la
+    // manche précédente — la plage étant étroite en début de partie (1 à 5),
+    // le risque de répétition immédiate serait sinon non négligeable (CHARTE §13).
+    let n, especeId;
+    do {
+      n = nombreAleatoire(plage.min, plage.max);
+      especeId = choisir(Object.keys(donnees.especes));
+    } while (etat.dernierDenombrer && n === etat.dernierDenombrer.n && especeId === etat.dernierDenombrer.especeId);
+    etat.dernierDenombrer = { n, especeId };
     const espece = donnees.especes[especeId];
 
     const consigneTexte = n === 1
@@ -1119,8 +1126,14 @@
 
   function genererConstituer(zone, cfg) {
     const plage = plageActuelle();
-    const n = nombreAleatoire(plage.min, plage.max);
-    const choix = choisir(donnees.contenantsConstituer);
+    // Même précaution que genererDenombrer : évite de reposer la même
+    // question (même nombre, même contenant) que la manche précédente (CHARTE §13).
+    let n, choix;
+    do {
+      n = nombreAleatoire(plage.min, plage.max);
+      choix = choisir(donnees.contenantsConstituer);
+    } while (etat.dernierConstituer && n === etat.dernierConstituer.n && choix.especeId === etat.dernierConstituer.especeId);
+    etat.dernierConstituer = { n, especeId: choix.especeId };
     const espece = donnees.especes[choix.especeId];
     const supplement = nombreAleatoire(2, 4);
     const total = Math.min(n + supplement, 12);
@@ -1183,17 +1196,25 @@
 
   function genererAutantQue(zone, cfg) {
     const plage = plageActuelle();
+    // Même précaution que genererDenombrer : la boucle ci-dessous garantit
+    // déjà une combinaison VALIDE ; elle rejette en plus toute combinaison
+    // IDENTIQUE à la manche précédente (même modèle, relation et espèce), pour
+    // éviter de reposer la même question dans une même partie (CHARTE §13).
     let modele = plage.min;
     let relation = 'autant';
+    let especeId = donnees.especesAutantQue[0];
     for (let t = 0; t < 30; t++) {
       modele = nombreAleatoire(plage.min, plage.max);
       relation = choisir(['autant', 'plus-un', 'moins-un']);
+      especeId = choisir(donnees.especesAutantQue);
       if (relation === 'moins-un' && modele < 2) continue;
       if (relation === 'plus-un' && modele > plage.max - 1) continue;
+      if (etat.dernierAutantQue && modele === etat.dernierAutantQue.modele &&
+        relation === etat.dernierAutantQue.relation && especeId === etat.dernierAutantQue.especeId) continue;
       break;
     }
+    etat.dernierAutantQue = { modele, relation, especeId };
     const cible = relation === 'autant' ? modele : relation === 'plus-un' ? modele + 1 : modele - 1;
-    const especeId = choisir(donnees.especesAutantQue);
     const espece = donnees.especes[especeId];
 
     const phraseRelation = relation === 'autant' ? 'AUTANT de' : relation === 'plus-un' ? 'UN DE PLUS que' : 'UN DE MOINS que';
