@@ -220,14 +220,30 @@
     if (icone === 'initiales') return initialesProfil(prenom);
     return prenom.charAt(0).toUpperCase();
   }
-  // Icône « en tête » (grande, coin supérieur droit de l'accueil) : mêmes
-  // couleurs de rotation que avatar(), et contenu dérivé du choix d'icône
-  // plutôt que toujours la seule initiale.
-  function avatarEnTete(profil) {
+  // Construit un avatar dont le contenu respecte le choix d'icône du profil
+  // (lettre / initiales / emoji — cf. contenuIcone), avec une classe de taille
+  // optionnelle. Point d'entrée commun à l'icône d'en-tête (grande, coin haut
+  // droit de l'accueil) et à l'icône affichée dans la liste des profils
+  // (taille standard), pour une cohérence visuelle entre les deux écrans.
+  function avatarAvecIcone(profil, classeTaille) {
     const indice = Math.max(0, P.lireProfils().findIndex((p) => p.id === profil.id));
     const contenu = contenuIcone(profil);
-    return h('span', { class: 'avatar avatar-entete' + (contenu.length > 1 ? ' avatar-texte-double' : '') +
-      ' ' + CLASSES_AVATAR[indice % CLASSES_AVATAR.length], texte: contenu });
+    const classes = ['avatar'];
+    if (classeTaille) classes.push(classeTaille);
+    if (contenu.length > 1) classes.push('avatar-texte-double');
+    classes.push(CLASSES_AVATAR[indice % CLASSES_AVATAR.length]);
+    return h('span', { class: classes.join(' '), texte: contenu });
+  }
+  // Icône « en tête » (grande, coin supérieur droit de l'accueil).
+  function avatarEnTete(profil) {
+    return avatarAvecIcone(profil, 'avatar-entete');
+  }
+  // Icône dans la liste des profils (#profils) : taille standard, mais
+  // reflète le choix d'icône plutôt que toujours la seule initiale brute
+  // (cohérence visuelle avec l'icône affichée ensuite en haut à droite de
+  // l'accueil).
+  function avatarListeProfils(profil) {
+    return avatarAvecIcone(profil, null);
   }
 
   function moduleParId(id) {
@@ -291,7 +307,7 @@
         class: 'carte-profil' + (profil.id === actif ? ' actif' : ''),
         onclick: () => { P.definirProfilActif(profil.id); location.hash = '#accueil'; }
       }, [
-        avatar(profil),
+        avatarListeProfils(profil),
         h('span', { texte: profil.prenom }),
         h('span', { class: 'niveau', texte: profil.niveau })
       ]);
