@@ -322,8 +322,8 @@
     "CP": {
       "sousTitre": "Une balade dans le Bois, entre lisière et cabane ! 🌲",
       "miniJeux": [
-        { "id": "vocabulaire-longueurs-cp", "titre": "La lisière du bois", "icone": "🌲", "couleur": "menthe", "description": "Trouve les bons mots : long, court, près, loin.", "type": "vocabulaire-cp", "nbTours": 6 },
-        { "id": "comparer-longueurs-cp", "titre": "La balade", "icone": "🥾", "couleur": "mandarine", "description": "Compare des longueurs, puis range 5 bâtons.", "type": "balade-cp", "nbTours": 5 },
+        { "id": "vocabulaire-longueurs-cp", "titre": "L'orée du bois", "icone": "🌲", "couleur": "menthe", "description": "Trouve les bons mots : long, court, près, loin.", "type": "vocabulaire-cp", "nbTours": 6 },
+        { "id": "comparer-longueurs-cp", "titre": "En balade", "icone": "🥾", "couleur": "mandarine", "description": "Compare des longueurs, puis range 5 bâtons.", "type": "balade-cp", "nbTours": 5 },
         { "id": "mesurer-longueurs-cp", "titre": "La cabane", "icone": "🛖", "couleur": "soleil", "description": "Estime des tailles, puis mesure avec la règle.", "type": "cabane-cp", "nbTours": 6, "capCm": 16 }
       ]
     },
@@ -689,7 +689,7 @@
     return melanger(valeurs);
   }
 
-  /* Niveau 1 — « La lisière du bois » (vocabulaire long/court/près/loin) :
+  /* Niveau 1 — « L'orée du bois » (vocabulaire long/court/près/loin) :
      banque de 10 gabarits (> 6 manches par partie, CHARTE §13), un tirage
      sans redondance par partie via construireSequenceJeu. */
   const GABARITS_LISIERE = [
@@ -705,7 +705,7 @@
     { axe: 'distance', label: 'chêne', icone: '🌳' }
   ];
 
-  /* Niveau 2 — « La balade » (comparaison) : les 5 gabarits officiels du
+  /* Niveau 2 — « En balade » (comparaison) : les 5 gabarits officiels du
      programme, chacun dans les deux sens (grand/petit, proche/loin…) = 10
      combinaisons (> 4 manches par partie), un tirage sans redondance par
      partie. La 5ᵉ et dernière manche est toujours l'ordonnancement des
@@ -939,7 +939,7 @@
   }
 
   /* ================================================================
-     Palier CP — Niveau 1 : « La lisière du bois » (vocabulaire)
+     Palier CP — Niveau 1 : « L'orée du bois » (vocabulaire)
      Montre deux éléments (A et B) ; l'un des deux est la cible. Quatre mots
      (long/court/près/loin) sont proposés, un seul décrit correctement la
      cible selon l'axe du gabarit (longueur ou distance).
@@ -1019,7 +1019,7 @@
   }
 
   /* ================================================================
-     Palier CP — Niveau 2 : « La balade » (comparaison, puis ordonnancement)
+     Palier CP — Niveau 2 : « En balade » (comparaison, puis ordonnancement)
      4 manches de comparaison (2 à 4 éléments, tirées sans redondance dans
      GABARITS_BALADE) puis, en dernière manche, « Ordonner 5 bâtons ».
      ================================================================ */
