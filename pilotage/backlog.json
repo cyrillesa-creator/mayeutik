@@ -359,13 +359,13 @@
     "anneeIntro": "CP",
     "anneesCouvertes": "CP,CE1,CE2",
     "periodeIntro": "P2",
-    "competence": "CP : lexique long/court/près/loin ; comparer par superposition directe (objets déplaçables) ou report par ficelle (non déplaçables) ; ordonner 5 objets ; mesurer à la règle en cm ; estimer qualitativement. CE1 : + unités m/km, relations 1m=100cm 1km=1000m ; ENCADRER une longueur entre 2 entiers (pas seulement mesurer exactement) ; estimer avec distances de référence. CE2 : + unités dm/mm, conversions par RELATIONS (jamais tableau) ; PÉRIMÈTRE — comparer sans règle au compas (report des côtés sur une droite), mesurer avec règle, carré/rectangle sans formule (mais sans mesurer chaque côté).",
+    "competence": "CP (univers « Le Bois », distinct de « La Forêt aux Cent Arbres » CE1/CE2) : Niveau 1 lisière — lexique long/court/près/loin (QCM sur deux éléments) ; Niveau 2 balade — comparer 2 à 4 éléments (superposition ou report), PUIS ordonner 5 bâtons par glisser-déposer (emplacements fixes, échanges possibles avant validation) ; Niveau 3 cabane — estimer un ordre de grandeur (objets usuels), mesurer à la règle déjà positionnée (QCM), et une règle à déplacer pour l'aligner avant de mesurer (QCM). CE1 : + unités m/km, relations 1m=100cm 1km=1000m ; ENCADRER une longueur entre 2 entiers (pas seulement mesurer exactement) ; estimer avec distances de référence. CE2 : + unités dm/mm, conversions par RELATIONS (jamais tableau) ; PÉRIMÈTRE — comparer sans règle au compas (report des côtés sur une droite), mesurer avec règle, carré/rectangle sans formule (mais sans mesurer chaque côté).",
     "mecanique": "Saisie + manipulation",
     "priorite": "Moyenne",
     "statut": "Terminé",
     "effortEstime": 6,
     "effortReel": 7,
-    "notes": "✔ FAIT. Univers 'La Forêt aux Cent Arbres'. FUSION AVEC M31 (périmètre) : le texte officiel traite le périmètre comme le palier CE2 avancé du MÊME sous-thème 'Les longueurs', pas une notion séparée — M31 n'existe plus comme entrée indépendante (voir ligne M31)."
+    "notes": "✔ FAIT. Univers 'La Forêt aux Cent Arbres' (CE1/CE2) ; palier CP refondu avec son propre univers 'Le Bois' (lisière/balade/cabane), fidèle au texte officiel (manipulations, lexique, ordonner, mesurer, estimer). FUSION AVEC M31 (périmètre) : le texte officiel traite le périmètre comme le palier CE2 avancé du MÊME sous-thème 'Les longueurs', pas une notion séparée — M31 n'existe plus comme entrée indépendante (voir ligne M31)."
   },
   {
     "id": "M24",

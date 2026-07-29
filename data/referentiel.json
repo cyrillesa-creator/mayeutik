@@ -123,8 +123,9 @@
       "type": "entrainement",
       "fichier": "jeux/M23-longueurs.html",
       "competences": [
-        { "id": "comparer-cp", "libelle": "Comparer deux longueurs par superposition ou par report (vocabulaire long/court/près/loin)", "niveau": "CP" },
-        { "id": "mesurer-cp", "libelle": "Ranger des longueurs et mesurer en centimètres avec une règle graduée", "niveau": "CP" },
+        { "id": "vocabulaire-longueurs-cp", "libelle": "Utiliser le vocabulaire long/court/près/loin pour qualifier une longueur ou une distance", "niveau": "CP" },
+        { "id": "comparer-longueurs-cp", "libelle": "Comparer des longueurs et des distances par superposition ou report, puis ordonner 5 objets", "niveau": "CP" },
+        { "id": "mesurer-longueurs-cp", "libelle": "Estimer un ordre de grandeur et mesurer en centimètres avec une règle graduée (fixe ou à déplacer)", "niveau": "CP" },
         { "id": "mesurer-ce1", "libelle": "Mesurer avec une règle graduée (m/cm/km) et convertir par relations simples (1m=100cm, 1km=1000m)", "niveau": "CE1" },
         { "id": "encadrer-ce1", "libelle": "Encadrer une longueur entre deux nombres entiers de centimètres", "niveau": "CE1" },
         { "id": "conversions-ce2", "libelle": "Convertir des longueurs par relations explicites (mm/cm/dm/m/km), sans tableau de conversion", "niveau": "CE2" },
