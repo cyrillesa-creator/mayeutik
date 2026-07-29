@@ -315,6 +315,26 @@
   function niveauxModule(m) {
     return m.niveaux || [m.niveau];
   }
+
+  /*
+   * Domaines à proposer dans le menu de domaines pour le(s) niveau(x)
+   * actuellement filtré(s) : uniquement ceux ayant AU MOINS UN module
+   * JOUABLE (fichier renseigné — les entrées de backlog sans jeu ne comptent
+   * pas, même critère que modulesFiltres) couvrant au moins un des niveaux
+   * sélectionnés. Ordre = celui du référentiel (referentiel.domaines), pas
+   * l'ordre d'apparition dans les modules. Recalculé à chaque rendu de
+   * vueAccueil, donc à chaque changement de niveau (cf. le pattern de
+   * reconstruction complète de la vue).
+   */
+  function domainesDisponiblesPourNiveaux(niveauxSelectionnes) {
+    const domainesAvecModule = new Set(
+      (referentiel.modules || [])
+        .filter((m) => m.fichier && niveauxModule(m).some((n) => niveauxSelectionnes.indexOf(n) !== -1))
+        .map((m) => m.domaine)
+    );
+    return (referentiel.domaines || []).filter((d) => domainesAvecModule.has(d));
+  }
+
   function libelleNiveauxModule(m) {
     const niveaux = niveauxModule(m);
     return niveaux.length > 1 ? niveaux[0] + '→' + niveaux[niveaux.length - 1] : niveaux[0];
@@ -742,15 +762,25 @@
 
     // Filtre par domaine : sélection MULTIPLE (mêmes principe et composants
     // génériques que le filtre par niveau ci-dessus — menu déroulant à cases
-    // à cocher + bouton coloré « Tous les domaines »). Dérivé dynamiquement
-    // de la liste des domaines du référentiel (source unique, la même que
-    // celle utilisée par le radar de synthèse — cf. analyserProfil dans
-    // js/statuts.js) plutôt que restreint aux domaines ayant déjà un module
-    // jouable : un domaine sans jeu pour l'instant (ex. « Grandeurs et
-    // mesures » avant M23) reste sélectionnable, avec le message « Aucun jeu
-    // trouvé » habituel s'il ne ramène rien.
-    const domainesDisponibles = referentiel.domaines || [];
-    const domainesSelectionnes = lireDomainesSelectionnes(idProfil);
+    // à cocher + bouton coloré « Tous les domaines »). ADAPTATIF au(x)
+    // niveau(x) filtré(s) : ne propose que les domaines ayant au moins un
+    // module jouable pour ces niveaux (domainesDisponiblesPourNiveaux),
+    // recalculé à chaque changement de niveau puisque toute la vue est
+    // reconstruite à chaque rendu.
+    const domainesDisponibles = domainesDisponiblesPourNiveaux(niveauxSelectionnes);
+    // Corrige une sélection devenue invalide suite à un changement de niveau :
+    // les domaines qui ne sont plus disponibles sont retirés ; si plus AUCUN
+    // domaine sélectionné ne reste disponible, on retombe sur « tous les
+    // domaines disponibles » pour ce(s) niveau(x) plutôt que d'afficher une
+    // liste de jeux vide sans explication. La correction est aussi PERSISTÉE
+    // (pas seulement corrigée à l'affichage) : l'état interne ne doit jamais
+    // garder un domaine fantôme invisible d'un niveau précédent.
+    const domainesSelectionnesBrutes = lireDomainesSelectionnes(idProfil);
+    const domainesSelectionnesValides = domainesSelectionnesBrutes.filter((d) => domainesDisponibles.indexOf(d) !== -1);
+    const domainesSelectionnes = domainesSelectionnesValides.length ? domainesSelectionnesValides : domainesDisponibles.slice();
+    if (idProfil && domainesSelectionnes.length !== domainesSelectionnesBrutes.length) {
+      ecrireDomainesSelectionnes(idProfil, domainesSelectionnes);
+    }
 
     function choisirDomaines(domaines, fermerMenu) {
       ecrireDomainesSelectionnes(idProfil, domaines);
