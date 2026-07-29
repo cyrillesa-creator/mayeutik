@@ -385,7 +385,17 @@ const CONTENU = {
     {q:"J'ai 1 seule face plate, 1 sommet tout en haut, et je peux rouler. Qui suis-je ?", ans:"cone"},
     {q:"J'ai 8 sommets, 12 arêtes, et toutes mes faces sont exactement les mêmes. Qui suis-je ?", ans:"cube"},
     {q:"Je suis un polyèdre et j'ai exactement 5 sommets. Qui suis-je ?", ans:"pyramide"},
-    {q:"J'ai autant de faces que la pyramide, mais j'ai 6 sommets. Qui suis-je ?", ans:"prisme"}
+    {q:"J'ai autant de faces que la pyramide, mais j'ai 6 sommets. Qui suis-je ?", ans:"prisme"},
+    {q:"Je ressemble à un dé, mais mes faces ne sont pas toutes des carrés identiques. Qui suis-je ?", ans:"pave"},
+    {q:"J'ai 9 arêtes et 6 sommets. Qui suis-je ?", ans:"prisme"},
+    {q:"J'ai un seul sommet, tout en haut, et ma base est un cercle. Qui suis-je ?", ans:"cone"},
+    {q:"On me trouve dans un match de football. Qui suis-je ?", ans:"boule"},
+    {q:"On me trouve dans une boîte de conserve. Qui suis-je ?", ans:"cylindre"},
+    {q:"On me trouve dans un cornet de glace. Qui suis-je ?", ans:"cone"},
+    {q:"Je ressemble à une tente de camping. Qui suis-je ?", ans:"prisme"},
+    {q:"On me trouve dans une boîte de céréales. Qui suis-je ?", ans:"pave"},
+    {q:"Je fais penser aux pyramides d'Égypte. Qui suis-je ?", ans:"pyramide"},
+    {q:"Toutes mes faces sont des carrés identiques, et j'ai 12 arêtes égales. Qui suis-je ?", ans:"cube"}
   ],
   patrons:[
     {type:"netToName", net:"cube", q:"Si on plie ce patron, quel solide obtient-on ?", opts:["cube","pave","pyramide","prisme"], ans:0},
@@ -755,7 +765,10 @@ const CLES = Object.keys(CONTENU.solides);
 const POLYS = CLES.filter(k => CONTENU.solides[k].poly);
 
 function qNomme(){
-  const base = melange([...CLES, pioche(CLES), pioche(CLES), pioche(CLES)]);
+  // Un tour par solide (banque naturellement limitée au programme, 7
+  // solides) : compléter avec des tirages avec remise sur ce même petit
+  // ensemble garantirait des doublons exacts à chaque partie (CHARTE §13).
+  const base = melange(CLES);
   return base.map(k => {
     const autres = melange(CLES.filter(x => x!==k)).slice(0,3);
     return {mode:"nomme", solide:k, q:"Comment s'appelle ce solide ?",
@@ -763,7 +776,9 @@ function qNomme(){
   });
 }
 function qPolyedre(){
-  return melange([...CLES, pioche(CLES)]).map(k => {
+  // Même précaution que qNomme : pas de tirage avec remise en complément
+  // sur cette même petite banque de 7 solides (CHARTE §13).
+  return melange(CLES).map(k => {
     const S = CONTENU.solides[k];
     const {options, indexCorrect} = melangerOptions(["Polyèdre ✔","Pas un polyèdre ✖"], S.poly?0:1);
     return {mode:"polyedre", solide:k, q:`${maj(S.nom)} est-il un polyèdre ?`,
@@ -787,6 +802,10 @@ function qCompte(){
   });
 }
 function qExplore(){
+  // Banque de 8 scènes 3D pointées (contenu figé, lié aux repères visuels
+  // du modèle) : tirer un sous-ensemble de 6 plutôt que les 8 à chaque
+  // partie évite de toujours poser exactement les mêmes questions dans le
+  // même ordre mélangé (CHARTE §13).
   return melange([
     {mode:"explore", type:"areteFaces", solide:"cube",
      q:"Regarde l'arête orange. Combien de faces sépare-t-elle ?", opts:melange([1,2,3]), ans:2},
@@ -804,9 +823,12 @@ function qExplore(){
      q:"Regarde le sommet rouge, en bas. Combien de faces se rejoignent à ce sommet ?", opts:melange([2,3,4]), ans:3},
     {mode:"explore", type:"areteFaces", solide:"prisme",
      q:"Regarde l'arête orange. Combien de faces sépare-t-elle ?", opts:melange([1,2,3]), ans:2}
-  ]);
+  ]).slice(0,6);
 }
 function qPatrons(){
+  // Banque de 7 patrons (contenu figé, illustrations dessinées) : tirer un
+  // sous-ensemble de 5 plutôt que les 7 à chaque partie, même raison que
+  // qExplore ci-dessus (CHARTE §13).
   return melange(CONTENU.patrons.map(p => {
     if(p.opts){
       const {options, indexCorrect} = melangerOptions(p.opts, p.ans);
@@ -817,7 +839,7 @@ function qPatrons(){
       return {...p, mode:"patrons", nets:options, ans:indexCorrect};
     }
     return {...p, mode:"patrons"};
-  }));
+  })).slice(0,5);
 }
 function qDevinettes(){
   return melange(CONTENU.devinettes).slice(0,8).map(d => {
