@@ -256,6 +256,50 @@
     return avatarAvecIcone(profil, null);
   }
 
+  /*
+   * Sélecteur d'icône de profil (lettre / initiales / emoji), partagé entre
+   * création et modification de profil (CHARTE §16 : un seul composant
+   * générique plutôt que deux implémentations dupliquées). `obtenirPrenom`
+   * est rappelé à chaque rendu pour que l'aperçu suive le prénom en cours de
+   * saisie ; `iconeInitiale` fixe la sélection de départ. Renvoie l'élément à
+   * insérer dans le formulaire, la sélection courante (`obtenirIcone`) et une
+   * fonction à rappeler quand le prénom change (`rafraichir`).
+   */
+  function creerSelecteurIcone(obtenirPrenom, iconeInitiale) {
+    let iconeChoisie = iconeInitiale || 'initiale';
+    const elem = h('div', { class: 'champ-edition selecteur-icone' });
+    function rendreSelecteurIcone() {
+      elem.textContent = '';
+      const typeActuel = iconeChoisie === 'initiale' || !iconeChoisie ? 'initiale'
+        : iconeChoisie === 'initiales' ? 'initiales' : 'emoji';
+      const contenuApercu = contenuIcone({ prenom: obtenirPrenom(), icone: iconeChoisie });
+      const apercu = h('span', { class: 'avatar avatar-apercu' + (contenuApercu.length > 1 ? ' avatar-texte-double' : '') },
+        []);
+      apercu.textContent = contenuApercu;
+
+      const options = [['initiale', 'Une lettre'], ['initiales', 'Initiales'], ['emoji', 'Emoji']].map(([type, libelle]) =>
+        h('button', { type: 'button', class: 'option-type-icone' + (typeActuel === type ? ' active' : ''),
+          texte: libelle,
+          onclick: () => {
+            if (type === 'emoji') { if (typeActuel !== 'emoji') iconeChoisie = EMOJIS_PROFIL[0]; }
+            else iconeChoisie = type;
+            rendreSelecteurIcone();
+          } }));
+
+      elem.appendChild(h('span', { texte: 'Icône du profil' }));
+      elem.appendChild(h('div', { class: 'rangee-apercu-type' }, [apercu, h('div', { class: 'options-type-icone' }, options)]));
+
+      if (typeActuel === 'emoji') {
+        elem.appendChild(h('div', { class: 'grille-emoji' }, EMOJIS_PROFIL.map((emoji) =>
+          h('button', { type: 'button', class: 'case-emoji' + (iconeChoisie === emoji ? ' active' : ''),
+            'aria-label': 'Choisir cet emoji', texte: emoji,
+            onclick: () => { iconeChoisie = emoji; rendreSelecteurIcone(); } }))));
+      }
+    }
+    rendreSelecteurIcone();
+    return { elem, obtenirIcone: () => iconeChoisie, rafraichir: rendreSelecteurIcone };
+  }
+
   function moduleParId(id) {
     return (referentiel.modules || []).find((m) => m.id === id) || null;
   }
@@ -290,6 +334,86 @@
   };
   function pictoCompetence(c) {
     return PICTO_DOMAINE[c.domaine] || '📚';
+  }
+
+  /*
+   * Réorganisation des profils par appui long puis glisser (souris ET
+   * tactile, via Pointer Events, écouteurs délégués sur `liste`) : on appuie
+   * sur une poignée ⠿ et on maintient un court instant (retour visuel : la
+   * ligne se soulève), puis on glisse verticalement pour réordonner — les
+   * lignes traversées se décalent en direct. Le DOM n'est réordonné qu'au
+   * relâchement (le déplacement pendant le glisser n'est que visuel, via
+   * transform) : reparenter la ligne captée EN COURS de glisser fait perdre
+   * la capture du pointeur dans Chromium, d'où ce choix. Chaque ligne porte
+   * `data-profil-id` pour reconstituer l'ordre final (P.reordonnerProfils).
+   */
+  function activerReordonnerProfils(liste) {
+    const DELAI_APPUI_MS = 180;
+    let minuteur = null;
+    let lignes = null;
+    let hauteurPas = 0;
+    let indexDepart = -1;
+    let indexActuel = -1;
+    let ligneGlissee = null;
+    let departY = 0;
+
+    function demarrer(e, ligne) {
+      lignes = Array.from(liste.children);
+      indexDepart = lignes.indexOf(ligne);
+      indexActuel = indexDepart;
+      ligneGlissee = ligne;
+      departY = e.clientY;
+      hauteurPas = lignes.length > 1
+        ? lignes[1].getBoundingClientRect().top - lignes[0].getBoundingClientRect().top
+        : ligne.getBoundingClientRect().height;
+      ligne.classList.add('ligne-profil-glissee');
+      try { ligne.setPointerCapture(e.pointerId); } catch (err) { /* pointeur déjà relâché : tant pis */ }
+    }
+
+    function glisser(e) {
+      if (!ligneGlissee) return;
+      e.preventDefault();
+      const delta = e.clientY - departY;
+      ligneGlissee.style.transform = 'translateY(' + delta + 'px)';
+
+      const nouvelIndex = Math.max(0, Math.min(lignes.length - 1,
+        indexDepart + Math.round(delta / hauteurPas)));
+      if (nouvelIndex === indexActuel) return;
+      lignes.forEach((l, i) => {
+        if (l === ligneGlissee) return;
+        let decalage = 0;
+        if (nouvelIndex > indexDepart && i > indexDepart && i <= nouvelIndex) decalage = -hauteurPas;
+        else if (nouvelIndex < indexDepart && i < indexDepart && i >= nouvelIndex) decalage = hauteurPas;
+        l.style.transform = decalage ? 'translateY(' + decalage + 'px)' : '';
+      });
+      indexActuel = nouvelIndex;
+    }
+
+    function relacher() {
+      if (minuteur) { clearTimeout(minuteur); minuteur = null; }
+      if (!ligneGlissee) return;
+      const ligne = ligneGlissee;
+      const ordonnees = lignes.slice();
+      ordonnees.splice(indexDepart, 1);
+      ordonnees.splice(indexActuel, 0, ligne);
+      lignes.forEach((l) => { l.style.transform = ''; });
+      ligne.classList.remove('ligne-profil-glissee');
+      ordonnees.forEach((l) => liste.appendChild(l));
+      ligneGlissee = null;
+      P.reordonnerProfils(ordonnees.map((l) => l.dataset.profilId));
+      rendre();
+    }
+
+    liste.addEventListener('pointerdown', (e) => {
+      const poignee = e.target.closest('.poignee-glisser');
+      if (!poignee) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      const ligne = poignee.closest('.ligne-profil');
+      minuteur = setTimeout(() => demarrer(e, ligne), DELAI_APPUI_MS);
+    });
+    liste.addEventListener('pointermove', glisser);
+    liste.addEventListener('pointerup', relacher);
+    liste.addEventListener('pointercancel', relacher);
   }
 
   /* ---------- Vue : choix / création de profil (enfant) ---------- */
@@ -329,25 +453,34 @@
           location.hash = '#modifier-profil';
         }
       }, [h('span', { 'aria-hidden': 'true', texte: '✏️' })]);
-      liste.appendChild(h('div', { class: 'ligne-profil' }, [principal, modifier]));
+      const poignee = h('button', { type: 'button', class: 'poignee-glisser',
+        'aria-label': 'Réorganiser (' + profil.prenom + ')' }, [h('span', { 'aria-hidden': 'true', texte: '⠿' })]);
+      const ligne = h('div', { class: 'ligne-profil', 'data-profil-id': profil.id }, [poignee, principal, modifier]);
+      liste.appendChild(ligne);
     });
+    activerReordonnerProfils(liste);
     vue.appendChild(liste);
 
-    // Création (prénom + niveau uniquement : minimisation RGPD).
+    // Création (prénom, niveau, icône). Le prénom et le niveau restent seuls
+    // obligatoires (minimisation RGPD) ; l'icône est un choix de confort visuel
+    // au même titre que sur l'écran de modification (creerSelecteurIcone).
     const champPrenom = h('input', { type: 'text', maxlength: '30', placeholder: 'Prénom',
       'aria-label': 'Prénom' });
     const champNiveau = h('select', { 'aria-label': 'Niveau' },
       (referentiel.niveaux || []).map((n) => h('option', { value: n, texte: n })));
+    const selecteurIconeCreation = creerSelecteurIcone(() => champPrenom.value, 'initiale');
+    champPrenom.addEventListener('input', selecteurIconeCreation.rafraichir);
     const boutonCreer = h('button', { class: 'bouton-principal', texte: 'C’est parti !',
       onclick: () => {
         if (!champPrenom.value.trim()) { champPrenom.focus(); return; }
-        P.creerProfil(champPrenom.value, champNiveau.value);
+        P.creerProfil(champPrenom.value, champNiveau.value, selecteurIconeCreation.obtenirIcone());
         location.hash = '#accueil';
         rendre();
       } });
     vue.appendChild(h('div', { class: 'formulaire-profil' }, [
       h('h3', { texte: profils.length ? 'Ajouter un joueur' : 'Crée ton profil pour commencer !' }),
       h('div', { class: 'champs' }, [champPrenom, champNiveau]),
+      selecteurIconeCreation.elem,
       boutonCreer
     ]));
 
@@ -388,38 +521,8 @@
     // Sélecteur d'icône de profil : lettre / initiales / emoji au choix. État
     // local (comme prénom/classe) : rien n'est écrit tant que « Enregistrer »
     // n'est pas cliqué. La prévisualisation suit le prénom en cours de saisie.
-    let iconeChoisie = profil.icone || 'initiale';
-    const selecteurIcone = h('div', { class: 'champ-edition selecteur-icone' });
-    function rendreSelecteurIcone() {
-      selecteurIcone.textContent = '';
-      const typeActuel = iconeChoisie === 'initiale' || !iconeChoisie ? 'initiale'
-        : iconeChoisie === 'initiales' ? 'initiales' : 'emoji';
-      const contenuApercu = contenuIcone({ prenom: champPrenom.value, icone: iconeChoisie });
-      const apercu = h('span', { class: 'avatar avatar-apercu' + (contenuApercu.length > 1 ? ' avatar-texte-double' : '') },
-        []);
-      apercu.textContent = contenuApercu;
-
-      const options = [['initiale', 'Une lettre'], ['initiales', 'Initiales'], ['emoji', 'Emoji']].map(([type, libelle]) =>
-        h('button', { type: 'button', class: 'option-type-icone' + (typeActuel === type ? ' active' : ''),
-          texte: libelle,
-          onclick: () => {
-            if (type === 'emoji') { if (typeActuel !== 'emoji') iconeChoisie = EMOJIS_PROFIL[0]; }
-            else iconeChoisie = type;
-            rendreSelecteurIcone();
-          } }));
-
-      selecteurIcone.appendChild(h('span', { texte: 'Icône du profil' }));
-      selecteurIcone.appendChild(h('div', { class: 'rangee-apercu-type' }, [apercu, h('div', { class: 'options-type-icone' }, options)]));
-
-      if (typeActuel === 'emoji') {
-        selecteurIcone.appendChild(h('div', { class: 'grille-emoji' }, EMOJIS_PROFIL.map((emoji) =>
-          h('button', { type: 'button', class: 'case-emoji' + (iconeChoisie === emoji ? ' active' : ''),
-            'aria-label': 'Choisir cet emoji', texte: emoji,
-            onclick: () => { iconeChoisie = emoji; rendreSelecteurIcone(); } }))));
-      }
-    }
-    rendreSelecteurIcone();
-    champPrenom.addEventListener('input', rendreSelecteurIcone);
+    const selecteurIcone = creerSelecteurIcone(() => champPrenom.value, profil.icone);
+    champPrenom.addEventListener('input', selecteurIcone.rafraichir);
 
     const boutonEnregistrer = h('button', { class: 'bouton-principal', texte: 'Enregistrer',
       onclick: () => {
@@ -427,7 +530,7 @@
         // Met à jour le profil : si c'est le profil actif et que sa classe
         // change, l'écran de choix des jeux ré-appliquera le filtre au nouveau
         // niveau (niveau recalculé à chaque rendu depuis profilActif()).
-        P.modifierProfil(profil.id, champPrenom.value, champNiveau.value, iconeChoisie);
+        P.modifierProfil(profil.id, champPrenom.value, champNiveau.value, selecteurIcone.obtenirIcone());
         retourApresEditionProfil();
       } });
     const boutonAnnuler = h('button', { class: 'bouton-secondaire', texte: 'Annuler',
@@ -436,7 +539,7 @@
     vue.appendChild(h('div', { class: 'formulaire-profil' }, [
       h('label', { class: 'champ-edition' }, [h('span', { texte: 'Prénom' }), champPrenom]),
       h('label', { class: 'champ-edition' }, [h('span', { texte: 'Classe' }), champNiveau]),
-      selecteurIcone,
+      selecteurIcone.elem,
       boutonEnregistrer,
       boutonAnnuler
     ]));

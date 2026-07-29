@@ -87,7 +87,7 @@
     return 'p' + (maxNumero + 1);
   }
 
-  function creerProfil(prenom, niveau) {
+  function creerProfil(prenom, niveau, icone) {
     const profils = lireProfils();
     const profil = {
       id: prochainId(profils),
@@ -95,9 +95,25 @@
       niveau: niveau || '',
       creeLe: new Date().toISOString().slice(0, 10)
     };
+    if (icone) profil.icone = icone;
     enregistrerProfils(profils.concat([profil]));
     definirProfilActif(profil.id);
     return profil;
+  }
+
+  /*
+   * Réordonne les profils selon `ordreIds` (ids dans le nouvel ordre voulu,
+   * typiquement lus depuis le DOM après un glisser-déposer). Les ids inconnus
+   * sont ignorés ; un profil absent de `ordreIds` est replacé en fin de liste
+   * (robustesse si le DOM et le stockage venaient à diverger).
+   */
+  function reordonnerProfils(ordreIds) {
+    const profils = lireProfils();
+    const parId = new Map(profils.map((p) => [p.id, p]));
+    const ordonnes = ordreIds.map((id) => parId.get(id)).filter(Boolean);
+    const idsVus = new Set(ordonnes.map((p) => p.id));
+    const restants = profils.filter((p) => !idsVus.has(p.id));
+    enregistrerProfils(ordonnes.concat(restants));
   }
 
   /*
@@ -181,6 +197,7 @@
     invaliderCache,
     lireProfils,
     creerProfil,
+    reordonnerProfils,
     modifierProfil,
     supprimerProfil,
     lireProfilActif,

@@ -230,7 +230,19 @@
   /* Choix / création de profil (côté enfant) */
   .titre-profils { text-align: center; font-size: 1.3rem; font-weight: 700; margin: 1rem 0 .8rem; }
   .liste-profils { display: flex; flex-direction: column; gap: .6rem; }
-  .ligne-profil { display: flex; gap: .5rem; align-items: stretch; }
+  .ligne-profil { display: flex; gap: .5rem; align-items: stretch; touch-action: pan-y; }
+  /* Poignée de réorganisation (appui long puis glisser, cf. activerGlisserProfil
+     dans app.js) : touch-action:none pour que le geste de glisser ne déclenche
+     jamais le défilement de la page sur mobile. */
+  .poignee-glisser {
+    flex: 0 0 auto; width: 34px; border: none; background: transparent;
+    font-size: 1.3rem; opacity: .4; cursor: grab; touch-action: none;
+  }
+  .poignee-glisser:active { opacity: .7; }
+  .ligne-profil-glissee {
+    z-index: 5; box-shadow: 0 8px 18px rgba(43,43,43,.2); border-radius: 18px;
+  }
+  .ligne-profil-glissee .poignee-glisser { cursor: grabbing; opacity: .9; }
   .carte-profil {
     display: flex; align-items: center; gap: .8rem; flex: 1; min-width: 0;
     background: #fff; border: 3px solid transparent; border-radius: 18px;
