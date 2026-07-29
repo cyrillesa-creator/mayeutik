@@ -201,6 +201,10 @@
   .sentier-piste{ position:relative; margin-left:2.4rem; height:100%; border-bottom:3px dashed color-mix(in srgb, var(--couleur-encre) 25%, white); }
   .clairiere-btn{ position:absolute; bottom:-.15rem; min-width:44px; min-height:44px; border:none; background:transparent; font-size:1.6rem; }
 
+  /* ---- Palier CP : « Le Bois » — lisière (vocabulaire) ---- */
+  .brindille-icone{ font-size:1rem; margin-right:.35rem; }
+  .lisiere-lettre{ font-weight:700; margin-left:.4rem; opacity:.75; font-size:.85rem; }
+
   /* ---- Périmètre : côtés à reporter au compas ---- */
   .bloc-polygone{ text-align:center; font-weight:700; margin-bottom:.3rem; }
   .rangee-cotes{ display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; margin:.4rem 0 .7rem; }
@@ -295,9 +299,9 @@
   ],
   "paliers": {
     "CP": {
+      "sousTitre": "Une balade dans le Bois, entre lisière et cabane ! 🌲",
       "miniJeux": [
-        { "id": "comparer-cp", "titre": "Long ou court ?", "icone": "🌿", "couleur": "menthe", "description": "Compare deux longueurs dans la forêt.", "type": "comparer", "nbTours": 6 },
-        { "id": "mesurer-cp", "titre": "La file des brindilles", "icone": "📏", "couleur": "mandarine", "description": "Range les brindilles, puis mesure-les.", "type": "ranger-mesurer", "nbTours": 6, "nbBrindillesMax": 5, "capCm": 20 }
+        { "id": "vocabulaire-longueurs-cp", "titre": "La lisière du bois", "icone": "🌲", "couleur": "menthe", "description": "Trouve les bons mots : long, court, près, loin.", "type": "vocabulaire-cp", "nbTours": 6 }
       ]
     },
     "CE1": {
@@ -635,6 +639,58 @@
   }
 
   /* ================================================================
+     Banques du palier CP — univers « Le Bois » (lisière, balade, cabane)
+     ================================================================ */
+
+  function nombresDistincts(n, min, max) {
+    const valeurs = [];
+    let garde = 0;
+    while (valeurs.length < n && garde < 300) {
+      garde++;
+      const v = nombreAleatoire(min, max);
+      if (valeurs.indexOf(v) === -1) valeurs.push(v);
+    }
+    return valeurs;
+  }
+  // Comme nombresDistincts, mais garantit un écart minimal entre valeurs
+  // triées : nécessaire pour les éléments positionnés en absolu le long d'un
+  // sentier (axe distance), où deux valeurs trop proches produiraient des
+  // cibles tactiles qui se chevauchent (zones de 44px minimum, CHARTE §accessibilité).
+  function valeursEspacees(n, min, max, ecartMin) {
+    let valeurs;
+    let garde = 0;
+    do {
+      valeurs = nombresDistincts(n, min, max).sort((a, b) => a - b);
+      garde++;
+    } while (garde < 60 && valeurs.some((v, i) => i > 0 && v - valeurs[i - 1] < ecartMin));
+    return melanger(valeurs);
+  }
+
+  /* Niveau 1 — « La lisière du bois » (vocabulaire long/court/près/loin) :
+     banque de 10 gabarits (> 6 manches par partie, CHARTE §13), un tirage
+     sans redondance par partie via construireSequenceJeu. */
+  const GABARITS_LISIERE = [
+    { axe: 'longueur', label: 'brindille', icone: '🌿' },
+    { axe: 'longueur', label: 'branche', icone: '🪵' },
+    { axe: 'longueur', label: 'ficelle', icone: '🧵' },
+    { axe: 'longueur', label: 'plume', icone: '🪶' },
+    { axe: 'longueur', label: 'feuille', icone: '🍃' },
+    { axe: 'distance', label: 'champignon', icone: '🍄' },
+    { axe: 'distance', label: 'souche', icone: '🪨' },
+    { axe: 'distance', label: 'cabane', icone: '🛖' },
+    { axe: 'distance', label: 'clairière', icone: '🌤️' },
+    { axe: 'distance', label: 'chêne', icone: '🌳' }
+  ];
+
+  // Tirage SANS REDONDANCE, précalculé une seule fois par partie (cf.
+  // demarrerJeu) : un mini-jeu à banque déclare ici sa séquence de gabarits ;
+  // les autres types (procéduraux, sans banque figée) renvoient null.
+  function construireSequenceJeu(cfg) {
+    if (cfg.type === 'vocabulaire-cp') return melanger(GABARITS_LISIERE).slice(0, cfg.nbTours);
+    return null;
+  }
+
+  /* ================================================================
      Contrôleur général de jeu
      ================================================================ */
 
@@ -673,7 +729,12 @@
   }
 
   function construireAccueil() {
-    document.getElementById('sous-titre-accueil').textContent = donnees.sousTitre;
+    // Sous-titre : par défaut celui du module, mais un palier peut définir le
+    // sien (ex. CP : univers « Le Bois », volontairement distinct de « La
+    // Forêt aux Cent Arbres » des paliers CE1/CE2 — cf. task M23 CP refonte).
+    const palierAffiche = donnees.paliers[etatPalierAffiche];
+    document.getElementById('sous-titre-accueil').textContent =
+      (palierAffiche && palierAffiche.sousTitre) || donnees.sousTitre;
 
     const rangee = document.getElementById('rangee-paliers');
     rangee.innerHTML = '';
@@ -722,6 +783,11 @@
     const trouve = trouverMiniJeu(miniJeuId);
     if (!trouve) return;
     etat = { miniJeuId, cfg: trouve.cfg, palier: trouve.palier, index: 0, score: 0, verrouille: false, demarreLe: Date.now(), dernierSousType: null };
+    // Tirage SANS REDONDANCE dans une banque plus large que le nombre de
+    // manches (CHARTE §13) : précalculé une seule fois au démarrage de la
+    // partie plutôt que redessiné à chaque manche, pour garantir qu'aucun
+    // gabarit ne revient deux fois dans la même partie.
+    etat.sequence = construireSequenceJeu(trouve.cfg);
     document.getElementById('ecran-accueil').hidden = true;
     document.getElementById('ecran-jeu').hidden = false;
     document.getElementById('titre-jeu-courant').textContent = trouve.cfg.titre;
@@ -743,8 +809,7 @@
     document.getElementById('zone-feedback').className = 'feedback';
     document.getElementById('bouton-suivant').hidden = true;
     const type = etat.cfg.type;
-    if (type === 'comparer') genererComparer(zone, etat.cfg);
-    else if (type === 'ranger-mesurer') genererRangerMesurer(zone, etat.cfg);
+    if (type === 'vocabulaire-cp') genererLisiereCP(zone, etat.cfg);
     else if (type === 'garde-forestier') genererGardeForestier(zone, etat.cfg);
     else if (type === 'encadrer') genererEncadrer(zone, etat.cfg);
     else if (type === 'conversions') genererConversionsCE2(zone, etat.cfg);
@@ -820,167 +885,90 @@
   }
 
   /* ================================================================
-     Mini-jeu : « Long ou court ? » (comparaison, CP)
+     Palier CP — Niveau 1 : « La lisière du bois » (vocabulaire)
+     Montre deux éléments (A et B) ; l'un des deux est la cible. Quatre mots
+     (long/court/près/loin) sont proposés, un seul décrit correctement la
+     cible selon l'axe du gabarit (longueur ou distance).
      ================================================================ */
 
-  function genererComparer(zone, cfg) {
-    const variante = choisir(['objets', 'report', 'distance']);
-    if (variante === 'objets') {
-      const longA = nombreAleatoire(3, 18);
-      let longB = nombreAleatoire(3, 18);
-      while (longB === longA) longB = nombreAleatoire(3, 18);
-      const demanderLong = Math.random() < 0.5;
-      zone.appendChild(creerBlocConsigne(
-        'Ces deux brindilles sont déjà alignées. Touche la ' + (demanderLong ? 'plus longue' : 'plus courte') + '.',
-        'Regarde bien les deux brindilles alignées au même départ, et touche celle qui est la ' + (demanderLong ? 'plus longue' : 'plus courte') + '.'
-      ));
+  function genererLisiereCP(zone, cfg) {
+    const gabarit = etat.sequence[etat.index - 1];
+    const estLongueur = gabarit.axe === 'longueur';
+    const [vA, vB] = estLongueur ? nombresDistincts(2, 3, 18) : valeursEspacees(2, 2, 16, 3);
+    const cibleEstA = Math.random() < 0.5;
+    const valeurCible = cibleEstA ? vA : vB;
+    const valeurAutre = cibleEstA ? vB : vA;
+    const lettreCible = cibleEstA ? 'A' : 'B';
+    const cibleEstGrande = valeurCible > valeurAutre;
+    const motCorrect = estLongueur ? (cibleEstGrande ? 'long' : 'court') : (cibleEstGrande ? 'loin' : 'près');
+
+    zone.appendChild(creerBlocConsigne(
+      'Quel mot correspond à l\'élément ' + lettreCible + ' ?',
+      'Regarde bien les deux éléments, l\'élément A et l\'élément B. Quel mot correspond à l\'élément ' + lettreCible + ' ?'
+    ));
+
+    if (estLongueur) {
       const cont = document.createElement('div');
       cont.className = 'comparaison-objets';
-      [['A', longA], ['B', longB]].forEach(([lettre, longueur]) => {
+      [['A', vA], ['B', vB]].forEach(([nomLettre, valeur]) => {
         const rangee = document.createElement('div');
         rangee.className = 'rangee-brindille';
-        const btn = document.createElement('button');
-        btn.type = 'button'; btn.className = 'brindille-btn';
+        const wrap = document.createElement('div');
+        wrap.className = 'brindille-btn';
+        const icone = document.createElement('span');
+        icone.className = 'brindille-icone'; icone.textContent = gabarit.icone;
         const barre = document.createElement('span');
-        barre.className = 'brindille-barre';
-        barre.style.width = (longueur * 12) + 'px';
-        btn.appendChild(barre);
-        btn.setAttribute('aria-label', 'Brindille ' + lettre);
-        btn.addEventListener('click', () => {
-          const estLaBonne = demanderLong ? longueur === Math.max(longA, longB) : longueur === Math.min(longA, longB);
-          Array.from(cont.querySelectorAll('.brindille-btn')).forEach((b) => { b.disabled = true; });
-          validerTour(estLaBonne, btn);
-        });
-        rangee.appendChild(btn);
+        barre.className = 'brindille-barre'; barre.style.width = (valeur * 11) + 'px';
+        const spanLettre = document.createElement('span');
+        spanLettre.className = 'lisiere-lettre'; spanLettre.textContent = nomLettre;
+        wrap.appendChild(icone); wrap.appendChild(barre); wrap.appendChild(spanLettre);
+        rangee.appendChild(wrap);
         cont.appendChild(rangee);
       });
       zone.appendChild(cont);
-    } else if (variante === 'report') {
-      const hA = nombreAleatoire(4, 16);
-      let hB = nombreAleatoire(4, 16);
-      while (hB === hA) hB = nombreAleatoire(4, 16);
-      const demanderHaut = Math.random() < 0.5;
-      zone.appendChild(creerBlocConsigne(
-        'Ces arbres ne peuvent pas bouger. Touche l\'arbre le ' + (demanderHaut ? 'plus haut' : 'plus petit') + '.',
-        'La ficelle reporte la taille de chaque arbre. Touche l\'arbre le ' + (demanderHaut ? 'plus haut' : 'plus petit') + '.'
-      ));
-      const cont = document.createElement('div');
-      cont.className = 'comparaison-report';
-      [['A', hA], ['B', hB]].forEach(([lettre, hauteur]) => {
-        const col = document.createElement('button');
-        col.type = 'button'; col.className = 'arbre-col';
-        const cime = document.createElement('span');
-        cime.className = 'arbre-cime'; cime.textContent = '🌳';
-        const tronc = document.createElement('span');
-        tronc.className = 'arbre-tronc-barre';
-        tronc.style.height = (hauteur * 9) + 'px';
-        const label = document.createElement('span');
-        label.className = 'arbre-label'; label.textContent = 'Arbre ' + lettre;
-        col.appendChild(cime);
-        col.appendChild(tronc);
-        col.appendChild(label);
-        col.setAttribute('aria-label', 'Arbre ' + lettre);
-        col.addEventListener('click', () => {
-          const estLaBonne = demanderHaut ? hauteur === Math.max(hA, hB) : hauteur === Math.min(hA, hB);
-          Array.from(cont.querySelectorAll('.arbre-col')).forEach((b) => { b.disabled = true; });
-          validerTour(estLaBonne, col);
-        });
-        cont.appendChild(col);
-      });
-      zone.appendChild(cont);
-      zone.appendChild(Object.assign(document.createElement('p'), {
-        className: 'legende',
-        textContent: '🧵 La ficelle reporte la longueur d\'un arbre à l\'autre, même si on ne peut pas les rapprocher.'
-      }));
     } else {
-      const dA = nombreAleatoire(2, 12);
-      let dB = nombreAleatoire(2, 12);
-      while (dB === dA) dB = nombreAleatoire(2, 12);
-      const demanderProche = Math.random() < 0.5;
-      zone.appendChild(creerBlocConsigne(
-        'Sur ce sentier, touche la clairière la plus ' + (demanderProche ? 'proche' : 'éloignée') + ' du départ.',
-        'Regarde la distance entre le départ du sentier et chaque clairière, et touche la clairière la plus ' + (demanderProche ? 'proche' : 'éloignée') + '.'
-      ));
       const sentier = document.createElement('div');
       sentier.className = 'sentier';
       const depart = document.createElement('span'); depart.className = 'sentier-depart'; depart.textContent = '🚏';
       sentier.appendChild(depart);
       const piste = document.createElement('div'); piste.className = 'sentier-piste';
-      [['A', dA], ['B', dB]].forEach(([lettre, distance]) => {
-        const btn = document.createElement('button');
-        btn.type = 'button'; btn.className = 'clairiere-btn';
-        btn.style.left = (distance * 16) + 'px';
-        btn.textContent = '🏕️';
-        btn.setAttribute('aria-label', 'Clairière ' + lettre);
-        btn.addEventListener('click', () => {
-          const estLaBonne = demanderProche ? distance === Math.min(dA, dB) : distance === Math.max(dA, dB);
-          Array.from(piste.querySelectorAll('.clairiere-btn')).forEach((b) => { b.disabled = true; });
-          validerTour(estLaBonne, btn);
-        });
-        piste.appendChild(btn);
+      [['A', vA], ['B', vB]].forEach(([nomLettre, distance]) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'clairiere-btn';
+        wrap.style.left = (distance * 15) + 'px';
+        wrap.textContent = gabarit.icone + ' ' + nomLettre;
+        piste.appendChild(wrap);
       });
       sentier.appendChild(piste);
       zone.appendChild(sentier);
     }
-  }
 
-  /* ================================================================
-     Mini-jeu : « La file des brindilles » (ranger + mesurer, CP)
-     ================================================================ */
-
-  function genererRangerMesurer(zone, cfg) {
-    const sousType = (etat.index % 2 === 1) ? 'ranger' : 'mesurer';
-    if (sousType === 'ranger') genererRangerBrindilles(zone, cfg);
-    else genererMesurer(zone, cfg, { banqueBonus: donnees.estimationsCP });
-  }
-
-  function genererRangerBrindilles(zone, cfg) {
-    const n = nombreAleatoire(3, cfg.nbBrindillesMax || 5);
-    const longueurs = [];
-    while (longueurs.length < n) {
-      const v = nombreAleatoire(2, 18);
-      if (longueurs.indexOf(v) === -1) longueurs.push(v);
-    }
-    const ordreCorrect = [...longueurs].sort((a, b) => a - b);
-    const ordreAffiche = melanger(longueurs);
-
-    zone.appendChild(creerBlocConsigne(
-      'Touche les brindilles dans l\'ordre : de la plus courte à la plus longue.',
-      'Touche d\'abord la brindille la plus courte, puis la suivante, jusqu\'à la plus longue.'
-    ));
-
-    const cont = document.createElement('div');
-    cont.className = 'file-brindilles';
-    let prochainIndex = 0;
-    let uneErreur = false;
-    ordreAffiche.forEach((longueur) => {
+    const mots = melanger(['long', 'court', 'près', 'loin']);
+    const grille = document.createElement('div');
+    grille.className = 'grille-options';
+    mots.forEach((mot) => {
       const btn = document.createElement('button');
-      btn.type = 'button'; btn.className = 'brindille-btn';
-      const barre = document.createElement('span');
-      barre.className = 'brindille-barre';
-      barre.style.width = (longueur * 12) + 'px';
-      btn.appendChild(barre);
-      btn.setAttribute('aria-label', 'Brindille de longueur ' + longueur);
+      btn.type = 'button'; btn.className = 'bouton-option'; btn.textContent = mot;
       btn.addEventListener('click', () => {
-        if (btn.disabled || etat.verrouille) return;
-        if (longueur === ordreCorrect[prochainIndex]) {
-          btn.disabled = true;
-          btn.classList.add('placee');
-          prochainIndex++;
-          if (prochainIndex === ordreCorrect.length) validerTour(!uneErreur, btn);
-        } else {
-          uneErreur = true;
-          btn.classList.add('secousse');
-          jouerSon('rate');
-          setTimeout(() => btn.classList.remove('secousse'), 350);
+        Array.from(grille.children).forEach((b) => { b.disabled = true; });
+        const correct = mot === motCorrect;
+        btn.classList.add(correct ? 'correct' : 'incorrect');
+        if (!correct) {
+          const bonneBtn = Array.from(grille.children).find((b) => b.textContent === motCorrect);
+          if (bonneBtn) bonneBtn.classList.add('correct');
         }
+        validerTour(correct, btn);
       });
-      cont.appendChild(btn);
+      grille.appendChild(btn);
     });
-    zone.appendChild(cont);
+    zone.appendChild(grille);
   }
 
-  function genererMesurer(zone, cfg, opts) {
+  /*
+   * Règle déjà positionnée sous l'objet à mesurer (QCM de lecture directe) :
+   * partagée par le palier CE1 (« La règle du garde forestier »).
+   */
+  function genererMesurer(zone, cfg) {
     const cap = cfg.capCm || 20;
     const longueur = nombreAleatoire(3, cap - 2);
     zone.appendChild(creerBlocConsigne(
@@ -1010,41 +998,11 @@
         const correct = i === indexCorrect;
         btn.classList.add(correct ? 'correct' : 'incorrect');
         if (!correct) grille.children[indexCorrect].classList.add('correct');
-        if (opts && opts.banqueBonus) afficherBonusEstimation(zone, correct, btn, opts.banqueBonus);
-        else validerTour(correct, btn);
+        validerTour(correct, btn);
       });
       grille.appendChild(btn);
     });
     zone.appendChild(grille);
-  }
-
-  function afficherBonusEstimation(zone, correctPrincipal, boutonPrincipal, banque) {
-    const item = choisir(banque);
-    const bloc = document.createElement('div');
-    bloc.className = 'bonus-estimation';
-    const titre = document.createElement('p');
-    titre.className = 'legende';
-    titre.textContent = '🎁 Bonus : ' + item.texte;
-    bloc.appendChild(titre);
-    const rangee = document.createElement('div');
-    rangee.className = 'grille-options grille-options-bonus';
-    item.options.forEach((opt) => {
-      const btn = document.createElement('button');
-      btn.type = 'button'; btn.className = 'bouton-option bouton-option-bonus'; btn.textContent = opt;
-      btn.addEventListener('click', () => {
-        Array.from(rangee.children).forEach((b) => { b.disabled = true; });
-        const correct = opt === item.bonne;
-        btn.classList.add(correct ? 'correct' : 'incorrect');
-        if (!correct) {
-          const bonneBtn = Array.from(rangee.children).find((b) => b.textContent === item.bonne);
-          if (bonneBtn) bonneBtn.classList.add('correct');
-        }
-        validerTour(correctPrincipal, boutonPrincipal);
-      });
-      rangee.appendChild(btn);
-    });
-    bloc.appendChild(rangee);
-    zone.appendChild(bloc);
   }
 
   /* ================================================================
@@ -1056,7 +1014,7 @@
     const dispo = types.filter((t) => t !== etat.dernierSousType);
     const sousType = choisir(dispo.length ? dispo : types);
     etat.dernierSousType = sousType;
-    if (sousType === 'mesurer') genererMesurer(zone, { capCm: cfg.capCm || 30 }, null);
+    if (sousType === 'mesurer') genererMesurer(zone, { capCm: cfg.capCm || 30 });
     else if (sousType === 'conversion') genererConversionCE1(zone, cfg);
     else genererEstimation(zone, donnees.estimationsCE1);
   }
