@@ -1449,7 +1449,16 @@
   }
 
   function genererEstimation(zone, banque) {
-    const item = choisir(banque);
+    // Cette banque n'est qu'un sous-type parmi d'autres (garde forestier CE1,
+    // cabane CP) : elle peut être tirée plusieurs fois dans la même partie.
+    // Sans garde de distinction, une banque de 4 à 6 items aurait un risque
+    // de répétition élevé sur 2-3 tirages (CHARTE §13). On épuise la banque
+    // avant de recommencer un nouveau cycle.
+    if (!etat.estimationsVues) etat.estimationsVues = [];
+    let disponibles = banque.filter((it) => etat.estimationsVues.indexOf(it.texte) === -1);
+    if (!disponibles.length) { etat.estimationsVues = []; disponibles = banque; }
+    const item = choisir(disponibles);
+    etat.estimationsVues.push(item.texte);
     zone.appendChild(creerBlocConsigne(item.texte, item.texte));
     const grille = document.createElement('div');
     grille.className = 'grille-options';
