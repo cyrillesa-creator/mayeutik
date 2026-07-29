@@ -26,6 +26,7 @@
     domaineParent: null,     // domaine sélectionné sur le radar de synthèse
     filtreNiveauParent: 'tous',
     menuNiveauxOuvert: false,  // le menu de sélection des niveaux reste ouvert entre deux rendus
+    menuDomainesOuvert: false,  // le menu de sélection des domaines reste ouvert entre deux rendus
     outilsDevOuverts: false  // le panneau dev reste ouvert entre deux rendus
   };
 
@@ -89,26 +90,31 @@
     }
   }
 
-  // Filtre de domaine : même principe, mais la valeur utile est le domaine
-  // choisi (ou 'tous'). On la stocke préfixée par l'id du profil (périmètre) :
-  // si le profil actif change par un autre chemin, le filtre ne s'applique plus.
-  function lireFiltreDomaine(profilId) {
-    if (!profilId) return 'tous';
+  // Filtre de domaine : sélection MULTIPLE, même principe que les niveaux
+  // (CHARTE §16 : un seul point d'entrée générique pour ce type de filtre).
+  // Défaut = TOUS les domaines du référentiel (pas de « mon domaine » propre
+  // au profil, contrairement au niveau).
+  function domainesParDefaut() {
+    return (referentiel.domaines || []).slice();
+  }
+  function lireDomainesSelectionnes(profilId) {
+    if (!profilId) return domainesParDefaut();
     let brut;
     try { brut = window.sessionStorage.getItem(CLE_DOMAINE); } catch (e) { brut = memoireDomaine; }
-    if (!brut) return 'tous';
+    if (!brut) return domainesParDefaut();
     const sep = brut.indexOf(SEP);
-    if (sep === -1 || brut.slice(0, sep) !== profilId) return 'tous';
-    return brut.slice(sep + 1) || 'tous';
+    if (sep === -1 || brut.slice(0, sep) !== profilId) return domainesParDefaut();
+    const domaines = brut.slice(sep + 1).split(',').filter(Boolean);
+    return domaines.length ? domaines : domainesParDefaut();
   }
-  function ecrireFiltreDomaine(profilId, domaine) {
-    const parDefaut = !domaine || domaine === 'tous' || !profilId;
-    memoireDomaine = parDefaut ? null : profilId + SEP + domaine;
+  function ecrireDomainesSelectionnes(profilId, domaines) {
+    if (!profilId || !domaines || !domaines.length) return;
+    const valeur = profilId + SEP + domaines.join(',');
+    memoireDomaine = valeur;
     try {
-      if (parDefaut) window.sessionStorage.removeItem(CLE_DOMAINE);
-      else window.sessionStorage.setItem(CLE_DOMAINE, profilId + SEP + domaine);
+      window.sessionStorage.setItem(CLE_DOMAINE, valeur);
     } catch (e) {
-      // sessionStorage indisponible : repli mémoire.
+      // sessionStorage indisponible : on garde le repli mémoire (dégradé mais sans erreur).
     }
   }
 
@@ -134,8 +140,12 @@
     {
       cle: CLE_DOMAINE,
       reinitMemoire: function () { memoireDomaine = null; },
-      // Écart au défaut = un domaine précis est sélectionné (≠ « tous »).
-      estModifie: function (profilId) { return lireFiltreDomaine(profilId) !== 'tous'; }
+      // Écart au défaut = la sélection de domaines diffère de « tous ».
+      estModifie: function (profilId) {
+        const actuel = lireDomainesSelectionnes(profilId).slice().sort();
+        const defaut = domainesParDefaut().slice().sort();
+        return actuel.length !== defaut.length || actuel.some((v, i) => v !== defaut[i]);
+      }
     }
   ];
 
@@ -478,7 +488,7 @@
 
   /* ---------- Vue : accueil / index des jeux (enfant) ---------- */
 
-  function modulesFiltres(niveauxSelectionnes, filtreDomaine) {
+  function modulesFiltres(niveauxSelectionnes, domainesSelectionnes) {
     const recherche = normaliser(etat.recherche.trim());
     return (referentiel.modules || []).filter((m) => {
       // Entrées de BACKLOG (module planifié, sans fichier de jeu) : présentes
@@ -489,7 +499,8 @@
       // MOINS UN des niveaux sélectionnés. Un module adaptatif (§15) compte
       // pour CHACUN des niveaux qu'il couvre.
       if (!niveauxModule(m).some((n) => niveauxSelectionnes.indexOf(n) !== -1)) return false;
-      if (filtreDomaine && filtreDomaine !== 'tous' && m.domaine !== filtreDomaine) return false;
+      // Union des domaines cochés (sélection multiple, un domaine par module).
+      if (domainesSelectionnes.indexOf(m.domaine) === -1) return false;
       if (recherche) {
         const meule = normaliser([m.titre, m.theme, m.description, m.domaine].join(' '));
         if (meule.indexOf(recherche) === -1) return false;
@@ -532,17 +543,26 @@
     return niveauxSelectionnes.length + ' niveaux';
   }
 
+  // Libellé compact du bouton fermé du menu Domaine (même principe que le
+  // menu Niveau ci-dessus, sans le cas particulier « Mon niveau » — il n'y a
+  // pas de domaine par défaut propre au profil).
+  function libelleDomainesSelectionnes(domainesSelectionnes, domainesDisponibles) {
+    if (domainesSelectionnes.length === domainesDisponibles.length) return 'Tous les domaines';
+    if (domainesSelectionnes.length === 1) return domainesSelectionnes[0];
+    if (domainesSelectionnes.length === 2) return domainesSelectionnes.join(', ');
+    return domainesSelectionnes.length + ' domaines';
+  }
+
   function vueAccueil(conteneur) {
     const profil = P.profilActif();
     const niveauProfil = profil && profil.niveau ? profil.niveau : null;
     const idProfil = profil ? profil.id : null;
 
-    // Filtres « niveaux affichés » et « domaine » : lus depuis l'état de
-    // session (persistent au retour d'un jeu, réinitialisés à l'accès à l'écran
-    // des profils — cf. reinitialiserFiltres dans vueProfils).
+    // Filtres « niveaux affichés » et « domaines affichés » : lus depuis
+    // l'état de session (persistent au retour d'un jeu, réinitialisés à
+    // l'accès à l'écran des profils — cf. reinitialiserFiltres dans vueProfils).
     const niveauxDisponibles = referentiel.niveaux || [];
     const niveauxSelectionnes = niveauProfil ? lireNiveauxSelectionnes(idProfil) : niveauxDisponibles;
-    const filtreDomaine = lireFiltreDomaine(idProfil);
 
     const vue = h('div', { class: 'vue', style: 'position:relative' });
 
@@ -593,43 +613,80 @@
         choisirNiveaux(Array.from(actuel), false);
       }
 
-      const menuNiveaux = h('details', { class: 'menu-niveaux',
+      const menuNiveaux = h('details', { class: 'menu-filtre',
         ontoggle: (e) => { etat.menuNiveauxOuvert = e.target.open; } }, [
-        h('summary', { class: 'bouton-niveaux' },
+        h('summary', { class: 'bouton-filtre-deroulant' },
           [h('span', { texte: libelleNiveauxSelectionnes(niveauxSelectionnes, niveauProfil, niveauxDisponibles) }),
            h('span', { class: 'chevron-pastille', 'aria-hidden': 'true' })]),
-        h('div', { class: 'panneau-niveaux' }, [
-          h('div', { class: 'cases-niveaux' }, niveauxDisponibles.map((n) => {
+        h('div', { class: 'panneau-filtre' }, [
+          h('div', { class: 'cases-filtre' }, niveauxDisponibles.map((n) => {
             const caseACocher = h('input', { type: 'checkbox', onchange: () => basculerNiveau(n) });
             caseACocher.checked = niveauxSelectionnes.indexOf(n) !== -1;
-            return h('label', { class: 'case-niveau' }, [caseACocher, h('span', { texte: n })]);
+            return h('label', { class: 'case-filtre' }, [caseACocher, h('span', { texte: n })]);
           }))
         ])
       ]);
       if (etat.menuNiveauxOuvert) menuNiveaux.setAttribute('open', '');
 
       const tousSelectionnes = niveauxSelectionnes.length === niveauxDisponibles.length;
-      const boutonRapide = h('button', { type: 'button', class: 'bouton-niveau-rapide',
+      const boutonRapide = h('button', { type: 'button', class: 'bouton-filtre-rapide',
         'aria-pressed': tousSelectionnes ? 'true' : 'false',
         texte: tousSelectionnes ? 'Voir seulement mon niveau' : 'Voir tous les niveaux',
         onclick: () => choisirNiveaux(tousSelectionnes ? [niveauProfil] : niveauxDisponibles.slice(), true) });
 
-      vue.appendChild(h('div', { class: 'rangee-niveau' }, [menuNiveaux, boutonRapide]));
+      vue.appendChild(h('div', { class: 'rangee-filtre-multi' }, [menuNiveaux, boutonRapide]));
     }
 
-    // Dérivé dynamiquement de la liste des domaines du référentiel (source
-    // unique, la même que celle utilisée par le radar de synthèse — cf.
-    // analyserProfil dans js/statuts.js) plutôt que restreint aux domaines
-    // ayant déjà un module jouable : un domaine sans jeu pour l'instant
-    // (ex. « Grandeurs et mesures » avant M23) reste sélectionnable, avec le
-    // message « Aucun jeu trouvé » habituel s'il ne ramène rien.
-    const domainesDuReferentiel = referentiel.domaines || [];
-    const rangeeDomaines = h('div', { class: 'rangee-filtres' },
-      domainesDuReferentiel.map((d) => [d, d]).concat([['tous', 'Tous les domaines']]).map(([valeur, libelle]) =>
-        h('button', { class: 'puce-filtre puce-filtre-domaine' + (filtreDomaine === valeur ? ' active' : ''),
-          texte: libelle,
-          onclick: () => { ecrireFiltreDomaine(idProfil, valeur); rendre(); } })));
-    vue.appendChild(rangeeDomaines);
+    // Filtre par domaine : sélection MULTIPLE (mêmes principe et composants
+    // génériques que le filtre par niveau ci-dessus — menu déroulant à cases
+    // à cocher + bouton coloré « Tous les domaines »). Dérivé dynamiquement
+    // de la liste des domaines du référentiel (source unique, la même que
+    // celle utilisée par le radar de synthèse — cf. analyserProfil dans
+    // js/statuts.js) plutôt que restreint aux domaines ayant déjà un module
+    // jouable : un domaine sans jeu pour l'instant (ex. « Grandeurs et
+    // mesures » avant M23) reste sélectionnable, avec le message « Aucun jeu
+    // trouvé » habituel s'il ne ramène rien.
+    const domainesDisponibles = referentiel.domaines || [];
+    const domainesSelectionnes = lireDomainesSelectionnes(idProfil);
+
+    function choisirDomaines(domaines, fermerMenu) {
+      ecrireDomainesSelectionnes(idProfil, domaines);
+      etat.menuDomainesOuvert = !fermerMenu;
+      rendre();
+    }
+    function basculerDomaine(d) {
+      const actuel = new Set(domainesSelectionnes);
+      if (actuel.has(d)) {
+        if (actuel.size === 1) return; // au moins un domaine doit rester coché
+        actuel.delete(d);
+      } else {
+        actuel.add(d);
+      }
+      choisirDomaines(Array.from(actuel), false);
+    }
+
+    const menuDomaines = h('details', { class: 'menu-filtre',
+      ontoggle: (e) => { etat.menuDomainesOuvert = e.target.open; } }, [
+      h('summary', { class: 'bouton-filtre-deroulant' },
+        [h('span', { texte: libelleDomainesSelectionnes(domainesSelectionnes, domainesDisponibles) }),
+         h('span', { class: 'chevron-pastille', 'aria-hidden': 'true' })]),
+      h('div', { class: 'panneau-filtre' }, [
+        h('div', { class: 'cases-filtre' }, domainesDisponibles.map((d) => {
+          const caseACocher = h('input', { type: 'checkbox', onchange: () => basculerDomaine(d) });
+          caseACocher.checked = domainesSelectionnes.indexOf(d) !== -1;
+          return h('label', { class: 'case-filtre' }, [caseACocher, h('span', { texte: d })]);
+        }))
+      ])
+    ]);
+    if (etat.menuDomainesOuvert) menuDomaines.setAttribute('open', '');
+
+    const tousDomainesSelectionnes = domainesSelectionnes.length === domainesDisponibles.length;
+    const boutonDomainesRapide = h('button', { type: 'button', class: 'bouton-filtre-rapide',
+      'aria-pressed': tousDomainesSelectionnes ? 'true' : 'false',
+      texte: 'Tous les domaines',
+      onclick: () => choisirDomaines(domainesDisponibles.slice(), true) });
+
+    vue.appendChild(h('div', { class: 'rangee-filtre-multi' }, [menuDomaines, boutonDomainesRapide]));
 
     // Bouton « Réinitialiser les filtres » : remet niveau + domaine au défaut
     // en une action (via le point d'entrée central). Grisé s'il n'y a rien à
@@ -645,12 +702,14 @@
 
     function rendreListeJeux() {
       zoneJeux.textContent = '';
-      const modules = modulesFiltres(niveauxSelectionnes, filtreDomaine);
+      const modules = modulesFiltres(niveauxSelectionnes, domainesSelectionnes);
       if (!modules.length) {
         const message = niveauxSelectionnes.length < niveauxDisponibles.length
           ? 'Aucun jeu pour ' + (niveauxSelectionnes.length === 1 ? 'le niveau ' + niveauxSelectionnes[0] : 'ces niveaux')
             + ' pour l’instant — touche le menu Niveau pour en afficher d’autres.'
-          : 'Aucun jeu trouvé… essaie autre chose !';
+          : domainesSelectionnes.length < domainesDisponibles.length
+            ? 'Aucun jeu pour ces domaines pour l’instant — touche le menu Domaine pour en afficher d’autres.'
+            : 'Aucun jeu trouvé… essaie autre chose !';
         zoneJeux.appendChild(h('p', { class: 'aucun-resultat', texte: message }));
         return;
       }

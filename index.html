@@ -142,49 +142,43 @@
     border-radius: 999px; padding: 0 1.1rem; background: #fff;
   }
   .barre-recherche:focus { outline: none; border-color: var(--couleur-mandarine); }
-  .rangee-filtres { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .4rem; }
-  .puce-filtre {
-    border: 2px solid color-mix(in srgb, var(--couleur-encre) 18%, white);
-    background: #fff; border-radius: 999px; padding: .3rem .8rem;
-    font-weight: 500; min-height: 38px;
-  }
-  .puce-filtre.active { background: var(--couleur-mandarine); border-color: var(--couleur-mandarine); color: #fff; }
-  .puce-filtre-domaine.active { background: var(--couleur-menthe); border-color: var(--couleur-menthe); }
 
-  /* Filtre par niveau : DEUX contrôles synchronisés (même source de vérité,
-     `niveauxSelectionnes`) — un bouton coloré à droite (raccourci rapide,
-     bascule Mon niveau ↔ Tous les niveaux) et un menu déroulant à gauche pour
-     la sélection multiple fine (ex. « CP + CE2 »). Le libellé du bouton fermé
-     du menu résume la sélection (« Mon niveau », « Tous les niveaux »,
-     « CP, CE2 »…) pour que l'état actif reste visible sans le rouvrir. */
-  .rangee-niveau { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin: .1rem 0 .5rem; }
-  .menu-niveaux { margin: 0; }
-  .bouton-niveaux {
+  /* Filtres à sélection MULTIPLE (niveau ET domaine, CHARTE §16 : composants
+     génériques partagés plutôt que dupliqués) : chacun combine un menu
+     déroulant à cases à cocher (sélection fine, ex. « CP + CE2 ») et un
+     bouton coloré (raccourci rapide vers le cas d'usage le plus courant —
+     Mon niveau ↔ Tous les niveaux, ou Tous les domaines). Le libellé du
+     bouton fermé du menu résume la sélection (« Mon niveau », « Tous les
+     niveaux », « CP, CE2 », « Nombres et calcul »…) pour que l'état actif
+     reste visible sans le rouvrir. */
+  .rangee-filtre-multi { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin: .1rem 0 .5rem; }
+  .menu-filtre { margin: 0; }
+  .bouton-filtre-deroulant {
     display: inline-flex; align-items: center; gap: .5rem; cursor: pointer; list-style: none;
     border: 1.5px solid color-mix(in srgb, var(--couleur-encre) 22%, white);
     background: #fff; border-radius: 999px; padding: .3rem .9rem;
     font-size: .82rem; font-weight: 700; min-height: 38px;
     color: color-mix(in srgb, var(--couleur-mandarine) 55%, black 20%);
   }
-  .bouton-niveaux::-webkit-details-marker { display: none; }
-  .bouton-niveaux .chevron-pastille { border-color: color-mix(in srgb, var(--couleur-mandarine) 55%, black 20%); }
-  .menu-niveaux[open] .bouton-niveaux .chevron-pastille { transform: rotate(225deg); }
-  .panneau-niveaux {
+  .bouton-filtre-deroulant::-webkit-details-marker { display: none; }
+  .bouton-filtre-deroulant .chevron-pastille { border-color: color-mix(in srgb, var(--couleur-mandarine) 55%, black 20%); }
+  .menu-filtre[open] .bouton-filtre-deroulant .chevron-pastille { transform: rotate(225deg); }
+  .panneau-filtre {
     margin-top: .5rem; padding: .7rem .8rem; border-radius: 14px; max-width: 16rem;
     background: #fff; border: 1.5px solid color-mix(in srgb, var(--couleur-encre) 15%, white);
     box-shadow: 0 4px 10px rgba(43,43,43,.08);
   }
-  .cases-niveaux { display: flex; flex-direction: column; gap: .5rem; }
-  .case-niveau { display: flex; align-items: center; gap: .5rem; font-weight: 600; font-size: .92rem; min-height: 32px; }
-  .case-niveau input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--couleur-mandarine); }
-  /* Bouton coloré : même langage visuel que l'ancienne bascule rapide (mandarine
-     quand « Tous les niveaux » est actif, neutre sinon). */
-  .bouton-niveau-rapide {
+  .cases-filtre { display: flex; flex-direction: column; gap: .5rem; }
+  .case-filtre { display: flex; align-items: center; gap: .5rem; font-weight: 600; font-size: .92rem; min-height: 32px; }
+  .case-filtre input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--couleur-mandarine); }
+  /* Bouton coloré (niveau ET domaine) : mandarine quand l'état « tout coché »
+     est actif (aria-pressed="true"), neutre sinon. */
+  .bouton-filtre-rapide {
     margin-left: auto; border: 1.5px solid color-mix(in srgb, var(--couleur-encre) 22%, white);
     background: #fff; border-radius: 999px; padding: .3rem .8rem;
     font-size: .82rem; font-weight: 600; min-height: 38px; color: var(--couleur-encre);
   }
-  .bouton-niveau-rapide[aria-pressed="true"] {
+  .bouton-filtre-rapide[aria-pressed="true"] {
     background: var(--couleur-mandarine); border-color: var(--couleur-mandarine); color: #fff;
   }
 
