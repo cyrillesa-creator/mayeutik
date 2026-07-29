@@ -203,13 +203,13 @@
     if (icone === 'initiales') return prenom.slice(0, 2).toUpperCase();
     return prenom.charAt(0).toUpperCase();
   }
-  // Icône « en tête » (petite, coin supérieur droit de l'accueil) : mêmes
-  // couleurs de rotation que avatar(), mais taille réduite et contenu
-  // dérivé du choix d'icône plutôt que toujours la seule initiale.
+  // Icône « en tête » (grande, coin supérieur droit de l'accueil) : mêmes
+  // couleurs de rotation que avatar(), et contenu dérivé du choix d'icône
+  // plutôt que toujours la seule initiale.
   function avatarEnTete(profil) {
     const indice = Math.max(0, P.lireProfils().findIndex((p) => p.id === profil.id));
     const contenu = contenuIcone(profil);
-    return h('span', { class: 'avatar avatar-petit' + (contenu.length > 1 ? ' avatar-texte-double' : '') +
+    return h('span', { class: 'avatar avatar-entete' + (contenu.length > 1 ? ' avatar-texte-double' : '') +
       ' ' + CLASSES_AVATAR[indice % CLASSES_AVATAR.length], texte: contenu });
   }
 
@@ -521,7 +521,7 @@
     vue.appendChild(h('button', { class: 'icone-joueur',
       'aria-label': profil ? 'Changer de joueur (' + profil.prenom + ')' : 'Choisir un joueur',
       onclick: () => { location.hash = '#profils'; } },
-      [profil ? avatarEnTete(profil) : h('span', { class: 'avatar avatar-petit', texte: '?' }),
+      [profil ? avatarEnTete(profil) : h('span', { class: 'avatar avatar-entete', texte: '?' }),
        h('span', { class: 'chevron-pastille', 'aria-hidden': 'true' })]));
 
     vue.appendChild(h('div', { class: 'entete-enfant' }, [

@@ -94,16 +94,16 @@
   }
   .entete-enfant .sous-titre { font-weight: 500; opacity: .75; margin-top: .1rem; }
 
-  /* Icône du joueur actif (coin haut droit de l'accueil) : petite, taille fixe,
-     donc un positionnement absolu reste sûr (contrairement à l'ancienne capsule
-     avec le prénom en toutes lettres, de largeur variable). Le titre reste
-     centré et inchangé (.entete-enfant, ci-dessus) : les deux ne se chevauchent
-     jamais puisque l'icône est minuscule et cantonnée au coin. */
+  /* Icône du joueur actif (coin haut droit de l'accueil) : taille fixe, donc un
+     positionnement absolu reste sûr (contrairement à l'ancienne capsule avec le
+     prénom en toutes lettres, de largeur variable). Le titre reste centré et
+     inchangé (.entete-enfant, ci-dessus) : les deux ne se chevauchent jamais
+     puisque l'icône reste cantonnée au coin, quelle que soit sa taille. */
   .icone-joueur {
-    position: absolute; top: .7rem; right: .7rem;
-    display: flex; align-items: center; justify-content: center; gap: .3rem;
-    border: none; background: transparent; padding: .4rem;
-    min-height: 44px; min-width: 44px;
+    position: absolute; top: .6rem; right: .6rem;
+    display: flex; align-items: center; justify-content: center; gap: .35rem;
+    border: none; background: transparent; padding: .3rem;
+    min-height: 64px; min-width: 64px;
   }
   .icone-joueur:active { transform: scale(.94); }
   /* Chevron discret : même technique que les select déroulants de l'espace
@@ -116,6 +116,10 @@
     border-bottom: 2px solid color-mix(in srgb, var(--couleur-encre) 45%, white);
     transform: rotate(45deg);
   }
+  /* Le chevron grandit proportionnellement à la grande icône du joueur (ici
+     seulement : les autres usages de .chevron-pastille — menus déroulants —
+     restent à leur taille discrète habituelle). */
+  .icone-joueur .chevron-pastille { width: .6rem; height: .6rem; border-width: 2.5px; margin-bottom: .2rem; }
   .avatar {
     width: 34px; height: 34px; border-radius: 50%;
     display: inline-flex; align-items: center; justify-content: center;
@@ -125,9 +129,10 @@
   .avatar-mandarine { background: var(--couleur-mandarine); }
   .avatar-corail { background: var(--couleur-corail); }
   .avatar-soleil { background: var(--couleur-soleil); color: var(--couleur-encre); }
-  /* Variante réduite (icône d'en-tête) et variante deux caractères (initiales) */
-  .avatar-petit { width: 28px; height: 28px; font-size: .92rem; }
-  .avatar-petit.avatar-texte-double { font-size: .64rem; }
+  /* Variante agrandie (icône d'en-tête, doublée par rapport à sa taille
+     d'origine) et variante deux caractères (initiales). */
+  .avatar-entete { width: 56px; height: 56px; font-size: 1.55rem; }
+  .avatar-entete.avatar-texte-double { font-size: 1.05rem; }
   .avatar-texte-double { font-size: .78rem; }
 
   /* Recherche + filtres */
