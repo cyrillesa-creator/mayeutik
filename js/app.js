@@ -196,11 +196,28 @@
    * profils existants qui n'ont pas encore fait ce choix).
    */
   const EMOJIS_PROFIL = ['😀', '😎', '🤓', '🥳', '🥰', '😺', '🐶', '🦊', '🐼', '🦁', '🐵', '🦄', '🐧', '🐢', '🦋', '🐙'];
+  /*
+   * Initiales d'un prénom, avec une règle double :
+   *  - prénom COMPOSÉ (tiret) : une lettre par partie, ex. « Jean-Philippe »
+   *    → « JP » (pas les deux premières lettres de la première partie) ;
+   *  - prénom SIMPLE : première lettre en MAJUSCULE + deuxième en minuscule,
+   *    ex. « Léo » → « Lé », « Emma » → « Em », « Théo » → « Th ».
+   */
+  function initialesProfil(prenom) {
+    const nom = (prenom || '?').trim() || '?';
+    if (nom.indexOf('-') !== -1) {
+      return nom.split('-')
+        .map((partie) => partie.trim().charAt(0).toUpperCase())
+        .filter(Boolean)
+        .join('');
+    }
+    return nom.charAt(0).toUpperCase() + nom.slice(1, 2).toLowerCase();
+  }
   function contenuIcone(profil) {
     const icone = profil.icone;
     const prenom = (profil.prenom || '?').trim() || '?';
     if (icone && icone !== 'initiale' && icone !== 'initiales') return icone; // emoji stocké tel quel
-    if (icone === 'initiales') return prenom.slice(0, 2).toUpperCase();
+    if (icone === 'initiales') return initialesProfil(prenom);
     return prenom.charAt(0).toUpperCase();
   }
   // Icône « en tête » (grande, coin supérieur droit de l'accueil) : mêmes
