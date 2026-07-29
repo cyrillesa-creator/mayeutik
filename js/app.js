@@ -631,7 +631,7 @@
       const tousSelectionnes = niveauxSelectionnes.length === niveauxDisponibles.length;
       const boutonRapide = h('button', { type: 'button', class: 'bouton-filtre-rapide',
         'aria-pressed': tousSelectionnes ? 'true' : 'false',
-        texte: tousSelectionnes ? 'Voir seulement mon niveau' : 'Voir tous les niveaux',
+        texte: tousSelectionnes ? 'Voir seulement mon niveau' : 'Tous les niveaux',
         onclick: () => choisirNiveaux(tousSelectionnes ? [niveauProfil] : niveauxDisponibles.slice(), true) });
 
       vue.appendChild(h('div', { class: 'rangee-filtre-multi' }, [menuNiveaux, boutonRapide]));
@@ -681,7 +681,7 @@
     if (etat.menuDomainesOuvert) menuDomaines.setAttribute('open', '');
 
     const tousDomainesSelectionnes = domainesSelectionnes.length === domainesDisponibles.length;
-    const boutonDomainesRapide = h('button', { type: 'button', class: 'bouton-filtre-rapide',
+    const boutonDomainesRapide = h('button', { type: 'button', class: 'bouton-filtre-rapide bouton-filtre-rapide-domaine',
       'aria-pressed': tousDomainesSelectionnes ? 'true' : 'false',
       texte: 'Tous les domaines',
       onclick: () => choisirDomaines(domainesDisponibles.slice(), true) });

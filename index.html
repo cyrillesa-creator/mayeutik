@@ -171,8 +171,9 @@
   .cases-filtre { display: flex; flex-direction: column; gap: .5rem; }
   .case-filtre { display: flex; align-items: center; gap: .5rem; font-weight: 600; font-size: .92rem; min-height: 32px; }
   .case-filtre input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--couleur-mandarine); }
-  /* Bouton coloré (niveau ET domaine) : mandarine quand l'état « tout coché »
-     est actif (aria-pressed="true"), neutre sinon. */
+  /* Bouton coloré : mandarine (niveau) ou turquoise (domaine, cf.
+     .bouton-filtre-rapide-domaine) quand l'état « tout coché » est actif
+     (aria-pressed="true"), neutre sinon. */
   .bouton-filtre-rapide {
     margin-left: auto; border: 1.5px solid color-mix(in srgb, var(--couleur-encre) 22%, white);
     background: #fff; border-radius: 999px; padding: .3rem .8rem;
@@ -180,6 +181,9 @@
   }
   .bouton-filtre-rapide[aria-pressed="true"] {
     background: var(--couleur-mandarine); border-color: var(--couleur-mandarine); color: #fff;
+  }
+  .bouton-filtre-rapide-domaine[aria-pressed="true"] {
+    background: var(--couleur-menthe); border-color: var(--couleur-menthe); color: #fff;
   }
 
   /* Bouton « Réinitialiser les filtres » (discret, grisé si rien à réinitialiser) */
