@@ -218,6 +218,12 @@
   .baton-btn.baton-glisse{ z-index:5; cursor:grabbing; }
   .baton-barre{ display:block; height:16px; border-radius:8px; background:var(--couleur-corail); border:2px solid color-mix(in srgb, var(--couleur-corail) 60%, black 10%); }
 
+  /* ---- Palier CP : « Le Bois » — cabane (règle à déplacer) ---- */
+  .piste-alignement{ position:relative; margin:.9rem 0; overflow-x:hidden; border-radius:10px; min-height:90px;
+    background:color-mix(in srgb, var(--couleur-mandarine) 8%, white); border:2px solid color-mix(in srgb, var(--couleur-encre) 12%, white); }
+  .planche-fixe{ position:absolute; top:38px; height:16px; border-radius:4px; background:#B08968; border:2px solid color-mix(in srgb, #B08968 60%, black 15%); }
+  .regle-graduee.regle-glissable{ position:absolute; top:8px; touch-action:none; cursor:grab; }
+
   /* ---- Périmètre : côtés à reporter au compas ---- */
   .bloc-polygone{ text-align:center; font-weight:700; margin-bottom:.3rem; }
   .rangee-cotes{ display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; margin:.4rem 0 .7rem; }
@@ -301,8 +307,10 @@
   "estimationsCP": [
     { "texte": "Une fourmi mesure plutôt…", "options": ["2 cm", "20 cm", "1 m"], "bonne": "2 cm" },
     { "texte": "Une brindille mesure plutôt…", "options": ["2 cm", "20 cm", "1 m"], "bonne": "20 cm" },
-    { "texte": "Un enfant de ton âge mesure plutôt…", "options": ["2 cm", "20 cm", "1 m"], "bonne": "1 m" },
-    { "texte": "Un trombone mesure plutôt…", "options": ["2 cm", "20 cm", "1 m"], "bonne": "2 cm" }
+    { "texte": "Une trousse mesure plutôt…", "options": ["2 cm", "20 cm", "1 m"], "bonne": "20 cm" },
+    { "texte": "Un enfant de 6 ans mesure plutôt…", "options": ["2 cm", "20 cm", "1 m"], "bonne": "1 m" },
+    { "texte": "Un trombone mesure plutôt…", "options": ["2 cm", "20 cm", "1 m"], "bonne": "2 cm" },
+    { "texte": "Une porte mesure plutôt…", "options": ["20 cm", "1 m", "2 m"], "bonne": "2 m" }
   ],
   "estimationsCE1": [
     { "texte": "La largeur du sentier forestier mesure plutôt…", "options": ["1 m", "10 m", "1 km"], "bonne": "1 m" },
@@ -315,7 +323,8 @@
       "sousTitre": "Une balade dans le Bois, entre lisière et cabane ! 🌲",
       "miniJeux": [
         { "id": "vocabulaire-longueurs-cp", "titre": "La lisière du bois", "icone": "🌲", "couleur": "menthe", "description": "Trouve les bons mots : long, court, près, loin.", "type": "vocabulaire-cp", "nbTours": 6 },
-        { "id": "comparer-longueurs-cp", "titre": "La balade", "icone": "🥾", "couleur": "mandarine", "description": "Compare des longueurs, puis range 5 bâtons.", "type": "balade-cp", "nbTours": 5 }
+        { "id": "comparer-longueurs-cp", "titre": "La balade", "icone": "🥾", "couleur": "mandarine", "description": "Compare des longueurs, puis range 5 bâtons.", "type": "balade-cp", "nbTours": 5 },
+        { "id": "mesurer-longueurs-cp", "titre": "La cabane", "icone": "🛖", "couleur": "soleil", "description": "Estime des tailles, puis mesure avec la règle.", "type": "cabane-cp", "nbTours": 6, "capCm": 16 }
       ]
     },
     "CE1": {
@@ -854,6 +863,7 @@
     const type = etat.cfg.type;
     if (type === 'vocabulaire-cp') genererLisiereCP(zone, etat.cfg);
     else if (type === 'balade-cp') genererBaladeCP(zone, etat.cfg);
+    else if (type === 'cabane-cp') genererCabaneCP(zone, etat.cfg);
     else if (type === 'garde-forestier') genererGardeForestier(zone, etat.cfg);
     else if (type === 'encadrer') genererEncadrer(zone, etat.cfg);
     else if (type === 'conversions') genererConversionsCE2(zone, etat.cfg);
@@ -1210,9 +1220,158 @@
     zone.appendChild(boutonValider);
   }
 
+  /* ================================================================
+     Palier CP — Niveau 3 : « La cabane » (mesure)
+     Alterne (sans répéter deux fois de suite, cf. dernierSousType) : estimer
+     un ordre de grandeur, mesurer avec la règle déjà positionnée, ou glisser
+     la règle pour l'aligner avant de mesurer.
+     ================================================================ */
+
+  function genererCabaneCP(zone, cfg) {
+    const types = ['estimation', 'mesure-fixe', 'mesure-glisser'];
+    const dispo = types.filter((t) => t !== etat.dernierSousType);
+    const sousType = choisir(dispo.length ? dispo : types);
+    etat.dernierSousType = sousType;
+    if (sousType === 'estimation') genererEstimation(zone, donnees.estimationsCP);
+    else if (sousType === 'mesure-fixe') genererMesurer(zone, cfg);
+    else genererMesurerGlisser(zone, cfg);
+  }
+
+  /*
+   * Règle DÉPLAÇABLE : contrairement à genererMesurer (règle déjà en place),
+   * ici la planche à mesurer est fixe et la règle démarre décalée — l'enfant
+   * doit la glisser pour aligner son zéro avec le début de la planche avant
+   * que le QCM de lecture n'apparaisse (alignement requis, pas seulement
+   * décoratif).
+   */
+  function genererMesurerGlisser(zone, cfg) {
+    const cap = cfg.capCm || 16;
+    const longueur = nombreAleatoire(3, cap - 2);
+    const PX = 16;
+    const largeurRegle = cap * PX + 24;
+    const largeurPiste = largeurRegle + 90;
+
+    zone.appendChild(creerBlocConsigne(
+      "Glisse la règle pour aligner son zéro avec le début de la planche, puis lis la mesure.",
+      "Fais glisser la règle vers la gauche ou la droite pour aligner le zéro de la règle avec le début de la planche. Une fois bien alignée, choisis la bonne longueur."
+    ));
+
+    const piste = document.createElement('div');
+    piste.className = 'piste-alignement';
+    piste.style.width = largeurPiste + 'px';
+
+    const positionPlanche = nombreAleatoire(20, largeurPiste - largeurRegle - 20);
+    const planche = document.createElement('div');
+    planche.className = 'planche-fixe';
+    planche.style.left = positionPlanche + 'px';
+    planche.style.width = (longueur * PX) + 'px';
+    piste.appendChild(planche);
+
+    const regle = document.createElement('div');
+    regle.className = 'regle-glissable regle-graduee';
+    regle.style.width = largeurRegle + 'px';
+    for (let i = 0; i <= cap; i++) {
+      const tick = document.createElement('div');
+      tick.className = 'regle-tick' + (i % 2 === 0 ? ' regle-tick-forte' : '');
+      tick.style.left = (i * PX) + 'px';
+      regle.appendChild(tick);
+      if (i % 2 === 0) {
+        const lab = document.createElement('div');
+        lab.className = 'regle-label';
+        lab.style.left = (i * PX) + 'px';
+        lab.textContent = String(i);
+        regle.appendChild(lab);
+      }
+    }
+
+    // Position de départ délibérément décalée (jamais déjà alignée).
+    const decalageDepart = choisir([-70, -55, -40, 40, 55, 70]);
+    let positionRegle = Math.max(0, Math.min(largeurPiste - largeurRegle, positionPlanche + decalageDepart));
+    regle.style.left = positionRegle + 'px';
+    piste.appendChild(regle);
+    zone.appendChild(piste);
+
+    const note = document.createElement('p');
+    note.className = 'legende';
+    const texteAAligner = 'Glisse la règle 👉 pour aligner son zéro avec le début de la planche 🪵.';
+    note.textContent = texteAAligner;
+    zone.appendChild(note);
+
+    const zoneReponse = document.createElement('div');
+    zoneReponse.hidden = true;
+    zone.appendChild(zoneReponse);
+
+    const TOLERANCE_PX = 8;
+    function estAlignee() { return Math.abs(positionRegle - positionPlanche) <= TOLERANCE_PX; }
+
+    function afficherOptionsMesure() {
+      zoneReponse.hidden = false;
+      zoneReponse.textContent = '';
+      const distracteurs = new Set([longueur]);
+      let tentatives = 0;
+      while (distracteurs.size < 4 && tentatives < 30) {
+        tentatives++;
+        const d = longueur + choisir([-3, -2, -1, 1, 2, 3]);
+        if (d >= 1 && d <= cap) distracteurs.add(d);
+      }
+      const options = Array.from(distracteurs).map(String);
+      const indexBonne = options.indexOf(String(longueur));
+      const { options: optionsMelangees, indexCorrect } = melangerOptions(options, indexBonne);
+      const grille = document.createElement('div');
+      grille.className = 'grille-options';
+      optionsMelangees.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'bouton-option'; btn.textContent = opt + ' cm';
+        btn.addEventListener('click', () => {
+          Array.from(grille.children).forEach((b) => { b.disabled = true; });
+          const correct = i === indexCorrect;
+          btn.classList.add(correct ? 'correct' : 'incorrect');
+          if (!correct) grille.children[indexCorrect].classList.add('correct');
+          validerTour(correct, btn);
+        });
+        grille.appendChild(btn);
+      });
+      zoneReponse.appendChild(grille);
+    }
+
+    function majAlignement() {
+      if (etat.verrouille) return;
+      if (estAlignee() && zoneReponse.hidden) {
+        note.textContent = '✅ Bien alignée ! Choisis la bonne longueur.';
+        afficherOptionsMesure();
+      } else if (!estAlignee() && !zoneReponse.hidden) {
+        note.textContent = texteAAligner;
+        zoneReponse.hidden = true;
+        zoneReponse.textContent = '';
+      }
+    }
+
+    let enGlissement = false;
+    let departX = 0, departPositionRegle = 0;
+    regle.addEventListener('pointerdown', (e) => {
+      if (etat.verrouille) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      enGlissement = true;
+      departX = e.clientX;
+      departPositionRegle = positionRegle;
+      try { regle.setPointerCapture(e.pointerId); } catch (err) { /* pointeur déjà relâché : tant pis */ }
+    });
+    regle.addEventListener('pointermove', (e) => {
+      if (!enGlissement) return;
+      e.preventDefault();
+      positionRegle = Math.max(0, Math.min(largeurPiste - largeurRegle, departPositionRegle + (e.clientX - departX)));
+      regle.style.left = positionRegle + 'px';
+      majAlignement();
+    });
+    function relacherRegle() { enGlissement = false; }
+    regle.addEventListener('pointerup', relacherRegle);
+    regle.addEventListener('pointercancel', relacherRegle);
+  }
+
   /*
    * Règle déjà positionnée sous l'objet à mesurer (QCM de lecture directe) :
-   * partagée par le palier CE1 (« La règle du garde forestier »).
+   * partagée par le palier CP (« La cabane », sous-type mesure-fixe) et le
+   * palier CE1 (« La règle du garde forestier », sous-type mesurer).
    */
   function genererMesurer(zone, cfg) {
     const cap = cfg.capCm || 20;
