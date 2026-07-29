@@ -1266,13 +1266,23 @@
   /* ---------- Mini-jeu 3 : Fractions égales ---------- */
 
   function trouverPaireEquivalente() {
+    // L'espace de fractions de BASE valides est en réalité restreint (15
+    // fractions distinctes possibles avec ce jeu de dénominateurs) : on garde
+    // la trace des bases déjà affichées dans cette partie et on les rejette
+    // — sinon la même fraction de base pourrait réapparaître avec juste une
+    // équivalente différente, ce qui reste perçu comme la même question par
+    // l'enfant (CHARTE §13, sans redondance tant que l'espace n'est pas épuisé).
+    if (!etat.egalesVues) etat.egalesVues = [];
     for (let tentative = 0; tentative < 60; tentative++) {
       const d0 = choisir(D);
       const n0 = nombreAleatoire(1, d0 - 1);
+      const cleBase = n0 + '/' + d0;
+      if (etat.egalesVues.indexOf(cleBase) !== -1) continue;
       const multiples = D.filter((dd) => dd !== d0 && dd % d0 === 0).map((dd) => ({
         n: n0 * (dd / d0), d: dd
       }));
       if (multiples.length > 0) {
+        etat.egalesVues.push(cleBase);
         return { base: { n: n0, d: d0 }, equivalente: choisir(multiples) };
       }
     }
@@ -1417,21 +1427,33 @@
     // (≤ 5), difficile = grands dénominateurs (6, 8, 10 ou 12).
     const candidatsD = niveau === 'facile' ? D.filter((x) => x <= 5) : D.filter((x) => x >= 6);
 
+    // Le plus petit dénominateur candidat (ex. d=2 pour « facile ») n'admet
+    // parfois qu'un seul calcul valide : on garde la trace des calculs déjà
+    // tirés dans cette partie et on les rejette, pour éviter de reposer
+    // exactement le même calcul deux fois dans les 6 manches (CHARTE §13).
+    if (!etat.calculsVus) etat.calculsVus = [];
+
     for (let t = 0; t < 80; t++) {
       const d = choisir(candidatsD);
       const n1 = nombreAleatoire(1, d - 1);
       const n2 = nombreAleatoire(1, d - 1);
       const operation = Math.random() < 0.5 ? '+' : '-';
 
+      let resultatCalcul = null;
       if (operation === '+') {
         if (n1 + n2 <= d && n1 + n2 >= 2) {
-          return { a: { n: n1, d }, b: { n: n2, d }, dGrand: d, operation, resultat: { n: n1 + n2, d } };
+          resultatCalcul = { a: { n: n1, d }, b: { n: n2, d }, dGrand: d, operation, resultat: { n: n1 + n2, d } };
         }
       } else if (n1 !== n2) {
         const grand = n1 > n2 ? { n: n1, d } : { n: n2, d };
         const petit = n1 > n2 ? { n: n2, d } : { n: n1, d };
-        return { a: grand, b: petit, dGrand: d, operation, resultat: { n: grand.n - petit.n, d } };
+        resultatCalcul = { a: grand, b: petit, dGrand: d, operation, resultat: { n: grand.n - petit.n, d } };
       }
+      if (!resultatCalcul) continue;
+      const cle = resultatCalcul.a.n + '/' + d + operation + resultatCalcul.b.n + '/' + d;
+      if (etat.calculsVus.indexOf(cle) !== -1) continue;
+      etat.calculsVus.push(cle);
+      return resultatCalcul;
     }
     return { a: { n: 1, d: 4 }, b: { n: 2, d: 4 }, dGrand: 4, operation: '+', resultat: { n: 3, d: 4 } };
   }
