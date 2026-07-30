@@ -1050,10 +1050,19 @@
     return rangee;
   }
 
+  // Distance maximale possible pour l'axe distance du niveau 1 (cf. l'appel
+  // valeursEspacees(2, 2, 16, 3) dans genererLisiereCP) : sert à convertir la
+  // distance en pourcentage de la largeur RÉELLE de la piste, quel que soit
+  // l'écran (un positionnement en px fixe déborderait du cadre sur mobile).
+  const DISTANCE_MAX_LISIERE = 16;
+
   function creerPointDistance(gabarit, couleur, distance) {
     const point = document.createElement('div');
     point.className = 'lisiere-point';
-    point.style.left = (distance * 22) + 'px';
+    // Le repère est ancré en % de la piste, plafonné à « 100% - 80px » pour
+    // toujours laisser la place à l'étiquette de couleur (parfois large,
+    // ex. « vert foncé ») sans jamais dépasser le cadre blanc à droite.
+    point.style.left = 'min(' + (distance / DISTANCE_MAX_LISIERE * 100) + '%, calc(100% - 80px))';
     const pastille = document.createElement('span');
     pastille.className = 'lisiere-pastille'; pastille.style.background = couleur.hex;
     const icone = document.createElement('span');
@@ -1279,9 +1288,13 @@
       depart.appendChild(labelDepart);
       sentier.appendChild(depart);
       const piste = document.createElement('div'); piste.className = 'sentier-piste';
+      // La distance maximale possible vient de valeursEspacees(n, 2, 20, 3)
+      // ci-dessus : convertir en % de la largeur RÉELLE de la piste (plutôt
+      // qu'en px fixes) évite tout débordement du cadre blanc sur mobile.
+      const DISTANCE_MAX_BALADE = 20;
       valeurs.forEach((distance, i) => {
         const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'clairiere-btn';
-        btn.style.left = (distance * 15) + 'px';
+        btn.style.left = 'min(' + (distance / DISTANCE_MAX_BALADE * 100) + '%, calc(100% - 56px))';
         btn.appendChild(gabarit.nom === 'clairière' ? creerMiniClairiere() : document.createTextNode(gabarit.icone));
         btn.setAttribute('aria-label', 'Élément ' + (i + 1));
         btn.addEventListener('click', () => {
