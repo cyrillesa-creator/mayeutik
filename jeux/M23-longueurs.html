@@ -407,6 +407,37 @@
   .regle-graduee.regle-glissable .regle-label,
   .regle-graduee.regle-glissable .regle-unite{ opacity:1; text-shadow:0 0 3px #fff, 0 0 3px #fff; }
 
+  /* ---- Palier CE1 : « La Forêt » — comparaison chiffrée (m/cm/km) ----
+     Même langage visuel que la lisière du CP (pastille + barre colorées,
+     jamais de désignation abstraite), dupliqué sous un préfixe dédié
+     (« foret- ») plutôt que réutilisé tel quel : garde CP et CE1 découplés,
+     un ajustement de taille/espacement sur l'un ne risque pas de casser
+     l'autre (cf. leçon des corrections de recouvrement du palier CP). */
+  .foret-comparaison{ display:flex; flex-direction:column; gap:1rem; margin:.9rem 0; overflow-x:auto; }
+  .foret-rangee{ display:flex; align-items:center; gap:.6rem; min-height:44px; }
+  .foret-pastille{ width:1.3rem; height:1.3rem; border-radius:50%; border:2px solid rgba(0,0,0,.35); flex-shrink:0; }
+  .foret-icone{ font-size:1.7rem; }
+  .foret-barre{ height:20px; border-radius:10px; border:2px solid rgba(0,0,0,.3); }
+  .foret-nom{ font-weight:700; font-size:.9rem; }
+
+  /* ---- Palier CE1 : « La Forêt » — ranger 5 arbres en pyramide, À 90° par
+     rapport aux bâtons du CP : COLONNES côte à côte (gauche → droite) au
+     lieu de rangées empilées, ANCRAGE EN BAS (comme des arbres plantés sur
+     le sol) au lieu d'un ancrage à gauche. Même mécanique d'échange par
+     paire (glisser vers une autre colonne) et même transition en pure
+     TRANSLATION (translateX ici, jamais de changement de taille pendant le
+     geste) que genererOrdonnerBatons/echanger — cf. commentaire JS de
+     genererTriArbresCE1. */
+  .bande-arbres{ display:flex; justify-content:center; align-items:flex-end; gap:.9rem; margin:1rem 0; min-height:12.5rem; overflow-x:auto; }
+  .arbre-col-case{ position:relative; display:flex; align-items:flex-end; padding:.3rem .2rem; border-radius:12px; }
+  .arbre-col-case.case-selectionnee{ background:color-mix(in srgb, var(--couleur-soleil) 40%, transparent); }
+  .arbre-col-btn{ position:relative; border:none; background:transparent; padding:.2rem; min-height:44px; min-width:44px;
+    display:flex; align-items:flex-end; justify-content:center; touch-action:none; cursor:grab; }
+  .arbre-col-btn.arbre-col-glisse{ z-index:5; cursor:grabbing; }
+  .arbre-col-contenu{ display:flex; align-items:flex-end; }
+  .arbre-fantome{ position:fixed; pointer-events:none; z-index:80; transition:transform .25s ease; will-change:transform; }
+  @media (prefers-reduced-motion:reduce){ .arbre-fantome{ transition:none; } }
+
   /* ---- Périmètre : côtés à reporter au compas ---- */
   .bloc-polygone{ text-align:center; font-weight:700; margin-bottom:.3rem; }
   .rangee-cotes{ display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; margin:.4rem 0 .7rem; }
@@ -515,7 +546,8 @@
     "CE1": {
       "sousTitre": "Une exploration dans la Forêt, entre unités et repères ! 🌲",
       "miniJeux": [
-        { "id": "unites-conversion-ce1", "titre": "La lisière", "icone": "🌲", "couleur": "menthe", "description": "Choisis la bonne unité, puis convertis des longueurs.", "type": "unites-conversion-ce1", "nbTours": 6 }
+        { "id": "unites-conversion-ce1", "titre": "La lisière", "icone": "🌲", "couleur": "menthe", "description": "Choisis la bonne unité, puis convertis des longueurs.", "type": "unites-conversion-ce1", "nbTours": 6 },
+        { "id": "comparer-ranger-ce1", "titre": "La règle du garde forestier", "icone": "🧭", "couleur": "soleil", "description": "Compare, range et encadre des longueurs en m, cm et km.", "type": "comparer-ranger-ce1", "nbTours": 6, "capCm": 20 }
       ]
     },
     "CE2": {
@@ -1012,6 +1044,23 @@
     { texte: "Pour mesurer la distance d'un bout à l'autre de la forêt, quelle unité choisir ?", icone: '🧭', unite: 'km' }
   ];
 
+  /* Palier CE1 — « La Forêt » : familles pour la comparaison chiffrée
+     (mini-jeu « La règle du garde forestier », sous-type comparaison).
+     Chaque famille précise son unité (m/cm/km), l'adjectif approprié
+     (grand/petit pour une hauteur d'arbre, long/court pour une distance),
+     et exactement 2 couleurs (jamais de désignation abstraite « objet
+     A »/« objet B »). 3 familles (> 2× le nombre de tirages probable de ce
+     sous-type par partie), un tirage sans redondance par partie
+     (etat.comparaisonVues). */
+  const FAMILLES_COMPARAISON_CE1 = [
+    { nom: 'chêne', genre: 'm', unite: 'm', min: 4, max: 20, pxParUnite: 8, icone: '🌳', adjectif: 'grandPetit',
+      couleurA: { id: 'clair', nom: 'clair', hex: '#8BC98F' }, couleurB: { id: 'fonce', nom: 'foncé', hex: '#2E7D32' } },
+    { nom: 'sentier', genre: 'm', unite: 'km', min: 2, max: 15, pxParUnite: 10, icone: '🥾', adjectif: 'longCourt',
+      couleurA: { id: 'sableux', nom: 'sableux', hex: '#C9971C' }, couleurB: { id: 'boueux', nom: 'boueux', hex: '#6D4C33' } },
+    { nom: 'branche', genre: 'f', unite: 'cm', min: 10, max: 90, pxParUnite: 1.8, icone: '🪵', adjectif: 'longCourt',
+      couleurA: { id: 'claire', nom: 'claire', hex: '#D8B88A' }, couleurB: { id: 'foncee', nom: 'foncée', hex: '#4E342E' } }
+  ];
+
   /* ================================================================
      Contrôleur général de jeu
      ================================================================ */
@@ -1166,6 +1215,7 @@
     else if (type === 'balade-cp') genererBaladeCP(zone, etat.cfg);
     else if (type === 'cabane-cp') genererCabaneCP(zone, etat.cfg);
     else if (type === 'unites-conversion-ce1') genererUnitesConversionCE1(zone, etat.cfg);
+    else if (type === 'comparer-ranger-ce1') genererComparerRangerCE1(zone, etat.cfg);
     else if (type === 'conversions') genererConversionsCE2(zone, etat.cfg);
     else if (type === 'perimetre') genererPerimetre(zone, etat.cfg);
   }
@@ -1986,6 +2036,11 @@
      mieux adaptée à l'objet mesuré, puis convertir une longueur donnée
      comme une somme m+cm (ou km/m) en un nombre total de cm, saisi au pavé
      numérique diégétique.
+     Niveau 2 : « La règle du garde forestier » (comparer-ranger-ce1) —
+     alterne SANS les regrouper par bloc les trois familles de questions :
+     unités/conversion (mêmes fonctions que la lisière), comparaison
+     chiffrée + tri de 5 arbres, et encadrement d'une mesure entre deux
+     entiers de cm.
      ================================================================ */
 
   // Pavé numérique diégétique (réutilisé du pattern déjà établi dans
@@ -2102,6 +2157,258 @@
     etat.dernierSousTypeUnites = sousType;
     if (sousType === 'unite') genererUniteAppropriee(zone);
     else genererConversionCE1(zone);
+  }
+
+  // Sous-type « comparaison chiffrée » : deux instances COLORÉES d'une même
+  // famille (jamais de désignation abstraite), chacune avec sa vraie mesure
+  // affichée (renforce la lecture de l'unité), à comparer via un texte à
+  // trou QCM — même mécanique que le niveau 1 du palier CP (accorderMot,
+  // nommerAvecArticle), avec le vocabulaire adapté (grand/petit pour une
+  // hauteur d'arbre, long/court pour une distance).
+  function genererComparaisonCE1(zone) {
+    if (!etat.comparaisonVues) etat.comparaisonVues = [];
+    let dispo = FAMILLES_COMPARAISON_CE1.filter((f) => etat.comparaisonVues.indexOf(f.nom) === -1);
+    if (!dispo.length) { etat.comparaisonVues = []; dispo = FAMILLES_COMPARAISON_CE1; }
+    const gabarit = choisir(dispo);
+    etat.comparaisonVues.push(gabarit.nom);
+
+    const [vA, vB] = nombresDistincts(2, gabarit.min, gabarit.max);
+    const cibleEstA = Math.random() < 0.5;
+    const valeurCible = cibleEstA ? vA : vB;
+    const valeurAutre = cibleEstA ? vB : vA;
+    const couleurCible = cibleEstA ? gabarit.couleurA : gabarit.couleurB;
+    const couleurAutre = cibleEstA ? gabarit.couleurB : gabarit.couleurA;
+    const cibleEstGrande = valeurCible > valeurAutre;
+    const motBase = gabarit.adjectif === 'grandPetit'
+      ? (cibleEstGrande ? 'grand' : 'petit')
+      : (cibleEstGrande ? 'long' : 'court');
+    const motCorrect = accorderMot(motBase, gabarit.genre);
+
+    const phrase = nommerAvecArticle(gabarit.nom, gabarit.genre, true) + ' ' + couleurCible.nom + ' mesure ' + valeurCible + ' ' + gabarit.unite + ', ' +
+      nommerAvecArticle(gabarit.nom, gabarit.genre, false) + ' ' + couleurAutre.nom + ' mesure ' + valeurAutre + ' ' + gabarit.unite + '. ' +
+      nommerAvecArticle(gabarit.nom, gabarit.genre, true) + ' ' + couleurCible.nom + ' est plus _____ que ' +
+      nommerAvecArticle(gabarit.nom, gabarit.genre, false) + ' ' + couleurAutre.nom + '.';
+    const phraseVoix = phrase.replace('_____', '…') + ' Quel mot manque ?';
+
+    zone.appendChild(creerBlocConsigne(phrase, phraseVoix));
+
+    const cont = document.createElement('div');
+    cont.className = 'foret-comparaison';
+    [[gabarit.couleurA, vA], [gabarit.couleurB, vB]].forEach(([couleur, valeur]) => {
+      const rangee = document.createElement('div');
+      rangee.className = 'foret-rangee';
+      const pastille = document.createElement('span');
+      pastille.className = 'foret-pastille'; pastille.style.background = couleur.hex;
+      const icone = document.createElement('span');
+      icone.className = 'foret-icone'; icone.textContent = gabarit.icone;
+      const barre = document.createElement('span');
+      barre.className = 'foret-barre'; barre.style.width = (valeur * gabarit.pxParUnite + 20) + 'px'; barre.style.background = couleur.hex;
+      const label = document.createElement('span');
+      label.className = 'foret-nom'; label.textContent = couleur.nom + ' (' + valeur + ' ' + gabarit.unite + ')';
+      rangee.appendChild(pastille); rangee.appendChild(icone); rangee.appendChild(barre); rangee.appendChild(label);
+      cont.appendChild(rangee);
+    });
+    zone.appendChild(cont);
+
+    const mots = gabarit.adjectif === 'grandPetit'
+      ? melanger([accorderMot('grand', gabarit.genre), accorderMot('petit', gabarit.genre)])
+      : melanger([accorderMot('long', gabarit.genre), accorderMot('court', gabarit.genre)]);
+    const grille = document.createElement('div');
+    grille.className = 'grille-options';
+    mots.forEach((mot) => {
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'bouton-option'; btn.textContent = mot;
+      btn.addEventListener('click', () => {
+        Array.from(grille.children).forEach((b) => { b.disabled = true; });
+        const correct = mot === motCorrect;
+        btn.classList.add(correct ? 'correct' : 'incorrect');
+        if (!correct) {
+          const bonne = Array.from(grille.children).find((b) => b.textContent === motCorrect);
+          if (bonne) bonne.classList.add('correct');
+        }
+        validerTour(correct, btn);
+      });
+      grille.appendChild(btn);
+    });
+    zone.appendChild(grille);
+  }
+
+  /*
+   * Sous-type « tri de 5 arbres » : VERSION ALTERNATIVE, À 90°, du tri des
+   * 5 bâtons du palier CP (cf. genererOrdonnerBatons) — colonnes CÔTE À
+   * CÔTE (gauche → droite) au lieu de rangées empilées, ancrées EN BAS
+   * (comme des arbres plantés sur le sol) au lieu d'un ancrage à gauche.
+   * Même geste (échange par paire, DOM des 5 colonnes jamais reparenté
+   * pendant le geste) et même transition en pure TRANSLATION — translateX
+   * ici — via un fantôme cloné de taille figée (cf. echanger() du CP).
+   */
+  function genererTriArbresCE1(zone) {
+    const n = 5;
+    const hauteurs = nombresDistincts(n, 3, 20);
+    const croissant = Math.random() < 0.5;
+    let ordre = melanger(hauteurs);
+    const estTrie = (t) => t.every((v, i) => i === 0 || (croissant ? t[i - 1] <= v : t[i - 1] >= v));
+    let garde = 0;
+    while (estTrie(ordre) && garde < 10) { ordre = melanger(hauteurs); garde++; }
+
+    const sens = croissant
+      ? 'le plus petit à gauche et le plus grand à droite'
+      : 'le plus grand à gauche et le plus petit à droite';
+    zone.appendChild(creerBlocConsigne(
+      'Range les arbres en pyramide : ' + sens + '.',
+      'Fais glisser un arbre vers une autre colonne pour échanger leur place, jusqu\'à ce qu\'ils soient rangés avec ' + sens + '. Tu peux aussi toucher un arbre, puis une autre colonne, pour les échanger.'
+    ));
+
+    const bande = document.createElement('div');
+    bande.className = 'bande-arbres';
+    const cases = [];
+    let selection = null;
+    let ignorerProchainClic = false;
+
+    function rendreCase(i) {
+      const contenu = cases[i].querySelector('.arbre-col-contenu');
+      contenu.innerHTML = '';
+      contenu.appendChild(creerArbreFiguratif(ordre[i]));
+      cases[i].querySelector('.arbre-col-btn').setAttribute('aria-label', 'Arbre, colonne ' + (i + 1));
+    }
+    function deselectionner() {
+      if (selection === null) return;
+      cases[selection].classList.remove('case-selectionnee');
+      selection = null;
+    }
+
+    const preferesMouvementReduit = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function creerFantomeArbre(contenuOriginal, rect) {
+      const fantome = contenuOriginal.cloneNode(true);
+      fantome.classList.add('arbre-fantome');
+      fantome.setAttribute('aria-hidden', 'true');
+      fantome.style.left = rect.left + 'px';
+      fantome.style.top = rect.top + 'px';
+      fantome.style.width = rect.width + 'px';
+      fantome.style.height = rect.height + 'px';
+      document.body.appendChild(fantome);
+      return fantome;
+    }
+
+    function echanger(i, j) {
+      if (i === j) return;
+      const contenuI = cases[i].querySelector('.arbre-col-contenu');
+      const contenuJ = cases[j].querySelector('.arbre-col-contenu');
+      const rectI = contenuI.getBoundingClientRect();
+      const rectJ = contenuJ.getBoundingClientRect();
+
+      const tmp = ordre[i]; ordre[i] = ordre[j]; ordre[j] = tmp;
+      rendreCase(i); rendreCase(j);
+
+      if (preferesMouvementReduit) return;
+
+      const fantomeI = creerFantomeArbre(contenuI, rectI);
+      const fantomeJ = creerFantomeArbre(contenuJ, rectJ);
+      contenuI.style.visibility = 'hidden';
+      contenuJ.style.visibility = 'hidden';
+      const versJ = rectJ.left - rectI.left;
+      const versI = rectI.left - rectJ.left;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          fantomeI.style.transform = 'translateX(' + versJ + 'px)';
+          fantomeJ.style.transform = 'translateX(' + versI + 'px)';
+        });
+      });
+      setTimeout(() => {
+        fantomeI.remove();
+        fantomeJ.remove();
+        contenuI.style.visibility = '';
+        contenuJ.style.visibility = '';
+      }, 260);
+    }
+
+    for (let i = 0; i < n; i++) {
+      const caseDiv = document.createElement('div');
+      caseDiv.className = 'arbre-col-case';
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'arbre-col-btn';
+      const contenu = document.createElement('span');
+      contenu.className = 'arbre-col-contenu';
+      btn.appendChild(contenu);
+      caseDiv.appendChild(btn);
+      bande.appendChild(caseDiv);
+      cases.push(caseDiv);
+
+      btn.addEventListener('click', () => {
+        if (etat.verrouille) return;
+        if (ignorerProchainClic) { ignorerProchainClic = false; return; }
+        if (selection === null) {
+          selection = i;
+          caseDiv.classList.add('case-selectionnee');
+        } else if (selection === i) {
+          deselectionner();
+        } else {
+          const precedente = selection;
+          deselectionner();
+          echanger(precedente, i);
+        }
+      });
+
+      let enGlissement = false;
+      let departX = 0, departY = 0;
+      btn.addEventListener('pointerdown', (e) => {
+        if (etat.verrouille) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        enGlissement = true;
+        departX = e.clientX; departY = e.clientY;
+        try { btn.setPointerCapture(e.pointerId); } catch (err) { /* pointeur déjà relâché : tant pis */ }
+      });
+      btn.addEventListener('pointermove', (e) => {
+        if (!enGlissement) return;
+        e.preventDefault();
+        btn.style.transform = 'translate(' + (e.clientX - departX) + 'px,' + (e.clientY - departY) + 'px)';
+        btn.classList.add('arbre-col-glisse');
+      });
+      function relacherGlissement(e) {
+        if (!enGlissement) return;
+        enGlissement = false;
+        btn.style.transform = '';
+        btn.classList.remove('arbre-col-glisse');
+        const distanceGlissee = Math.hypot(e.clientX - departX, e.clientY - departY);
+        if (distanceGlissee < 8) return; // simple appui : laissé au gestionnaire 'click'
+        ignorerProchainClic = true;
+        deselectionner();
+        const cible = cases.findIndex((c) => {
+          const r = c.getBoundingClientRect();
+          return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+        });
+        if (cible !== -1) echanger(i, cible);
+      }
+      btn.addEventListener('pointerup', relacherGlissement);
+      btn.addEventListener('pointercancel', () => { enGlissement = false; btn.style.transform = ''; btn.classList.remove('arbre-col-glisse'); });
+    }
+
+    zone.appendChild(bande);
+    cases.forEach((_, i) => rendreCase(i));
+
+    const boutonValider = document.createElement('button');
+    boutonValider.type = 'button'; boutonValider.className = 'bouton-principal'; boutonValider.textContent = 'Valider';
+    boutonValider.addEventListener('click', () => {
+      validerTour(estTrie(ordre), boutonValider);
+    });
+    zone.appendChild(boutonValider);
+  }
+
+  // Dispatcher de « La règle du garde forestier » : alterne SANS regrouper
+  // par bloc les 4 sous-types (unités/conversion — mêmes fonctions que la
+  // lisière —, comparaison chiffrée, tri des 5 arbres, encadrement), via la
+  // même règle d'anti-répétition immédiate que les autres mini-jeux à
+  // sous-types de ce fichier (dernierSousType).
+  function genererComparerRangerCE1(zone, cfg) {
+    const types = ['unites', 'comparaison', 'tri-arbres', 'encadrer'];
+    const dispo = types.filter((t) => t !== etat.dernierSousType);
+    const sousType = choisir(dispo.length ? dispo : types);
+    etat.dernierSousType = sousType;
+    if (sousType === 'unites') genererUnitesConversionCE1(zone);
+    else if (sousType === 'comparaison') genererComparaisonCE1(zone);
+    else if (sousType === 'tri-arbres') genererTriArbresCE1(zone);
+    else genererEncadrer(zone, { capCm: cfg.capCm || 20 });
   }
 
   function genererEstimation(zone, banque) {
