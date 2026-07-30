@@ -420,6 +420,16 @@
   .regle-graduee.regle-glissable .regle-label,
   .regle-graduee.regle-glissable .regle-unite{ opacity:1; text-shadow:0 0 3px #fff, 0 0 3px #fff; }
 
+  /* Règle FIXE mais semi-transparente (palier CE2, mini-jeu « L'exploration ») :
+     même traitement d'opacité que la règle déplaçable ci-dessus, sans le
+     positionnement/glissement (cette règle reste dans le flux normal). */
+  .regle-graduee.regle-graduee-semi-transparente{ opacity:.68; }
+  .regle-graduee.regle-graduee-semi-transparente .regle-tick{ opacity:.95; }
+  .regle-graduee.regle-graduee-semi-transparente .regle-tick-forte{ opacity:1; }
+  .regle-graduee.regle-graduee-semi-transparente .regle-label,
+  .regle-graduee.regle-graduee-semi-transparente .regle-unite{ opacity:1; text-shadow:0 0 3px #fff, 0 0 3px #fff; }
+  .regle-graduee.regle-graduee-semi-transparente .regle-barre{ opacity:.9; }
+
   /* ---- Palier CE1 : « La Forêt » — comparaison chiffrée (m/cm/km) ----
      Même langage visuel que la lisière du CP (pastille + barre colorées,
      jamais de désignation abstraite), dupliqué sous un préfixe dédié
@@ -592,6 +602,7 @@
       "sousTitre": "À la découverte de la forêt amazonienne ! 🌴",
       "miniJeux": [
         { "id": "unites-decouverte-ce2", "titre": "Découverte : du microscopique à l'immensité", "icone": "🔍", "couleur": "corail", "description": "Classe des unités, puis associe chaque animal à sa taille.", "type": "decouverte-ce2", "nbTours": 6 },
+        { "id": "calculs-mesure-ce2", "titre": "L'exploration", "icone": "🛶", "couleur": "soleil", "description": "Calcule des conversions et mesure à la règle, en cm et en mm.", "type": "exploration-ce2", "nbTours": 6, "capCm": 20 },
         { "id": "perimetre-ce2", "titre": "Le tour de la clairière", "icone": "📐", "couleur": "mandarine", "description": "Compare et mesure le tour de figures.", "type": "perimetre", "nbTours": 6 }
       ]
     }
@@ -1298,6 +1309,7 @@
     else if (type === 'unites-conversion-ce1') genererUnitesConversionCE1(zone, etat.cfg);
     else if (type === 'comparer-ranger-ce1') genererComparerRangerCE1(zone, etat.cfg);
     else if (type === 'decouverte-ce2') genererDecouverteCE2(zone, etat.cfg);
+    else if (type === 'exploration-ce2') genererExplorationCE2(zone, etat.cfg);
     else if (type === 'perimetre') genererPerimetre(zone, etat.cfg);
   }
 
@@ -2915,6 +2927,162 @@
       validerTour(correct, boutonValider);
     });
     zone.appendChild(boutonValider);
+  }
+
+  /* ================================================================
+     Mini-jeu 2 — « L'exploration » (calculs de conversions et mesure à la
+     règle, CE2) : alterne SANS regrouper par bloc les calculs procéduraux
+     (fidèles aux exemples officiels du programme, saisis au pavé
+     numérique diégétique) et la mesure à la règle graduée semi-transparente
+     (réponse en cm OU en mm en alternance, explicitement précisé dans
+     l'énoncé).
+     ================================================================ */
+
+  function genererExplorationCE2(zone, cfg) {
+    const types = ['calcul', 'mesure'];
+    const dispo = types.filter((t) => t !== etat.dernierSousTypeExploration);
+    const sousType = choisir(dispo.length ? dispo : types);
+    etat.dernierSousTypeExploration = sousType;
+    if (sousType === 'calcul') genererCalculExplorationCE2(zone);
+    else genererMesureExplorationCE2(zone, cfg);
+  }
+
+  /* Sous-type « calcul » : six gabarits calqués sur les exemples officiels
+     du programme (3 cm + 4 mm = 34 mm ; 6 cm = 60 mm ; 215 cm = 2 m + 1 dm
+     + 5 cm ; 16 m = 1600 cm = 160 dm ; 6 km = 6000 m ; 5 km + 750 m =
+     5750 m) — même STRUCTURE, valeurs tirées procéduralement à chaque
+     partie. Réponse à un seul nombre : pavé numérique diégétique (comme
+     les conversions CE1). Réponse en trois nombres (décomposition m/dm/cm) :
+     saisie décomposée déjà établie pour ce mini-jeu (creerSaisieDecomposition).
+     Anti-répétition de texte par partie (etat.calculVues), comme
+     genererConversionCE1. */
+  function genererCalculExplorationCE2(zone) {
+    if (!etat.calculVues) etat.calculVues = [];
+    let texte, texteVoix, construire;
+    for (let essai = 0; essai < 20; essai++) {
+      const type = choisir(['cm-mm-somme', 'cm-mm-simple', 'cm-vers-mdc', 'm-vers-cm', 'km-vers-m', 'km-m-somme']);
+      if (type === 'cm-mm-somme') {
+        const cm = nombreAleatoire(1, 9);
+        const mm = nombreAleatoire(1, 9);
+        const reponse = cm * 10 + mm;
+        texte = cm + ' cm + ' + mm + ' mm = combien de mm en tout ?';
+        texteVoix = texte;
+        construire = () => {
+          const pave = creerPave((valeur) => { pave.verrouiller(true); validerTour(valeur === reponse, null); }, 3);
+          zone.appendChild(pave.el);
+        };
+      } else if (type === 'cm-mm-simple') {
+        const cm = nombreAleatoire(2, 9);
+        const reponse = cm * 10;
+        texte = cm + ' cm = combien de mm ?';
+        texteVoix = texte;
+        construire = () => {
+          const pave = creerPave((valeur) => { pave.verrouiller(true); validerTour(valeur === reponse, null); }, 3);
+          zone.appendChild(pave.el);
+        };
+      } else if (type === 'cm-vers-mdc') {
+        const total = nombreAleatoire(105, 987);
+        const m = Math.floor(total / 100);
+        const dm = Math.floor((total % 100) / 10);
+        const cm = total % 10;
+        texte = 'Un serpent mesure ' + total + ' cm. Écris cette longueur avec des mètres, des décimètres et des centimètres.';
+        texteVoix = 'Décompose ' + total + ' centimètres en mètres, décimètres et centimètres.';
+        construire = () => creerSaisieDecomposition(zone, ['m', 'dm', 'cm'], [m, dm, cm]);
+      } else if (type === 'm-vers-cm') {
+        const m = nombreAleatoire(2, 30);
+        const reponse = m * 100;
+        texte = m + ' m = combien de cm ?';
+        texteVoix = texte;
+        construire = () => {
+          const pave = creerPave((valeur) => { pave.verrouiller(true); validerTour(valeur === reponse, null); }, 4);
+          zone.appendChild(pave.el);
+        };
+      } else if (type === 'km-vers-m') {
+        const km = nombreAleatoire(1, 9);
+        const reponse = km * 1000;
+        texte = km + ' km = combien de m ?';
+        texteVoix = texte;
+        construire = () => {
+          const pave = creerPave((valeur) => { pave.verrouiller(true); validerTour(valeur === reponse, null); }, 5);
+          zone.appendChild(pave.el);
+        };
+      } else {
+        const km = nombreAleatoire(1, 8);
+        const m = nombreAleatoire(1, 9) * 50;
+        const reponse = km * 1000 + m;
+        texte = km + ' km + ' + m + ' m = combien de m en tout ?';
+        texteVoix = texte;
+        construire = () => {
+          const pave = creerPave((valeur) => { pave.verrouiller(true); validerTour(valeur === reponse, null); }, 5);
+          zone.appendChild(pave.el);
+        };
+      }
+      if (etat.calculVues.indexOf(texte) === -1) break;
+    }
+    if (etat.calculVues.length > 30) etat.calculVues = [];
+    etat.calculVues.push(texte);
+    zone.appendChild(creerBlocConsigne(texte, texteVoix));
+    zone.appendChild(Object.assign(document.createElement('p'), {
+      className: 'legende', textContent: 'Rappel : 1 cm = 10 mm, 1 m = 100 cm = 1000 mm, 1 km = 1000 m.'
+    }));
+    construire();
+  }
+
+  /* Sous-type « mesure » : règle graduée déjà en place (comme
+     genererMesurer), stylée semi-transparente (même traitement que la
+     règle déplaçable des paliers précédents, cf. .regle-graduee-glissable)
+     pour laisser voir le segment mesuré. Longueur toujours un nombre
+     ENTIER de cm (jamais de fraction de mm) pour que la conversion en mm
+     reste un calcul exact (× 10) — réponse demandée EXPLICITEMENT en cm
+     (QCM) ou en mm (pavé numérique) en alternance. */
+  function genererMesureExplorationCE2(zone, cfg) {
+    const cap = cfg.capCm || 20;
+    const longueurCm = nombreAleatoire(3, cap - 2);
+    const demanderMm = Math.random() < 0.5;
+
+    zone.appendChild(creerBlocConsigne(
+      demanderMm
+        ? 'Mesure ce segment. Donne ta réponse en MILLIMÈTRES.'
+        : 'Mesure ce segment. Donne ta réponse en CENTIMÈTRES.',
+      demanderMm
+        ? 'Regarde où s\'arrête le segment sur la règle, en centimètres, puis convertis ta mesure en millimètres.'
+        : 'Regarde où s\'arrête le segment sur la règle graduée, et choisis la bonne longueur en centimètres.'
+    ));
+    const regle = construireRegle({ longueurUnites: cap, objetLongueur: longueurCm, unite: 'cm' });
+    regle.querySelector('.regle-graduee').classList.add('regle-graduee-semi-transparente');
+    zone.appendChild(regle);
+
+    if (demanderMm) {
+      const reponse = longueurCm * 10;
+      const pave = creerPave((valeur) => { pave.verrouiller(true); validerTour(valeur === reponse, null); }, 3);
+      zone.appendChild(pave.el);
+    } else {
+      const distracteurs = new Set([longueurCm]);
+      let tentatives = 0;
+      while (distracteurs.size < 4 && tentatives < 30) {
+        tentatives++;
+        const d = longueurCm + choisir([-3, -2, -1, 1, 2, 3]);
+        if (d >= 1 && d <= cap) distracteurs.add(d);
+      }
+      const options = Array.from(distracteurs).map(String);
+      const indexBonne = options.indexOf(String(longueurCm));
+      const { options: optionsMelangees, indexCorrect } = melangerOptions(options, indexBonne);
+      const grille = document.createElement('div');
+      grille.className = 'grille-options';
+      optionsMelangees.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'bouton-option'; btn.textContent = opt + ' cm';
+        btn.addEventListener('click', () => {
+          Array.from(grille.children).forEach((b) => { b.disabled = true; });
+          const correct = i === indexCorrect;
+          btn.classList.add(correct ? 'correct' : 'incorrect');
+          if (!correct) grille.children[indexCorrect].classList.add('correct');
+          validerTour(correct, btn);
+        });
+        grille.appendChild(btn);
+      });
+      zone.appendChild(grille);
+    }
   }
 
   function creerSaisieDecomposition(zone, unites, reponses) {
