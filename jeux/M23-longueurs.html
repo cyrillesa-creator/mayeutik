@@ -753,7 +753,10 @@
      paires = 15 gabarits (> 6 manches par partie, CHARTE §13), un tirage
      sans redondance par partie via construireSequenceJeu. Pour l'axe
      distance, le repère fixe est toujours « la clairière » (cf.
-     genererLisiereCP) : elle n'a donc pas besoin de déclinaison couleur. */
+     genererLisiereCP) : elle n'a donc pas besoin de déclinaison couleur.
+     Pas d'« arbre » ici : en langage courant, un arbre se qualifie par
+     « grand »/« petit », jamais par « long »/« court » — la « branche »
+     couvre l'axe longueur à sa place. */
   const FAMILLES_LISIERE = [
     { nom: 'corde', genre: 'f', axe: 'longueur', icone: '🪢', couleurs: [
       { id: 'rouge', nom: 'rouge', hex: '#E5484D' },
@@ -765,10 +768,10 @@
       { id: 'ocre', nom: 'ocre', hex: '#C9971C' },
       { id: 'gris', nom: 'gris', hex: '#8A8578' }
     ] },
-    { nom: 'arbre', genre: 'm', axe: 'longueur', icone: '🌳', couleurs: [
-      { id: 'marron', nom: 'marron', hex: '#6D4C33' },
-      { id: 'vert-fonce', nom: 'vert foncé', hex: '#1B5E20' },
-      { id: 'vert-clair', nom: 'vert clair', hex: '#66BB6A' }
+    { nom: 'branche', genre: 'f', axe: 'longueur', icone: '🪵', couleurs: [
+      { id: 'claire', nom: 'claire', hex: '#D8B88A' },
+      { id: 'brune', nom: 'brune', hex: '#8B5E3C' },
+      { id: 'foncee', nom: 'foncée', hex: '#4E342E' }
     ] },
     { nom: 'cabane', genre: 'f', axe: 'distance', icone: '🛖', couleurs: [
       { id: 'rouge', nom: 'rouge', hex: '#E5484D' },
