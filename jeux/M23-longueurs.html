@@ -177,7 +177,7 @@
   .regle-zone.selectionnee{ background:color-mix(in srgb, var(--couleur-soleil) 45%, transparent); border-radius:4px; }
 
   /* ---- Comparaison directe (corde/chemin alignés) ---- */
-  .comparaison-objets{ display:flex; flex-direction:column; gap:.9rem; margin:.9rem 0; }
+  .comparaison-objets{ display:flex; flex-direction:column; gap:.9rem; margin:.9rem 0; overflow-x:auto; }
   .rangee-brindille{ display:flex; }
   .brindille-btn{ border:none; background:transparent; padding:.3rem; display:flex; align-items:center; min-height:44px; }
 
@@ -192,17 +192,29 @@
     background-size:9px 9px, 100% 100%;
     border:2px solid #5B3F28; }
 
-  /* ---- Report indirect (arbres figuratifs : tronc + feuillage) ---- */
-  .comparaison-report{ display:flex; justify-content:center; gap:1.8rem; align-items:flex-end; margin:1rem 0; min-height:9.5rem; }
-  .arbre-col{ border:none; background:transparent; display:flex; flex-direction:column; align-items:center; gap:.15rem; min-width:64px; min-height:44px; }
+  /* ---- Report indirect (arbres figuratifs : tronc + feuillage) ----
+     Jusqu'à 4 arbres côte à côte : sur un écran étroit (iPhone SE...), 4 ×
+     min-width + les gaps peuvent dépasser la largeur du cadre. `gap` réduit
+     via clamp() pour que le cas courant (jusqu'à 4 arbres) tienne SANS
+     défiler sur les petits écrans, et `overflow-x:auto` en filet de
+     sécurité : si un cas extrême ne tient toujours pas, le contenu défile
+     À L'INTÉRIEUR du cadre blanc plutôt que de déborder par-dessus. */
+  .comparaison-report{ display:flex; justify-content:center; align-items:flex-end;
+    gap:clamp(.5rem, 3vw, 1.8rem); margin:1rem 0; min-height:9.5rem;
+    overflow-x:auto; padding:0 .1rem; }
+  .arbre-col{ border:none; background:transparent; display:flex; flex-direction:column; align-items:center; gap:.15rem;
+    min-width:52px; flex:0 0 auto; min-height:44px; }
   .balade-arbre{ display:flex; flex-direction:column; align-items:center; }
   .arbre-feuillage{ display:block; border-radius:60% 60% 50% 50% / 70% 70% 40% 40%;
     background:radial-gradient(circle at 35% 30%, #8BD17E, #2E7D32); border:2px solid #1B5E20; margin-bottom:-4px; }
   .arbre-tronc{ display:block; width:14px; border-radius:4px;
     background:linear-gradient(180deg, #B98657, #6D4C33); border:2px solid #5B3F28; }
 
-  /* ---- Distances sur le sentier, depuis le repère « lac » ---- */
-  .sentier{ position:relative; margin:1.1rem .5rem 1.8rem; height:3rem; }
+  /* ---- Distances sur le sentier, depuis le repère « lac » ----
+     Les repères (.clairiere-btn) sont positionnés en % de la piste, plafonnés
+     via calc()/min() dans le JS pour ne jamais s'approcher du bord droit ;
+     overflow-x:auto reste un filet de sécurité supplémentaire. */
+  .sentier{ position:relative; margin:1.1rem .5rem 1.8rem; height:3rem; overflow-x:auto; }
   .sentier-depart{ position:absolute; left:0; top:-.1rem; display:flex; flex-direction:column; align-items:center; }
   .sentier-depart-nom{ font-size:.65rem; font-weight:700; opacity:.75; }
   .sentier-piste{ position:relative; margin-left:2.4rem; height:100%; border-bottom:3px dashed color-mix(in srgb, var(--couleur-encre) 25%, white); }
