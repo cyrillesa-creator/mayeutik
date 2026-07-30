@@ -201,9 +201,22 @@
   .sentier-piste{ position:relative; margin-left:2.4rem; height:100%; border-bottom:3px dashed color-mix(in srgb, var(--couleur-encre) 25%, white); }
   .clairiere-btn{ position:absolute; bottom:-.15rem; min-width:44px; min-height:44px; border:none; background:transparent; font-size:1.6rem; }
 
-  /* ---- Palier CP : « Le Bois » — lisière (vocabulaire) ---- */
+  /* ---- Palier CP : « Le Bois » — lisière (vocabulaire, texte à trou) ---- */
   .brindille-icone{ font-size:1rem; margin-right:.35rem; }
-  .lisiere-lettre{ font-weight:700; margin-left:.4rem; opacity:.75; font-size:.85rem; }
+
+  /* Objets concrets colorés (pas de lettre abstraite) : chaque couleur a sa
+     pastille + sa barre/son repère teintés en couleur.hex (cf. GABARITS_LISIERE). */
+  .lisiere-comparaison{ display:flex; flex-direction:column; gap:.9rem; margin:.9rem 0; }
+  .lisiere-rangee{ display:flex; align-items:center; gap:.5rem; min-height:44px; }
+  .lisiere-pastille{ width:1.15rem; height:1.15rem; border-radius:50%; border:2px solid rgba(0,0,0,.35); flex-shrink:0; }
+  .lisiere-icone{ font-size:1.2rem; }
+  .lisiere-barre{ height:16px; border-radius:8px; border:2px solid rgba(0,0,0,.3); }
+  .lisiere-nom{ font-weight:700; font-size:.85rem; }
+  .lisiere-sentier{ position:relative; margin:1.1rem .5rem 2.4rem; height:1.6rem; }
+  .lisiere-repere{ position:absolute; left:0; top:-1.5rem; display:flex; flex-direction:column; align-items:center; font-size:1.3rem; }
+  .lisiere-repere-nom{ font-size:.65rem; font-weight:700; opacity:.75; }
+  .lisiere-piste{ position:relative; margin-left:2.6rem; height:100%; border-bottom:3px dashed color-mix(in srgb, var(--couleur-encre) 25%, white); }
+  .lisiere-point{ position:absolute; bottom:-.2rem; min-width:44px; display:flex; flex-direction:column; align-items:center; gap:.15rem; }
 
   /* ---- Palier CP : « Le Bois » — balade (ordonner 5 bâtons) ----
      Emplacements FIXES : glisser un bâton sur un autre échange leur place
@@ -689,21 +702,57 @@
     return melanger(valeurs);
   }
 
-  /* Niveau 1 — « L'orée du bois » (vocabulaire long/court/près/loin) :
-     banque de 10 gabarits (> 6 manches par partie, CHARTE §13), un tirage
-     sans redondance par partie via construireSequenceJeu. */
-  const GABARITS_LISIERE = [
-    { axe: 'longueur', label: 'brindille', icone: '🌿' },
-    { axe: 'longueur', label: 'branche', icone: '🪵' },
-    { axe: 'longueur', label: 'ficelle', icone: '🧵' },
-    { axe: 'longueur', label: 'plume', icone: '🪶' },
-    { axe: 'longueur', label: 'feuille', icone: '🍃' },
-    { axe: 'distance', label: 'champignon', icone: '🍄' },
-    { axe: 'distance', label: 'souche', icone: '🪨' },
-    { axe: 'distance', label: 'cabane', icone: '🛖' },
-    { axe: 'distance', label: 'clairière', icone: '🌤️' },
-    { axe: 'distance', label: 'chêne', icone: '🌳' }
+  /* Niveau 1 — « L'orée du bois » (vocabulaire long/court/près/loin), en
+     texte à trou : des objets CONCRETS du bois, jamais de désignation
+     abstraite « objet A »/« objet B ». Chaque famille d'objet est déclinée
+     en 3 couleurs ; les couleurs sont combinées deux à deux (C(3,2) = 3
+     paires par famille) pour fournir les deux objets comparés d'une
+     question (ex. « la corde rouge » / « la corde verte »). 5 familles × 3
+     paires = 15 gabarits (> 6 manches par partie, CHARTE §13), un tirage
+     sans redondance par partie via construireSequenceJeu. Pour l'axe
+     distance, le repère fixe est toujours « la clairière » (cf.
+     genererLisiereCP) : elle n'a donc pas besoin de déclinaison couleur. */
+  const FAMILLES_LISIERE = [
+    { nom: 'corde', genre: 'f', axe: 'longueur', icone: '🪢', couleurs: [
+      { id: 'rouge', nom: 'rouge', hex: '#E5484D' },
+      { id: 'verte', nom: 'verte', hex: '#30A46C' },
+      { id: 'bleue', nom: 'bleue', hex: '#0091FF' }
+    ] },
+    { nom: 'chemin', genre: 'm', axe: 'longueur', icone: '🥾', couleurs: [
+      { id: 'brun', nom: 'brun', hex: '#8B5E3C' },
+      { id: 'ocre', nom: 'ocre', hex: '#C9971C' },
+      { id: 'gris', nom: 'gris', hex: '#8A8578' }
+    ] },
+    { nom: 'arbre', genre: 'm', axe: 'longueur', icone: '🌳', couleurs: [
+      { id: 'marron', nom: 'marron', hex: '#6D4C33' },
+      { id: 'vert-fonce', nom: 'vert foncé', hex: '#1B5E20' },
+      { id: 'vert-clair', nom: 'vert clair', hex: '#66BB6A' }
+    ] },
+    { nom: 'cabane', genre: 'f', axe: 'distance', icone: '🛖', couleurs: [
+      { id: 'rouge', nom: 'rouge', hex: '#E5484D' },
+      { id: 'jaune', nom: 'jaune', hex: '#F5B700' },
+      { id: 'verte', nom: 'verte', hex: '#30A46C' }
+    ] },
+    { nom: 'champignon', genre: 'm', axe: 'distance', icone: '🍄', couleurs: [
+      { id: 'rouge', nom: 'rouge', hex: '#E5484D' },
+      { id: 'brun', nom: 'brun', hex: '#8B5E3C' },
+      { id: 'orange', nom: 'orange', hex: '#FF8C42' }
+    ] }
   ];
+
+  function pairesCouleurs(couleurs) {
+    const paires = [];
+    for (let i = 0; i < couleurs.length; i++) {
+      for (let j = i + 1; j < couleurs.length; j++) paires.push([couleurs[i], couleurs[j]]);
+    }
+    return paires;
+  }
+
+  const GABARITS_LISIERE = FAMILLES_LISIERE.flatMap((famille) =>
+    pairesCouleurs(famille.couleurs).map(([couleurA, couleurB]) => ({
+      nom: famille.nom, genre: famille.genre, axe: famille.axe, icone: famille.icone, couleurA, couleurB
+    }))
+  );
 
   /* Niveau 2 — « En balade » (comparaison) : les 5 gabarits officiels du
      programme, chacun dans les deux sens (grand/petit, proche/loin…) = 10
@@ -939,11 +988,58 @@
   }
 
   /* ================================================================
-     Palier CP — Niveau 1 : « L'orée du bois » (vocabulaire)
-     Montre deux éléments (A et B) ; l'un des deux est la cible. Quatre mots
-     (long/court/près/loin) sont proposés, un seul décrit correctement la
-     cible selon l'axe du gabarit (longueur ou distance).
+     Palier CP — Niveau 1 : « L'orée du bois » (vocabulaire, texte à trou)
+     Phrase à trou comparant deux objets CONCRETS de même famille mais de
+     couleurs différentes (ex. « la corde rouge » / « la corde verte »),
+     jamais de désignation abstraite. L'enfant clique le mot manquant parmi
+     un QCM de 2 choix, tous deux ACCORDÉS en genre avec l'objet tiré (ex.
+     « longue »/« courte » pour une corde, « long »/« court » pour un
+     chemin ; « près »/« loin » sont invariables).
      ================================================================ */
+
+  function accorderMot(mot, genre) {
+    if (mot === 'long') return genre === 'f' ? 'longue' : 'long';
+    if (mot === 'court') return genre === 'f' ? 'courte' : 'court';
+    return mot; // « près »/« loin » : invariables
+  }
+
+  // Article défini + nom, avec élision (« l'arbre ») et majuscule optionnelle
+  // (début de phrase) : évite toute désignation par lettre/numéro abstraite.
+  function nommerAvecArticle(nom, genre, majuscule) {
+    const commenceVoyelle = /^[aâàeéèêëiîïoôöuûü]/i.test(nom);
+    if (commenceVoyelle) return (majuscule ? 'L' : 'l') + '\'' + nom;
+    const art = genre === 'f' ? 'la' : 'le';
+    return (majuscule ? art.charAt(0).toUpperCase() + art.slice(1) : art) + ' ' + nom;
+  }
+
+  function creerLigneLongueur(gabarit, couleur, valeur) {
+    const rangee = document.createElement('div');
+    rangee.className = 'lisiere-rangee';
+    const pastille = document.createElement('span');
+    pastille.className = 'lisiere-pastille'; pastille.style.background = couleur.hex;
+    const icone = document.createElement('span');
+    icone.className = 'lisiere-icone'; icone.textContent = gabarit.icone;
+    const barre = document.createElement('span');
+    barre.className = 'lisiere-barre'; barre.style.width = (valeur * 11) + 'px'; barre.style.background = couleur.hex;
+    const label = document.createElement('span');
+    label.className = 'lisiere-nom'; label.textContent = couleur.nom;
+    rangee.appendChild(pastille); rangee.appendChild(icone); rangee.appendChild(barre); rangee.appendChild(label);
+    return rangee;
+  }
+
+  function creerPointDistance(gabarit, couleur, distance) {
+    const point = document.createElement('div');
+    point.className = 'lisiere-point';
+    point.style.left = (distance * 22) + 'px';
+    const pastille = document.createElement('span');
+    pastille.className = 'lisiere-pastille'; pastille.style.background = couleur.hex;
+    const icone = document.createElement('span');
+    icone.className = 'lisiere-icone'; icone.textContent = gabarit.icone;
+    const label = document.createElement('span');
+    label.className = 'lisiere-nom'; label.textContent = couleur.nom;
+    point.appendChild(pastille); point.appendChild(icone); point.appendChild(label);
+    return point;
+  }
 
   function genererLisiereCP(zone, cfg) {
     const gabarit = etat.sequence[etat.index - 1];
@@ -952,52 +1048,45 @@
     const cibleEstA = Math.random() < 0.5;
     const valeurCible = cibleEstA ? vA : vB;
     const valeurAutre = cibleEstA ? vB : vA;
-    const lettreCible = cibleEstA ? 'A' : 'B';
+    const couleurCible = cibleEstA ? gabarit.couleurA : gabarit.couleurB;
+    const couleurAutre = cibleEstA ? gabarit.couleurB : gabarit.couleurA;
     const cibleEstGrande = valeurCible > valeurAutre;
-    const motCorrect = estLongueur ? (cibleEstGrande ? 'long' : 'court') : (cibleEstGrande ? 'loin' : 'près');
+    const motBase = estLongueur ? (cibleEstGrande ? 'long' : 'court') : (cibleEstGrande ? 'loin' : 'près');
+    const motCorrect = estLongueur ? accorderMot(motBase, gabarit.genre) : motBase;
 
-    zone.appendChild(creerBlocConsigne(
-      'Quel mot correspond à l\'élément ' + lettreCible + ' ?',
-      'Regarde bien les deux éléments, l\'élément A et l\'élément B. Quel mot correspond à l\'élément ' + lettreCible + ' ?'
-    ));
+    const phrase = nommerAvecArticle(gabarit.nom, gabarit.genre, true) + ' ' + couleurCible.nom +
+      ' est plus _____ ' + (estLongueur ? '' : 'de la clairière ') + 'que ' +
+      nommerAvecArticle(gabarit.nom, gabarit.genre, false) + ' ' + couleurAutre.nom + '.';
+    const phraseVoix = phrase.replace('_____', '…') + ' Quel mot manque ?';
+
+    zone.appendChild(creerBlocConsigne(phrase, phraseVoix));
 
     if (estLongueur) {
       const cont = document.createElement('div');
-      cont.className = 'comparaison-objets';
-      [['A', vA], ['B', vB]].forEach(([nomLettre, valeur]) => {
-        const rangee = document.createElement('div');
-        rangee.className = 'rangee-brindille';
-        const wrap = document.createElement('div');
-        wrap.className = 'brindille-btn';
-        const icone = document.createElement('span');
-        icone.className = 'brindille-icone'; icone.textContent = gabarit.icone;
-        const barre = document.createElement('span');
-        barre.className = 'brindille-barre'; barre.style.width = (valeur * 11) + 'px';
-        const spanLettre = document.createElement('span');
-        spanLettre.className = 'lisiere-lettre'; spanLettre.textContent = nomLettre;
-        wrap.appendChild(icone); wrap.appendChild(barre); wrap.appendChild(spanLettre);
-        rangee.appendChild(wrap);
-        cont.appendChild(rangee);
-      });
+      cont.className = 'lisiere-comparaison';
+      cont.appendChild(creerLigneLongueur(gabarit, gabarit.couleurA, vA));
+      cont.appendChild(creerLigneLongueur(gabarit, gabarit.couleurB, vB));
       zone.appendChild(cont);
     } else {
       const sentier = document.createElement('div');
-      sentier.className = 'sentier';
-      const depart = document.createElement('span'); depart.className = 'sentier-depart'; depart.textContent = '🚏';
-      sentier.appendChild(depart);
-      const piste = document.createElement('div'); piste.className = 'sentier-piste';
-      [['A', vA], ['B', vB]].forEach(([nomLettre, distance]) => {
-        const wrap = document.createElement('div');
-        wrap.className = 'clairiere-btn';
-        wrap.style.left = (distance * 15) + 'px';
-        wrap.textContent = gabarit.icone + ' ' + nomLettre;
-        piste.appendChild(wrap);
-      });
+      sentier.className = 'lisiere-sentier';
+      const repere = document.createElement('div');
+      repere.className = 'lisiere-repere';
+      const repereIcone = document.createElement('span'); repereIcone.textContent = '🌤️';
+      const repereNom = document.createElement('span'); repereNom.className = 'lisiere-repere-nom'; repereNom.textContent = 'clairière';
+      repere.appendChild(repereIcone); repere.appendChild(repereNom);
+      sentier.appendChild(repere);
+      const piste = document.createElement('div');
+      piste.className = 'lisiere-piste';
+      piste.appendChild(creerPointDistance(gabarit, gabarit.couleurA, vA));
+      piste.appendChild(creerPointDistance(gabarit, gabarit.couleurB, vB));
       sentier.appendChild(piste);
       zone.appendChild(sentier);
     }
 
-    const mots = melanger(['long', 'court', 'près', 'loin']);
+    const mots = estLongueur
+      ? melanger([accorderMot('long', gabarit.genre), accorderMot('court', gabarit.genre)])
+      : melanger(['près', 'loin']);
     const grille = document.createElement('div');
     grille.className = 'grille-options';
     mots.forEach((mot) => {
