@@ -239,18 +239,27 @@
   .lisiere-piste{ position:relative; margin-left:2.6rem; height:100%; border-bottom:3px dashed color-mix(in srgb, var(--couleur-encre) 25%, white); }
   .lisiere-point{ position:absolute; bottom:-.2rem; min-width:44px; display:flex; flex-direction:column; align-items:center; gap:.15rem; }
 
-  /* ---- Palier CP : « Le Bois » — balade (ordonner 5 bâtons) ----
-     Emplacements FIXES : glisser un bâton sur un autre échange leur place
-     (aucune case ne reste jamais vide). Le DOM des 5 boutons ne bouge jamais
-     pendant le geste, seule la valeur affichée (largeur de la barre) est
-     échangée — cf. commentaire dans genererOrdonnerBatons (js). */
-  .bande-batons{ display:flex; gap:.6rem; justify-content:center; align-items:flex-end; margin:1rem 0; flex-wrap:wrap; }
-  .baton-case{ position:relative; display:flex; align-items:flex-end; justify-content:center; padding:.3rem; border-radius:12px; }
+  /* ---- Palier CP : « Le Bois » — balade (ranger 5 bâtons en pyramide) ----
+     5 « étagères » EMPILÉES verticalement, chaque bâton posé À PLAT et
+     ANCRÉ À GAUCHE sur la même ligne (seule l'extrémité droite varie avec
+     la longueur) : les longueurs se comparent d'un coup d'œil, sans geste
+     préalable. Glisser un bâton vers une autre rangée ÉCHANGE leur place —
+     le DOM des 5 rangées ne bouge jamais pendant le geste, seule la valeur
+     affichée (largeur de la barre) est échangée — cf. commentaire dans
+     genererOrdonnerBatons (js) : sous Chromium, reparenter l'élément capturé
+     PENDANT le glisser fait perdre la capture du pointeur et casse le
+     pointerup final. Une fois trié, les bouts droits dessinent une diagonale
+     nette (effet pyramide). */
+  .bande-batons{ display:flex; flex-direction:column; gap:.55rem; margin:1rem 0; }
+  .baton-case{ position:relative; display:flex; align-items:center; padding:.3rem .4rem; border-radius:12px; }
   .baton-case.case-selectionnee{ background:color-mix(in srgb, var(--couleur-soleil) 40%, transparent); }
-  .baton-btn{ position:relative; border:none; background:transparent; padding:.2rem; min-height:44px; min-width:44px;
-    display:flex; align-items:flex-end; touch-action:none; cursor:grab; }
+  .baton-btn{ position:relative; border:none; background:transparent; padding:.2rem; min-height:44px;
+    display:flex; align-items:center; touch-action:none; cursor:grab; }
   .baton-btn.baton-glisse{ z-index:5; cursor:grabbing; }
-  .baton-barre{ display:block; height:16px; border-radius:8px; background:var(--couleur-corail); border:2px solid color-mix(in srgb, var(--couleur-corail) 60%, black 10%); }
+  .baton-barre{ display:block; height:20px; border-radius:999px;
+    background-image:radial-gradient(circle, rgba(0,0,0,.2) 1.5px, transparent 1.6px), linear-gradient(180deg, #D3A67B, #8B5E3C);
+    background-size:12px 12px, 100% 100%;
+    border:2px solid #6D4C33; }
 
   /* ---- Palier CP : « Le Bois » — cabane (règle à déplacer) ---- */
   .piste-alignement{ position:relative; margin:.9rem 0; overflow-x:hidden; border-radius:10px; min-height:90px;
@@ -1287,47 +1296,57 @@
   }
 
   /*
-   * Ordonner 5 bâtons, par glisser-déposer, dans 5 emplacements FIXES : les
-   * bâtons occupent toujours les 5 cases (aucune case vide), et glisser un
-   * bâton sur un autre ÉCHANGE leur place — modifiable autant de fois que
-   * nécessaire avant « Valider l'ordre » (pas de validation automatique au
-   * premier placement, cf. spécification).
+   * Ranger 5 bâtons en pyramide, sur 5 « étagères » (rangées) FIXES : chaque
+   * bâton est posé À PLAT et ANCRÉ À GAUCHE sur la même ligne verticale
+   * (seule l'extrémité droite varie avec sa longueur), pour permettre à
+   * l'enfant de comparer les longueurs d'un coup d'œil, sans avoir à les
+   * déplacer d'abord. Glisser un bâton vers une autre rangée ÉCHANGE leur
+   * place — modifiable autant de fois que nécessaire avant « Valider »
+   * (pas de validation automatique à chaque échange). Une fois trié, les
+   * bouts droits dessinent une diagonale nette (effet pyramide).
+   *
+   * Le sens du tri (du plus court en haut au plus long en bas, ou l'inverse)
+   * est tiré au hasard à chaque partie et explicité dans la consigne.
    *
    * Le DOM n'est JAMAIS reparenté pendant le geste : seule la VALEUR (et donc
-   * la largeur affichée) de chaque case est échangée, les 5 boutons restant
+   * la largeur affichée) de chaque rangée est échangée, les 5 boutons restant
    * toujours à leur position DOM d'origine. Cette leçon vient du réordonnancement
    * des profils de la coquille (cf. js/app.js, activerReordonnerProfils) : sous
    * Chromium, reparenter l'élument capturé PENDANT le glisser fait perdre la
    * capture du pointeur et casse le pointerup final.
    *
-   * Double interaction, pour l'accessibilité tactile : glisser un bâton sur un
-   * autre (drag natif), OU toucher un bâton puis un second pour les échanger
-   * (tap-tap, sans glisser).
+   * Double interaction, pour l'accessibilité tactile : glisser un bâton vers
+   * une autre rangée (drag natif), OU toucher un bâton puis une autre rangée
+   * pour les échanger (tap-tap, sans glisser).
    */
   function genererOrdonnerBatons(zone, cfg) {
     const n = 5;
     const longueurs = nombresDistincts(n, 2, 20);
+    const croissant = Math.random() < 0.5;
     let ordre = melanger(longueurs);
-    const estTrie = (t) => t.every((v, i) => i === 0 || t[i - 1] <= v);
+    const estTrie = (t) => t.every((v, i) => i === 0 || (croissant ? t[i - 1] <= v : t[i - 1] >= v));
     let garde = 0;
     while (estTrie(ordre) && garde < 10) { ordre = melanger(longueurs); garde++; }
 
+    const sens = croissant
+      ? 'le plus court tout en haut et le plus long tout en bas'
+      : 'le plus long tout en haut et le plus court tout en bas';
     zone.appendChild(creerBlocConsigne(
-      'Glisse les bâtons pour les ranger du plus court au plus long.',
-      'Fais glisser un bâton sur un autre pour échanger leur place, jusqu\'à ce qu\'ils soient rangés du plus court au plus long. Tu peux aussi toucher un bâton, puis un second, pour les échanger.'
+      'Range les bâtons en pyramide : ' + sens + '.',
+      'Fais glisser un bâton vers une autre rangée pour échanger leur place, jusqu\'à ce qu\'ils soient rangés avec ' + sens + '. Tu peux aussi toucher un bâton, puis une autre rangée, pour les échanger.'
     ));
 
     const bande = document.createElement('div');
     bande.className = 'bande-batons';
-    const PX_PAR_UNITE = 10;
+    const PX_PAR_UNITE = 14;
     const cases = [];
     let selection = null;
     let ignorerProchainClic = false;
 
     function rendreCase(i) {
       const barre = cases[i].querySelector('.baton-barre');
-      barre.style.width = (ordre[i] * PX_PAR_UNITE + 18) + 'px';
-      cases[i].querySelector('.baton-btn').setAttribute('aria-label', 'Bâton en position ' + (i + 1));
+      barre.style.width = (ordre[i] * PX_PAR_UNITE + 24) + 'px';
+      cases[i].querySelector('.baton-btn').setAttribute('aria-label', 'Bâton, rangée ' + (i + 1));
     }
     function deselectionner() {
       if (selection === null) return;
@@ -1405,9 +1424,9 @@
     cases.forEach((_, i) => rendreCase(i));
 
     const boutonValider = document.createElement('button');
-    boutonValider.type = 'button'; boutonValider.className = 'bouton-principal'; boutonValider.textContent = "Valider l'ordre";
+    boutonValider.type = 'button'; boutonValider.className = 'bouton-principal'; boutonValider.textContent = 'Valider';
     boutonValider.addEventListener('click', () => {
-      validerTour(ordre.every((v, i) => i === 0 || ordre[i - 1] <= v), boutonValider);
+      validerTour(estTrie(ordre), boutonValider);
     });
     zone.appendChild(boutonValider);
   }
