@@ -241,20 +241,32 @@
      couleur est directement celle de la barre. Pour le champignon et la
      cabane, la couleur est intégrée AU DESSIN lui-même (chapeau, toit) via
      creerLisiereChampignon/creerLisiereCabane — cf. plus bas dans le JS. */
-  .lisiere-comparaison{ display:flex; flex-direction:column; gap:1rem; margin:.9rem 0; }
+  /* Comparaison longueur (corde/chemin/branche) : les deux objets sont dans
+     des RANGÉES séparées (empilées), jamais côte à côte — aucun risque de
+     chevauchement entre eux. overflow-x:auto reste un filet de sécurité si
+     une barre très longue dépassait un écran très étroit. */
+  .lisiere-comparaison{ display:flex; flex-direction:column; gap:1rem; margin:.9rem 0; overflow-x:auto; }
   .lisiere-rangee{ display:flex; align-items:center; gap:.6rem; min-height:44px; }
   .lisiere-pastille{ width:1.3rem; height:1.3rem; border-radius:50%; border:2px solid rgba(0,0,0,.35); flex-shrink:0; }
   .lisiere-icone{ font-size:1.7rem; }
   .lisiere-barre{ height:20px; border-radius:10px; border:2px solid rgba(0,0,0,.3); }
   .lisiere-nom{ font-weight:700; font-size:.9rem; }
 
-  /* Piste au sol : marge basse généreuse pour laisser la place aux dessins
-     agrandis (champignon/cabane/clairière) sans chevaucher le QCM en dessous. */
-  .lisiere-sentier{ position:relative; margin:1.1rem .5rem 4.4rem; height:1.6rem; }
-  .lisiere-repere{ position:absolute; left:0; bottom:-.2rem; display:flex; flex-direction:column; align-items:center; gap:.15rem; }
+  /* Comparaison distance (cabane/champignon) : repère + deux objets en FLUX
+     FLEXBOX normal (plus de positionnement absolu en %), avec un `gap`
+     garanti entre chaque paire d'éléments — deux objets flexbox ne peuvent
+     structurellement jamais se chevaucher, quelle que soit leur taille
+     effective (icônes agrandies comprises), contrairement à un calcul de
+     position qui pourrait se tromper selon la largeur réelle de l'écran.
+     Marge basse généreuse pour laisser la place aux dessins sans chevaucher
+     le QCM en dessous ; overflow-x:auto en filet de sécurité supplémentaire. */
+  .lisiere-sentier{ margin:1.1rem .5rem 4.4rem; }
+  .lisiere-piste{ display:flex; align-items:flex-end; gap:1.5rem;
+    border-bottom:3px dashed color-mix(in srgb, var(--couleur-encre) 25%, white);
+    padding-bottom:.35rem; overflow-x:auto; overflow-y:visible; }
+  .lisiere-repere{ display:flex; flex-direction:column; align-items:center; gap:.15rem; flex-shrink:0; }
   .lisiere-repere-nom{ font-size:.7rem; font-weight:700; opacity:.75; }
-  .lisiere-piste{ position:relative; margin-left:3.3rem; height:100%; border-bottom:3px dashed color-mix(in srgb, var(--couleur-encre) 25%, white); }
-  .lisiere-point{ position:absolute; bottom:-.2rem; min-width:48px; display:flex; flex-direction:column; align-items:center; gap:.15rem; }
+  .lisiere-point{ display:flex; flex-direction:column; align-items:center; gap:.15rem; flex-shrink:0; min-width:48px; }
 
   /* Clairière (repère fixe des questions de distance) : vue semi-aérienne —
      herbe claire cernée d'un anneau de 6 arbres stylisés, plutôt qu'un
@@ -1124,11 +1136,18 @@
     return rangee;
   }
 
-  // Distance maximale possible pour l'axe distance du niveau 1 (cf. l'appel
-  // valeursEspacees(2, 2, 16, 3) dans genererLisiereCP) : sert à convertir la
-  // distance en pourcentage de la largeur RÉELLE de la piste, quel que soit
-  // l'écran (un positionnement en px fixe déborderait du cadre sur mobile).
-  const DISTANCE_MAX_LISIERE = 16;
+  // Écart visuel (px) ajouté par unité de distance ENTRE deux objets déjà
+  // ordonnés dans la piste flexbox (cf. genererLisiereCP) : purement indicatif
+  // pour donner une idée de « plus loin »/« plus près », vient S'AJOUTER au
+  // gap flexbox garanti — contrairement à l'ancien positionnement en % de la
+  // piste, deux objets flexbox ne peuvent structurellement jamais se
+  // chevaucher, quelle que soit leur taille effective (icônes agrandies
+  // comprises), sans dépendre d'un calcul de position exact. Plafonné
+  // (MARGE_DISTANCE_MAX_PX) pour qu'un grand écart de distance (jusqu'à 14
+  // sur l'échelle 2-16) ne pousse pas le second objet hors du cadre sur un
+  // écran étroit — l'indice visuel reste présent mais borné.
+  const PX_PAR_UNITE_DISTANCE_LISIERE = 9;
+  const MARGE_DISTANCE_MAX_PX = 36;
 
   // Clairière (repère fixe des questions de distance) : une clairière
   // reconnaissable — herbe claire cernée d'un anneau d'arbres — plutôt qu'un
@@ -1178,13 +1197,9 @@
     return cabane;
   }
 
-  function creerPointDistance(gabarit, couleur, distance) {
+  function creerPointDistance(gabarit, couleur) {
     const point = document.createElement('div');
     point.className = 'lisiere-point';
-    // Le repère est ancré en % de la piste, plafonné à « 100% - 80px » pour
-    // toujours laisser la place au dessin et à l'étiquette de couleur sans
-    // jamais dépasser le cadre blanc à droite.
-    point.style.left = 'min(' + (distance / DISTANCE_MAX_LISIERE * 100) + '%, calc(100% - 80px))';
     if (gabarit.nom === 'champignon') point.appendChild(creerLisiereChampignon(couleur));
     else if (gabarit.nom === 'cabane') point.appendChild(creerLisiereCabane(couleur));
     else {
@@ -1229,15 +1244,28 @@
     } else {
       const sentier = document.createElement('div');
       sentier.className = 'lisiere-sentier';
+      const piste = document.createElement('div');
+      piste.className = 'lisiere-piste';
+      // Le repère (clairière) et les deux objets sont TOUS trois enfants
+      // directs de la même rangée flexbox (flux normal, plus de
+      // positionnement absolu) : le gap CSS garanti empêche tout
+      // chevauchement quelle que soit la taille effective des dessins, et une
+      // marge supplémentaire proportionnelle à l'écart de distance donne un
+      // indice visuel du « plus loin »/« plus près » en plus du texte.
       const repere = document.createElement('div');
       repere.className = 'lisiere-repere';
       const repereNom = document.createElement('span'); repereNom.className = 'lisiere-repere-nom'; repereNom.textContent = 'clairière';
       repere.appendChild(creerLisiereMiniClairiere()); repere.appendChild(repereNom);
-      sentier.appendChild(repere);
-      const piste = document.createElement('div');
-      piste.className = 'lisiere-piste';
-      piste.appendChild(creerPointDistance(gabarit, gabarit.couleurA, vA));
-      piste.appendChild(creerPointDistance(gabarit, gabarit.couleurB, vB));
+      piste.appendChild(repere);
+      const paires = [
+        { couleur: gabarit.couleurA, distance: vA },
+        { couleur: gabarit.couleurB, distance: vB }
+      ].sort((a, b) => a.distance - b.distance);
+      paires.forEach((p, i) => {
+        const point = creerPointDistance(gabarit, p.couleur);
+        if (i > 0) point.style.marginLeft = Math.min((p.distance - paires[i - 1].distance) * PX_PAR_UNITE_DISTANCE_LISIERE, MARGE_DISTANCE_MAX_PX) + 'px';
+        piste.appendChild(point);
+      });
       sentier.appendChild(piste);
       zone.appendChild(sentier);
     }
