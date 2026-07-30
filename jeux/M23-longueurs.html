@@ -176,33 +176,54 @@
   .regle-zone{ position:absolute; top:0; height:100%; background:transparent; border:none; padding:0; }
   .regle-zone.selectionnee{ background:color-mix(in srgb, var(--couleur-soleil) 45%, transparent); border-radius:4px; }
 
-  /* ---- Comparaison directe (brindilles alignées) ---- */
+  /* ---- Comparaison directe (corde/chemin alignés) ---- */
   .comparaison-objets{ display:flex; flex-direction:column; gap:.9rem; margin:.9rem 0; }
   .rangee-brindille{ display:flex; }
   .brindille-btn{ border:none; background:transparent; padding:.3rem; display:flex; align-items:center; min-height:44px; }
-  .brindille-barre{ height:16px; border-radius:8px; background:var(--couleur-menthe); border:2px solid color-mix(in srgb, var(--couleur-menthe) 60%, black 10%); }
 
-  /* ---- File des brindilles (rangement par ordre) ---- */
-  .file-brindilles{ display:flex; flex-direction:column; gap:.5rem; margin:.9rem 0; }
-  .brindille-btn.placee .brindille-barre{ background:var(--couleur-soleil); border-color:color-mix(in srgb, var(--couleur-soleil) 60%, black 10%); }
-  .brindille-btn.secousse{ animation:secousse-anim .35s; }
-  @keyframes secousse-anim{ 0%,100%{ transform:translateX(0); } 25%{ transform:translateX(-6px); } 75%{ transform:translateX(6px); } }
+  /* Corde : texture torsadée simple (rayures obliques en pilule). */
+  .balade-corde{ display:block; height:18px; border-radius:999px;
+    background-image:repeating-linear-gradient(135deg, #E8B24D 0 7px, #C9971C 7px 14px);
+    border:2px solid #8A6A17; }
 
-  /* ---- Report indirect (arbres fixes + ficelle) ---- */
+  /* Chemin : texture de terrain (semis de graviers sur fond brun/ocre). */
+  .balade-chemin{ display:block; height:16px; border-radius:8px;
+    background-image:radial-gradient(circle, rgba(0,0,0,.28) 1.4px, transparent 1.6px), linear-gradient(180deg, #A9764B, #7C5734);
+    background-size:9px 9px, 100% 100%;
+    border:2px solid #5B3F28; }
+
+  /* ---- Report indirect (arbres figuratifs : tronc + feuillage) ---- */
   .comparaison-report{ display:flex; justify-content:center; gap:1.8rem; align-items:flex-end; margin:1rem 0; min-height:9.5rem; }
   .arbre-col{ border:none; background:transparent; display:flex; flex-direction:column; align-items:center; gap:.15rem; min-width:64px; min-height:44px; }
-  .arbre-cime{ font-size:1.7rem; line-height:1; }
-  .arbre-tronc-barre{ width:16px; border-radius:3px; background:color-mix(in srgb, var(--couleur-mandarine) 55%, var(--couleur-encre) 20%); }
-  .arbre-label{ font-size:.8rem; font-weight:700; margin-top:.2rem; }
+  .balade-arbre{ display:flex; flex-direction:column; align-items:center; }
+  .arbre-feuillage{ display:block; border-radius:60% 60% 50% 50% / 70% 70% 40% 40%;
+    background:radial-gradient(circle at 35% 30%, #8BD17E, #2E7D32); border:2px solid #1B5E20; margin-bottom:-4px; }
+  .arbre-tronc{ display:block; width:14px; border-radius:4px;
+    background:linear-gradient(180deg, #B98657, #6D4C33); border:2px solid #5B3F28; }
 
-  /* ---- Distances sur le sentier (près/loin) ---- */
+  /* ---- Distances sur le sentier, depuis le repère « lac » ---- */
   .sentier{ position:relative; margin:1.1rem .5rem 1.8rem; height:3rem; }
-  .sentier-depart{ position:absolute; left:0; top:.35rem; font-size:1.4rem; }
+  .sentier-depart{ position:absolute; left:0; top:-.1rem; display:flex; flex-direction:column; align-items:center; }
+  .sentier-depart-nom{ font-size:.65rem; font-weight:700; opacity:.75; }
   .sentier-piste{ position:relative; margin-left:2.4rem; height:100%; border-bottom:3px dashed color-mix(in srgb, var(--couleur-encre) 25%, white); }
-  .clairiere-btn{ position:absolute; bottom:-.15rem; min-width:44px; min-height:44px; border:none; background:transparent; font-size:1.6rem; }
+  .clairiere-btn{ position:absolute; bottom:-.15rem; min-width:44px; min-height:44px; border:none; background:transparent;
+    font-size:1.6rem; display:flex; align-items:center; justify-content:center; }
+
+  /* Lac : simple forme figurative (ovale bleu), repère fixe des comparaisons
+     de distance du niveau 2. */
+  .mini-lac{ display:block; width:2.2rem; height:1.5rem; border-radius:50%;
+    background:radial-gradient(ellipse at 38% 32%, #8FD3F4, #1E88E5); border:2px solid #0B5D8A; }
+
+  /* Clairière : vue semi-aérienne — herbe claire cernée d'un anneau de 6
+     arbres, disposés en cercle par rotation régulière à 60° (--i = 0..5). */
+  .mini-clairiere{ position:relative; display:block; width:2.3rem; height:2.3rem; }
+  .mini-clairiere-herbe{ position:absolute; inset:26%; border-radius:50%;
+    background:radial-gradient(circle, #EFE6B8, #D9CE86); border:2px solid #B8AC5E; }
+  .mini-clairiere-arbre{ position:absolute; width:.5rem; height:.5rem; border-radius:50%;
+    background:#2E7D32; border:2px solid #1B5E20; top:50%; left:50%; margin:-.28rem 0 0 -.28rem;
+    transform:rotate(calc(var(--i) * 60deg)) translate(1rem) rotate(calc(var(--i) * -60deg)); }
 
   /* ---- Palier CP : « Le Bois » — lisière (vocabulaire, texte à trou) ---- */
-  .brindille-icone{ font-size:1rem; margin-right:.35rem; }
 
   /* Objets concrets colorés (pas de lettre abstraite) : chaque couleur a sa
      pastille + sa barre/son repère teintés en couleur.hex (cf. GABARITS_LISIERE). */
@@ -758,28 +779,21 @@
      programme, chacun dans les deux sens (grand/petit, proche/loin…) = 10
      combinaisons (> 4 manches par partie), un tirage sans redondance par
      partie. La 5ᵉ et dernière manche est toujours l'ordonnancement des
-     bâtons (cf. genererBaladeCP), pas tirée de cette banque. */
+     bâtons (cf. genererBaladeCP), pas tirée de cette banque.
+     Les consignes ne sont plus figées ici : elles sont générées par
+     construireConsigneBalade (cf. plus bas) pour garantir l'accord de genre
+     et nommer explicitement le repère de distance (« du lac »). */
   const GABARITS_BALADE = [
-    { axe: 'hauteur', icone: '🌳', consigne: "Touche l'arbre le plus grand.",
-      consigneVoix: 'Regarde bien la hauteur de chaque arbre, et touche celui qui est le plus grand.', cible: 'max' },
-    { axe: 'hauteur', icone: '🌳', consigne: "Touche l'arbre le plus petit.",
-      consigneVoix: 'Regarde bien la hauteur de chaque arbre, et touche celui qui est le plus petit.', cible: 'min' },
-    { axe: 'longueur', icone: '🪢', consigne: 'Touche la corde la plus courte.',
-      consigneVoix: 'Regarde bien la longueur de chaque corde, et touche la plus courte.', cible: 'min' },
-    { axe: 'longueur', icone: '🪢', consigne: 'Touche la corde la plus longue.',
-      consigneVoix: 'Regarde bien la longueur de chaque corde, et touche la plus longue.', cible: 'max' },
-    { axe: 'longueur', icone: '🥾', consigne: 'Touche le chemin le plus court.',
-      consigneVoix: 'Regarde bien la longueur de chaque chemin, et touche le plus court.', cible: 'min' },
-    { axe: 'longueur', icone: '🥾', consigne: 'Touche le chemin le plus long.',
-      consigneVoix: 'Regarde bien la longueur de chaque chemin, et touche le plus long.', cible: 'max' },
-    { axe: 'distance', icone: '🛖', consigne: 'Touche la cabane la plus proche.',
-      consigneVoix: "Regarde la distance jusqu'à chaque cabane, et touche la plus proche du départ.", cible: 'min' },
-    { axe: 'distance', icone: '🛖', consigne: 'Touche la cabane la plus loin.',
-      consigneVoix: "Regarde la distance jusqu'à chaque cabane, et touche la plus éloignée du départ.", cible: 'max' },
-    { axe: 'distance', icone: '🌤️', consigne: 'Touche la clairière la plus proche.',
-      consigneVoix: "Regarde la distance jusqu'à chaque clairière, et touche la plus proche du départ.", cible: 'min' },
-    { axe: 'distance', icone: '🌤️', consigne: 'Touche la clairière la plus loin.',
-      consigneVoix: "Regarde la distance jusqu'à chaque clairière, et touche la plus éloignée du départ.", cible: 'max' }
+    { axe: 'hauteur', nom: 'arbre', genre: 'm', cible: 'max' },
+    { axe: 'hauteur', nom: 'arbre', genre: 'm', cible: 'min' },
+    { axe: 'longueur', nom: 'corde', genre: 'f', cible: 'min' },
+    { axe: 'longueur', nom: 'corde', genre: 'f', cible: 'max' },
+    { axe: 'longueur', nom: 'chemin', genre: 'm', cible: 'min' },
+    { axe: 'longueur', nom: 'chemin', genre: 'm', cible: 'max' },
+    { axe: 'distance', nom: 'cabane', genre: 'f', icone: '🛖', cible: 'min' },
+    { axe: 'distance', nom: 'cabane', genre: 'f', icone: '🛖', cible: 'max' },
+    { axe: 'distance', nom: 'clairière', genre: 'f', cible: 'min' },
+    { axe: 'distance', nom: 'clairière', genre: 'f', cible: 'max' }
   ];
 
   // Tirage SANS REDONDANCE, précalculé une seule fois par partie (cf.
@@ -1118,14 +1132,104 @@
     genererBaladeComparaison(zone, etat.sequence[etat.index - 1]);
   }
 
+  // Repère fixe des comparaisons de distance : « le lac » (masculin). Distinct
+  // de « la clairière » du niveau 1 (qui y est un objet comparé, pas un
+  // repère), pour éviter toute question absurde du type « la clairière la
+  // plus proche de la clairière ».
+  const REPERE_DISTANCE = { nom: 'lac', genre: 'm' };
+
+  function accorderSuperlatif(motBase, genre) {
+    if (motBase === 'grand') return genre === 'f' ? 'grande' : 'grand';
+    if (motBase === 'petit') return genre === 'f' ? 'petite' : 'petit';
+    if (motBase === 'long') return genre === 'f' ? 'longue' : 'long';
+    if (motBase === 'court') return genre === 'f' ? 'courte' : 'court';
+    return motBase; // « proche »/« loin » : invariables
+  }
+
+  function quel(genre, majuscule) {
+    const mot = genre === 'f' ? 'quelle' : 'quel';
+    return majuscule ? mot.charAt(0).toUpperCase() + mot.slice(1) : mot;
+  }
+
+  function celuiCelle(genre) { return genre === 'f' ? 'celle' : 'celui'; }
+
+  // Contraction « de » + article défini (« de + le » → « du », etc.), pour
+  // nommer le repère de distance sans faute d'accord quel que soit son genre.
+  function complementDe(nom, genre) {
+    if (/^[aâàeéèêëiîïoôöuûü]/i.test(nom)) return 'de l\'' + nom;
+    return (genre === 'f' ? 'de la ' : 'du ') + nom;
+  }
+
+  function construireConsigneBalade(gabarit) {
+    const { axe, nom, genre } = gabarit;
+    const motBase = axe === 'hauteur' ? (gabarit.cible === 'max' ? 'grand' : 'petit')
+      : axe === 'longueur' ? (gabarit.cible === 'max' ? 'long' : 'court')
+      : (gabarit.cible === 'max' ? 'loin' : 'proche');
+    const mot = accorderSuperlatif(motBase, genre);
+    const reference = axe === 'distance' ? ' ' + complementDe(REPERE_DISTANCE.nom, REPERE_DISTANCE.genre) : '';
+    const articleSujet = genre === 'f' ? 'la' : 'le';
+    const consigne = quel(genre, true) + ' ' + nom + ' est ' + articleSujet + ' plus ' + mot + reference + ' ?';
+    const consigneVoix = 'Regarde bien chaque ' + nom + ', et touche ' + celuiCelle(genre) + ' qui est ' + articleSujet + ' plus ' + mot + reference + '.';
+    return { consigne, consigneVoix };
+  }
+
+  // ---- Représentations figuratives (CSS) des éléments comparés ----
+
+  function creerBarreLongueur(nom, valeur) {
+    const barre = document.createElement('span');
+    barre.className = nom === 'corde' ? 'balade-corde' : 'balade-chemin';
+    barre.style.width = (valeur * 11 + 20) + 'px';
+    return barre;
+  }
+
+  function creerArbreFiguratif(hauteur) {
+    const arbre = document.createElement('span');
+    arbre.className = 'balade-arbre';
+    const feuillage = document.createElement('span');
+    feuillage.className = 'arbre-feuillage';
+    const tailleFeuillage = 2.1 + hauteur * 0.04;
+    feuillage.style.width = tailleFeuillage + 'rem';
+    feuillage.style.height = (tailleFeuillage * 0.85) + 'rem';
+    const tronc = document.createElement('span');
+    tronc.className = 'arbre-tronc';
+    tronc.style.height = (hauteur * 8) + 'px';
+    arbre.appendChild(feuillage);
+    arbre.appendChild(tronc);
+    return arbre;
+  }
+
+  // Clairière vue de façon semi-aérienne : une herbe claire cernée d'un
+  // anneau de 6 arbres, construit en CSS pur (rotation régulière à 60°).
+  function creerMiniClairiere() {
+    const mini = document.createElement('span');
+    mini.className = 'mini-clairiere';
+    for (let i = 0; i < 6; i++) {
+      const arbre = document.createElement('span');
+      arbre.className = 'mini-clairiere-arbre';
+      arbre.style.setProperty('--i', String(i));
+      mini.appendChild(arbre);
+    }
+    const herbe = document.createElement('span');
+    herbe.className = 'mini-clairiere-herbe';
+    mini.appendChild(herbe);
+    return mini;
+  }
+
+  function creerMiniLac() {
+    const lac = document.createElement('span');
+    lac.className = 'mini-lac';
+    return lac;
+  }
+
   function genererBaladeComparaison(zone, gabarit) {
     const n = choisir([2, 2, 3, 4]);
     const valeurs = gabarit.axe === 'distance'
       ? valeursEspacees(n, 2, 20, 3)
       : nombresDistincts(n, gabarit.axe === 'hauteur' ? 4 : 3, gabarit.axe === 'hauteur' ? 16 : 18);
     const cible = gabarit.cible === 'max' ? Math.max(...valeurs) : Math.min(...valeurs);
+    const { consigne, consigneVoix } = construireConsigneBalade(gabarit);
 
-    zone.appendChild(creerBlocConsigne(gabarit.consigne, gabarit.consigneVoix));
+    zone.appendChild(creerBlocConsigne(consigne, consigneVoix));
 
     if (gabarit.axe === 'hauteur') {
       const cont = document.createElement('div');
@@ -1133,9 +1237,7 @@
       valeurs.forEach((hauteur, i) => {
         const col = document.createElement('button');
         col.type = 'button'; col.className = 'arbre-col';
-        const cime = document.createElement('span'); cime.className = 'arbre-cime'; cime.textContent = gabarit.icone;
-        const tronc = document.createElement('span'); tronc.className = 'arbre-tronc-barre'; tronc.style.height = (hauteur * 8) + 'px';
-        col.appendChild(cime); col.appendChild(tronc);
+        col.appendChild(creerArbreFiguratif(hauteur));
         col.setAttribute('aria-label', 'Arbre ' + (i + 1));
         col.addEventListener('click', () => {
           Array.from(cont.querySelectorAll('.arbre-col')).forEach((b) => { b.disabled = true; });
@@ -1150,9 +1252,7 @@
       valeurs.forEach((longueur, i) => {
         const rangee = document.createElement('div'); rangee.className = 'rangee-brindille';
         const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'brindille-btn';
-        const icone = document.createElement('span'); icone.className = 'brindille-icone'; icone.textContent = gabarit.icone;
-        const barre = document.createElement('span'); barre.className = 'brindille-barre'; barre.style.width = (longueur * 11) + 'px';
-        btn.appendChild(icone); btn.appendChild(barre);
+        btn.appendChild(creerBarreLongueur(gabarit.nom, longueur));
         btn.setAttribute('aria-label', 'Élément ' + (i + 1));
         btn.addEventListener('click', () => {
           Array.from(cont.querySelectorAll('.brindille-btn')).forEach((b) => { b.disabled = true; });
@@ -1164,13 +1264,16 @@
       zone.appendChild(cont);
     } else {
       const sentier = document.createElement('div'); sentier.className = 'sentier';
-      const depart = document.createElement('span'); depart.className = 'sentier-depart'; depart.textContent = '🚏';
+      const depart = document.createElement('div'); depart.className = 'sentier-depart';
+      depart.appendChild(creerMiniLac());
+      const labelDepart = document.createElement('span'); labelDepart.className = 'sentier-depart-nom'; labelDepart.textContent = 'lac';
+      depart.appendChild(labelDepart);
       sentier.appendChild(depart);
       const piste = document.createElement('div'); piste.className = 'sentier-piste';
       valeurs.forEach((distance, i) => {
         const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'clairiere-btn';
         btn.style.left = (distance * 15) + 'px';
-        btn.textContent = gabarit.icone;
+        btn.appendChild(gabarit.nom === 'clairière' ? creerMiniClairiere() : document.createTextNode(gabarit.icone));
         btn.setAttribute('aria-label', 'Élément ' + (i + 1));
         btn.addEventListener('click', () => {
           Array.from(piste.querySelectorAll('.clairiere-btn')).forEach((b) => { b.disabled = true; });
