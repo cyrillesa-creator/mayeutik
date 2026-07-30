@@ -479,6 +479,92 @@ Au démarrage, le jeu lit le niveau du **profil actif** en lisant directement `m
 
 Quand **tous les mini-jeux du palier courant** sont maîtrisés (heuristique simplifiée et locale au jeu — pas le calcul officiel LSU qui reste propriété de la coquille — ex. dernière session de chaque mini-jeu du palier ≥ 80 %), le jeu propose en plus, sur l'écran d'accueil, un aperçu **optionnel** du palier suivant, présenté comme une **récompense** ("Palier bonus 🎁" ou équivalent) plutôt que comme une progression obligatoire. Les parties jouées dans ce palier bonus enregistrent de vraies sessions (avec les identifiants de compétence du palier suivant), donc une vraie maîtrise anticipée y est suivie normalement par la coquille.
 
+### Première révélation : effet « paquet cadeau »
+
+**Obligatoire pour tout module ayant un palier bonus.** La toute première fois qu'un palier bonus devient disponible pour un profil donné (transition détectée par `palierMaitrise()` passant de `false` à `true` alors qu'un palier suivant existe), le contenu du bonus n'est **pas affiché directement** : un paquet cadeau visuel le recouvre, et l'enfant doit taper dessus pour le révéler (confettis + petite animation d'ouverture). Une fois ouvert, le paquet ne réapparaît **plus jamais** pour ce profil et ce module : le bonus s'affiche ensuite normalement à chaque visite, comme avant cette section.
+
+Cet état (« déjà ouvert ou non ») est stocké **par profil, par module** — même clé de stockage sûr que les étoiles (section 9), suffixée `-bonus-revele`, avec un objet indexé par `profilId` :
+
+```js
+/* ---------- Palier bonus : révélation "paquet cadeau" ---------- */
+const CLE_BONUS_REVELE = 'mayeutik-<module>-bonus-revele'; // ex. mayeutik-m23-bonus-revele
+let memoireBonusRevele = null;
+function lireBonusRevele() {
+  if (memoireBonusRevele === null) {
+    memoireBonusRevele = {};
+    try {
+      const brut = window.localStorage.getItem(CLE_BONUS_REVELE);
+      if (brut) memoireBonusRevele = JSON.parse(brut);
+    } catch (e) {
+      memoireBonusRevele = {};
+    }
+  }
+  return memoireBonusRevele;
+}
+function bonusDejaRevele(profilId) {
+  return !!lireBonusRevele()[profilId];
+}
+function marquerBonusRevele(profilId) {
+  const tout = lireBonusRevele();
+  tout[profilId] = true;
+  memoireBonusRevele = tout;
+  try {
+    window.localStorage.setItem(CLE_BONUS_REVELE, JSON.stringify(tout));
+  } catch (e) {
+    // localStorage indisponible : le paquet cadeau réapparaîtra à la prochaine visite.
+  }
+}
+```
+
+Dans le bloc HTML existant du palier bonus (`#bloc-bonus` / `#grille-bonus`), ajouter un bouton `#paquet-cadeau` (`hidden` par défaut) entre le texte d'annonce et la grille :
+
+```html
+<button type="button" class="paquet-cadeau" id="paquet-cadeau" hidden>
+  <span class="paquet-cadeau-boite">
+    <span class="paquet-cadeau-ruban-v"></span>
+    <span class="paquet-cadeau-ruban-h"></span>
+    <span class="paquet-cadeau-noeud">🎀</span>
+  </span>
+  <span class="paquet-cadeau-texte">Touche le paquet pour découvrir ta récompense !</span>
+</button>
+```
+
+Dans la fonction qui construit l'écran d'accueil, là où le palier bonus est révélé (`if (suivant && palierMaitrise(...))`), basculer entre paquet et grille selon `bonusDejaRevele()`, et déclencher l'ouverture au clic :
+
+```js
+const profilId = lireProfilActifId();
+if (bonusDejaRevele(profilId)) {
+  paquetCadeau.hidden = true;
+  grilleBonus.hidden = false;
+} else {
+  paquetCadeau.hidden = false;
+  paquetCadeau.disabled = false;
+  paquetCadeau.classList.remove('paquet-cadeau-ouverture');
+  grilleBonus.hidden = true;
+  paquetCadeau.onclick = () => ouvrirPaquetCadeau(profilId, paquetCadeau, grilleBonus);
+}
+
+function ouvrirPaquetCadeau(profilId, paquetCadeau, grilleBonus) {
+  if (paquetCadeau.disabled) return;
+  paquetCadeau.disabled = true;
+  marquerBonusRevele(profilId);
+  lancerConfettis();
+  jouerSon('bravo');
+  paquetCadeau.classList.add('paquet-cadeau-ouverture');
+  setTimeout(() => {
+    paquetCadeau.hidden = true;
+    grilleBonus.hidden = false;
+  }, 480); // doit correspondre à la durée de l'animation CSS .paquet-cadeau-pop
+}
+```
+
+Le CSS associé (couleurs franches de la palette, style Fredoka, animation `paquet-cadeau-pop` en `scale`+`rotate`+`opacity` pendant ~450ms, avec repli `prefers-reduced-motion`) est à copier depuis `jeux/M23-longueurs.html` ou `jeux/M39-tableaux-diagrammes.html` (classes `.paquet-cadeau*`), premiers modules à l'implémenter — pas reproduit ici pour ne pas alourdir la charte, mais **identique d'un module à l'autre** (mêmes noms de classes).
+
+Points d'implémentation à ne pas oublier :
+- `paquetCadeau.onclick = ...` (propriété, pas `addEventListener`) car le bouton est un élément fixe du DOM, réutilisé à chaque appel de la fonction d'accueil (changement de palier, retour d'un mini-jeu…) — `addEventListener` accumulerait des gestionnaires en double à chaque re-rendu.
+- `grilleBonus.hidden = true` tant que le paquet n'est pas ouvert : les cartes du palier bonus doivent être absentes du DOM accessible (pas seulement visuellement masquées) avant l'ouverture.
+- Le confetti (section 4) et le son (section 5) déjà utilisés pour une bonne réponse sont réemployés tels quels pour l'ouverture — pas de nouvel effet à inventer.
+
 ### Référentiel et contrat de données
 
 - Chaque **mini-jeu, quel que soit son palier**, a un identifiant de compétence **unique et stable** dans tout le module (ex. `cp-recueil-diagramme`, `ce2-probleme-combine`) : c'est lui qui est écrit dans `competence` de l'objet SESSION (section 11), et c'est la même granularité qui apparaît dans les `competences` du référentiel — la montée en niveau d'un module adaptatif n'introduit donc aucune règle de suivi spéciale côté coquille, chaque mini-jeu de chaque palier est juste une compétence de plus.
