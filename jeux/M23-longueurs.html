@@ -322,18 +322,22 @@
   .baton-btn{ position:relative; border:none; background:transparent; padding:.2rem; min-height:44px;
     display:flex; align-items:center; touch-action:none; cursor:grab; }
   .baton-btn.baton-glisse{ z-index:5; cursor:grabbing; }
-  /* Transition d'ÉCHANGE : la largeur de chaque barre (donc son extrémité
-     droite) glisse vers sa nouvelle valeur au lieu de sauter instantanément
-     — les deux bâtons échangés semblent ainsi véritablement se croiser, même
-     quand leurs longueurs sont proches (cf. echanger() dans le JS, qui se
-     contente de changer la largeur : c'est CETTE transition qui rend le
-     changement perceptible). */
   .baton-barre{ display:block; height:20px; border-radius:999px;
     background-image:radial-gradient(circle, rgba(0,0,0,.2) 1.5px, transparent 1.6px), linear-gradient(180deg, #D3A67B, #8B5E3C);
     background-size:12px 12px, 100% 100%;
-    border:2px solid #6D4C33;
-    transition:width .25s ease; }
-  @media (prefers-reduced-motion:reduce){ .baton-barre{ transition:none; } }
+    border:2px solid #6D4C33; }
+
+  /* Transition d'ÉCHANGE : un « fantôme » CLONÉ de chaque barre impliquée
+     (donc de largeur IDENTIQUE, figée — jamais de transition sur width/
+     height/scale) glisse en pure TRANSLATION verticale de sa rangée de
+     départ vers sa rangée d'arrivée, pendant que les vraies barres —
+     déjà mises à jour à leur valeur finale — restent invisibles le temps du
+     geste (cf. echanger()/animerEchangeBatons() dans le JS). Les deux
+     bâtons se croisent ainsi visiblement, quelle que soit la proximité de
+     leurs longueurs. position:fixed + coordonnées écran (getBoundingClientRect)
+     : le fantôme n'a pas besoin d'un ancêtre positionné particulier. */
+  .baton-fantome{ position:fixed; margin:0; pointer-events:none; z-index:80; transition:transform .25s ease; will-change:transform; }
+  @media (prefers-reduced-motion:reduce){ .baton-fantome{ transition:none; } }
 
   /* ---- Palier CP : « Le Bois » — cabane (règle à déplacer) ---- */
   .piste-alignement{ position:relative; margin:.9rem 0; overflow-x:hidden; border-radius:10px; min-height:90px;
@@ -1520,10 +1524,59 @@
       cases[selection].classList.remove('case-selectionnee');
       selection = null;
     }
+
+    const preferesMouvementReduit = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Fantôme = CLONE de la vraie barre (donc largeur/couleur/hauteur
+    // identiques, JAMAIS retouchées) positionné en coordonnées écran, qui ne
+    // fait que translater : c'est la position qui change, jamais la taille.
+    function creerFantomeBaton(barreOriginale, rect) {
+      const fantome = barreOriginale.cloneNode(true);
+      fantome.classList.add('baton-fantome');
+      fantome.setAttribute('aria-hidden', 'true');
+      fantome.style.left = rect.left + 'px';
+      fantome.style.top = rect.top + 'px';
+      fantome.style.width = rect.width + 'px';
+      document.body.appendChild(fantome);
+      return fantome;
+    }
+
     function echanger(i, j) {
       if (i === j) return;
+      const barreI = cases[i].querySelector('.baton-barre');
+      const barreJ = cases[j].querySelector('.baton-barre');
+      const rectI = barreI.getBoundingClientRect();
+      const rectJ = barreJ.getBoundingClientRect();
+
+      // Le modèle de données (et donc la largeur réelle affichée dans
+      // chaque rangée FIXE) est mis à jour immédiatement — cf. commentaire
+      // au-dessus de genererOrdonnerBatons sur le DOM jamais reparenté
+      // pendant un geste. Les deux vraies barres restent invisibles le
+      // temps du survol animé ci-dessous, remplacées visuellement par les
+      // fantômes qui, eux, glissent.
       const tmp = ordre[i]; ordre[i] = ordre[j]; ordre[j] = tmp;
       rendreCase(i); rendreCase(j);
+
+      if (preferesMouvementReduit) return;
+
+      const fantomeI = creerFantomeBaton(barreI, rectI);
+      const fantomeJ = creerFantomeBaton(barreJ, rectJ);
+      barreI.style.visibility = 'hidden';
+      barreJ.style.visibility = 'hidden';
+      const versJ = rectJ.top - rectI.top;
+      const versI = rectI.top - rectJ.top;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          fantomeI.style.transform = 'translateY(' + versJ + 'px)';
+          fantomeJ.style.transform = 'translateY(' + versI + 'px)';
+        });
+      });
+      setTimeout(() => {
+        fantomeI.remove();
+        fantomeJ.remove();
+        barreI.style.visibility = '';
+        barreJ.style.visibility = '';
+      }, 260);
     }
 
     for (let i = 0; i < n; i++) {
