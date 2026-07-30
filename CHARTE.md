@@ -483,7 +483,7 @@ Quand **tous les mini-jeux du palier courant** sont maîtrisés (heuristique sim
 
 **Obligatoire pour tout module ayant un palier bonus.** La toute première fois qu'un palier bonus devient disponible pour un profil donné (transition détectée par `palierMaitrise()` passant de `false` à `true` alors qu'un palier suivant existe), le contenu du bonus n'est **pas affiché directement** : un paquet cadeau visuel le recouvre, et l'enfant doit taper dessus pour le révéler (confettis + petite animation d'ouverture). Une fois ouvert, le paquet ne réapparaît **plus jamais** pour ce profil et ce module : le bonus s'affiche ensuite normalement à chaque visite, comme avant cette section.
 
-Cet état (« déjà ouvert ou non ») est stocké **par profil, par module** — même clé de stockage sûr que les étoiles (section 9), suffixée `-bonus-revele`, avec un objet indexé par `profilId` :
+Cet état (« déjà ouvert ou non ») est stocké **par profil, par module, ET par palier cible** — même clé de stockage sûr que les étoiles (section 9), suffixée `-bonus-revele`, avec un objet indexé par `profilId` puis par le nom du palier révélé. L'indexation par palier cible est **indispensable** dès qu'un module couvre 3 paliers (CP/CE1/CE2) : il y a alors DEUX transitions bonus possibles (CP→CE1 puis CE1→CE2), et un indicateur indexé par `profilId` seul marquerait le profil comme « déjà révélé » pour le module entier dès la première transition, empêchant le second paquet cadeau (CE1→CE2) de jamais apparaître :
 
 ```js
 /* ---------- Palier bonus : révélation "paquet cadeau" ---------- */
@@ -501,12 +501,14 @@ function lireBonusRevele() {
   }
   return memoireBonusRevele;
 }
-function bonusDejaRevele(profilId) {
-  return !!lireBonusRevele()[profilId];
+function bonusDejaRevele(profilId, palierCible) {
+  const entree = lireBonusRevele()[profilId];
+  return !!(entree && typeof entree === 'object' && entree[palierCible]);
 }
-function marquerBonusRevele(profilId) {
+function marquerBonusRevele(profilId, palierCible) {
   const tout = lireBonusRevele();
-  tout[profilId] = true;
+  if (!tout[profilId] || typeof tout[profilId] !== 'object') tout[profilId] = {};
+  tout[profilId][palierCible] = true;
   memoireBonusRevele = tout;
   try {
     window.localStorage.setItem(CLE_BONUS_REVELE, JSON.stringify(tout));
@@ -529,11 +531,11 @@ Dans le bloc HTML existant du palier bonus (`#bloc-bonus` / `#grille-bonus`), aj
 </button>
 ```
 
-Dans la fonction qui construit l'écran d'accueil, là où le palier bonus est révélé (`if (suivant && palierMaitrise(...))`), basculer entre paquet et grille selon `bonusDejaRevele()`, et déclencher l'ouverture au clic :
+Dans la fonction qui construit l'écran d'accueil, là où le palier bonus est révélé (`if (suivant && palierMaitrise(...))`), basculer entre paquet et grille selon `bonusDejaRevele()`, et déclencher l'ouverture au clic. `suivant` (le palier révélé par ce bonus, déjà calculé via `palierSuivant(etatPalierAffiche)`) est la clé qui distingue les deux transitions possibles :
 
 ```js
 const profilId = lireProfilActifId();
-if (bonusDejaRevele(profilId)) {
+if (bonusDejaRevele(profilId, suivant)) {
   paquetCadeau.hidden = true;
   grilleBonus.hidden = false;
 } else {
@@ -541,13 +543,13 @@ if (bonusDejaRevele(profilId)) {
   paquetCadeau.disabled = false;
   paquetCadeau.classList.remove('paquet-cadeau-ouverture');
   grilleBonus.hidden = true;
-  paquetCadeau.onclick = () => ouvrirPaquetCadeau(profilId, paquetCadeau, grilleBonus);
+  paquetCadeau.onclick = () => ouvrirPaquetCadeau(profilId, suivant, paquetCadeau, grilleBonus);
 }
 
-function ouvrirPaquetCadeau(profilId, paquetCadeau, grilleBonus) {
+function ouvrirPaquetCadeau(profilId, palierCible, paquetCadeau, grilleBonus) {
   if (paquetCadeau.disabled) return;
   paquetCadeau.disabled = true;
-  marquerBonusRevele(profilId);
+  marquerBonusRevele(profilId, palierCible);
   lancerConfettis();
   jouerSon('bravo');
   paquetCadeau.classList.add('paquet-cadeau-ouverture');
@@ -564,6 +566,7 @@ Points d'implémentation à ne pas oublier :
 - `paquetCadeau.onclick = ...` (propriété, pas `addEventListener`) car le bouton est un élément fixe du DOM, réutilisé à chaque appel de la fonction d'accueil (changement de palier, retour d'un mini-jeu…) — `addEventListener` accumulerait des gestionnaires en double à chaque re-rendu.
 - `grilleBonus.hidden = true` tant que le paquet n'est pas ouvert : les cartes du palier bonus doivent être absentes du DOM accessible (pas seulement visuellement masquées) avant l'ouverture.
 - Le confetti (section 4) et le son (section 5) déjà utilisés pour une bonne réponse sont réemployés tels quels pour l'ouverture — pas de nouvel effet à inventer.
+- `bonusDejaRevele`/`marquerBonusRevele`/`ouvrirPaquetCadeau` prennent toujours `palierCible` (le `suivant` calculé plus haut) en paramètre, jamais seulement `profilId` — même pour un module qui ne couvre que 2 paliers aujourd'hui, un 3ᵉ palier pourra s'ajouter plus tard et l'indexation doit être là dès le départ.
 
 ### Référentiel et contrat de données
 

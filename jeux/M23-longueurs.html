@@ -618,7 +618,12 @@
   /* ---------- Palier bonus : révélation "paquet cadeau" (CHARTE §15, pattern
      générique réutilisable — cf. section « Palier bonus » du standard
      "Modules adaptatifs par niveau"). Une clé par module (comme les
-     étoiles), un indicateur par PROFIL à l'intérieur : { [profilId]: true }.
+     étoiles), un indicateur par PROFIL puis par PALIER CIBLE à l'intérieur :
+     { [profilId]: { [palierCible]: true } }. Un module à 3 paliers (CP/CE1/
+     CE2) a DEUX transitions bonus possibles (CP→CE1 puis CE1→CE2) : sans
+     l'indexation par palier cible, ouvrir le premier paquet marquait le
+     profil comme "déjà révélé" pour le module entier, et le second paquet
+     (CE1→CE2) n'apparaissait plus jamais — bug corrigé ici.
      Stockage sûr (mémoire + localStorage best-effort, CHARTE §9). ---------- */
   const CLE_BONUS_REVELE = 'mayeutik-m23-bonus-revele';
   let memoireBonusRevele = null;
@@ -634,12 +639,14 @@
     }
     return memoireBonusRevele;
   }
-  function bonusDejaRevele(profilId) {
-    return !!lireBonusRevele()[profilId];
+  function bonusDejaRevele(profilId, palierCible) {
+    const entree = lireBonusRevele()[profilId];
+    return !!(entree && typeof entree === 'object' && entree[palierCible]);
   }
-  function marquerBonusRevele(profilId) {
+  function marquerBonusRevele(profilId, palierCible) {
     const tout = lireBonusRevele();
-    tout[profilId] = true;
+    if (!tout[profilId] || typeof tout[profilId] !== 'object') tout[profilId] = {};
+    tout[profilId][palierCible] = true;
     memoireBonusRevele = tout;
     try {
       window.localStorage.setItem(CLE_BONUS_REVELE, JSON.stringify(tout));
@@ -1143,7 +1150,7 @@
       donnees.paliers[suivant].miniJeux.forEach((cfg) => grilleBonus.appendChild(construireCarteJeu(cfg)));
 
       const profilId = lireProfilActifId();
-      if (bonusDejaRevele(profilId)) {
+      if (bonusDejaRevele(profilId, suivant)) {
         paquetCadeau.hidden = true;
         grilleBonus.hidden = false;
       } else {
@@ -1151,20 +1158,21 @@
         paquetCadeau.disabled = false;
         paquetCadeau.classList.remove('paquet-cadeau-ouverture');
         grilleBonus.hidden = true;
-        paquetCadeau.onclick = () => ouvrirPaquetCadeau(profilId, paquetCadeau, grilleBonus);
+        paquetCadeau.onclick = () => ouvrirPaquetCadeau(profilId, suivant, paquetCadeau, grilleBonus);
       }
     } else {
       blocBonus.hidden = true;
     }
   }
 
-  /* Ouverture du paquet cadeau (une seule fois par profil, cf.
-     marquerBonusRevele) : confettis + petite animation d'explosion douce,
-     puis le contenu du palier bonus est révélé normalement. */
-  function ouvrirPaquetCadeau(profilId, paquetCadeau, grilleBonus) {
+  /* Ouverture du paquet cadeau (une seule fois par profil ET par palier
+     cible, cf. marquerBonusRevele) : confettis + petite animation
+     d'explosion douce, puis le contenu du palier bonus est révélé
+     normalement. */
+  function ouvrirPaquetCadeau(profilId, palierCible, paquetCadeau, grilleBonus) {
     if (paquetCadeau.disabled) return;
     paquetCadeau.disabled = true;
-    marquerBonusRevele(profilId);
+    marquerBonusRevele(profilId, palierCible);
     lancerConfettis();
     jouerSon('bravo');
     paquetCadeau.classList.add('paquet-cadeau-ouverture');
