@@ -73,6 +73,38 @@
   .bloc-bonus h3{ text-align:center; font-size:1rem; color:color-mix(in srgb, var(--couleur-soleil) 55%, black 25%); margin-bottom:.15rem; }
   .bloc-bonus .note-palier{ margin:.1rem 0 .7rem; }
 
+  /* Paquet cadeau : première révélation d'un palier bonus (CHARTE §15,
+     pattern générique "paquet cadeau" — cf. section « Palier bonus »).
+     Recouvre grille-bonus tant que l'enfant n'a pas cliqué dessus. */
+  .paquet-cadeau{
+    display:flex; flex-direction:column; align-items:center; gap:.7rem;
+    width:100%; border:none; background:transparent; padding:1rem .5rem; cursor:pointer; min-height:44px;
+  }
+  .paquet-cadeau-boite{
+    position:relative; width:5.6rem; height:4.6rem; border-radius:14px;
+    background:linear-gradient(180deg, var(--couleur-corail), color-mix(in srgb, var(--couleur-corail) 70%, black 15%));
+    border:3px solid color-mix(in srgb, var(--couleur-corail) 55%, black 20%);
+    box-shadow:0 5px 0 color-mix(in srgb, var(--couleur-corail) 50%, black 25%);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .paquet-cadeau:active .paquet-cadeau-boite{
+    transform:translateY(3px); box-shadow:0 2px 0 color-mix(in srgb, var(--couleur-corail) 50%, black 25%);
+  }
+  .paquet-cadeau-ruban-v{ position:absolute; left:50%; top:0; bottom:0; width:14px; margin-left:-7px; background:var(--couleur-soleil); }
+  .paquet-cadeau-ruban-h{ position:absolute; top:50%; left:0; right:0; height:14px; margin-top:-7px; background:var(--couleur-soleil); }
+  .paquet-cadeau-noeud{ position:absolute; left:50%; top:-1rem; transform:translateX(-50%); font-size:1.9rem; line-height:1; }
+  .paquet-cadeau-texte{ font-weight:700; font-size:.88rem; text-align:center; color:color-mix(in srgb, var(--couleur-encre) 85%, white); }
+  @keyframes paquet-cadeau-pop{
+    0%{ transform:scale(1) rotate(0deg); opacity:1; }
+    35%{ transform:scale(1.18) rotate(-5deg); opacity:1; }
+    100%{ transform:scale(.25) rotate(10deg); opacity:0; }
+  }
+  .paquet-cadeau.paquet-cadeau-ouverture .paquet-cadeau-boite{ animation:paquet-cadeau-pop .45s ease forwards; }
+  .paquet-cadeau.paquet-cadeau-ouverture .paquet-cadeau-texte{ opacity:0; transition:opacity .2s ease; }
+  @media (prefers-reduced-motion:reduce){
+    .paquet-cadeau.paquet-cadeau-ouverture .paquet-cadeau-boite{ animation:none; opacity:0; transition:opacity .3s ease; }
+  }
+
   #ecran-jeu{ max-width:640px; margin:0 auto; padding:.8rem 1rem 2.5rem; }
   .entete-jeu{ display:flex; align-items:center; gap:.6rem; margin-bottom:.8rem; }
   .bouton-retour{
@@ -399,6 +431,14 @@
   <div class="bloc-bonus" id="bloc-bonus" hidden>
     <h3 id="titre-bonus">Palier bonus 🎁</h3>
     <p class="note-palier" id="note-bonus"></p>
+    <button type="button" class="paquet-cadeau" id="paquet-cadeau" hidden>
+      <span class="paquet-cadeau-boite">
+        <span class="paquet-cadeau-ruban-v"></span>
+        <span class="paquet-cadeau-ruban-h"></span>
+        <span class="paquet-cadeau-noeud">🎀</span>
+      </span>
+      <span class="paquet-cadeau-texte">Touche le paquet pour découvrir ta récompense !</span>
+    </button>
     <div class="grille-jeux" id="grille-bonus"></div>
   </div>
 </main>
@@ -525,6 +565,39 @@
       window.localStorage.setItem(CLE_STOCKAGE, JSON.stringify(tout));
     } catch (e) {
       // localStorage indisponible : les étoiles restent valables pour la session en cours.
+    }
+  }
+
+  /* ---------- Palier bonus : révélation "paquet cadeau" (CHARTE §15, pattern
+     générique réutilisable — cf. section « Palier bonus » du standard
+     "Modules adaptatifs par niveau"). Une clé par module (comme les
+     étoiles), un indicateur par PROFIL à l'intérieur : { [profilId]: true }.
+     Stockage sûr (mémoire + localStorage best-effort, CHARTE §9). ---------- */
+  const CLE_BONUS_REVELE = 'mayeutik-m23-bonus-revele';
+  let memoireBonusRevele = null;
+  function lireBonusRevele() {
+    if (memoireBonusRevele === null) {
+      memoireBonusRevele = {};
+      try {
+        const brut = window.localStorage.getItem(CLE_BONUS_REVELE);
+        if (brut) memoireBonusRevele = JSON.parse(brut);
+      } catch (e) {
+        memoireBonusRevele = {};
+      }
+    }
+    return memoireBonusRevele;
+  }
+  function bonusDejaRevele(profilId) {
+    return !!lireBonusRevele()[profilId];
+  }
+  function marquerBonusRevele(profilId) {
+    const tout = lireBonusRevele();
+    tout[profilId] = true;
+    memoireBonusRevele = tout;
+    try {
+      window.localStorage.setItem(CLE_BONUS_REVELE, JSON.stringify(tout));
+    } catch (e) {
+      // localStorage indisponible : le paquet cadeau réapparaîtra à la prochaine visite.
     }
   }
   function creerEtoiles(valeur, max) {
@@ -971,19 +1044,50 @@
       .forEach((cfg) => grille.appendChild(construireCarteJeu(cfg)));
 
     /* Palier bonus (CHARTE §15) : uniquement si le palier courant est maîtrisé
-       ET qu'un palier suivant existe. */
+       ET qu'un palier suivant existe. Première apparition du bonus pour ce
+       profil : habillé en « paquet cadeau » tant qu'il n'a pas été ouvert
+       (cf. ouvrirPaquetCadeau) ; ensuite affiché normalement à chaque visite. */
     const suivant = palierSuivant(etatPalierAffiche);
     const blocBonus = document.getElementById('bloc-bonus');
+    const paquetCadeau = document.getElementById('paquet-cadeau');
+    const grilleBonus = document.getElementById('grille-bonus');
     if (suivant && palierMaitrise(etatPalierAffiche)) {
       blocBonus.hidden = false;
       document.getElementById('note-bonus').textContent =
         'Tu maîtrises tout le palier ' + etatPalierAffiche + ' : essaie un aperçu du palier ' + suivant + ' !';
-      const grilleBonus = document.getElementById('grille-bonus');
       grilleBonus.innerHTML = '';
       donnees.paliers[suivant].miniJeux.forEach((cfg) => grilleBonus.appendChild(construireCarteJeu(cfg)));
+
+      const profilId = lireProfilActifId();
+      if (bonusDejaRevele(profilId)) {
+        paquetCadeau.hidden = true;
+        grilleBonus.hidden = false;
+      } else {
+        paquetCadeau.hidden = false;
+        paquetCadeau.disabled = false;
+        paquetCadeau.classList.remove('paquet-cadeau-ouverture');
+        grilleBonus.hidden = true;
+        paquetCadeau.onclick = () => ouvrirPaquetCadeau(profilId, paquetCadeau, grilleBonus);
+      }
     } else {
       blocBonus.hidden = true;
     }
+  }
+
+  /* Ouverture du paquet cadeau (une seule fois par profil, cf.
+     marquerBonusRevele) : confettis + petite animation d'explosion douce,
+     puis le contenu du palier bonus est révélé normalement. */
+  function ouvrirPaquetCadeau(profilId, paquetCadeau, grilleBonus) {
+    if (paquetCadeau.disabled) return;
+    paquetCadeau.disabled = true;
+    marquerBonusRevele(profilId);
+    lancerConfettis();
+    jouerSon('bravo');
+    paquetCadeau.classList.add('paquet-cadeau-ouverture');
+    setTimeout(() => {
+      paquetCadeau.hidden = true;
+      grilleBonus.hidden = false;
+    }, 480);
   }
 
   function retourAccueil() {
