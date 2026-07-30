@@ -310,10 +310,18 @@
   .baton-btn{ position:relative; border:none; background:transparent; padding:.2rem; min-height:44px;
     display:flex; align-items:center; touch-action:none; cursor:grab; }
   .baton-btn.baton-glisse{ z-index:5; cursor:grabbing; }
+  /* Transition d'ÉCHANGE : la largeur de chaque barre (donc son extrémité
+     droite) glisse vers sa nouvelle valeur au lieu de sauter instantanément
+     — les deux bâtons échangés semblent ainsi véritablement se croiser, même
+     quand leurs longueurs sont proches (cf. echanger() dans le JS, qui se
+     contente de changer la largeur : c'est CETTE transition qui rend le
+     changement perceptible). */
   .baton-barre{ display:block; height:20px; border-radius:999px;
     background-image:radial-gradient(circle, rgba(0,0,0,.2) 1.5px, transparent 1.6px), linear-gradient(180deg, #D3A67B, #8B5E3C);
     background-size:12px 12px, 100% 100%;
-    border:2px solid #6D4C33; }
+    border:2px solid #6D4C33;
+    transition:width .25s ease; }
+  @media (prefers-reduced-motion:reduce){ .baton-barre{ transition:none; } }
 
   /* ---- Palier CP : « Le Bois » — cabane (règle à déplacer) ---- */
   .piste-alignement{ position:relative; margin:.9rem 0; overflow-x:hidden; border-radius:10px; min-height:90px;
