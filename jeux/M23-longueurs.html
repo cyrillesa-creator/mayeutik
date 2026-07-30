@@ -214,7 +214,7 @@
   /* ---- Règle graduée virtuelle (composant réutilisé par plusieurs mini-jeux) ---- */
   .regle-scroll{ overflow-x:auto; margin:.9rem 0; padding-bottom:.3rem; }
   .regle-graduee{
-    position:relative; height:64px;
+    position:relative; height:64px; overflow:hidden;
     background:linear-gradient(180deg, color-mix(in srgb, var(--couleur-mandarine) 16%, white), color-mix(in srgb, var(--couleur-encre) 6%, white));
     border:2.5px solid color-mix(in srgb, var(--couleur-encre) 25%, white); border-radius:10px;
   }
@@ -228,6 +228,19 @@
   }
   .regle-zone{ position:absolute; top:0; height:100%; background:transparent; border:none; padding:0; }
   .regle-zone.selectionnee{ background:color-mix(in srgb, var(--couleur-soleil) 45%, transparent); border-radius:4px; }
+
+  /* Variante « grande » : fenêtre de graduations agrandie et recentrée,
+     réservée à l'exercice d'encadrement (genererEncadrer) — chaque zone
+     cliquable entre deux graduations doit être une cible tactile d'au
+     moins 44px (CHARTE), ce qu'une règle de 20 cm affichée en entier ne
+     permet pas. Ticks, étiquettes et zones plus grands en conséquence. */
+  .regle-graduee-grande{ height:92px; border-radius:14px; border-width:3px; }
+  .regle-graduee-grande .regle-tick{ height:16px; width:3px; }
+  .regle-graduee-grande .regle-tick-forte{ height:26px; width:3.5px; }
+  .regle-graduee-grande .regle-label{ bottom:30px; font-size:1.05rem; }
+  .regle-graduee-grande .regle-unite{ bottom:30px; font-size:1rem; }
+  .regle-graduee-grande .regle-barre{ top:12px; height:18px; }
+  .regle-graduee-grande .regle-zone.selectionnee{ border-radius:8px; }
 
   /* ---- Comparaison directe (corde/chemin alignés) ---- */
   .comparaison-objets{ display:flex; flex-direction:column; gap:.9rem; margin:.9rem 0; overflow-x:auto; }
@@ -861,28 +874,40 @@
      ================================================================ */
 
   /* Règle graduée virtuelle : ticks, étiquettes, barre d'objet mesuré (optionnelle),
-     zones cliquables entre deux graduations entières (mode « encadrer »). */
+     zones cliquables entre deux graduations entières (mode « encadrer »).
+     `uniteDebut` (défaut 0) et `pxUnite` (défaut : calcul automatique via
+     pxParUniteRegle) permettent d'afficher une FENÊTRE agrandie centrée sur
+     une plage d'unités plutôt que toute la règle depuis 0 — cf.
+     genererEncadrer, dont les zones tactiles (44px CHARTE) seraient sinon
+     bien trop étroites sur une règle de 20 cm affichée en entier. Les
+     positions restent relatives à `uniteDebut` (left = (i - uniteDebut) *
+     px) mais les étiquettes et les zones renvoyées à `onZoneClic` gardent
+     leur valeur ABSOLUE, pour rester compatibles avec les appelants qui ne
+     passent pas `uniteDebut` (comportement inchangé, uniteDebut = 0). */
   function pxParUniteRegle(longueurUnites) {
     return Math.max(9, Math.min(30, Math.floor(280 / longueurUnites)));
   }
   function construireRegle(options) {
-    const { longueurUnites, objetLongueur, unite, zonesCliquables, onZoneClic, zoneSelectionnee } = options;
-    const px = pxParUniteRegle(longueurUnites);
+    const { longueurUnites, objetLongueur, unite, zonesCliquables, onZoneClic, zoneSelectionnee, uniteDebut, pxUnite } = options;
+    const debut = uniteDebut || 0;
+    const px = pxUnite || pxParUniteRegle(longueurUnites);
     const wrap = document.createElement('div');
     wrap.className = 'regle-scroll';
     const regle = document.createElement('div');
-    regle.className = 'regle-graduee';
+    regle.className = 'regle-graduee' + (pxUnite ? ' regle-graduee-grande' : '');
     regle.style.width = (longueurUnites * px + 24) + 'px';
 
     if (objetLongueur != null) {
       const barre = document.createElement('div');
       barre.className = 'regle-barre';
+      barre.style.left = (-debut * px) + 'px';
       barre.style.width = Math.max(2, objetLongueur * px) + 'px';
       regle.appendChild(barre);
     }
 
     const espacementLabel = px < 16 ? 5 : (px < 22 ? 2 : 1);
     for (let i = 0; i <= longueurUnites; i++) {
+      const valeurAbsolue = debut + i;
       const tick = document.createElement('div');
       tick.className = 'regle-tick' + (i % espacementLabel === 0 ? ' regle-tick-forte' : '');
       tick.style.left = (i * px) + 'px';
@@ -891,7 +916,7 @@
         const lab = document.createElement('div');
         lab.className = 'regle-label';
         lab.style.left = (i * px) + 'px';
-        lab.textContent = String(i);
+        lab.textContent = String(valeurAbsolue);
         regle.appendChild(lab);
       }
     }
@@ -903,13 +928,14 @@
 
     if (zonesCliquables) {
       for (let i = 0; i < longueurUnites; i++) {
+        const valeurAbsolue = debut + i;
         const zone = document.createElement('button');
         zone.type = 'button';
-        zone.className = 'regle-zone' + (zoneSelectionnee === i ? ' selectionnee' : '');
+        zone.className = 'regle-zone' + (zoneSelectionnee === valeurAbsolue ? ' selectionnee' : '');
         zone.style.left = (i * px) + 'px';
         zone.style.width = px + 'px';
-        zone.setAttribute('aria-label', 'Entre ' + i + ' et ' + (i + 1) + ' ' + (unite || 'cm'));
-        zone.addEventListener('click', () => onZoneClic(i));
+        zone.setAttribute('aria-label', 'Entre ' + valeurAbsolue + ' et ' + (valeurAbsolue + 1) + ' ' + (unite || 'cm'));
+        zone.addEventListener('click', () => onZoneClic(valeurAbsolue));
         regle.appendChild(zone);
       }
     }
@@ -2472,6 +2498,23 @@
      Mini-jeu : « Entre deux graduations » (encadrer, CE1)
      ================================================================ */
 
+  // Fenêtre agrandie de la règle (cf. construireRegle) : nombre d'unités
+  // affichées et taille de chaque unité en px, choisis pour que chaque zone
+  // cliquable (entre deux graduations) soit une cible tactile confortable
+  // (44px CHARTE) sans avoir besoin de faire défiler horizontalement sur un
+  // écran de téléphone. px fixé à une taille tactile confortable ; le
+  // NOMBRE d'unités affichées s'adapte, lui, à la largeur RÉELLEMENT
+  // disponible (mesurée sur `zone` au moment du rendu, cf. genererEncadrer)
+  // plutôt qu'à un seuil de viewport fixe : sur un écran large, la fenêtre
+  // par défaut (6 unités) s'affiche telle quelle ; sur un écran étroit, la
+  // fenêtre se réduit (jamais en dessous de 3, pour garder un vrai choix
+  // entre plusieurs graduations) plutôt que de rétrécir les zones sous 44px
+  // ou d'imposer un défilement horizontal.
+  const LARGEUR_FENETRE_ENCADREMENT_MAX = 6;
+  const LARGEUR_FENETRE_ENCADREMENT_MIN = 3;
+  const PX_UNITE_ENCADREMENT = 48;
+  const MARGE_REGLE_PX = 24; // cf. construireRegle : largeur totale = unités × px + 24
+
   function genererEncadrer(zone, cfg) {
     const cap = cfg.capCm || 20;
     const entier = nombreAleatoire(2, cap - 2);
@@ -2485,6 +2528,21 @@
 
     let zoneSelectionnee = null;
     let regleActuelle = null;
+    // Fenêtre affichée (nombre d'unités visibles + décalage depuis 0) : une
+    // première estimation est faite à partir de zone.clientWidth (rapide,
+    // correcte dans la grande majorité des cas), puis AJUSTÉE si besoin
+    // après le premier rendu réel (cf. plus bas) — la mesure a priori ne
+    // peut pas anticiper un éventuel défilement vertical de page qui
+    // réduirait encore la largeur disponible une fois tout le contenu de
+    // la manche affiché (consigne, règle, note, bouton).
+    const largeurDisponible = zone.clientWidth || 320;
+    const unitesPossibles = Math.floor((largeurDisponible - MARGE_REGLE_PX) / PX_UNITE_ENCADREMENT);
+    let largeurFenetre = Math.min(cap, Math.max(LARGEUR_FENETRE_ENCADREMENT_MIN, Math.min(LARGEUR_FENETRE_ENCADREMENT_MAX, unitesPossibles)));
+    let debutFenetre = calculerDebutFenetre(largeurFenetre);
+    function calculerDebutFenetre(largeur) {
+      return Math.max(0, Math.min(indexBas - Math.floor((largeur - 1) / 2), cap - largeur));
+    }
+
     const note = document.createElement('p');
     note.className = 'legende';
 
@@ -2503,7 +2561,8 @@
 
     function rerendreRegle() {
       const nouvelle = construireRegle({
-        longueurUnites: cap, objetLongueur: longueur, unite: 'cm',
+        longueurUnites: largeurFenetre, uniteDebut: debutFenetre, pxUnite: PX_UNITE_ENCADREMENT,
+        objetLongueur: longueur, unite: 'cm',
         zonesCliquables: true, zoneSelectionnee,
         onZoneClic: (i) => {
           if (etat.verrouille) return;
@@ -2521,6 +2580,15 @@
     zone.appendChild(note);
     majNote();
     rerendreRegle();
+    // Vérification post-rendu : si la règle déborde malgré tout de sa zone
+    // de défilement (scrollWidth > clientWidth), la fenêtre est réduite
+    // d'une unité et la règle reconstruite, jusqu'à ce qu'elle tienne ou
+    // que la largeur minimale (3 unités) soit atteinte.
+    while (largeurFenetre > LARGEUR_FENETRE_ENCADREMENT_MIN && regleActuelle.scrollWidth > regleActuelle.clientWidth + 2) {
+      largeurFenetre -= 1;
+      debutFenetre = calculerDebutFenetre(largeurFenetre);
+      rerendreRegle();
+    }
     zone.appendChild(boutonValider);
   }
 
