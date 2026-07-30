@@ -451,6 +451,31 @@
   .arbre-fantome{ position:fixed; pointer-events:none; z-index:80; transition:transform .25s ease; will-change:transform; }
   @media (prefers-reduced-motion:reduce){ .arbre-fantome{ transition:none; } }
 
+  /* ---- Palier CE2 : « Forêt amazonienne » — classement des unités ----
+     Tableau à 5 colonnes d'unité réparties sur DEUX RANGÉES (3 puis 2)
+     avec une marge verticale généreuse entre elles : les zones de dépôt
+     ne se chevauchent jamais et restent des cibles tactiles confortables
+     même sur un écran de téléphone étroit. */
+  .decouverte-grille{ display:flex; flex-direction:column; gap:1.6rem; margin:1rem 0; }
+  .decouverte-rangee{ display:flex; justify-content:center; gap:.9rem; flex-wrap:wrap; }
+  .decouverte-colonne{ display:flex; flex-direction:column; align-items:center; gap:.4rem; min-width:5.2rem; }
+  .decouverte-entete{ font-weight:700; font-size:1rem; color:color-mix(in srgb, var(--couleur-encre) 85%, white); }
+  .decouverte-depot{ min-height:6.8rem; width:5.2rem; border-radius:14px; border:2.5px dashed color-mix(in srgb, var(--couleur-encre) 25%, white);
+    background:color-mix(in srgb, var(--couleur-menthe) 8%, white); display:flex; align-items:center; justify-content:center; }
+  /* Bloc SOLIDAIRE nombre + image + nom : les 3 éléments empilés forment
+     UNE SEULE vignette déplaçable (jamais 3 cibles séparées). Le nombre
+     n'affiche jamais l'unité (elle est la colonne cible). */
+  .decouverte-plateau{ display:flex; justify-content:center; gap:.8rem; flex-wrap:wrap; margin-top:1.2rem; padding-top:.8rem;
+    border-top:2px dashed color-mix(in srgb, var(--couleur-soleil) 45%, white); min-height:6.8rem; }
+  .decouverte-vignette{ width:5rem; min-height:6.4rem; border-radius:14px; background:#ffffff;
+    border:2.5px solid color-mix(in srgb, var(--couleur-encre) 18%, white); box-shadow:0 3px 0 color-mix(in srgb, var(--couleur-encre) 12%, white);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.15rem; padding:.4rem .2rem;
+    touch-action:none; cursor:grab; user-select:none; }
+  .decouverte-vignette.decouverte-vignette-glisse{ z-index:10; cursor:grabbing; box-shadow:0 6px 14px rgba(0,0,0,.18); }
+  .decouverte-nombre{ font-weight:700; font-size:1.15rem; color:var(--couleur-mandarine); }
+  .decouverte-image{ width:2.6rem; height:2.6rem; }
+  .decouverte-nom{ font-size:.72rem; font-weight:700; text-align:center; line-height:1.1; }
+
   /* ---- Périmètre : côtés à reporter au compas ---- */
   .bloc-polygone{ text-align:center; font-weight:700; margin-bottom:.3rem; }
   .rangee-cotes{ display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; margin:.4rem 0 .7rem; }
@@ -564,8 +589,9 @@
       ]
     },
     "CE2": {
+      "sousTitre": "À la découverte de la forêt amazonienne ! 🌴",
       "miniJeux": [
-        { "id": "conversions-ce2", "titre": "Le décimètre du bûcheron", "icone": "🪓", "couleur": "menthe", "description": "Convertis des longueurs de troncs et de sentiers.", "type": "conversions", "nbTours": 6 },
+        { "id": "unites-decouverte-ce2", "titre": "Découverte : du microscopique à l'immensité", "icone": "🔍", "couleur": "corail", "description": "Classe des unités, puis associe chaque animal à sa taille.", "type": "decouverte-ce2", "nbTours": 6 },
         { "id": "perimetre-ce2", "titre": "Le tour de la clairière", "icone": "📐", "couleur": "mandarine", "description": "Compare et mesure le tour de figures.", "type": "perimetre", "nbTours": 6 }
       ]
     }
@@ -1271,7 +1297,7 @@
     else if (type === 'cabane-cp') genererCabaneCP(zone, etat.cfg);
     else if (type === 'unites-conversion-ce1') genererUnitesConversionCE1(zone, etat.cfg);
     else if (type === 'comparer-ranger-ce1') genererComparerRangerCE1(zone, etat.cfg);
-    else if (type === 'conversions') genererConversionsCE2(zone, etat.cfg);
+    else if (type === 'decouverte-ce2') genererDecouverteCE2(zone, etat.cfg);
     else if (type === 'perimetre') genererPerimetre(zone, etat.cfg);
   }
 
@@ -2611,41 +2637,284 @@
   }
 
   /* ================================================================
-     Mini-jeu : « Le décimètre du bûcheron » (conversions par relations, CE2)
+     Palier CE2 — « À la découverte de la forêt amazonienne »
+     Univers distinct du Bois (CP) et de la Forêt (CE1) : progression
+     narrative Bois → Forêt → Taïga côté échelle des distances, mais le CE2
+     élargit à l'échelle des UNITÉS elles-mêmes (mm → km), d'où une
+     Amazonie plutôt qu'une Taïga — cohérente avec l'esprit d'exploration à
+     grande échelle attendu à ce niveau.
+     Illustrations SVG reprises telles quelles depuis la référence fournie
+     (fourmi/grenouille/toucan/jaguar/fleuve Amazone) — même style, mêmes
+     couleurs, non réinventées.
      ================================================================ */
 
-  function genererConversionsCE2(zone, cfg) {
-    const type = choisir(['cm-vers-mdc', 'km-vers-m', 'm-vers-cm', 'mm-vers-cm']);
-    if (type === 'cm-vers-mdc') {
-      const total = nombreAleatoire(105, 987);
-      const m = Math.floor(total / 100);
-      const dm = Math.floor((total % 100) / 10);
-      const cm = total % 10;
-      zone.appendChild(creerBlocConsigne(
-        'Un tronc mesure ' + total + ' cm. Écris cette longueur avec des mètres, des décimètres et des centimètres.',
-        'Décompose ' + total + ' centimètres en mètres, décimètres et centimètres.'
-      ));
-      creerSaisieDecomposition(zone, ['m', 'dm', 'cm'], [m, dm, cm]);
-    } else if (type === 'km-vers-m') {
-      const km = nombreAleatoire(1, 9);
-      const texte = 'Le sentier de la forêt mesure ' + km + ' km. Combien de mètres cela fait-il ?';
-      zone.appendChild(creerBlocConsigne(texte, texte));
-      creerSaisieSimple(zone, km * 1000);
-    } else if (type === 'm-vers-cm') {
-      const m = nombreAleatoire(2, 9);
-      const texte = 'Un sentier mesure ' + m + ' m. Combien de centimètres cela fait-il ?';
-      zone.appendChild(creerBlocConsigne(texte, texte));
-      creerSaisieSimple(zone, m * 100);
-    } else {
-      const totalMm = nombreAleatoire(23, 98);
-      const cm = Math.floor(totalMm / 10);
-      const mm = totalMm % 10;
-      zone.appendChild(creerBlocConsigne(
-        'Une brindille mesure ' + totalMm + ' mm. Écris cette longueur avec des centimètres et des millimètres.',
-        'Décompose ' + totalMm + ' millimètres en centimètres et millimètres.'
-      ));
-      creerSaisieDecomposition(zone, ['cm', 'mm'], [cm, mm]);
+  const SVG_FOURMI = '<svg viewBox="0 0 70 70" width="100%" height="100%" aria-hidden="true">' +
+    '<ellipse cx="35" cy="42" rx="10" ry="8" fill="#3a2a1a"/>' +
+    '<ellipse cx="35" cy="30" rx="6" ry="6" fill="#3a2a1a"/>' +
+    '<circle cx="35" cy="20" r="5" fill="#3a2a1a"/>' +
+    '<line x1="30" y1="20" x2="26" y2="14" stroke="#3a2a1a" stroke-width="1.5"/>' +
+    '<line x1="40" y1="20" x2="44" y2="14" stroke="#3a2a1a" stroke-width="1.5"/>' +
+    '<line x1="27" y1="38" x2="18" y2="34" stroke="#3a2a1a" stroke-width="1.5"/>' +
+    '<line x1="27" y1="42" x2="17" y2="42" stroke="#3a2a1a" stroke-width="1.5"/>' +
+    '<line x1="27" y1="46" x2="18" y2="50" stroke="#3a2a1a" stroke-width="1.5"/>' +
+    '<line x1="43" y1="38" x2="52" y2="34" stroke="#3a2a1a" stroke-width="1.5"/>' +
+    '<line x1="43" y1="42" x2="53" y2="42" stroke="#3a2a1a" stroke-width="1.5"/>' +
+    '<line x1="43" y1="46" x2="52" y2="50" stroke="#3a2a1a" stroke-width="1.5"/>' +
+    '</svg>';
+  const SVG_GRENOUILLE = '<svg viewBox="0 0 70 70" width="100%" height="100%" aria-hidden="true">' +
+    '<ellipse cx="35" cy="42" rx="20" ry="14" fill="#4a9e4a"/>' +
+    '<circle cx="24" cy="26" r="9" fill="#4a9e4a"/>' +
+    '<circle cx="46" cy="26" r="9" fill="#4a9e4a"/>' +
+    '<circle cx="24" cy="24" r="4" fill="#1a1a1a"/>' +
+    '<circle cx="46" cy="24" r="4" fill="#1a1a1a"/>' +
+    '<circle cx="24" cy="24" r="1.3" fill="#fff"/>' +
+    '<circle cx="46" cy="24" r="1.3" fill="#fff"/>' +
+    '<ellipse cx="16" cy="52" rx="7" ry="4" fill="#3d8a3d"/>' +
+    '<ellipse cx="54" cy="52" rx="7" ry="4" fill="#3d8a3d"/>' +
+    '<path d="M 24 46 Q 35 52 46 46" stroke="#2d6b2d" stroke-width="1.5" fill="none"/>' +
+    '</svg>';
+  const SVG_TOUCAN = '<svg viewBox="0 0 70 70" width="100%" height="100%" aria-hidden="true">' +
+    '<ellipse cx="36" cy="44" rx="10" ry="13" fill="#fdfdfd"/>' +
+    '<circle cx="33" cy="24" r="11" fill="#1a1a1a"/>' +
+    '<path d="M 33 20 C 50 14, 62 18, 60 26 C 58 32, 46 30, 34 27 Z" fill="#f5a623"/>' +
+    '<path d="M 45 23 C 52 21, 57 23, 56 27 C 54 29, 47 27, 45 25 Z" fill="#2fa84a"/>' +
+    '<circle cx="30" cy="20" r="2" fill="#fff"/>' +
+    '<circle cx="30" cy="20" r="1" fill="#1a1a1a"/>' +
+    '<ellipse cx="34" cy="38" rx="3.5" ry="4" fill="#e63946"/>' +
+    '<path d="M 26 34 Q 18 44 24 54 Q 30 50 30 40 Z" fill="#1a1a1a"/>' +
+    '<path d="M 36 56 Q 38 64 34 66 Q 38 60 36 56 Z" fill="#1a1a1a"/>' +
+    '<line x1="32" y1="56" x2="30" y2="63" stroke="#f5a623" stroke-width="2"/>' +
+    '<line x1="38" y1="56" x2="40" y2="63" stroke="#f5a623" stroke-width="2"/>' +
+    '<line x1="18" y1="63" x2="52" y2="63" stroke="#8a5a2a" stroke-width="3" stroke-linecap="round"/>' +
+    '</svg>';
+  const SVG_JAGUAR = '<svg viewBox="0 0 70 70" width="100%" height="100%" aria-hidden="true">' +
+    '<path d="M 55 40 Q 66 36 64 46 Q 60 48 54 44 Z" fill="#e8a84a"/>' +
+    '<path d="M 14 44 C 12 30, 24 22, 36 24 C 48 22, 58 30, 56 42 C 55 50, 46 52, 36 51 C 24 52, 15 50, 14 44 Z" fill="#e8a84a"/>' +
+    '<circle cx="16" cy="32" r="11" fill="#e8a84a"/>' +
+    '<circle cx="9" cy="24" r="3.2" fill="#e8a84a"/>' +
+    '<circle cx="21" cy="23" r="3.2" fill="#e8a84a"/>' +
+    '<circle cx="9" cy="24" r="1.4" fill="#c98a3a"/>' +
+    '<circle cx="21" cy="23" r="1.4" fill="#c98a3a"/>' +
+    '<ellipse cx="14" cy="37" rx="6" ry="4.5" fill="#fdf3e0"/>' +
+    '<circle cx="11" cy="33" r="1.5" fill="#1a1a1a"/>' +
+    '<circle cx="18" cy="32" r="1.5" fill="#1a1a1a"/>' +
+    '<ellipse cx="14.5" cy="37" rx="1.6" ry="1.1" fill="#1a1a1a"/>' +
+    '<circle cx="30" cy="28" r="2.3" fill="none" stroke="#6b4a2a" stroke-width="1.3"/>' +
+    '<circle cx="40" cy="27" r="2.3" fill="none" stroke="#6b4a2a" stroke-width="1.3"/>' +
+    '<circle cx="48" cy="33" r="2.1" fill="none" stroke="#6b4a2a" stroke-width="1.3"/>' +
+    '<circle cx="35" cy="38" r="2.3" fill="none" stroke="#6b4a2a" stroke-width="1.3"/>' +
+    '<circle cx="46" cy="42" r="2" fill="none" stroke="#6b4a2a" stroke-width="1.3"/>' +
+    '<circle cx="25" cy="42" r="2" fill="none" stroke="#6b4a2a" stroke-width="1.3"/>' +
+    '<rect x="18" y="48" width="5" height="13" rx="2.5" fill="#e8a84a"/>' +
+    '<rect x="30" y="49" width="5" height="12" rx="2.5" fill="#e8a84a"/>' +
+    '<rect x="42" y="48" width="5" height="13" rx="2.5" fill="#e8a84a"/>' +
+    '<rect x="50" y="46" width="5" height="12" rx="2.5" fill="#e8a84a"/>' +
+    '</svg>';
+  const SVG_FLEUVE = '<svg viewBox="0 0 70 70" width="100%" height="100%" aria-hidden="true">' +
+    '<path d="M 8 30 Q 22 18 32 30 Q 42 44 55 33" stroke="#4a90d9" stroke-width="9" fill="none" stroke-linecap="round"/>' +
+    '<path d="M 8 30 Q 22 18 32 30 Q 42 44 55 33" stroke="#7bc0f5" stroke-width="3.5" fill="none" stroke-linecap="round" opacity="0.75"/>' +
+    '<circle cx="14" cy="52" r="6" fill="#3d8a3d"/>' +
+    '<circle cx="28" cy="55" r="7.5" fill="#4a9e4a"/>' +
+    '<circle cx="45" cy="52" r="6" fill="#3d8a3d"/>' +
+    '<circle cx="55" cy="56" r="6.5" fill="#4a9e4a"/>' +
+    '</svg>';
+
+  /* Mini-jeu 1 — « Découverte : du microscopique à l'immensité » : les 5
+     éléments à classer, du plus petit au plus grand. `taille` est un
+     NOMBRE SEUL (jamais d'unité écrite dessus dans la vignette : l'unité
+     est la colonne cible, cf. genererClassementDecouverteCE2) — tailles
+     approximatives réelles (fourmi ~8 mm, petite grenouille ~5 cm, toucan
+     ~5 dm, jaguar ~2 m, fleuve Amazone ~6400 km). */
+  const ELEMENTS_DECOUVERTE_CE2 = [
+    { id: 'fourmi', nom: 'Fourmi', unite: 'mm', taille: 8, svg: SVG_FOURMI },
+    { id: 'grenouille', nom: 'Grenouille', unite: 'cm', taille: 5, svg: SVG_GRENOUILLE },
+    { id: 'toucan', nom: 'Toucan', unite: 'dm', taille: 5, svg: SVG_TOUCAN },
+    { id: 'jaguar', nom: 'Jaguar', unite: 'm', taille: 2, svg: SVG_JAGUAR },
+    { id: 'fleuve', nom: 'Fleuve Amazone', unite: 'km', taille: 6400, svg: SVG_FLEUVE }
+  ];
+
+  /* Sous-type « ordre de grandeur » (étape C) : même esprit que les
+     questions similaires du palier CE1 (texte à trou, QCM par clic), mais
+     étendu aux 5 unités mm/cm/dm/m/km — chaque item propose un
+     SOUS-ENSEMBLE pertinent de 2 à 3 unités plutôt que les 5 à chaque
+     fois (un choix à 5 options serait disproportionné pour une question
+     d'ordre de grandeur). 12 items (> 2× les 6 manches par partie, CHARTE
+     §13), tirage sans redondance par partie (etat.grandeurVues). */
+  const ORDRE_GRANDEUR_CE2 = [
+    { texte: "La longueur d'une fourmi s'exprime plutôt en ___", bonne: 'mm', options: ['mm', 'cm', 'dm'] },
+    { texte: "L'épaisseur d'une feuille s'exprime plutôt en ___", bonne: 'mm', options: ['mm', 'cm'] },
+    { texte: "La longueur d'un scarabée s'exprime plutôt en ___", bonne: 'cm', options: ['mm', 'cm'] },
+    { texte: "La taille d'une grenouille s'exprime plutôt en ___", bonne: 'cm', options: ['mm', 'cm', 'dm'] },
+    { texte: "La longueur d'un toucan s'exprime plutôt en ___", bonne: 'dm', options: ['cm', 'dm', 'm'] },
+    { texte: "L'épaisseur d'un tronc d'arbre s'exprime plutôt en ___", bonne: 'dm', options: ['cm', 'dm', 'm'] },
+    { texte: "La longueur d'un jaguar s'exprime plutôt en ___", bonne: 'm', options: ['dm', 'm', 'km'] },
+    { texte: "La longueur d'un anaconda s'exprime plutôt en ___", bonne: 'm', options: ['dm', 'm', 'km'] },
+    { texte: "La hauteur d'un grand arbre de la forêt amazonienne s'exprime plutôt en ___", bonne: 'm', options: ['cm', 'm', 'km'] },
+    { texte: "La largeur d'une pirogue s'exprime plutôt en ___", bonne: 'm', options: ['dm', 'm', 'km'] },
+    { texte: "La longueur du fleuve Amazone s'exprime plutôt en ___", bonne: 'km', options: ['m', 'km'] },
+    { texte: "La distance parcourue lors d'une randonnée dans la jungle s'exprime plutôt en ___", bonne: 'km', options: ['m', 'km'] }
+  ];
+
+  /* Dispatcher du mini-jeu 1 : alterne SANS regrouper par bloc le
+     classement (étapes A+B, drag & drop du bloc solidaire nombre+image+nom
+     vers la bonne colonne d'unité) et les questions d'ordre de grandeur
+     (étape C). Clé d'anti-répétition dédiée (dernierSousTypeDecouverte)
+     pour ne pas entrer en collision avec les autres dispatchers du fichier. */
+  function genererDecouverteCE2(zone, cfg) {
+    const types = ['classement', 'ordre-grandeur'];
+    const dispo = types.filter((t) => t !== etat.dernierSousTypeDecouverte);
+    const sousType = choisir(dispo.length ? dispo : types);
+    etat.dernierSousTypeDecouverte = sousType;
+    if (sousType === 'classement') genererClassementDecouverteCE2(zone);
+    else genererOrdreGrandeurCE2(zone);
+  }
+
+  function genererOrdreGrandeurCE2(zone) {
+    if (!etat.grandeurVues) etat.grandeurVues = [];
+    let dispo = ORDRE_GRANDEUR_CE2.filter((it) => etat.grandeurVues.indexOf(it.texte) === -1);
+    if (!dispo.length) { etat.grandeurVues = []; dispo = ORDRE_GRANDEUR_CE2; }
+    const item = choisir(dispo);
+    etat.grandeurVues.push(item.texte);
+
+    zone.appendChild(creerBlocConsigne(item.texte, item.texte.replace('___', '…') + ' Quelle unité manque ?'));
+
+    const options = melanger(item.options.slice());
+    const grille = document.createElement('div');
+    grille.className = 'grille-options';
+    options.forEach((opt) => {
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'bouton-option'; btn.textContent = opt;
+      btn.addEventListener('click', () => {
+        Array.from(grille.children).forEach((b) => { b.disabled = true; });
+        const correct = opt === item.bonne;
+        btn.classList.add(correct ? 'correct' : 'incorrect');
+        if (!correct) {
+          const bonne = Array.from(grille.children).find((b) => b.textContent === item.bonne);
+          if (bonne) bonne.classList.add('correct');
+        }
+        validerTour(correct, btn);
+      });
+      grille.appendChild(btn);
+    });
+    zone.appendChild(grille);
+  }
+
+  /*
+   * Sous-type « classement » (étapes A+B) : tableau de 5 colonnes d'unité
+   * (mm/cm/dm/m/km) réparties sur DEUX RANGÉES très espacées (3 puis 2)
+   * pour que les zones de dépôt ne se chevauchent jamais et restent
+   * confortables au doigt sur mobile. 5 vignettes À GLISSER, chacune un
+   * bloc SOLIDAIRE de 3 éléments empilés (nombre seul, image SVG, nom) —
+   * jamais l'unité écrite dessus, elle EST la colonne cible. Glisser-poser
+   * réel (pointerdown/pointermove/pointerup, translateX/Y pendant le
+   * geste) : déposer sur une colonne déjà occupée renvoie l'occupante au
+   * plateau plutôt que de rejeter le geste, pour rester tolérant aux
+   * essais successifs. L'état (qui est où) est lu directement dans le DOM
+   * à la validation, jamais dans une structure parallèle qui pourrait se
+   * désynchroniser.
+   */
+  function genererClassementDecouverteCE2(zone) {
+    zone.appendChild(creerBlocConsigne(
+      "Fais glisser chaque vignette vers la bonne colonne d'unité.",
+      "Regarde le nombre et l'image de chaque vignette, puis fais-la glisser dans la colonne de l'unité qui convient. Valide quand les 5 vignettes sont placées."
+    ));
+
+    const grille = document.createElement('div');
+    grille.className = 'decouverte-grille';
+    const colonnes = {};
+    [['mm', 'cm', 'dm'], ['m', 'km']].forEach((uniteLigne) => {
+      const rangee = document.createElement('div');
+      rangee.className = 'decouverte-rangee';
+      uniteLigne.forEach((u) => {
+        const colonne = document.createElement('div');
+        colonne.className = 'decouverte-colonne';
+        const entete = document.createElement('div');
+        entete.className = 'decouverte-entete'; entete.textContent = u;
+        const depot = document.createElement('div');
+        depot.className = 'decouverte-depot'; depot.dataset.unite = u;
+        colonne.appendChild(entete); colonne.appendChild(depot);
+        rangee.appendChild(colonne);
+        colonnes[u] = depot;
+      });
+      grille.appendChild(rangee);
+    });
+    zone.appendChild(grille);
+
+    const plateau = document.createElement('div');
+    plateau.className = 'decouverte-plateau';
+    zone.appendChild(plateau);
+
+    const boutonValider = document.createElement('button');
+    boutonValider.type = 'button'; boutonValider.className = 'bouton-principal'; boutonValider.textContent = 'Valider';
+    boutonValider.disabled = true;
+
+    function toutPlace() {
+      return Object.values(colonnes).every((c) => c.children.length === 1) && plateau.children.length === 0;
     }
+    function majValidation() { boutonValider.disabled = !toutPlace(); }
+
+    function rendreDeplacable(v) {
+      let enGlissement = false;
+      let departX = 0, departY = 0;
+      v.addEventListener('pointerdown', (e) => {
+        if (etat.verrouille) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        enGlissement = true;
+        departX = e.clientX; departY = e.clientY;
+        v.classList.add('decouverte-vignette-glisse');
+        try { v.setPointerCapture(e.pointerId); } catch (err) { /* pointeur déjà relâché : tant pis */ }
+      });
+      v.addEventListener('pointermove', (e) => {
+        if (!enGlissement) return;
+        e.preventDefault();
+        v.style.transform = 'translate(' + (e.clientX - departX) + 'px,' + (e.clientY - departY) + 'px)';
+      });
+      function relacher(e) {
+        if (!enGlissement) return;
+        enGlissement = false;
+        v.style.transform = '';
+        v.classList.remove('decouverte-vignette-glisse');
+        const cible = Object.values(colonnes).find((depot) => {
+          const r = depot.getBoundingClientRect();
+          return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+        });
+        if (cible) {
+          const occupante = cible.firstElementChild;
+          if (occupante && occupante !== v) plateau.appendChild(occupante);
+          cible.appendChild(v);
+        } else {
+          plateau.appendChild(v);
+        }
+        majValidation();
+      }
+      v.addEventListener('pointerup', relacher);
+      v.addEventListener('pointercancel', relacher);
+    }
+
+    melanger(ELEMENTS_DECOUVERTE_CE2.slice()).forEach((item) => {
+      const v = document.createElement('div');
+      v.className = 'decouverte-vignette';
+      v.dataset.unite = item.unite;
+      v.setAttribute('aria-label', item.nom);
+      const nombre = document.createElement('div');
+      nombre.className = 'decouverte-nombre'; nombre.textContent = String(item.taille);
+      const image = document.createElement('div');
+      image.className = 'decouverte-image'; image.innerHTML = item.svg;
+      const nom = document.createElement('div');
+      nom.className = 'decouverte-nom'; nom.textContent = item.nom;
+      v.appendChild(nombre); v.appendChild(image); v.appendChild(nom);
+      plateau.appendChild(v);
+      rendreDeplacable(v);
+    });
+
+    boutonValider.addEventListener('click', () => {
+      const correct = Object.entries(colonnes).every(([u, depot]) => {
+        const v = depot.firstElementChild;
+        return v && v.dataset.unite === u;
+      });
+      validerTour(correct, boutonValider);
+    });
+    zone.appendChild(boutonValider);
   }
 
   function creerSaisieDecomposition(zone, unites, reponses) {
