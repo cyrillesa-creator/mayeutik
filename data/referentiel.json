@@ -128,7 +128,8 @@
         { "id": "mesurer-longueurs-cp", "libelle": "Estimer un ordre de grandeur et mesurer en centimètres avec une règle graduée (fixe ou à déplacer)", "niveau": "CP" },
         { "id": "unites-conversion-ce1", "libelle": "Choisir l'unité adaptée (m/cm/km) et convertir par relations simples (1m=100cm, 1km=1000m)", "niveau": "CE1" },
         { "id": "comparer-ranger-ce1", "libelle": "Comparer, ranger et encadrer des longueurs en m/cm/km (dont encadrement entre deux entiers de cm)", "niveau": "CE1" },
-        { "id": "conversions-ce2", "libelle": "Convertir des longueurs par relations explicites (mm/cm/dm/m/km), sans tableau de conversion", "niveau": "CE2" },
+        { "id": "unites-decouverte-ce2", "libelle": "Classer les unités de longueur (mm/cm/dm/m/km) et estimer l'ordre de grandeur d'un objet ou d'une distance", "niveau": "CE2" },
+        { "id": "calculs-mesure-ce2", "libelle": "Convertir des longueurs par relations explicites (mm/cm/dm/m/km) et mesurer en cm et en mm avec une règle graduée", "niveau": "CE2" },
         { "id": "perimetre-ce2", "libelle": "Comparer et mesurer le périmètre d'un polygone (report au compas, somme des côtés)", "niveau": "CE2" }
       ]
     },
