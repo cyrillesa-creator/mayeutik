@@ -319,7 +319,16 @@
   .piste-alignement{ position:relative; margin:.9rem 0; overflow-x:hidden; border-radius:10px; min-height:90px;
     background:color-mix(in srgb, var(--couleur-mandarine) 8%, white); border:2px solid color-mix(in srgb, var(--couleur-encre) 12%, white); }
   .planche-fixe{ position:absolute; top:38px; height:16px; border-radius:4px; background:#B08968; border:2px solid color-mix(in srgb, #B08968 60%, black 15%); }
-  .regle-graduee.regle-glissable{ position:absolute; top:8px; touch-action:none; cursor:grab; }
+  /* Règle DÉPLAÇABLE : semi-transparente pour que la planche à mesurer reste
+     visible PAR-TRANSPARENCE une fois la règle glissée dessus (sinon elle la
+     cache entièrement, cf. bug ergonomie). Les graduations/chiffres reçoivent
+     une opacité propre plus élevée (et un léger halo pour les chiffres) afin
+     de rester lisibles malgré l'opacité globale réduite de la règle. */
+  .regle-graduee.regle-glissable{ position:absolute; top:8px; touch-action:none; cursor:grab; opacity:.68; }
+  .regle-graduee.regle-glissable .regle-tick{ opacity:.95; }
+  .regle-graduee.regle-glissable .regle-tick-forte{ opacity:1; }
+  .regle-graduee.regle-glissable .regle-label,
+  .regle-graduee.regle-glissable .regle-unite{ opacity:1; text-shadow:0 0 3px #fff, 0 0 3px #fff; }
 
   /* ---- Périmètre : côtés à reporter au compas ---- */
   .bloc-polygone{ text-align:center; font-weight:700; margin-bottom:.3rem; }
