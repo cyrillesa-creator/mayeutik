@@ -546,7 +546,7 @@
     "CE1": {
       "sousTitre": "Une exploration dans la Forêt, entre unités et repères ! 🌲",
       "miniJeux": [
-        { "id": "unites-conversion-ce1", "titre": "La lisière", "icone": "🌲", "couleur": "menthe", "description": "Choisis la bonne unité, puis convertis des longueurs.", "type": "unites-conversion-ce1", "nbTours": 6 },
+        { "id": "unites-conversion-ce1", "titre": "La lisière de la forêt", "icone": "🌲", "couleur": "menthe", "description": "Choisis la bonne unité, puis convertis des longueurs.", "type": "unites-conversion-ce1", "nbTours": 6 },
         { "id": "comparer-ranger-ce1", "titre": "La règle du garde forestier", "icone": "🧭", "couleur": "soleil", "description": "Compare, range et encadre des longueurs en m, cm et km.", "type": "comparer-ranger-ce1", "nbTours": 6, "capCm": 20 }
       ]
     },
@@ -1032,23 +1032,26 @@
   }
 
   /* Palier CE1 — « La Forêt » : banque « quelle unité choisir ? » (mini-jeu
-     « La lisière », et réutilisée comme un des sous-types de « La règle du
-     garde forestier »). 12 items (> 2× les 6 manches par partie, CHARTE
-     §13), un tirage sans redondance par partie (etat.uniteVues, comme
-     genererEstimation). */
+     « La lisière de la forêt », et réutilisée comme un des sous-types de « La règle du
+     garde forestier »). Formulation déclarative (« La hauteur… s'exprime
+     en… ») plutôt qu'interrogative directe sur l'unité, avec « distance »
+     réservé aux trajets et « hauteur »/« largeur »/« longueur » aux objets
+     mesurés — cohérent avec le contexte de chaque item. 12 items (> 2× les
+     6 manches par partie, CHARTE §13), un tirage sans redondance par
+     partie (etat.uniteVues, comme genererEstimation). */
   const OBJETS_UNITES_CE1 = [
-    { texte: "Quelle unité choisir pour mesurer la hauteur d'un chêne ?", icone: '🌳', unite: 'm' },
-    { texte: "Quelle unité choisir pour mesurer la hauteur d'un sapin ?", icone: '🌲', unite: 'm' },
-    { texte: "Quelle unité choisir pour mesurer la largeur d'un pont de bois ?", icone: '🌉', unite: 'm' },
-    { texte: "Quelle unité choisir pour mesurer la longueur d'une chaussure de marche ?", icone: '🥾', unite: 'cm' },
-    { texte: "Quelle unité choisir pour mesurer la longueur d'un lapin ?", icone: '🐇', unite: 'cm' },
-    { texte: "Quelle unité choisir pour mesurer la largeur d'un champignon ?", icone: '🍄', unite: 'cm' },
-    { texte: "Quelle unité choisir pour mesurer une pomme de pin ?", icone: '🌰', unite: 'cm' },
-    { texte: "Quelle unité choisir pour mesurer une boussole ?", icone: '🧭', unite: 'cm' },
-    { texte: "Pour traverser toute la forêt, quelle unité choisir ?", icone: '🥾', unite: 'km' },
-    { texte: "Pour aller jusqu'au village voisin, quelle unité choisir ?", icone: '🏘️', unite: 'km' },
-    { texte: "Pour mesurer un long sentier de randonnée, quelle unité choisir ?", icone: '🛤️', unite: 'km' },
-    { texte: "Pour mesurer la distance d'un bout à l'autre de la forêt, quelle unité choisir ?", icone: '🧭', unite: 'km' }
+    { texte: "La hauteur du chêne s'exprime en…", icone: '🌳', unite: 'm' },
+    { texte: "La hauteur du sapin s'exprime en…", icone: '🌲', unite: 'm' },
+    { texte: "La largeur du pont de bois s'exprime en…", icone: '🌉', unite: 'm' },
+    { texte: "La longueur de la chaussure de marche s'exprime en…", icone: '🥾', unite: 'cm' },
+    { texte: "La longueur du lapin s'exprime en…", icone: '🐇', unite: 'cm' },
+    { texte: "La largeur du champignon s'exprime en…", icone: '🍄', unite: 'cm' },
+    { texte: "La longueur de la pomme de pin s'exprime en…", icone: '🌰', unite: 'cm' },
+    { texte: "La longueur de la boussole s'exprime en…", icone: '🧭', unite: 'cm' },
+    { texte: "La distance pour traverser toute la forêt s'exprime en…", icone: '🥾', unite: 'km' },
+    { texte: "La distance jusqu'au village voisin s'exprime en…", icone: '🏘️', unite: 'km' },
+    { texte: "La distance d'un sentier de randonnée s'exprime en…", icone: '🛤️', unite: 'km' },
+    { texte: "La distance d'un bout à l'autre de la forêt s'exprime en…", icone: '🧭', unite: 'km' }
   ];
 
   /* Palier CE1 — « La Forêt » : familles pour la comparaison chiffrée
@@ -2040,7 +2043,7 @@
 
   /* ================================================================
      Palier CE1 — « La Forêt »
-     Niveau 1 : « La lisière » (unités-conversion-ce1) — choisir l'unité la
+     Niveau 1 : « La lisière de la forêt » (unités-conversion-ce1) — choisir l'unité la
      mieux adaptée à l'objet mesuré, puis convertir une longueur donnée
      comme une somme m+cm (ou km/m) en un nombre total de cm, saisi au pavé
      numérique diégétique.
@@ -2153,7 +2156,7 @@
     zone.appendChild(pave.el);
   }
 
-  // Dispatcher « unités/conversion » : partagé par le mini-jeu « La lisière »
+  // Dispatcher « unités/conversion » : partagé par le mini-jeu « La lisière de la forêt »
   // ET par un des sous-types de « La règle du garde forestier » (même
   // contenu, cf. spécification CE1). Clé d'anti-répétition dédiée
   // (dernierSousTypeUnites) pour ne pas entrer en collision avec la
