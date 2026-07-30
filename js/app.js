@@ -634,7 +634,16 @@
 
   const COULEURS_CARTES = ['carte-mandarine', 'carte-menthe', 'carte-soleil', 'carte-corail'];
 
-  function carteJeu(module, indice) {
+  /*
+   * `niveauContexte` : le niveau du POINT D'ENTRÉE depuis lequel cette carte
+   * est affichée (section de niveau du menu, ou seul niveau du filtre actif —
+   * cf. rendreListeJeux), quand il est sans ambiguïté. Transmis en paramètre
+   * d'URL `palier` (lancement paramétré, CHARTE §16) pour qu'un module
+   * adaptatif (§15) démarre sur CE niveau-là plutôt que sur celui,
+   * potentiellement différent, du profil actif — ex. un profil CE2 cliquant
+   * sur une carte de la section CE1 doit voir le module s'ouvrir sur CE1.
+   */
+  function carteJeu(module, indice, niveauContexte) {
     const badges = [
       h('span', { class: 'badge badge-niveau', texte: libelleNiveauxModule(module) }),
       h('span', { class: 'badge', texte: module.domaine }),
@@ -643,8 +652,12 @@
     if (module.type === 'evaluation') {
       badges.push(h('span', { class: 'badge badge-evaluation', texte: '⏱ Évaluation' }));
     }
+    let href = module.fichier;
+    if (niveauContexte && niveauxModule(module).length > 1) {
+      href += '?palier=' + encodeURIComponent(niveauContexte.toLowerCase());
+    }
     return h('a', { class: 'carte-jeu ' + COULEURS_CARTES[indice % COULEURS_CARTES.length],
-      href: module.fichier }, [
+      href }, [
       h('span', { class: 'icone', texte: module.icone || '🎲' }),
       h('div', { class: 'infos' }, [
         h('div', { class: 'titre', texte: module.titre }),
@@ -859,9 +872,16 @@
       const groupes = grouperParNiveau
         ? niveauxAGrouper.map((n) => [n, modules.filter((m) => niveauxModule(m).indexOf(n) !== -1)]).filter(([, l]) => l.length)
         : [[null, modules]];
+      // Niveau du point d'entrée transmis aux cartes (lancement paramétré,
+      // CHARTE §16) : celui de la section quand on regroupe par niveau, ou
+      // l'unique niveau filtré quand une seule grille est affichée (le cas
+      // ambigu — plusieurs niveaux visibles sans regroupement — ne se
+      // produit jamais, cf. grouperParNiveau ci-dessus).
+      const niveauContextePourLien = niveauxSelectionnes.length === 1 ? niveauxSelectionnes[0] : null;
       groupes.forEach(([niveau, liste]) => {
         if (niveau) zoneJeux.appendChild(h('div', { class: 'titre-groupe', texte: niveau }));
-        zoneJeux.appendChild(h('div', { class: 'grille-jeux' }, liste.map(carteJeu)));
+        const contexte = niveau || niveauContextePourLien;
+        zoneJeux.appendChild(h('div', { class: 'grille-jeux' }, liste.map((m, i) => carteJeu(m, i, contexte))));
       });
     }
     rendreListeJeux();

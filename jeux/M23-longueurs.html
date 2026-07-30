@@ -712,7 +712,25 @@
       return null;
     }
   }
+  /* Lancement paramétré (CHARTE §16) : `?palier=ce1` dans l'URL — le niveau
+     du POINT D'ENTRÉE cliqué dans la coquille (ex. carte affichée dans une
+     section de niveau du menu, cf. js/app.js) prime sur le niveau du profil
+     actif. Insensible à la casse ; absent, invalide, ou ne correspondant à
+     aucun palier du module -> null, retombe silencieusement sur le
+     comportement par défaut (jamais d'erreur visible). */
+  function palierDepuisURL() {
+    try {
+      const brut = new URLSearchParams(window.location.search).get('palier');
+      if (!brut) return null;
+      const majuscule = brut.toUpperCase();
+      return donnees.paliers[majuscule] ? majuscule : null;
+    } catch (e) {
+      return null;
+    }
+  }
   function palierParDefaut() {
+    const palierURL = palierDepuisURL();
+    if (palierURL) return palierURL;
     const niveau = niveauDuProfilActif();
     if (niveau && donnees.paliers[niveau]) return niveau;
     // Niveau absent/non couvert par ce module : on retombe sur le palier le plus bas (CHARTE §15).
