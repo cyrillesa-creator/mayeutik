@@ -235,21 +235,63 @@
     background:#2E7D32; border:2px solid #1B5E20; top:50%; left:50%; margin:-.28rem 0 0 -.28rem;
     transform:rotate(calc(var(--i) * 60deg)) translate(1rem) rotate(calc(var(--i) * -60deg)); }
 
-  /* ---- Palier CP : « Le Bois » — lisière (vocabulaire, texte à trou) ---- */
+  /* ---- Palier CP : « Le Bois » — lisière (vocabulaire, texte à trou) ----
+     Objets concrets colorés (pas de lettre abstraite ni de pastille rapportée
+     à côté d'un dessin identique) : pour la corde/le chemin/la branche, la
+     couleur est directement celle de la barre. Pour le champignon et la
+     cabane, la couleur est intégrée AU DESSIN lui-même (chapeau, toit) via
+     creerLisiereChampignon/creerLisiereCabane — cf. plus bas dans le JS. */
+  .lisiere-comparaison{ display:flex; flex-direction:column; gap:1rem; margin:.9rem 0; }
+  .lisiere-rangee{ display:flex; align-items:center; gap:.6rem; min-height:44px; }
+  .lisiere-pastille{ width:1.3rem; height:1.3rem; border-radius:50%; border:2px solid rgba(0,0,0,.35); flex-shrink:0; }
+  .lisiere-icone{ font-size:1.7rem; }
+  .lisiere-barre{ height:20px; border-radius:10px; border:2px solid rgba(0,0,0,.3); }
+  .lisiere-nom{ font-weight:700; font-size:.9rem; }
 
-  /* Objets concrets colorés (pas de lettre abstraite) : chaque couleur a sa
-     pastille + sa barre/son repère teintés en couleur.hex (cf. GABARITS_LISIERE). */
-  .lisiere-comparaison{ display:flex; flex-direction:column; gap:.9rem; margin:.9rem 0; }
-  .lisiere-rangee{ display:flex; align-items:center; gap:.5rem; min-height:44px; }
-  .lisiere-pastille{ width:1.15rem; height:1.15rem; border-radius:50%; border:2px solid rgba(0,0,0,.35); flex-shrink:0; }
-  .lisiere-icone{ font-size:1.2rem; }
-  .lisiere-barre{ height:16px; border-radius:8px; border:2px solid rgba(0,0,0,.3); }
-  .lisiere-nom{ font-weight:700; font-size:.85rem; }
-  .lisiere-sentier{ position:relative; margin:1.1rem .5rem 2.4rem; height:1.6rem; }
-  .lisiere-repere{ position:absolute; left:0; top:-1.5rem; display:flex; flex-direction:column; align-items:center; font-size:1.3rem; }
-  .lisiere-repere-nom{ font-size:.65rem; font-weight:700; opacity:.75; }
-  .lisiere-piste{ position:relative; margin-left:2.6rem; height:100%; border-bottom:3px dashed color-mix(in srgb, var(--couleur-encre) 25%, white); }
-  .lisiere-point{ position:absolute; bottom:-.2rem; min-width:44px; display:flex; flex-direction:column; align-items:center; gap:.15rem; }
+  /* Piste au sol : marge basse généreuse pour laisser la place aux dessins
+     agrandis (champignon/cabane/clairière) sans chevaucher le QCM en dessous. */
+  .lisiere-sentier{ position:relative; margin:1.1rem .5rem 4.4rem; height:1.6rem; }
+  .lisiere-repere{ position:absolute; left:0; bottom:-.2rem; display:flex; flex-direction:column; align-items:center; gap:.15rem; }
+  .lisiere-repere-nom{ font-size:.7rem; font-weight:700; opacity:.75; }
+  .lisiere-piste{ position:relative; margin-left:3.3rem; height:100%; border-bottom:3px dashed color-mix(in srgb, var(--couleur-encre) 25%, white); }
+  .lisiere-point{ position:absolute; bottom:-.2rem; min-width:48px; display:flex; flex-direction:column; align-items:center; gap:.15rem; }
+
+  /* Clairière (repère fixe des questions de distance) : vue semi-aérienne —
+     herbe claire cernée d'un anneau de 6 arbres stylisés, plutôt qu'un
+     soleil/nuage qui n'évoque pas une clairière. Anneau construit en CSS pur
+     par rotation régulière à 60° (--i = 0..5). */
+  .lisiere-mini-clairiere{ position:relative; display:block; width:2.9rem; height:2.9rem; }
+  .lisiere-mini-clairiere-herbe{ position:absolute; inset:24%; border-radius:50%;
+    background:radial-gradient(circle, #EFE6B8, #D9CE86); border:2px solid #B8AC5E; }
+  .lisiere-mini-clairiere-arbre{ position:absolute; width:.65rem; height:.65rem; border-radius:50%;
+    background:#2E7D32; border:2px solid #1B5E20; top:50%; left:50%; margin:-.35rem 0 0 -.35rem;
+    transform:rotate(calc(var(--i) * 60deg)) translate(1.25rem) rotate(calc(var(--i) * -60deg)); }
+
+  /* Champignon : la couleur du chapeau varie directement dans le dessin
+     (plus de pastille séparée). La variante rouge ajoute des pois blancs
+     façon amanite, pour une distinction visuelle au-delà de la seule
+     couleur (cf. FAMILLES_LISIERE, familles « champignon »). */
+  .lisiere-champi{ display:flex; flex-direction:column; align-items:center; }
+  .lisiere-champi-chapeau{ width:2.3rem; height:1.3rem; border-radius:50% 50% 8% 8% / 100% 100% 15% 15%;
+    border:2px solid rgba(0,0,0,.35); margin-bottom:-3px; background-size:100% 100%; }
+  .lisiere-champi-chapeau.pois{
+    background-image:
+      radial-gradient(circle at 26% 35%, #fff 0 3px, transparent 3.2px),
+      radial-gradient(circle at 58% 22%, #fff 0 2.6px, transparent 2.8px),
+      radial-gradient(circle at 76% 48%, #fff 0 2.2px, transparent 2.4px),
+      radial-gradient(circle at 42% 55%, #fff 0 2px, transparent 2.2px); }
+  .lisiere-champi-pied{ width:.9rem; height:1.05rem; border-radius:0 0 45% 45% / 0 0 65% 65%;
+    background:#F3E9D2; border:2px solid #C9B98B; }
+
+  /* Cabane : la couleur du toit varie directement dans le dessin (triangle
+     CSS), plus de pastille séparée. */
+  .lisiere-cabane{ display:flex; flex-direction:column; align-items:center; }
+  .lisiere-cabane-toit{ width:0; height:0; border-left:1.3rem solid transparent; border-right:1.3rem solid transparent;
+    border-bottom-width:1.1rem; border-bottom-style:solid; filter:drop-shadow(0 -2px 0 rgba(0,0,0,.25)); }
+  .lisiere-cabane-mur{ position:relative; width:2.2rem; height:1.5rem; background:#D9B382;
+    border:2px solid #8B5E3C; border-top:none; border-radius:0 0 4px 4px; }
+  .lisiere-cabane-porte{ position:absolute; bottom:0; left:50%; transform:translateX(-50%);
+    width:.6rem; height:.95rem; background:#6D4C33; border-radius:2px 2px 0 0; }
 
   /* ---- Palier CP : « Le Bois » — balade (ranger 5 bâtons en pyramide) ----
      5 « étagères » EMPILÉES verticalement, chaque bâton posé À PLAT et
@@ -1071,20 +1113,73 @@
   // l'écran (un positionnement en px fixe déborderait du cadre sur mobile).
   const DISTANCE_MAX_LISIERE = 16;
 
+  // Clairière (repère fixe des questions de distance) : une clairière
+  // reconnaissable — herbe claire cernée d'un anneau d'arbres — plutôt qu'un
+  // soleil/nuage qui n'évoque pas un lieu en forêt.
+  function creerLisiereMiniClairiere() {
+    const mini = document.createElement('span');
+    mini.className = 'lisiere-mini-clairiere';
+    for (let i = 0; i < 6; i++) {
+      const arbre = document.createElement('span');
+      arbre.className = 'lisiere-mini-clairiere-arbre';
+      arbre.style.setProperty('--i', String(i));
+      mini.appendChild(arbre);
+    }
+    const herbe = document.createElement('span');
+    herbe.className = 'lisiere-mini-clairiere-herbe';
+    mini.appendChild(herbe);
+    return mini;
+  }
+
+  // Champignon : la couleur varie DANS le chapeau (pas une pastille à côté).
+  // La variante rouge ajoute des pois blancs façon amanite, pour distinguer
+  // les couleurs au-delà de la seule teinte.
+  function creerLisiereChampignon(couleur) {
+    const champi = document.createElement('span');
+    champi.className = 'lisiere-champi';
+    const chapeau = document.createElement('span');
+    chapeau.className = 'lisiere-champi-chapeau' + (couleur.id === 'rouge' ? ' pois' : '');
+    chapeau.style.backgroundColor = couleur.hex;
+    const pied = document.createElement('span');
+    pied.className = 'lisiere-champi-pied';
+    champi.appendChild(chapeau); champi.appendChild(pied);
+    return champi;
+  }
+
+  // Cabane : la couleur varie DANS le toit (pas une pastille à côté).
+  function creerLisiereCabane(couleur) {
+    const cabane = document.createElement('span');
+    cabane.className = 'lisiere-cabane';
+    const toit = document.createElement('span');
+    toit.className = 'lisiere-cabane-toit'; toit.style.borderBottomColor = couleur.hex;
+    const mur = document.createElement('span');
+    mur.className = 'lisiere-cabane-mur';
+    const porte = document.createElement('span');
+    porte.className = 'lisiere-cabane-porte';
+    mur.appendChild(porte);
+    cabane.appendChild(toit); cabane.appendChild(mur);
+    return cabane;
+  }
+
   function creerPointDistance(gabarit, couleur, distance) {
     const point = document.createElement('div');
     point.className = 'lisiere-point';
     // Le repère est ancré en % de la piste, plafonné à « 100% - 80px » pour
-    // toujours laisser la place à l'étiquette de couleur (parfois large,
-    // ex. « vert foncé ») sans jamais dépasser le cadre blanc à droite.
+    // toujours laisser la place au dessin et à l'étiquette de couleur sans
+    // jamais dépasser le cadre blanc à droite.
     point.style.left = 'min(' + (distance / DISTANCE_MAX_LISIERE * 100) + '%, calc(100% - 80px))';
-    const pastille = document.createElement('span');
-    pastille.className = 'lisiere-pastille'; pastille.style.background = couleur.hex;
-    const icone = document.createElement('span');
-    icone.className = 'lisiere-icone'; icone.textContent = gabarit.icone;
+    if (gabarit.nom === 'champignon') point.appendChild(creerLisiereChampignon(couleur));
+    else if (gabarit.nom === 'cabane') point.appendChild(creerLisiereCabane(couleur));
+    else {
+      const pastille = document.createElement('span');
+      pastille.className = 'lisiere-pastille'; pastille.style.background = couleur.hex;
+      const icone = document.createElement('span');
+      icone.className = 'lisiere-icone'; icone.textContent = gabarit.icone;
+      point.appendChild(pastille); point.appendChild(icone);
+    }
     const label = document.createElement('span');
     label.className = 'lisiere-nom'; label.textContent = couleur.nom;
-    point.appendChild(pastille); point.appendChild(icone); point.appendChild(label);
+    point.appendChild(label);
     return point;
   }
 
@@ -1119,9 +1214,8 @@
       sentier.className = 'lisiere-sentier';
       const repere = document.createElement('div');
       repere.className = 'lisiere-repere';
-      const repereIcone = document.createElement('span'); repereIcone.textContent = '🌤️';
       const repereNom = document.createElement('span'); repereNom.className = 'lisiere-repere-nom'; repereNom.textContent = 'clairière';
-      repere.appendChild(repereIcone); repere.appendChild(repereNom);
+      repere.appendChild(creerLisiereMiniClairiere()); repere.appendChild(repereNom);
       sentier.appendChild(repere);
       const piste = document.createElement('div');
       piste.className = 'lisiere-piste';
