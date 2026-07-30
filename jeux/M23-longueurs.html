@@ -105,6 +105,27 @@
     .paquet-cadeau.paquet-cadeau-ouverture .paquet-cadeau-boite{ animation:none; opacity:0; transition:opacity .3s ease; }
   }
 
+  /* Pavé numérique diégétique (palier CE1, saisie de conversions) — même
+     pattern que jeux/M99-boss-des-tables.html et jeux/M01-nombres-jusqu-9-cp.html. */
+  .pave-numerique{ max-width:250px; margin:.9rem auto 0; }
+  .pave-ecran{
+    background:color-mix(in srgb, var(--couleur-encre) 88%, black 8%);
+    color:color-mix(in srgb, var(--couleur-menthe) 70%, white 20%);
+    border-radius:12px; font-size:1.7rem; font-weight:700;
+    text-align:right; padding:.5rem .9rem; min-height:2.4rem; letter-spacing:2px;
+    font-variant-numeric:tabular-nums; box-shadow:inset 0 2px 6px rgba(0,0,0,.35);
+  }
+  .pave-grille{ display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-top:8px; }
+  .touche-pave{
+    min-height:48px; border:none; border-radius:12px; font-size:1.25rem; font-weight:700;
+    background:color-mix(in srgb, var(--couleur-soleil) 22%, white); color:var(--couleur-encre);
+    box-shadow:0 3px 0 color-mix(in srgb, var(--couleur-encre) 20%, white);
+  }
+  .touche-pave:active{ transform:translateY(2px); box-shadow:0 1px 0 color-mix(in srgb, var(--couleur-encre) 20%, white); }
+  .touche-pave:disabled{ opacity:.6; }
+  .touche-valider{ background:var(--couleur-menthe); color:#ffffff; box-shadow:0 3px 0 color-mix(in srgb, var(--couleur-menthe) 60%, black 10%); }
+  .touche-effacer{ background:var(--couleur-corail); color:#ffffff; box-shadow:0 3px 0 color-mix(in srgb, var(--couleur-corail) 60%, black 10%); }
+
   #ecran-jeu{ max-width:640px; margin:0 auto; padding:.8rem 1rem 2.5rem; }
   .entete-jeu{ display:flex; align-items:center; gap:.6rem; margin-bottom:.8rem; }
   .bouton-retour{
@@ -482,12 +503,6 @@
     { "texte": "Un trombone mesure plutôt…", "options": ["2 cm", "20 cm", "1 m"], "bonne": "2 cm" },
     { "texte": "Une porte mesure plutôt…", "options": ["20 cm", "1 m", "2 m"], "bonne": "2 m" }
   ],
-  "estimationsCE1": [
-    { "texte": "La largeur du sentier forestier mesure plutôt…", "options": ["1 m", "10 m", "1 km"], "bonne": "1 m" },
-    { "texte": "La distance jusqu'à la clairière mesure plutôt…", "options": ["50 cm", "50 m", "50 km"], "bonne": "50 m" },
-    { "texte": "Un grand chêne mesure plutôt…", "options": ["2 m", "20 m", "200 m"], "bonne": "20 m" },
-    { "texte": "Le tour de la forêt en promenade mesure plutôt…", "options": ["3 m", "3 km", "300 km"], "bonne": "3 km" }
-  ],
   "paliers": {
     "CP": {
       "sousTitre": "Une balade dans le Bois, entre lisière et cabane ! 🌲",
@@ -498,9 +513,9 @@
       ]
     },
     "CE1": {
+      "sousTitre": "Une exploration dans la Forêt, entre unités et repères ! 🌲",
       "miniJeux": [
-        { "id": "mesurer-ce1", "titre": "La règle du garde forestier", "icone": "🧭", "couleur": "soleil", "description": "Mesure, convertis et estime des longueurs.", "type": "garde-forestier", "nbTours": 6, "capCm": 30 },
-        { "id": "encadrer-ce1", "titre": "Entre deux graduations", "icone": "📍", "couleur": "corail", "description": "Trouve entre quels nombres se situe la longueur.", "type": "encadrer", "nbTours": 6, "capCm": 20 }
+        { "id": "unites-conversion-ce1", "titre": "La lisière", "icone": "🌲", "couleur": "menthe", "description": "Choisis la bonne unité, puis convertis des longueurs.", "type": "unites-conversion-ce1", "nbTours": 6 }
       ]
     },
     "CE2": {
@@ -977,6 +992,26 @@
     return null;
   }
 
+  /* Palier CE1 — « La Forêt » : banque « quelle unité choisir ? » (mini-jeu
+     « La lisière », et réutilisée comme un des sous-types de « La règle du
+     garde forestier »). 12 items (> 2× les 6 manches par partie, CHARTE
+     §13), un tirage sans redondance par partie (etat.uniteVues, comme
+     genererEstimation). */
+  const OBJETS_UNITES_CE1 = [
+    { texte: "Quelle unité choisir pour mesurer la hauteur d'un chêne ?", icone: '🌳', unite: 'm' },
+    { texte: "Quelle unité choisir pour mesurer la hauteur d'un sapin ?", icone: '🌲', unite: 'm' },
+    { texte: "Quelle unité choisir pour mesurer la largeur d'un pont de bois ?", icone: '🌉', unite: 'm' },
+    { texte: "Quelle unité choisir pour mesurer la longueur d'une chaussure de marche ?", icone: '🥾', unite: 'cm' },
+    { texte: "Quelle unité choisir pour mesurer la longueur d'un lapin ?", icone: '🐇', unite: 'cm' },
+    { texte: "Quelle unité choisir pour mesurer la largeur d'un champignon ?", icone: '🍄', unite: 'cm' },
+    { texte: "Quelle unité choisir pour mesurer une pomme de pin ?", icone: '🌰', unite: 'cm' },
+    { texte: "Quelle unité choisir pour mesurer une boussole ?", icone: '🧭', unite: 'cm' },
+    { texte: "Pour traverser toute la forêt, quelle unité choisir ?", icone: '🥾', unite: 'km' },
+    { texte: "Pour aller jusqu'au village voisin, quelle unité choisir ?", icone: '🏘️', unite: 'km' },
+    { texte: "Pour mesurer un long sentier de randonnée, quelle unité choisir ?", icone: '🛤️', unite: 'km' },
+    { texte: "Pour mesurer la distance d'un bout à l'autre de la forêt, quelle unité choisir ?", icone: '🧭', unite: 'km' }
+  ];
+
   /* ================================================================
      Contrôleur général de jeu
      ================================================================ */
@@ -1130,8 +1165,7 @@
     if (type === 'vocabulaire-cp') genererLisiereCP(zone, etat.cfg);
     else if (type === 'balade-cp') genererBaladeCP(zone, etat.cfg);
     else if (type === 'cabane-cp') genererCabaneCP(zone, etat.cfg);
-    else if (type === 'garde-forestier') genererGardeForestier(zone, etat.cfg);
-    else if (type === 'encadrer') genererEncadrer(zone, etat.cfg);
+    else if (type === 'unites-conversion-ce1') genererUnitesConversionCE1(zone, etat.cfg);
     else if (type === 'conversions') genererConversionsCE2(zone, etat.cfg);
     else if (type === 'perimetre') genererPerimetre(zone, etat.cfg);
   }
@@ -1217,6 +1251,8 @@
   function accorderMot(mot, genre) {
     if (mot === 'long') return genre === 'f' ? 'longue' : 'long';
     if (mot === 'court') return genre === 'f' ? 'courte' : 'court';
+    if (mot === 'grand') return genre === 'f' ? 'grande' : 'grand';
+    if (mot === 'petit') return genre === 'f' ? 'petite' : 'petit';
     return mot; // « près »/« loin » : invariables
   }
 
@@ -1905,8 +1941,7 @@
 
   /*
    * Règle déjà positionnée sous l'objet à mesurer (QCM de lecture directe) :
-   * partagée par le palier CP (« La cabane », sous-type mesure-fixe) et le
-   * palier CE1 (« La règle du garde forestier », sous-type mesurer).
+   * palier CP, « La cabane », sous-type mesure-fixe.
    */
   function genererMesurer(zone, cfg) {
     const cap = cfg.capCm || 20;
@@ -1946,41 +1981,127 @@
   }
 
   /* ================================================================
-     Mini-jeu : « La règle du garde forestier » (mesurer/convertir/estimer, CE1)
+     Palier CE1 — « La Forêt »
+     Niveau 1 : « La lisière » (unités-conversion-ce1) — choisir l'unité la
+     mieux adaptée à l'objet mesuré, puis convertir une longueur donnée
+     comme une somme m+cm (ou km/m) en un nombre total de cm, saisi au pavé
+     numérique diégétique.
      ================================================================ */
 
-  function genererGardeForestier(zone, cfg) {
-    const types = ['mesurer', 'conversion', 'estimation'];
-    const dispo = types.filter((t) => t !== etat.dernierSousType);
-    const sousType = choisir(dispo.length ? dispo : types);
-    etat.dernierSousType = sousType;
-    if (sousType === 'mesurer') genererMesurer(zone, { capCm: cfg.capCm || 30 });
-    else if (sousType === 'conversion') genererConversionCE1(zone, cfg);
-    else genererEstimation(zone, donnees.estimationsCE1);
+  // Pavé numérique diégétique (réutilisé du pattern déjà établi dans
+  // jeux/M99-boss-des-tables.html et jeux/M01-nombres-jusqu-9-cp.html) :
+  // écran + grille 3×4, jusqu'à `maxChiffres` chiffres, touches C (effacer)
+  // et ✓ (valider). onValider reçoit la valeur saisie en nombre entier.
+  function creerPave(onValider, maxChiffres) {
+    const conteneur = document.createElement('div');
+    conteneur.className = 'pave-numerique';
+    const ecran = document.createElement('div');
+    ecran.className = 'pave-ecran';
+    ecran.textContent = ' ';
+    const grille = document.createElement('div');
+    grille.className = 'pave-grille';
+    let val = '';
+    const maj = () => { ecran.textContent = val || ' '; };
+    ['7', '8', '9', '4', '5', '6', '1', '2', '3', 'C', '0', '✓'].forEach((t) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'touche-pave'; b.textContent = t;
+      if (t === '✓') b.classList.add('touche-valider');
+      if (t === 'C') b.classList.add('touche-effacer');
+      b.addEventListener('click', () => {
+        if (t === 'C') { val = ''; maj(); }
+        else if (t === '✓') { if (val !== '') onValider(parseInt(val, 10)); }
+        else if (val.length < maxChiffres) { val += t; maj(); }
+      });
+      grille.appendChild(b);
+    });
+    conteneur.appendChild(ecran);
+    conteneur.appendChild(grille);
+    return { el: conteneur, verrouiller: (v) => grille.querySelectorAll('button').forEach((b) => { b.disabled = v; }) };
   }
 
-  function genererConversionCE1(zone, cfg) {
-    const type = choisir(['m-cm-somme', 'km-m', 'm-cm-simple']);
+  // Sous-type « unité appropriée » : QCM m/cm/km sur un objet de la forêt.
+  // Tirage sans redondance par partie (comme genererEstimation).
+  function genererUniteAppropriee(zone) {
+    if (!etat.uniteVues) etat.uniteVues = [];
+    let dispo = OBJETS_UNITES_CE1.filter((it) => etat.uniteVues.indexOf(it.texte) === -1);
+    if (!dispo.length) { etat.uniteVues = []; dispo = OBJETS_UNITES_CE1; }
+    const item = choisir(dispo);
+    etat.uniteVues.push(item.texte);
+
+    zone.appendChild(creerBlocConsigne(item.texte, item.texte));
+    const icone = document.createElement('p');
+    icone.className = 'legende'; icone.style.fontSize = '2.4rem'; icone.textContent = item.icone;
+    zone.appendChild(icone);
+
+    const options = melanger(['m', 'cm', 'km']);
+    const grille = document.createElement('div');
+    grille.className = 'grille-options';
+    options.forEach((opt) => {
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'bouton-option'; btn.textContent = opt;
+      btn.addEventListener('click', () => {
+        Array.from(grille.children).forEach((b) => { b.disabled = true; });
+        const correct = opt === item.unite;
+        btn.classList.add(correct ? 'correct' : 'incorrect');
+        if (!correct) {
+          const bonne = Array.from(grille.children).find((b) => b.textContent === item.unite);
+          if (bonne) bonne.classList.add('correct');
+        }
+        validerTour(correct, btn);
+      });
+      grille.appendChild(btn);
+    });
+    zone.appendChild(grille);
+  }
+
+  // Sous-type « conversion » : somme m+cm (ou km→m, m→cm) à convertir en un
+  // nombre total, saisi au pavé numérique diégétique (jamais de champ brut).
+  function genererConversionCE1(zone) {
+    if (!etat.conversionVues) etat.conversionVues = [];
     let texte, reponse;
-    if (type === 'm-cm-somme') {
-      const m = nombreAleatoire(1, 3);
-      const cm = nombreAleatoire(1, 90);
-      texte = m + ' m + ' + cm + ' cm = combien de cm en tout ?';
-      reponse = m * 100 + cm;
-    } else if (type === 'km-m') {
-      const km = nombreAleatoire(1, 5);
-      texte = km + ' km = combien de m ?';
-      reponse = km * 1000;
-    } else {
-      const m = nombreAleatoire(1, 9);
-      texte = m + ' m = combien de cm ?';
-      reponse = m * 100;
+    for (let essai = 0; essai < 20; essai++) {
+      const type = choisir(['m-cm-somme', 'km-m', 'm-cm-simple']);
+      if (type === 'm-cm-somme') {
+        const m = nombreAleatoire(1, 3);
+        const cm = nombreAleatoire(1, 90);
+        texte = m + ' m + ' + cm + ' cm = combien de cm en tout ?';
+        reponse = m * 100 + cm;
+      } else if (type === 'km-m') {
+        const km = nombreAleatoire(1, 5);
+        texte = km + ' km = combien de m ?';
+        reponse = km * 1000;
+      } else {
+        const m = nombreAleatoire(1, 9);
+        texte = m + ' m = combien de cm ?';
+        reponse = m * 100;
+      }
+      if (etat.conversionVues.indexOf(texte) === -1) break;
     }
+    if (etat.conversionVues.length > 30) etat.conversionVues = [];
+    etat.conversionVues.push(texte);
     zone.appendChild(creerBlocConsigne(texte, texte));
     zone.appendChild(Object.assign(document.createElement('p'), {
       className: 'legende', textContent: 'Rappel : 1 m = 100 cm et 1 km = 1000 m.'
     }));
-    creerSaisieSimple(zone, reponse, 'cm ou m');
+    const pave = creerPave((valeur) => {
+      pave.verrouiller(true);
+      validerTour(valeur === reponse, null);
+    }, 4); // km-m peut atteindre 5000
+    zone.appendChild(pave.el);
+  }
+
+  // Dispatcher « unités/conversion » : partagé par le mini-jeu « La lisière »
+  // ET par un des sous-types de « La règle du garde forestier » (même
+  // contenu, cf. spécification CE1). Clé d'anti-répétition dédiée
+  // (dernierSousTypeUnites) pour ne pas entrer en collision avec la
+  // rotation à 4 sous-types de genererComparerRangerCE1.
+  function genererUnitesConversionCE1(zone) {
+    const types = ['unite', 'conversion'];
+    const dispo = types.filter((t) => t !== etat.dernierSousTypeUnites);
+    const sousType = choisir(dispo.length ? dispo : types);
+    etat.dernierSousTypeUnites = sousType;
+    if (sousType === 'unite') genererUniteAppropriee(zone);
+    else genererConversionCE1(zone);
   }
 
   function genererEstimation(zone, banque) {
