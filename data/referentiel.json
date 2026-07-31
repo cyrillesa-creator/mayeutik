@@ -135,7 +135,7 @@
         { "id": "comparer-ranger-ce1", "libelle": "Comparer, ranger et encadrer des longueurs en m/cm/km (dont encadrement entre deux entiers de cm)", "niveau": "CE1" },
         { "id": "unites-decouverte-ce2", "libelle": "Classer les unités de longueur (mm/cm/dm/m/km) et estimer l'ordre de grandeur d'un objet ou d'une distance", "niveau": "CE2" },
         { "id": "calculs-mesure-ce2", "libelle": "Convertir des longueurs par relations explicites (mm/cm/dm/m/km) et mesurer en cm et en mm avec une règle graduée", "niveau": "CE2" },
-        { "id": "perimetre-ce2", "libelle": "Comprendre que le périmètre est la longueur du contour déplié, et le déterminer à la règle graduée (contour déplié, puis côtés successifs d'un rectangle)", "niveau": "CE2" }
+        { "id": "perimetre-ce2", "libelle": "Comparer le périmètre de plusieurs polygones sans règle graduée en reportant les côtés au compas, puis déterminer un périmètre à la règle graduée (contour déplié, côtés successifs d'un rectangle)", "niveau": "CE2" }
       ]
     },
     {
