@@ -499,10 +499,14 @@
   .rangerunites-colonnes{ display:flex; gap:1rem; justify-content:center; margin:1rem auto 0; max-width:20rem; }
   .rangerunites-colonne{ flex:1; min-width:0; display:flex; flex-direction:column; gap:.6rem; }
   .rangerunites-colonne-titre{ text-align:center; font-size:.78rem; font-weight:600; opacity:.7; margin:0 0 .1rem; }
-  .rangerunites-colonne-pioche{ display:flex; flex-direction:column; gap:.6rem; }
+  .rangerunites-colonne-pioche{ display:flex; flex-direction:column; gap:.6rem; align-items:center; }
   .rangerunites-slot{ min-height:3.8rem; border-radius:14px; border:2.5px dashed color-mix(in srgb, var(--couleur-encre) 25%, white);
     background:color-mix(in srgb, var(--couleur-menthe) 8%, white); display:flex; align-items:center; justify-content:center; }
-  .unite-etiquette{ display:inline-flex; align-items:center; justify-content:center; min-width:3.6rem; min-height:3.6rem;
+  /* Largeur FIXE (pas en %) : la taille de l'étiquette ne doit pas changer
+     selon qu'elle est dans la pioche ou déposée dans un emplacement, alors
+     que ces deux conteneurs n'ont pas la même boîte (l'emplacement a une
+     bordure en pointillés, pas la pioche). */
+  .unite-etiquette{ box-sizing:border-box; width:8.4rem; max-width:100%; display:flex; align-items:center; justify-content:center; min-height:3.6rem;
     padding:.4rem .6rem; border-radius:14px; background:#ffffff; border:2.5px solid color-mix(in srgb, var(--couleur-encre) 18%, white);
     box-shadow:0 3px 0 color-mix(in srgb, var(--couleur-encre) 12%, white); font-weight:700; font-size:1.15rem;
     color:var(--couleur-mandarine); user-select:none; touch-action:none; cursor:grab; }
