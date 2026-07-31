@@ -517,6 +517,15 @@
   .qcm-animal-image{ width:6rem; height:6rem; margin:.6rem auto; }
   .qcm-animal-definition{ margin-top:.8rem; padding-top:.7rem; border-top:2px dashed color-mix(in srgb, var(--couleur-soleil) 45%, white); }
 
+  /* ---- Périmètre CE2 « La cartographie » — report au compas (manches 1-2) :
+     deux polygones dont on reporte les côtés, un à un, sur une droite, pour
+     comparer les périmètres SANS jamais lire de mesure. */
+  .compas-bloc{ margin:1rem 0 .4rem; }
+  .compas-titre{ text-align:center; font-weight:700; margin-bottom:.2rem; }
+  .compas-scene{ overflow-x:auto; }
+  .compas-scene svg{ display:block; margin:0 auto; }
+  .compas-cote-zone{ cursor:pointer; }
+
   /* ---- Périmètre CE2 « La cartographie » — étapes A/B : la figure SVG dont
      le contour se déplie charnière par charnière en un segment posé sur une
      droite (rotations pures, longueurs des côtés préservées pendant toute
@@ -3378,8 +3387,13 @@
 
   /* ================================================================
      Mini-jeu 3 : « La cartographie » (périmètre, CE2, ex-M31 fusionné)
-     Progression fixe sur les manches d'une partie :
-       manche 1 → étape A, démonstration ANIMÉE : le contour d'une VRAIE
+     Progression fixe sur les manches d'une partie, dans l'ordre même de
+     l'apprentissage officiel :
+       manches 1 et 2 → COMPARER le périmètre de deux polygones SANS règle
+         graduée, en reportant chaque côté AU COMPAS sur une droite (texte
+         officiel : « comparer le périmètre de plusieurs polygones sans
+         règle graduée, en utilisant un compas ») ;
+       manche 3 → étape A, démonstration ANIMÉE : le contour d'une VRAIE
          figure (rectangle/triangle dessiné en SVG) se déplie charnière par
          charnière en un segment droit, sur lequel la règle vient se poser
          pour le mesurer (regardée, pas manipulée) ;
@@ -3393,9 +3407,10 @@
      ================================================================ */
 
   function genererPerimetre(zone, cfg) {
-    if (etat.index === 1) { genererPerimetreDemo(zone, cfg); return; }
-    // Après la démonstration, on alterne dépliage actif / mesure à la règle
-    // mobile (manche 2 = B, 3 = C, 4 = B, …).
+    if (etat.index <= 2) { genererPerimetreCompas(zone, cfg); return; }
+    if (etat.index === 3) { genererPerimetreDemo(zone, cfg); return; }
+    // Ensuite, alternance dépliage actif / mesure à la règle mobile
+    // (manche 4 = B, 5 = C, 6 = B, …).
     if (etat.index % 2 === 0) genererPerimetreDepliageActif(zone, cfg);
     else genererPerimetreReglesMobiles(zone, cfg);
   }
@@ -3638,6 +3653,295 @@
   }
 
   const COULEURS_COTES = ['var(--couleur-mandarine)', 'var(--couleur-menthe)', 'var(--couleur-corail)', 'var(--couleur-soleil)'];
+
+  /*
+   * Un bloc « polygone à reporter au compas » : le polygone dessiné en SVG
+   * (côtés colorés et tactiles), une droite pointillée en dessous, et un
+   * COMPAS animé qui, à chaque côté touché, vient prendre l'écartement de
+   * ce côté puis le reporte bout à bout sur la droite. Aucune graduation
+   * nulle part : on ne compare que des longueurs reportées, conformément au
+   * texte officiel (« sans règle graduée, en utilisant un compas »).
+   * `largeurCommune` est imposée par l'appelant pour que les droites des
+   * deux polygones démarrent au MÊME x à l'écran, sans quoi la comparaison
+   * visuelle des deux reports serait faussée.
+   */
+  function creerBlocCompas(lettre, figure, PX, largeurCommune, onTousReportes) {
+    const SVGNS = 'http://www.w3.org/2000/svg';
+    const MARGE_G = 12;
+    const MARGE_HAUT = 64; // place pour que le compas déployé tienne au-dessus
+    const pts = figure.pts.map((p) => [p[0] * PX + MARGE_G, p[1] * PX + MARGE_HAUT]);
+    const nbCotes = pts.length - 1;
+    const hauteurPolygone = Math.max.apply(null, pts.map((p) => p[1]));
+    const yLigne = hauteurPolygone + 30;
+    const hauteur = yLigne + 18;
+
+    const bloc = document.createElement('div');
+    bloc.className = 'compas-bloc';
+    const titre = document.createElement('div');
+    titre.className = 'compas-titre';
+    titre.textContent = 'Clairière ' + lettre;
+    bloc.appendChild(titre);
+
+    const scene = document.createElement('div');
+    scene.className = 'compas-scene';
+    const svg = document.createElementNS(SVGNS, 'svg');
+    svg.setAttribute('width', largeurCommune);
+    svg.setAttribute('height', hauteur);
+    svg.setAttribute('viewBox', '0 0 ' + largeurCommune + ' ' + hauteur);
+    svg.setAttribute('aria-hidden', 'true');
+    scene.appendChild(svg);
+    bloc.appendChild(scene);
+
+    const poly = document.createElementNS(SVGNS, 'polygon');
+    poly.setAttribute('points', pts.map((p) => p[0] + ',' + p[1]).join(' '));
+    poly.style.fill = 'color-mix(in srgb, var(--couleur-menthe) 20%, white)';
+    svg.appendChild(poly);
+
+    // La droite sur laquelle on reporte les côtés, bout à bout.
+    const droite = document.createElementNS(SVGNS, 'line');
+    droite.setAttribute('x1', MARGE_G); droite.setAttribute('y1', yLigne);
+    droite.setAttribute('x2', largeurCommune - MARGE_G); droite.setAttribute('y2', yLigne);
+    droite.style.stroke = 'color-mix(in srgb, var(--couleur-encre) 32%, white)';
+    droite.setAttribute('stroke-width', '2');
+    droite.setAttribute('stroke-dasharray', '6 5');
+    svg.appendChild(droite);
+
+    const gReports = document.createElementNS(SVGNS, 'g');
+    svg.appendChild(gReports);
+
+    // Chaque côté : un trait coloré + une zone tactile large par-dessus.
+    const cotes = [];
+    for (let i = 0; i < nbCotes; i++) {
+      const couleur = COULEURS_COTES[i % COULEURS_COTES.length];
+      const trait = document.createElementNS(SVGNS, 'line');
+      trait.setAttribute('x1', pts[i][0]); trait.setAttribute('y1', pts[i][1]);
+      trait.setAttribute('x2', pts[i + 1][0]); trait.setAttribute('y2', pts[i + 1][1]);
+      trait.style.stroke = couleur;
+      trait.setAttribute('stroke-width', '6');
+      trait.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(trait);
+
+      // Zone tactile : un RECTANGLE posé le long du côté (et non un trait
+      // épais), pour offrir une vraie surface au doigt — un segment SVG,
+      // même à stroke-width élevé, reste une boîte plate à la hauteur nulle
+      // quand le côté est horizontal.
+      const dxc = pts[i + 1][0] - pts[i][0], dyc = pts[i + 1][1] - pts[i][1];
+      const zone = document.createElementNS(SVGNS, 'rect');
+      zone.setAttribute('x', '0');
+      zone.setAttribute('y', '-15');
+      zone.setAttribute('width', Math.hypot(dxc, dyc).toFixed(1));
+      zone.setAttribute('height', '30');
+      zone.setAttribute('fill', 'transparent');
+      zone.setAttribute('transform', 'translate(' + pts[i][0].toFixed(1) + ',' + pts[i][1].toFixed(1)
+        + ') rotate(' + (Math.atan2(dyc, dxc) * 180 / Math.PI).toFixed(1) + ')');
+      zone.setAttribute('class', 'compas-cote-zone');
+      svg.appendChild(zone);
+
+      cotes.push({ P1: pts[i], P2: pts[i + 1], trait, zone, couleur, reporte: false });
+    }
+
+    // Le compas, redessiné à chaque côté (son écartement change).
+    const gCompas = document.createElementNS(SVGNS, 'g');
+    gCompas.style.opacity = '0';
+    gCompas.style.pointerEvents = 'none';
+    svg.appendChild(gCompas);
+
+    const ENCRE = 'color-mix(in srgb, var(--couleur-encre) 80%, white)';
+    function dessinerCompas(L) {
+      while (gCompas.firstChild) gCompas.removeChild(gCompas.firstChild);
+      // Branches de longueur FIXE : l'angle d'ouverture suit l'écartement,
+      // comme un vrai compas (plus le côté est long, plus il s'ouvre).
+      const R = Math.max(48, L * 0.72);
+      const h = Math.sqrt(Math.max(1, R * R - (L / 2) * (L / 2)));
+      const cx = L / 2, cy = -h;
+      function seg(x1, y1, x2, y2, larg) {
+        const l = document.createElementNS(SVGNS, 'line');
+        l.setAttribute('x1', x1.toFixed(1)); l.setAttribute('y1', y1.toFixed(1));
+        l.setAttribute('x2', x2.toFixed(1)); l.setAttribute('y2', y2.toFixed(1));
+        l.style.stroke = ENCRE;
+        l.setAttribute('stroke-width', larg);
+        l.setAttribute('stroke-linecap', 'round');
+        gCompas.appendChild(l);
+      }
+      seg(cx, cy, 0, 0, 3.5);          // branche de la pointe sèche
+      seg(cx, cy, L, 0, 3.5);          // branche de la mine
+      seg(cx, cy, cx, cy - 11, 4.5);   // poignée
+      const charniere = document.createElementNS(SVGNS, 'circle');
+      charniere.setAttribute('cx', cx.toFixed(1)); charniere.setAttribute('cy', cy.toFixed(1));
+      charniere.setAttribute('r', '4.5');
+      charniere.style.fill = ENCRE;
+      gCompas.appendChild(charniere);
+    }
+
+    const preferesMouvementReduit = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function animer(duree, onFrame, onFin) {
+      if (duree <= 0) { onFrame(1); if (onFin) onFin(); return; }
+      const debut = performance.now();
+      function frame(maintenant) {
+        const p = Math.min(1, (maintenant - debut) / duree);
+        onFrame(p);
+        if (p < 1) requestAnimationFrame(frame);
+        else if (onFin) onFin();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    let xCourant = 0;   // avancement du report sur la droite
+    let occupe = false; // une animation à la fois
+
+    const legende = document.createElement('p');
+    legende.className = 'legende';
+    function majLegende() {
+      const restants = cotes.filter((c) => !c.reporte).length;
+      legende.textContent = restants
+        ? 'Touche un côté de la clairière ' + lettre + ' pour le reporter au compas (' + restants + ' restant' + (restants > 1 ? 's' : '') + ').'
+        : 'Clairière ' + lettre + ' : tous les côtés sont reportés !';
+    }
+    majLegende();
+    bloc.appendChild(legende);
+
+    function reporter(idx) {
+      if (occupe || etat.verrouille) return;
+      const c = cotes[idx];
+      if (c.reporte) return;
+      occupe = true;
+      c.reporte = true;
+
+      const dx = c.P2[0] - c.P1[0], dy = c.P2[1] - c.P1[1];
+      const L = Math.hypot(dx, dy);
+      const angleDepart = Math.atan2(dy, dx) * 180 / Math.PI;
+      // On tourne par le plus court chemin jusqu'à l'horizontale.
+      let dA = -angleDepart;
+      while (dA > 180) dA -= 360;
+      while (dA <= -180) dA += 360;
+      const xArrivee = MARGE_G + xCourant;
+
+      dessinerCompas(L);
+      function poser(x, y, a) {
+        gCompas.setAttribute('transform', 'translate(' + x.toFixed(1) + ',' + y.toFixed(1) + ') rotate(' + a.toFixed(1) + ')');
+      }
+      poser(c.P1[0], c.P1[1], angleDepart);
+
+      // 1. le compas se pose sur le côté et en prend l'écartement…
+      animer(preferesMouvementReduit ? 0 : 280, (p) => { gCompas.style.opacity = String(p); }, () => {
+        // 2. …il se déplace jusqu'à la droite en se redressant…
+        animer(preferesMouvementReduit ? 0 : 480, (p) => {
+          const doux = p * (2 - p);
+          poser(c.P1[0] + (xArrivee - c.P1[0]) * doux,
+                c.P1[1] + (yLigne - c.P1[1]) * doux,
+                angleDepart + dA * doux);
+        }, () => {
+          // 3. …et y dépose le report, bout à bout avec les précédents.
+          const seg = document.createElementNS(SVGNS, 'line');
+          seg.setAttribute('x1', xArrivee); seg.setAttribute('y1', yLigne);
+          seg.setAttribute('x2', xArrivee + L); seg.setAttribute('y2', yLigne);
+          seg.style.stroke = c.couleur;
+          seg.setAttribute('stroke-width', '7');
+          gReports.appendChild(seg);
+          xCourant += L;
+          c.trait.style.opacity = '.3';
+          c.zone.style.cursor = 'default';
+          majLegende();
+          animer(preferesMouvementReduit ? 0 : 200, (p) => { gCompas.style.opacity = String(1 - p); }, () => {
+            gCompas.style.opacity = '0';
+            occupe = false;
+            if (cotes.every((x) => x.reporte)) onTousReportes();
+          });
+        });
+      });
+    }
+
+    cotes.forEach((c, i) => { c.zone.addEventListener('click', () => reporter(i)); });
+
+    return { el: bloc, largeurReport: () => xCourant };
+  }
+
+  /*
+   * Manches 1 et 2 — COMPARER deux polygones au compas, sans règle graduée.
+   * L'enfant reporte chaque côté de chaque polygone sur une droite, puis
+   * compare les deux longueurs obtenues à l'œil : c'est le report, pas la
+   * mesure, qui tranche. Les deux périmètres sont volontairement PROCHES
+   * (1 à 4 cm d'écart) pour qu'on ne puisse pas conclure sans reporter.
+   */
+  function genererPerimetreCompas(zone, cfg) {
+    const PX = 13;
+    const TYPES = ['rectangle', 'triangle', 'coin'];
+    const perim = (f) => f.cotes.reduce((a, b) => a + b, 0);
+    const figureA = figureCartographie(TYPES);
+    let figureB = null;
+    for (let essai = 0; essai < 60 && !figureB; essai++) {
+      const candidate = figureCartographie(TYPES);
+      const ecart = Math.abs(perim(figureA) - perim(candidate));
+      if (ecart >= 1 && ecart <= 4) figureB = candidate;
+    }
+    if (!figureB) {
+      // Repli (jamais atteint en pratique) : un rectangle d'écart garanti.
+      const demi = Math.max(4, Math.round((perim(figureA) + choisir([-2, 2])) / 2));
+      const petit = Math.max(2, Math.floor(demi / 2));
+      figureB = {
+        nom: 'rectangle',
+        pts: [[0, petit], [demi - petit, petit], [demi - petit, 0], [0, 0], [0, petit]],
+        cotes: [demi - petit, petit, demi - petit, petit]
+      };
+    }
+
+    const demanderPlusGrand = Math.random() < 0.5;
+    const bonneLettre = demanderPlusGrand
+      ? (perim(figureA) > perim(figureB) ? 'A' : 'B')
+      : (perim(figureA) < perim(figureB) ? 'A' : 'B');
+
+    zone.appendChild(creerBlocConsigne(
+      'Sans les mesurer, reporte chaque côté au compas pour comparer les deux clairières.',
+      'Touche un côté d\'une clairière : le compas vient en prendre l\'écartement, puis le reporte sur la ligne du dessous. Quand tous les côtés des deux clairières sont reportés, compare les deux lignes obtenues.'
+    ));
+
+    // Largeur commune aux deux scènes : les deux droites de report doivent
+    // démarrer au même x, et pouvoir accueillir le plus long des deux
+    // périmètres comme le plus large des deux polygones.
+    const largeurUtile = Math.max(
+      perim(figureA), perim(figureB),
+      Math.max.apply(null, figureA.pts.map((p) => p[0])),
+      Math.max.apply(null, figureB.pts.map((p) => p[0]))
+    ) * PX;
+    const largeurCommune = Math.round(largeurUtile) + 24;
+
+    let blocsFinis = 0;
+    const grille = document.createElement('div');
+    grille.className = 'grille-options';
+    grille.hidden = true;
+
+    function unBlocDeFini() {
+      blocsFinis++;
+      if (blocsFinis < 2) return;
+      grille.hidden = false;
+      const question = document.createElement('p');
+      question.className = 'legende';
+      question.textContent = 'Regarde les deux lignes : quelle clairière a le tour le plus '
+        + (demanderPlusGrand ? 'grand' : 'petit') + ' ?';
+      zone.insertBefore(question, grille);
+      lireAVoixHaute(question.textContent);
+      ['A', 'B'].forEach((lettre) => {
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'bouton-option';
+        btn.textContent = 'Clairière ' + lettre;
+        btn.addEventListener('click', () => {
+          Array.from(grille.children).forEach((b) => { b.disabled = true; });
+          const correct = lettre === bonneLettre;
+          btn.classList.add(correct ? 'correct' : 'incorrect');
+          if (!correct) {
+            const bonneBtn = Array.from(grille.children).find((b) => b.textContent === 'Clairière ' + bonneLettre);
+            if (bonneBtn) bonneBtn.classList.add('correct');
+          }
+          validerTour(correct, btn);
+        });
+        grille.appendChild(btn);
+      });
+    }
+
+    zone.appendChild(creerBlocCompas('A', figureA, PX, largeurCommune, unBlocDeFini).el);
+    zone.appendChild(creerBlocCompas('B', figureB, PX, largeurCommune, unBlocDeFini).el);
+    zone.appendChild(grille);
+  }
 
   /*
    * Étape A — démonstration ANIMÉE (regardée, pas manipulée) : la clairière
