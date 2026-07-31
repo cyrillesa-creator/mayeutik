@@ -550,8 +550,18 @@
   .regle-graduee.regle-mobile .regle-tick{ opacity:.95; }
   .regle-graduee.regle-mobile .regle-tick-forte{ opacity:1; }
   .regle-graduee.regle-mobile .regle-label,
+  .regle-graduee.regle-mobile .regle-label-haut,
   .regle-graduee.regle-mobile .regle-unite{ opacity:1; text-shadow:0 0 3px #fff, 0 0 3px #fff; }
   .regle-graduee.regle-mobile.regle-mobile-accrochee{ border-color:var(--couleur-menthe); }
+  /* Graduation du SECOND bord (double décimètre) : mêmes ticks et mêmes
+     chiffres, ancrés en haut au lieu du bas. Ticks et étiquettes sont
+     resserrés pour que les deux échelles tiennent dans la même hauteur. */
+  .regle-mobile .regle-tick{ height:11px; }
+  .regle-mobile .regle-tick-forte{ height:17px; }
+  .regle-mobile .regle-label{ bottom:19px; }
+  .regle-mobile .regle-tick-haut{ top:0; bottom:auto; }
+  .regle-mobile .regle-label-haut{ position:absolute; top:19px; transform:translateX(-50%);
+    font-size:.66rem; font-weight:700; opacity:.8; }
 
   /* ---- Saisies numériques (conversions décomposées) ---- */
   .saisie-decomposition{ display:flex; gap:.7rem; justify-content:center; margin:.9rem 0; flex-wrap:wrap; }
@@ -3777,17 +3787,26 @@
     const regle = document.createElement('div');
     regle.className = 'regle-graduee regle-mobile';
     regle.style.width = (cap * PX + 24) + 'px';
+    // Double décimètre : la MÊME graduation sur CHACUN des deux bords longs,
+    // comme une vraie règle d'écolier. L'enfant lit alors sur le bord qui
+    // touche le côté mesuré, sans avoir à retourner la règle — utile ici
+    // puisqu'elle pivote pour passer d'un côté horizontal à un côté vertical.
     for (let i = 0; i <= cap; i++) {
-      const tick = document.createElement('div');
-      tick.className = 'regle-tick' + (i % 2 === 0 ? ' regle-tick-forte' : '');
-      tick.style.left = (i * PX) + 'px';
-      regle.appendChild(tick);
-      if (i % 2 === 0) {
-        const lab = document.createElement('div');
-        lab.className = 'regle-label';
-        lab.style.left = (i * PX) + 'px';
-        lab.textContent = String(i);
-        regle.appendChild(lab);
+      const forte = i % 2 === 0;
+      ['', ' regle-tick-haut'].forEach((bord) => {
+        const tick = document.createElement('div');
+        tick.className = 'regle-tick' + (forte ? ' regle-tick-forte' : '') + bord;
+        tick.style.left = (i * PX) + 'px';
+        regle.appendChild(tick);
+      });
+      if (forte) {
+        ['', ' regle-label-haut'].forEach((bord) => {
+          const lab = document.createElement('div');
+          lab.className = 'regle-label' + bord;
+          lab.style.left = (i * PX) + 'px';
+          lab.textContent = String(i);
+          regle.appendChild(lab);
+        });
       }
     }
 
