@@ -3381,11 +3381,7 @@
          contour d'une VRAIE figure (rectangle/triangle dessiné en SVG) se
          déplie charnière par charnière en un segment droit, mesuré à la
          règle pour conclure (regardée, pas manipulée) ;
-       2e  occurrence « mesurer » → étape B, dépliage ACTIF : l'enfant
-         déroule lui-même le contour côté par côté (figures variées :
-         rectangle, triangle, figure en L), puis lit le périmètre à la
-         règle semi-transparente ;
-       3e  occurrence « mesurer » → étape C, mesure SANS dépliage avec une
+       occurrences suivantes → étape C, mesure SANS dépliage avec une
          règle mobile qu'on glisse ET qu'on pivote à 90° (pincement à deux
          doigts, accroche magnétique), avec repli « deux règles
          indépendantes » en cas de geste trop difficile.
@@ -3395,9 +3391,7 @@
     const sousType = (etat.index % 2 === 1) ? 'comparer' : 'mesurer';
     if (sousType === 'comparer') { genererPerimetreComparer(zone, cfg); return; }
     etat.perimetreMesurerVues = (etat.perimetreMesurerVues || 0) + 1;
-    const n = etat.perimetreMesurerVues;
-    if (n === 1) genererPerimetreDemo(zone, cfg);
-    else if (n === 2) genererPerimetreDepliageActif(zone, cfg);
+    if (etat.perimetreMesurerVues === 1) genererPerimetreDemo(zone, cfg);
     else genererPerimetreReglesMobiles(zone, cfg);
   }
 
@@ -3407,8 +3401,7 @@
    * sol sur lequel le contour se dépliera). `pts` est la chaîne OUVERTE du
    * contour : dernier point = premier point (le contour est « coupé » au
    * coin bas-gauche pour pouvoir se dérouler). Tous les périmètres tombent
-   * entre 9 et 14 cm, pour rester lisibles sur la règle de 16 cm avec de
-   * la marge pour les distracteurs des QCM.
+   * entre 9 et 14 cm, pour rester lisibles sur la règle de 16 cm.
    */
   function figureCartographie(typesAutorises) {
     const type = choisir(typesAutorises);
@@ -3421,44 +3414,29 @@
         cotes: [grand, petit, grand, petit]
       };
     }
-    if (type === 'triangle') {
-      // Côtés [a, b, c] dans l'ordre du parcours (base a, puis b, puis c) :
-      // triangles valides (inégalité triangulaire) de périmètre 10 à 14 cm.
-      const [a, b, c] = choisir([[4, 3, 3], [5, 4, 3], [4, 4, 3], [5, 5, 4], [4, 4, 5], [6, 4, 4]]);
-      // Sommet C par intersection de cercles : |CA| = c, |CB| = b.
-      const x = (a * a + c * c - b * b) / (2 * a);
-      const h = Math.sqrt(Math.max(0.5, c * c - x * x));
-      return { nom: 'triangle', pts: [[0, h], [a, h], [x, 0], [0, h]], cotes: [a, b, c] };
-    }
-    // « figure en L » : hexagone rectiligne (rectangle L×H auquel on a
-    // retiré un coin w1×h1 en haut à droite) — côtés tous entiers,
-    // périmètre = 2(L+H) exactement comme le rectangle englobant.
-    const L = nombreAleatoire(3, 4);
-    const H = nombreAleatoire(2, Math.max(2, 7 - L));
-    const w1 = nombreAleatoire(1, L - 1);
-    const h1 = nombreAleatoire(1, Math.max(1, H - 1));
-    return {
-      nom: 'figure en L',
-      pts: [[0, H], [L, H], [L, h1], [L - w1, h1], [L - w1, 0], [0, 0], [0, H]],
-      cotes: [L, H - h1, w1, h1, L - w1, H]
-    };
+    // Côtés [a, b, c] dans l'ordre du parcours (base a, puis b, puis c) :
+    // triangles valides (inégalité triangulaire) de périmètre 10 à 14 cm.
+    const [a, b, c] = choisir([[4, 3, 3], [5, 4, 3], [4, 4, 3], [5, 5, 4], [4, 4, 5], [6, 4, 4]]);
+    // Sommet C par intersection de cercles : |CA| = c, |CB| = b.
+    const x = (a * a + c * c - b * b) / (2 * a);
+    const h = Math.sqrt(Math.max(0.5, c * c - x * x));
+    return { nom: 'triangle', pts: [[0, h], [a, h], [x, 0], [0, h]], cotes: [a, b, c] };
   }
 
   /*
-   * Moteur de dépliage GÉOMÉTRIQUE du contour (étapes A et B) : la figure
-   * est dessinée en SVG, chaque côté est un segment coloré, et le dépliage
-   * redresse la chaîne charnière par charnière — à chaque étape, tout le
-   * reste du contour PIVOTE d'un bloc autour du sommet courant jusqu'à ce
-   * que le côté suivant se pose sur la droite du bas. Uniquement des
-   * ROTATIONS : les longueurs des côtés sont préservées à chaque instant
-   * de l'animation (c'est tout l'argument pédagogique : le contour déplié
-   * a la MÊME longueur que le contour de la figure).
+   * Moteur de dépliage GÉOMÉTRIQUE du contour (démonstration, étape A) :
+   * la figure est dessinée en SVG, chaque côté est un segment coloré, et
+   * le dépliage redresse la chaîne charnière par charnière — à chaque
+   * étape, tout le reste du contour PIVOTE d'un bloc autour du sommet
+   * courant jusqu'à ce que le côté suivant se pose sur la droite du bas.
+   * Uniquement des ROTATIONS : les longueurs des côtés sont préservées à
+   * chaque instant de l'animation (c'est tout l'argument pédagogique : le
+   * contour déplié a la MÊME longueur que le contour de la figure).
    *
-   * Rend { el, nbEtapes, restantes(), etapeSuivante(onFini), toutDeplier(onFini),
-   * insererRegle(cap, total) } — `etapeSuivante` anime UNE charnière et
-   * appelle onFini(toutEstDeplie) ; `insererRegle` glisse une règle
-   * semi-transparente sous le segment déplié, son zéro aligné avec le
-   * début du segment (même échelle px/cm que le dessin).
+   * Rend { el, toutDeplier(onFini), insererRegle(cap, total) } —
+   * `insererRegle` glisse une règle semi-transparente sous le segment
+   * déplié, son zéro aligné avec le début du segment (même échelle px/cm
+   * que le dessin).
    */
   function creerDepliageCartographie(figure, PX) {
     const base = figure.pts.map((p) => [p[0] * PX, p[1] * PX]);
@@ -3599,14 +3577,7 @@
       interne.appendChild(regle);
     }
 
-    return {
-      el: wrap,
-      nbEtapes: etapes.length,
-      restantes: () => etapes.length - indexEtape,
-      etapeSuivante,
-      toutDeplier,
-      insererRegle
-    };
+    return { el: wrap, toutDeplier, insererRegle };
   }
 
   const COULEURS_COTES = ['var(--couleur-mandarine)', 'var(--couleur-menthe)', 'var(--couleur-corail)', 'var(--couleur-soleil)'];
@@ -3711,36 +3682,6 @@
     zone.appendChild(grille);
   }
 
-  /* QCM de lecture du périmètre sur la règle (partagé étapes A conclusion
-     exclue / B) : 4 options en cm autour de la bonne valeur. */
-  function construireQCMPerimetre(zone, bonne, cap, borneMin) {
-    const distracteurs = new Set([bonne]);
-    let tentatives = 0;
-    while (distracteurs.size < 4 && tentatives < 30) {
-      tentatives++;
-      const d = bonne + choisir([-3, -2, -1, 1, 2, 3]);
-      if (d >= (borneMin || 1) && d <= cap) distracteurs.add(d);
-    }
-    const options = Array.from(distracteurs).map(String);
-    const indexBonne = options.indexOf(String(bonne));
-    const { options: optionsMelangees, indexCorrect } = melangerOptions(options, indexBonne);
-    const grille = document.createElement('div');
-    grille.className = 'grille-options';
-    optionsMelangees.forEach((opt, i) => {
-      const btn = document.createElement('button');
-      btn.type = 'button'; btn.className = 'bouton-option'; btn.textContent = opt + ' cm';
-      btn.addEventListener('click', () => {
-        Array.from(grille.children).forEach((b) => { b.disabled = true; });
-        const correct = i === indexCorrect;
-        btn.classList.add(correct ? 'correct' : 'incorrect');
-        if (!correct) grille.children[indexCorrect].classList.add('correct');
-        validerTour(correct, btn);
-      });
-      grille.appendChild(btn);
-    });
-    zone.appendChild(grille);
-  }
-
   /*
    * Étape A — démonstration ANIMÉE (regardée, pas manipulée) : la clairière
    * (rectangle ou triangle, dessinée en SVG) déplie toute seule son contour
@@ -3784,61 +3725,6 @@
         boutonContinuer.disabled = false;
       });
     }, preferesMouvementReduit ? 0 : 900);
-  }
-
-  /*
-   * Étape B — dépliage ACTIF : cette fois c'est l'enfant qui déroule le
-   * contour, un côté à la fois (tap sur le bouton OU sur la figure), sur
-   * une figure variée (rectangle, triangle ou figure en L). Une fois la
-   * ligne toute droite, la règle se glisse dessous et l'enfant lit le
-   * périmètre (QCM, comme les lectures de règle du mini-jeu 2).
-   */
-  function genererPerimetreDepliageActif(zone, cfg) {
-    const cap = cfg.capCm || 16;
-    const figure = figureCartographie(['rectangle', 'triangle', 'coin']);
-    const total = figure.cotes.reduce((a, b) => a + b, 0);
-
-    zone.appendChild(creerBlocConsigne(
-      'À toi ! Déplie le contour côté par côté, puis mesure le périmètre.',
-      'Touche le bouton, ou la figure, pour déplier le contour de la clairière en forme de ' + figure.nom +
-        ', un côté à la fois. Quand la ligne est toute droite, lis sa longueur sur la règle : c\'est le périmètre.'
-    ));
-
-    const depliage = creerDepliageCartographie(figure, pxParUniteRegle(cap));
-    zone.appendChild(depliage.el);
-
-    const boutonDeplier = document.createElement('button');
-    boutonDeplier.type = 'button'; boutonDeplier.className = 'bouton-principal';
-    function majLibelle() {
-      const restantes = depliage.restantes();
-      boutonDeplier.textContent = 'Déplier le côté suivant (' + restantes + ' restant' + (restantes > 1 ? 's' : '') + ')';
-    }
-    majLibelle();
-
-    const zoneLecture = document.createElement('div');
-
-    function toutEstDeplie() {
-      boutonDeplier.hidden = true;
-      depliage.insererRegle(cap, total);
-      const legende = document.createElement('p');
-      legende.className = 'legende';
-      legende.textContent = 'La ligne est toute droite ! Combien mesure-t-elle ? C\'est le périmètre de la clairière.';
-      zoneLecture.appendChild(legende);
-      construireQCMPerimetre(zoneLecture, total, cap, 5);
-    }
-
-    function deplier() {
-      if (etat.verrouille) return;
-      depliage.etapeSuivante((fini) => {
-        if (fini) toutEstDeplie();
-        else majLibelle();
-      });
-    }
-    boutonDeplier.addEventListener('click', deplier);
-    depliage.el.addEventListener('click', deplier);
-
-    zone.appendChild(boutonDeplier);
-    zone.appendChild(zoneLecture);
   }
 
   /*
