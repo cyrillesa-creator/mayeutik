@@ -656,12 +656,18 @@
     if (niveauContexte && niveauxModule(module).length > 1) {
       href += '?palier=' + encodeURIComponent(niveauContexte.toLowerCase());
     }
+    // Un module adaptatif (§15) peut proposer un descriptif DISTINCT par
+    // palier (univers narratif différent d'un niveau à l'autre, ex. M23
+    // Bois/Forêt/Amazonie) via `descriptionsParNiveau`. On l'utilise quand le
+    // niveau du point d'entrée est connu, sinon on retombe sur `description`.
+    const description = (module.descriptionsParNiveau && niveauContexte
+      && module.descriptionsParNiveau[niveauContexte]) || module.description || '';
     return h('a', { class: 'carte-jeu ' + COULEURS_CARTES[indice % COULEURS_CARTES.length],
       href }, [
       h('span', { class: 'icone', texte: module.icone || '🎲' }),
       h('div', { class: 'infos' }, [
         h('div', { class: 'titre', texte: module.titre }),
-        h('div', { class: 'description', texte: module.description || '' }),
+        h('div', { class: 'description', texte: description }),
         h('div', { class: 'badges' }, badges)
       ])
     ]);
@@ -1001,9 +1007,12 @@
 
     const blocs = h('div', { class: 'fiche-blocs' });
 
+    const descriptionModule = module
+      ? ((module.descriptionsParNiveau && c.niveau && module.descriptionsParNiveau[c.niveau]) || module.description || '')
+      : '';
     blocs.appendChild(blocFiche('Pourquoi cet exercice',
       'Ce jeu entraîne la compétence « ' + c.libelle + ' »' +
-        (module && module.description ? '. ' + module.description : '.')));
+        (descriptionModule ? '. ' + descriptionModule : '.')));
 
     const lecture = S.lectureResultat(sessionsComp);
     blocs.appendChild(blocFiche('Lecture du résultat',

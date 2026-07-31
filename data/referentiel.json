@@ -111,7 +111,12 @@
     {
       "id": "M23",
       "titre": "Longueurs",
-      "description": "Pars à l'aventure dans la Forêt aux Cent Arbres : compare, range, mesure et convertis des longueurs.",
+      "description": "Une balade au cœur du Bois : trouve les bons mots, compare et range des objets, puis mesure avec ta règle.",
+      "descriptionsParNiveau": {
+        "CP": "Une balade au cœur du Bois : trouve les bons mots, compare et range des objets, puis mesure avec ta règle.",
+        "CE1": "Une exploration dans la Forêt : choisis la bonne unité, convertis, compare et range des longueurs jusqu'à la règle du garde forestier.",
+        "CE2": "À la découverte de la forêt amazonienne : classe les unités du microscopique à l'immense, calcule des conversions et mesure au plus juste."
+      },
       "icone": "🌳",
       "niveau": "CP",
       "niveaux": ["CP", "CE1", "CE2"],
