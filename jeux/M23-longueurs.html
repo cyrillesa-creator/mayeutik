@@ -541,15 +541,19 @@
   .regle-graduee.regle-mobile .regle-label-haut,
   .regle-graduee.regle-mobile .regle-unite{ opacity:1; text-shadow:0 0 3px #fff, 0 0 3px #fff; }
   .regle-graduee.regle-mobile.regle-mobile-accrochee{ border-color:var(--couleur-menthe); }
-  /* Graduation du SECOND bord (double décimètre) : mêmes ticks et mêmes
-     chiffres, ancrés en haut au lieu du bas. Ticks et étiquettes sont
-     resserrés pour que les deux échelles tiennent dans la même hauteur. */
-  .regle-mobile .regle-tick{ height:11px; }
-  .regle-mobile .regle-tick-forte{ height:17px; }
-  .regle-mobile .regle-label{ bottom:19px; }
-  .regle-mobile .regle-tick-haut{ top:0; bottom:auto; }
-  .regle-mobile .regle-label-haut{ position:absolute; top:19px; transform:translateX(-50%);
-    font-size:.66rem; font-weight:700; opacity:.8; }
+  /* Double décimètre : barres de mesure COURTES, pour dégager de l'espace
+     entre les deux séries de chiffres — elles-mêmes en police un peu plus
+     grande, donc plus lisibles. La seconde échelle (bord du haut, numérotée
+     à rebours) est en corail pour la distinguer au premier coup d'œil de
+     l'échelle principale, en encre. */
+  .regle-mobile .regle-tick{ height:7px; }
+  .regle-mobile .regle-tick-forte{ height:11px; }
+  .regle-mobile .regle-label{ bottom:12px; font-size:.78rem; }
+  .regle-mobile .regle-tick-haut{ top:0; bottom:auto;
+    background:color-mix(in srgb, var(--couleur-corail) 80%, black 10%); }
+  .regle-mobile .regle-label-haut{ position:absolute; top:12px; transform:translateX(-50%);
+    font-size:.78rem; font-weight:700; opacity:.85;
+    color:color-mix(in srgb, var(--couleur-corail) 80%, black 15%); }
 
   /* ---- Saisies numériques (conversions décomposées) ---- */
   .saisie-decomposition{ display:flex; gap:.7rem; justify-content:center; margin:.9rem 0; flex-wrap:wrap; }
@@ -3788,10 +3792,13 @@
     const regle = document.createElement('div');
     regle.className = 'regle-graduee regle-mobile';
     regle.style.width = (cap * PX + 24) + 'px';
-    // Double décimètre : la MÊME graduation sur CHACUN des deux bords longs,
-    // comme une vraie règle d'écolier. L'enfant lit alors sur le bord qui
-    // touche le côté mesuré, sans avoir à retourner la règle — utile ici
-    // puisqu'elle pivote pour passer d'un côté horizontal à un côté vertical.
+    // Double décimètre : une graduation sur CHACUN des deux bords longs,
+    // comme une vraie règle d'écolier. L'enfant lit sur le bord qui touche
+    // le côté mesuré, sans avoir à retourner la règle — utile ici puisqu'elle
+    // pivote pour passer d'un côté horizontal à un côté vertical.
+    // Comme sur les règles du commerce, la SECONDE échelle est numérotée en
+    // SENS INVERSE (cap → 0 de gauche à droite) et d'une autre couleur, pour
+    // qu'on ne confonde jamais les deux séries de chiffres.
     for (let i = 0; i <= cap; i++) {
       const forte = i % 2 === 0;
       ['', ' regle-tick-haut'].forEach((bord) => {
@@ -3801,13 +3808,17 @@
         regle.appendChild(tick);
       });
       if (forte) {
-        ['', ' regle-label-haut'].forEach((bord) => {
-          const lab = document.createElement('div');
-          lab.className = 'regle-label' + bord;
-          lab.style.left = (i * PX) + 'px';
-          lab.textContent = String(i);
-          regle.appendChild(lab);
-        });
+        const lab = document.createElement('div');
+        lab.className = 'regle-label';
+        lab.style.left = (i * PX) + 'px';
+        lab.textContent = String(i);
+        regle.appendChild(lab);
+
+        const labHaut = document.createElement('div');
+        labHaut.className = 'regle-label-haut';
+        labHaut.style.left = (i * PX) + 'px';
+        labHaut.textContent = String(cap - i); // numérotation inversée
+        regle.appendChild(labHaut);
       }
     }
 
