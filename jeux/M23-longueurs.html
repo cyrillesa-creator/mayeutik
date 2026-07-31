@@ -486,6 +486,22 @@
   .decouverte-image{ width:2.6rem; height:2.6rem; }
   .decouverte-nom{ font-size:.72rem; font-weight:700; text-align:center; line-height:1.1; }
 
+  /* Exercice 1 « Ranger les unités » : tri par échange de paire (même
+     mécanique que les bâtons CP / arbres CE1, version étiquettes texte). */
+  .bande-unites{ display:flex; justify-content:center; align-items:center; gap:.9rem; margin:1rem 0; flex-wrap:wrap; overflow-x:auto; }
+  .unite-col-case{ position:relative; display:flex; align-items:center; padding:.3rem; border-radius:12px; }
+  .unite-col-case.case-selectionnee{ background:color-mix(in srgb, var(--couleur-soleil) 40%, transparent); }
+  .unite-col-btn{ position:relative; border:none; background:transparent; padding:.2rem; min-height:44px; min-width:44px;
+    display:flex; align-items:center; justify-content:center; touch-action:none; cursor:grab; }
+  .unite-col-btn.unite-col-glisse{ z-index:5; cursor:grabbing; }
+  .unite-col-contenu{ display:flex; align-items:center; justify-content:center; }
+  .unite-etiquette{ display:inline-flex; align-items:center; justify-content:center; min-width:3.6rem; min-height:3.6rem;
+    padding:.4rem .6rem; border-radius:14px; background:#ffffff; border:2.5px solid color-mix(in srgb, var(--couleur-encre) 18%, white);
+    box-shadow:0 3px 0 color-mix(in srgb, var(--couleur-encre) 12%, white); font-weight:700; font-size:1.15rem;
+    color:var(--couleur-mandarine); user-select:none; }
+  .unite-fantome{ position:fixed; pointer-events:none; z-index:80; transition:transform .25s ease; will-change:transform; }
+  @media (prefers-reduced-motion:reduce){ .unite-fantome{ transition:none; } }
+
   /* ---- Périmètre : côtés à reporter au compas ---- */
   .bloc-polygone{ text-align:center; font-weight:700; margin-bottom:.3rem; }
   .rangee-cotes{ display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; margin:.4rem 0 .7rem; }
@@ -601,7 +617,7 @@
     "CE2": {
       "sousTitre": "À la découverte de la forêt amazonienne ! 🌴",
       "miniJeux": [
-        { "id": "unites-decouverte-ce2", "titre": "Découverte : du microscopique à l'immensité", "icone": "🔍", "couleur": "corail", "description": "Classe des unités, puis associe chaque animal à sa taille.", "type": "decouverte-ce2", "nbTours": 6 },
+        { "id": "unites-decouverte-ce2", "titre": "Découverte : du microscopique à l'immensité", "icone": "🔍", "couleur": "corail", "description": "Classe des unités, puis associe chaque animal à sa taille.", "type": "decouverte-ce2", "nbTours": 5 },
         { "id": "calculs-mesure-ce2", "titre": "L'exploration", "icone": "🛶", "couleur": "soleil", "description": "Calcule des conversions et mesure à la règle, en cm et en mm.", "type": "exploration-ce2", "nbTours": 6, "capCm": 20 },
         { "id": "perimetre-ce2", "titre": "Le tour de la clairière", "icone": "📐", "couleur": "mandarine", "description": "Compare et mesure le tour de figures.", "type": "perimetre", "nbTours": 6 }
       ]
@@ -2767,18 +2783,182 @@
     { texte: "La distance parcourue lors d'une randonnée dans la jungle s'exprime plutôt en ___", bonne: 'km', options: ['m', 'km'] }
   ];
 
-  /* Dispatcher du mini-jeu 1 : alterne SANS regrouper par bloc le
-     classement (étapes A+B, drag & drop du bloc solidaire nombre+image+nom
-     vers la bonne colonne d'unité) et les questions d'ordre de grandeur
-     (étape C). Clé d'anti-répétition dédiée (dernierSousTypeDecouverte)
-     pour ne pas entrer en collision avec les autres dispatchers du fichier. */
+  /* Dispatcher du mini-jeu 1 : ORDRE FIXE des trois exercices (dérogation
+     explicite à la randomisation habituelle du fichier, CHARTE §13) — 1)
+     ranger les unités, 2) classement (étiquettes à placer), 3) QCM
+     d'unités (3 manches). Le contenu ALÉATOIRE à l'intérieur de chaque
+     exercice reste inchangé (ordre de mélange des étiquettes/vignettes,
+     tirage sans redondance des questions QCM). Dispatché sur etat.index
+     (position dans la partie), pas sur un tirage aléatoire. */
   function genererDecouverteCE2(zone, cfg) {
-    const types = ['classement', 'ordre-grandeur'];
-    const dispo = types.filter((t) => t !== etat.dernierSousTypeDecouverte);
-    const sousType = choisir(dispo.length ? dispo : types);
-    etat.dernierSousTypeDecouverte = sousType;
-    if (sousType === 'classement') genererClassementDecouverteCE2(zone);
+    if (etat.index === 1) genererRangerUnitesCE2(zone);
+    else if (etat.index === 2) genererClassementDecouverteCE2(zone);
     else genererOrdreGrandeurCE2(zone);
+  }
+
+  /* Unités dans l'ORDRE CROISSANT canonique (référence pour la correction
+     de l'exercice 1 « ranger les unités »). */
+  const ORDRE_UNITES_CE2 = ['mm', 'cm', 'dm', 'm', 'km'];
+
+  /*
+   * Exercice 1 « Ranger les unités » : 5 étiquettes (juste le nom de
+   * l'unité) à ranger par ordre croissant. Même mécanique de tri par
+   * ÉCHANGE PAR PAIRE déjà éprouvée (bâtons du CP, arbres du CE1) :
+   * positions fixes, glisser une étiquette vers une autre colonne pour les
+   * permuter, transition en pure TRANSLATION (translateX, jamais de
+   * changement de taille pendant le geste) via un fantôme cloné de taille
+   * figée. Bouton « Valider » pour la correction finale (pas de
+   * validation automatique à chaque échange).
+   */
+  function genererRangerUnitesCE2(zone) {
+    const n = 5;
+    let ordre = melanger(ORDRE_UNITES_CE2.slice());
+    const estTrie = (t) => t.every((v, i) => i === 0 || ORDRE_UNITES_CE2.indexOf(t[i - 1]) <= ORDRE_UNITES_CE2.indexOf(v));
+    let garde = 0;
+    while (estTrie(ordre) && garde < 10) { ordre = melanger(ORDRE_UNITES_CE2.slice()); garde++; }
+
+    zone.appendChild(creerBlocConsigne(
+      'Range les unités dans l\'ordre, de la plus petite à la plus grande.',
+      'Fais glisser une étiquette vers une autre colonne pour échanger leur place, jusqu\'à ce qu\'elles soient rangées de la plus petite à la plus grande unité. Tu peux aussi toucher une étiquette, puis une autre colonne, pour les échanger.'
+    ));
+
+    const bande = document.createElement('div');
+    bande.className = 'bande-unites';
+    const cases = [];
+    let selection = null;
+    let ignorerProchainClic = false;
+
+    function rendreCase(i) {
+      const contenu = cases[i].querySelector('.unite-col-contenu');
+      contenu.innerHTML = '';
+      const etiquette = document.createElement('span');
+      etiquette.className = 'unite-etiquette';
+      etiquette.textContent = ordre[i];
+      contenu.appendChild(etiquette);
+      cases[i].querySelector('.unite-col-btn').setAttribute('aria-label', 'Étiquette ' + ordre[i] + ', colonne ' + (i + 1));
+    }
+    function deselectionner() {
+      if (selection === null) return;
+      cases[selection].classList.remove('case-selectionnee');
+      selection = null;
+    }
+
+    const preferesMouvementReduit = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function creerFantomeUnite(contenuOriginal, rect) {
+      const fantome = contenuOriginal.cloneNode(true);
+      fantome.classList.add('unite-fantome');
+      fantome.setAttribute('aria-hidden', 'true');
+      fantome.style.left = rect.left + 'px';
+      fantome.style.top = rect.top + 'px';
+      fantome.style.width = rect.width + 'px';
+      fantome.style.height = rect.height + 'px';
+      document.body.appendChild(fantome);
+      return fantome;
+    }
+
+    function echanger(i, j) {
+      if (i === j) return;
+      const contenuI = cases[i].querySelector('.unite-col-contenu');
+      const contenuJ = cases[j].querySelector('.unite-col-contenu');
+      const rectI = contenuI.getBoundingClientRect();
+      const rectJ = contenuJ.getBoundingClientRect();
+
+      const tmp = ordre[i]; ordre[i] = ordre[j]; ordre[j] = tmp;
+      rendreCase(i); rendreCase(j);
+
+      if (preferesMouvementReduit) return;
+
+      const fantomeI = creerFantomeUnite(contenuI, rectI);
+      const fantomeJ = creerFantomeUnite(contenuJ, rectJ);
+      contenuI.style.visibility = 'hidden';
+      contenuJ.style.visibility = 'hidden';
+      const versJ = rectJ.left - rectI.left;
+      const versI = rectI.left - rectJ.left;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          fantomeI.style.transform = 'translateX(' + versJ + 'px)';
+          fantomeJ.style.transform = 'translateX(' + versI + 'px)';
+        });
+      });
+      setTimeout(() => {
+        fantomeI.remove();
+        fantomeJ.remove();
+        contenuI.style.visibility = '';
+        contenuJ.style.visibility = '';
+      }, 260);
+    }
+
+    for (let i = 0; i < n; i++) {
+      const caseDiv = document.createElement('div');
+      caseDiv.className = 'unite-col-case';
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'unite-col-btn';
+      const contenu = document.createElement('span');
+      contenu.className = 'unite-col-contenu';
+      btn.appendChild(contenu);
+      caseDiv.appendChild(btn);
+      bande.appendChild(caseDiv);
+      cases.push(caseDiv);
+
+      btn.addEventListener('click', () => {
+        if (etat.verrouille) return;
+        if (ignorerProchainClic) { ignorerProchainClic = false; return; }
+        if (selection === null) {
+          selection = i;
+          caseDiv.classList.add('case-selectionnee');
+        } else if (selection === i) {
+          deselectionner();
+        } else {
+          const precedente = selection;
+          deselectionner();
+          echanger(precedente, i);
+        }
+      });
+
+      let enGlissement = false;
+      let departX = 0, departY = 0;
+      btn.addEventListener('pointerdown', (e) => {
+        if (etat.verrouille) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        enGlissement = true;
+        departX = e.clientX; departY = e.clientY;
+        try { btn.setPointerCapture(e.pointerId); } catch (err) { /* pointeur déjà relâché : tant pis */ }
+      });
+      btn.addEventListener('pointermove', (e) => {
+        if (!enGlissement) return;
+        e.preventDefault();
+        btn.style.transform = 'translate(' + (e.clientX - departX) + 'px,' + (e.clientY - departY) + 'px)';
+        btn.classList.add('unite-col-glisse');
+      });
+      function relacherGlissement(e) {
+        if (!enGlissement) return;
+        enGlissement = false;
+        btn.style.transform = '';
+        btn.classList.remove('unite-col-glisse');
+        const distanceGlissee = Math.hypot(e.clientX - departX, e.clientY - departY);
+        if (distanceGlissee < 8) return; // simple appui : laissé au gestionnaire 'click'
+        ignorerProchainClic = true;
+        deselectionner();
+        const cible = cases.findIndex((c) => {
+          const r = c.getBoundingClientRect();
+          return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+        });
+        if (cible !== -1) echanger(i, cible);
+      }
+      btn.addEventListener('pointerup', relacherGlissement);
+      btn.addEventListener('pointercancel', () => { enGlissement = false; btn.style.transform = ''; btn.classList.remove('unite-col-glisse'); });
+    }
+
+    zone.appendChild(bande);
+    cases.forEach((_, i) => rendreCase(i));
+
+    const boutonValider = document.createElement('button');
+    boutonValider.type = 'button'; boutonValider.className = 'bouton-principal'; boutonValider.textContent = 'Valider';
+    boutonValider.addEventListener('click', () => {
+      validerTour(estTrie(ordre), boutonValider);
+    });
+    zone.appendChild(boutonValider);
   }
 
   function genererOrdreGrandeurCE2(zone) {
