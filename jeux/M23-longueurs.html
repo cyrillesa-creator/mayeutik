@@ -535,6 +535,9 @@
      l'animation), puis mesuré à la règle glissée dessous. */
   .cartographie-scene{ overflow-x:auto; margin:.9rem 0; padding:.3rem 0; }
   .cartographie-scene svg{ display:block; }
+  /* La règle qui vient SE POSER sur le segment déplié pour le mesurer
+     (positionnée dans la scène, animée en translation par le JS). */
+  .cartographie-regle-posee{ position:absolute; }
 
   /* ---- Périmètre CE2 « La cartographie » — étape C : mesure sans dépliage,
      règle mobile (glisser + pivoter à deux doigts, accroche magnétique à 90°),
@@ -3433,10 +3436,12 @@
    * chaque instant de l'animation (c'est tout l'argument pédagogique : le
    * contour déplié a la MÊME longueur que le contour de la figure).
    *
-   * Rend { el, toutDeplier(onFini), insererRegle(cap, total) } —
-   * `insererRegle` glisse une règle semi-transparente sous le segment
-   * déplié, son zéro aligné avec le début du segment (même échelle px/cm
-   * que le dessin).
+   * Rend { el, toutDeplier(onFini), poserRegleSurSegment(cap, onFini) } —
+   * `poserRegleSurSegment` fait GLISSER une règle semi-transparente (sans
+   * barre interne : le segment déplié EST l'objet mesuré, visible par
+   * transparence) depuis le bord de la scène jusque SUR le segment, son
+   * zéro aligné avec le début de la ligne (même échelle px/cm que le
+   * dessin), comme une main qui pose une vraie règle pour mesurer.
    */
   function creerDepliageCartographie(figure, PX) {
     const base = figure.pts.map((p) => [p[0] * PX, p[1] * PX]);
@@ -3531,6 +3536,7 @@
     const wrap = document.createElement('div');
     wrap.className = 'cartographie-scene';
     const interne = document.createElement('div');
+    interne.style.position = 'relative';
     interne.style.width = largeur + 'px';
     interne.appendChild(svg);
     wrap.appendChild(interne);
@@ -3566,18 +3572,40 @@
       });
     }
 
-    function insererRegle(cap, total) {
-      const wrapRegle = construireRegle({ longueurUnites: cap, objetLongueur: total, unite: 'cm' });
+    function poserRegleSurSegment(cap, onFini) {
+      // Règle SANS objetLongueur : pas de barre interne dupliquée, le
+      // segment déplié (visible par transparence) est l'objet mesuré.
+      const wrapRegle = construireRegle({ longueurUnites: cap, unite: 'cm' });
       const regle = wrapRegle.firstElementChild;
-      regle.classList.add('regle-graduee-semi-transparente');
-      // Zéro de la règle aligné avec le début du segment déplié (le tick 0
-      // est à 2.5px du bord de l'élément, l'épaisseur de sa bordure).
-      regle.style.marginLeft = Math.max(0, base[0][0] + ox - 2.5) + 'px';
-      interne.style.width = Math.max(largeur, base[0][0] + ox + cap * PX + 30) + 'px';
+      regle.classList.add('regle-graduee-semi-transparente', 'cartographie-regle-posee');
+      // Position finale : zéro de la règle aligné avec le début du segment
+      // (le tick 0 est à 2.5px du bord de l'élément, sa bordure), et le
+      // segment traversant le HAUT de la règle — à la place qu'occupe la
+      // barre rouge dans les autres lectures de règle de la série.
+      const cibleX = Math.max(0, base[0][0] + ox - 2.5);
+      const cibleY = base[0][1] + oy - 11;
+      regle.style.left = cibleX + 'px';
+      regle.style.top = cibleY + 'px';
+      interne.style.width = Math.max(largeur, cibleX + cap * PX + 30) + 'px';
+      interne.style.height = (cibleY + 70) + 'px';
+      if (preferesMouvementReduit) {
+        interne.appendChild(regle);
+        if (onFini) onFini();
+        return;
+      }
+      // La règle ARRIVE sur le segment : départ décalé en bas à droite,
+      // puis glissement (transform seul) jusqu'à la position de mesure.
+      regle.style.transform = 'translate(80px, 46px)';
+      regle.style.opacity = '0';
       interne.appendChild(regle);
+      void regle.offsetWidth;
+      regle.style.transition = 'transform .8s ease, opacity .35s ease';
+      regle.style.transform = 'translate(0px, 0px)';
+      regle.style.opacity = '';
+      setTimeout(() => { if (onFini) onFini(); }, 880);
     }
 
-    return { el: wrap, toutDeplier, insererRegle };
+    return { el: wrap, toutDeplier, poserRegleSurSegment };
   }
 
   const COULEURS_COTES = ['var(--couleur-mandarine)', 'var(--couleur-menthe)', 'var(--couleur-corail)', 'var(--couleur-soleil)'];
@@ -3685,10 +3713,11 @@
   /*
    * Étape A — démonstration ANIMÉE (regardée, pas manipulée) : la clairière
    * (rectangle ou triangle, dessinée en SVG) déplie toute seule son contour
-   * charnière par charnière jusqu'à la ligne droite, puis la règle se glisse
-   * dessous pour conclure « le périmètre, c'est la longueur du contour
-   * déplié ». Le bouton « Continuer » ne se débloque qu'une fois l'animation
-   * terminée, et valide toujours (observation, pas un exercice noté).
+   * charnière par charnière jusqu'à la ligne droite, puis la règle VIENT SE
+   * POSER sur le segment pour le mesurer et conclure « le périmètre, c'est
+   * la longueur du contour déplié ». Le bouton « Continuer » ne se débloque
+   * qu'une fois l'animation terminée, et valide toujours (observation, pas
+   * un exercice noté).
    */
   function genererPerimetreDemo(zone, cfg) {
     const cap = cfg.capCm || 16;
@@ -3698,7 +3727,7 @@
     zone.appendChild(creerBlocConsigne(
       'Regarde bien : le périmètre, c\'est la longueur du contour… une fois déplié !',
       'Regarde l\'animation : le contour de la clairière en forme de ' + figure.nom +
-        ' se déplie, côté après côté, jusqu\'à former une seule ligne droite. On mesure alors cette ligne avec la règle : c\'est le périmètre.'
+        ' se déplie, côté après côté, jusqu\'à former une seule ligne droite. La règle vient alors la mesurer : c\'est le périmètre.'
     ));
 
     const depliage = creerDepliageCartographie(figure, pxParUniteRegle(cap));
@@ -3718,11 +3747,13 @@
     const preferesMouvementReduit = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     setTimeout(() => {
       depliage.toutDeplier(() => {
-        depliage.insererRegle(cap, total);
-        const conclusion = 'Le contour déplié mesure ' + total + ' cm : le périmètre de cette clairière en forme de ' + figure.nom + ' est ' + total + ' cm !';
-        legende.textContent = conclusion;
-        lireAVoixHaute(conclusion);
-        boutonContinuer.disabled = false;
+        legende.textContent = 'Le contour est déplié : la règle vient le mesurer…';
+        depliage.poserRegleSurSegment(cap, () => {
+          const conclusion = 'La ligne mesure ' + total + ' cm : le périmètre de cette clairière en forme de ' + figure.nom + ' est ' + total + ' cm !';
+          legende.textContent = conclusion;
+          lireAVoixHaute(conclusion);
+          boutonContinuer.disabled = false;
+        });
       });
     }, preferesMouvementReduit ? 0 : 900);
   }
