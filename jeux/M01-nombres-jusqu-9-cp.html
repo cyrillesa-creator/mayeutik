@@ -60,6 +60,7 @@
   .bouton-retour{
     flex:0 0 auto; min-height:44px; min-width:44px; border-radius:14px; border:none;
     background:var(--couleur-encre); color:var(--couleur-fond); font-size:1.2rem; font-weight:600; padding:0 .9rem;
+    touch-action:manipulation;
   }
   .entete-jeu-titres{ flex:1; min-width:0; }
   .entete-jeu-titres h2{ font-size:1.1rem; color:var(--couleur-mandarine); }
@@ -77,13 +78,14 @@
     min-width:44px; min-height:44px; border-radius:50%;
     border:2.5px solid var(--couleur-mandarine); background:#ffffff;
     font-size:1.3rem; display:flex; align-items:center; justify-content:center; flex:0 0 auto;
+    touch-action:manipulation;
   }
   .bouton-son:active{ transform:translateY(2px); }
 
   .grille-options{ display:grid; grid-template-columns:repeat(2,1fr); gap:.6rem; margin-top:.5rem; }
   .bouton-option{
     min-height:3.4rem; border-radius:16px; border:2.5px solid var(--couleur-encre); background:#ffffff;
-    display:flex; align-items:center; justify-content:center; padding:.4rem;
+    display:flex; align-items:center; justify-content:center; padding:.4rem; touch-action:manipulation;
   }
   .bouton-option:disabled{ opacity:.6; }
   .bouton-option.correct{ background:color-mix(in srgb, var(--couleur-menthe) 45%, white); border-color:var(--couleur-menthe); }
@@ -92,10 +94,11 @@
   .bouton-principal{
     display:block; margin:.8rem auto 0; min-height:44px; border-radius:14px; border:none;
     background:var(--couleur-mandarine); color:#ffffff; font-weight:700; padding:0 1.3rem;
+    touch-action:manipulation;
   }
   .bouton-secondaire{
     display:block; margin:0 auto; min-height:44px; border-radius:14px; border:2.5px solid var(--couleur-encre);
-    background:#ffffff; padding:0 1.1rem; font-weight:500;
+    background:#ffffff; padding:0 1.1rem; font-weight:500; touch-action:manipulation;
   }
 
   /* Retour à la coquille (CHARTE §7) : bouton discret + confirmation */
@@ -104,7 +107,7 @@
     min-height:44px; border-radius:14px; padding:0 .9rem;
     border:2px solid color-mix(in srgb, var(--couleur-encre) 25%, white);
     background:#ffffff; color:var(--couleur-encre); font-weight:600; font-size:.95rem;
-    display:inline-flex; align-items:center; gap:.35rem;
+    display:inline-flex; align-items:center; gap:.35rem; touch-action:manipulation;
   }
   .bouton-menu:active{ transform:translateY(2px); }
   .modale-fond{
@@ -126,6 +129,7 @@
   .bouton-suivant{
     display:block; margin:.6rem auto 0; min-height:44px; border-radius:14px; border:none;
     background:var(--couleur-mandarine); color:#ffffff; font-weight:700; font-size:1rem; padding:0 1.4rem;
+    touch-action:manipulation;
   }
 
   .bloc-resultats{ text-align:center; }
@@ -162,6 +166,7 @@
   .touche-chiffre{
     min-height:3.2rem; border-radius:14px; border:2.5px solid var(--couleur-encre);
     background:#ffffff; font-size:1.4rem; font-weight:700; color:var(--couleur-encre);
+    touch-action:manipulation;
   }
   .touche-chiffre.correct{ background:color-mix(in srgb, var(--couleur-menthe) 45%, white); border-color:var(--couleur-menthe); }
   .touche-chiffre.incorrect{ background:color-mix(in srgb, var(--couleur-corail) 35%, white); border-color:var(--couleur-corail); }
