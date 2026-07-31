@@ -3668,7 +3668,7 @@
   function creerBlocCompas(lettre, figure, PX, largeurCommune, onTousReportes) {
     const SVGNS = 'http://www.w3.org/2000/svg';
     const MARGE_G = 12;
-    const MARGE_HAUT = 64; // place pour que le compas déployé tienne au-dessus
+    const MARGE_HAUT = 74; // place pour que le compas déployé tienne au-dessus
     const pts = figure.pts.map((p) => [p[0] * PX + MARGE_G, p[1] * PX + MARGE_HAUT]);
     const nbCotes = pts.length - 1;
     const hauteurPolygone = Math.max.apply(null, pts.map((p) => p[1]));
@@ -3713,11 +3713,12 @@
     const cotes = [];
     for (let i = 0; i < nbCotes; i++) {
       const couleur = COULEURS_COTES[i % COULEURS_COTES.length];
+      // Côté PAS ENCORE reporté : trait épais, coloré, bien plein.
       const trait = document.createElementNS(SVGNS, 'line');
       trait.setAttribute('x1', pts[i][0]); trait.setAttribute('y1', pts[i][1]);
       trait.setAttribute('x2', pts[i + 1][0]); trait.setAttribute('y2', pts[i + 1][1]);
       trait.style.stroke = couleur;
-      trait.setAttribute('stroke-width', '6');
+      trait.setAttribute('stroke-width', '9');
       trait.setAttribute('stroke-linecap', 'round');
       svg.appendChild(trait);
 
@@ -3839,8 +3840,15 @@
           seg.setAttribute('stroke-width', '7');
           gReports.appendChild(seg);
           xCourant += L;
-          c.trait.style.opacity = '.3';
+          // Côté DÉJÀ reporté : on change tout à la fois (épaisseur, couleur
+          // et style de trait) plutôt que la seule opacité, pour qu'un coup
+          // d'œil suffise à voir ce qu'il reste à faire — un trait fin, gris
+          // et pointillé ne peut pas être confondu avec un côté à reporter.
+          c.trait.setAttribute('stroke-width', '3');
+          c.trait.setAttribute('stroke-dasharray', '5 4');
+          c.trait.style.stroke = 'color-mix(in srgb, var(--couleur-encre) 22%, white)';
           c.zone.style.cursor = 'default';
+          c.zone.style.pointerEvents = 'none';
           majLegende();
           animer(preferesMouvementReduit ? 0 : 200, (p) => { gCompas.style.opacity = String(1 - p); }, () => {
             gCompas.style.opacity = '0';
@@ -3863,25 +3871,44 @@
    * mesure, qui tranche. Les deux périmètres sont volontairement PROCHES
    * (1 à 4 cm d'écart) pour qu'on ne puisse pas conclure sans reporter.
    */
+  /*
+   * Un polygone à comparer au compas. Contrairement aux figures du dépliage,
+   * ici AUCUN côté ne descend sous 3 cm : un côté minuscule se repère mal
+   * sur la figure comme une fois reporté sur la droite. Périmètres de 10 à
+   * 16 cm, dessinés en grand (cf. PX ci-dessous) pour que chaque côté soit
+   * franchement visible.
+   */
+  function polygoneCompas() {
+    if (Math.random() < 0.45) {
+      const [L, l] = choisir([[3, 3], [4, 3], [5, 3], [4, 4]]);
+      return { nom: 'rectangle', pts: [[0, l], [L, l], [L, 0], [0, 0], [0, l]], cotes: [L, l, L, l] };
+    }
+    // Triangles à côtés ≥ 3 cm respectant l'inégalité triangulaire.
+    const [a, b, c] = choisir([[3, 3, 4], [3, 4, 4], [4, 4, 4], [4, 4, 5], [3, 5, 5],
+      [4, 5, 5], [5, 5, 5], [4, 5, 6], [5, 4, 6]]);
+    const x = (a * a + c * c - b * b) / (2 * a);
+    const h = Math.sqrt(Math.max(0.5, c * c - x * x));
+    return { nom: 'triangle', pts: [[0, h], [a, h], [x, 0], [0, h]], cotes: [a, b, c] };
+  }
+
   function genererPerimetreCompas(zone, cfg) {
-    const PX = 13;
-    const TYPES = ['rectangle', 'triangle', 'coin'];
+    const PX = 18; // grande échelle : le plus petit côté fait déjà 54 px
     const perim = (f) => f.cotes.reduce((a, b) => a + b, 0);
-    const figureA = figureCartographie(TYPES);
+    const figureA = polygoneCompas();
     let figureB = null;
     for (let essai = 0; essai < 60 && !figureB; essai++) {
-      const candidate = figureCartographie(TYPES);
+      const candidate = polygoneCompas();
       const ecart = Math.abs(perim(figureA) - perim(candidate));
       if (ecart >= 1 && ecart <= 4) figureB = candidate;
     }
     if (!figureB) {
       // Repli (jamais atteint en pratique) : un rectangle d'écart garanti.
-      const demi = Math.max(4, Math.round((perim(figureA) + choisir([-2, 2])) / 2));
-      const petit = Math.max(2, Math.floor(demi / 2));
+      const l = 3;
+      const L = Math.max(3, Math.round(perim(figureA) / 2) - l + choisir([-1, 1]));
       figureB = {
         nom: 'rectangle',
-        pts: [[0, petit], [demi - petit, petit], [demi - petit, 0], [0, 0], [0, petit]],
-        cotes: [demi - petit, petit, demi - petit, petit]
+        pts: [[0, l], [L, l], [L, 0], [0, 0], [0, l]],
+        cotes: [L, l, L, l]
       };
     }
 
