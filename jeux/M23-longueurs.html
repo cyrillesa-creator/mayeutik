@@ -654,7 +654,7 @@
       "miniJeux": [
         { "id": "unites-decouverte-ce2", "titre": "Découverte : du microscopique à l'immensité", "icone": "🔍", "couleur": "corail", "description": "Classe des unités, puis associe chaque animal à sa taille.", "type": "decouverte-ce2", "nbTours": 5 },
         { "id": "calculs-mesure-ce2", "titre": "L'exploration", "icone": "🛶", "couleur": "soleil", "description": "Calcule des conversions et mesure à la règle, en cm et en mm.", "type": "exploration-ce2", "nbTours": 6, "capCm": 20 },
-        { "id": "perimetre-ce2", "titre": "Le tour de la clairière", "icone": "📐", "couleur": "mandarine", "description": "Compare et mesure le tour de figures.", "type": "perimetre", "nbTours": 6 }
+        { "id": "perimetre-ce2", "titre": "La cartographie", "icone": "🗺️", "couleur": "mandarine", "description": "Déplie le contour, mesure à la règle, et cartographie le périmètre des figures.", "type": "perimetre", "nbTours": 6, "capCm": 16 }
       ]
     }
   }
@@ -3386,13 +3386,104 @@
   }
 
   /* ================================================================
-     Mini-jeu : « Le tour de la clairière » (périmètre, CE2)
+     Mini-jeu 3 : « La cartographie » (périmètre, CE2, ex-M31 fusionné)
+     Alterne, manche par manche : comparaison SANS règle (report au compas,
+     inchangé) et détermination AVEC règle graduée. Cette seconde famille
+     suit une progression fixe sur les 3 occurrences d'une partie (nbTours
+     = 6 → 3 « comparer » + 3 « mesurer ») :
+       1re occurrence « mesurer » → étape A, démonstration ANIMÉE du
+         dépliage du contour (regardée, pas manipulée) ;
+       2e  occurrence « mesurer » → étape B, dépliage ACTIF déclenché par
+         l'enfant puis lecture à la règle semi-transparente ;
+       3e  occurrence « mesurer » → étape C, mesure SANS dépliage avec une
+         règle mobile qu'on glisse ET qu'on pivote à 90° (pincement à deux
+         doigts, accroche magnétique), avec repli « deux règles
+         indépendantes » en cas de geste trop difficile.
      ================================================================ */
 
   function genererPerimetre(zone, cfg) {
     const sousType = (etat.index % 2 === 1) ? 'comparer' : 'mesurer';
-    if (sousType === 'comparer') genererPerimetreComparer(zone, cfg);
-    else genererPerimetreMesurer(zone, cfg);
+    if (sousType === 'comparer') { genererPerimetreComparer(zone, cfg); return; }
+    etat.perimetreMesurerVues = (etat.perimetreMesurerVues || 0) + 1;
+    const n = etat.perimetreMesurerVues;
+    if (n === 1) genererPerimetreDemo(zone, cfg);
+    else if (n === 2) genererPerimetreDepliageActif(zone, cfg);
+    else genererPerimetreReglesMobiles(zone, cfg);
+  }
+
+  /* Un polygone aléatoire (3 ou 4 côtés, 3-9 unités chacun), pour les
+     étapes A et B (dépliage du contour) — mêmes bornes que
+     genererPerimetreComparer, réutilise le même rendu « côtés-rods ». */
+  /* Côtés bornés pour que le TOTAL reste toujours confortablement dans la
+     plage de la règle utilisée pour le dépliage (capMax), avec de la marge
+     pour générer 3 distracteurs (± quelques cm) autour du périmètre exact. */
+  function polygonePerimetreAleatoire(capMax) {
+    const n = choisir([3, 3, 4]);
+    const maxCote = Math.max(2, Math.floor((capMax - 4) / n));
+    const cotes = [];
+    for (let i = 0; i < n; i++) cotes.push(nombreAleatoire(2, maxCote));
+    return cotes;
+  }
+
+  /* Construit le contour (rangée de côtés colorés, réutilise .rangee-cotes/
+     .cote-rod déjà établis par genererPerimetreComparer) et la barre du
+     segment déplié (cachée au départ, largeur 0). `declencher(fn)` reçoit
+     la fonction à appeler pour lancer le dépliage — appelée automatiquement
+     après un court délai (étape A, démonstration) ou sur tap d'un bouton
+     (étape B, dépliage actif). Rend { cotes, total, lancerDepliage } où
+     `lancerDepliage` anime la barre puis appelle `apresDepliage(total)`.
+   */
+  function construireContourEtDepliage(zone, cap, apresDepliage) {
+    const UNITE_PX = 16;
+    const cotes = polygonePerimetreAleatoire(cap);
+    const total = cotes.reduce((a, b) => a + b, 0);
+
+    const blocContour = document.createElement('div');
+    const titreContour = document.createElement('div');
+    titreContour.className = 'bloc-polygone';
+    titreContour.textContent = 'Le contour à cartographier';
+    blocContour.appendChild(titreContour);
+    const rangee = document.createElement('div');
+    rangee.className = 'rangee-cotes';
+    cotes.forEach((longueur, i) => {
+      const rod = document.createElement('div');
+      rod.className = 'cote-rod';
+      const barre = document.createElement('span');
+      barre.className = 'rod-barre';
+      barre.style.width = (longueur * UNITE_PX) + 'px';
+      barre.style.background = COULEURS_COTES[i % COULEURS_COTES.length];
+      rod.appendChild(barre);
+      rangee.appendChild(rod);
+    });
+    blocContour.appendChild(rangee);
+    zone.appendChild(blocContour);
+
+    const ligne = document.createElement('div');
+    ligne.className = 'ligne-report';
+    ligne.hidden = true;
+    const barreDepliee = document.createElement('span');
+    barreDepliee.className = 'segment-report perimetre-barre-depliee';
+    ligne.appendChild(barreDepliee);
+    zone.appendChild(ligne);
+
+    const preferesMouvementReduit = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function lancerDepliage() {
+      blocContour.style.transition = preferesMouvementReduit ? 'none' : 'opacity .5s ease';
+      blocContour.style.opacity = '0';
+      setTimeout(() => {
+        blocContour.hidden = true;
+        ligne.hidden = false;
+        const largeurFinale = total * UNITE_PX;
+        // Force un reflow avant de fixer la largeur cible, pour que la
+        // transition CSS (width 0 → largeurFinale) se déclenche bien.
+        void barreDepliee.offsetWidth;
+        barreDepliee.style.width = largeurFinale + 'px';
+        setTimeout(apresDepliage.bind(null, total), preferesMouvementReduit ? 0 : 950);
+      }, preferesMouvementReduit ? 0 : 520);
+    }
+
+    return { cotes, total, lancerDepliage };
   }
 
   const COULEURS_COTES = ['var(--couleur-mandarine)', 'var(--couleur-menthe)', 'var(--couleur-corail)', 'var(--couleur-soleil)'];
@@ -3497,52 +3588,401 @@
     zone.appendChild(grille);
   }
 
-  function genererPerimetreMesurer(zone, cfg) {
-    const forme = choisir(['triangle', 'carre', 'rectangle', 'quadrilatere']);
-    let cotes = [];
-    let texteFormeLabel = '';
-    let astuce = null;
-    let total;
-    if (forme === 'triangle') {
-      cotes = [nombreAleatoire(3, 9), nombreAleatoire(3, 9), nombreAleatoire(3, 9)];
-      texteFormeLabel = 'triangle';
-      total = cotes.reduce((a, b) => a + b, 0);
-    } else if (forme === 'quadrilatere') {
-      cotes = [nombreAleatoire(3, 9), nombreAleatoire(3, 9), nombreAleatoire(3, 9), nombreAleatoire(3, 9)];
-      texteFormeLabel = 'quadrilatère';
-      total = cotes.reduce((a, b) => a + b, 0);
-    } else if (forme === 'carre') {
-      const c = nombreAleatoire(3, 9);
-      cotes = [c];
-      texteFormeLabel = 'carré';
-      astuce = 'Astuce : dans un carré, les 4 côtés ont la même longueur — pas besoin de tous les mesurer !';
-      total = c * 4;
-    } else {
-      const l = nombreAleatoire(4, 9);
-      const L = nombreAleatoire(l + 1, 12);
-      cotes = [L, l];
-      texteFormeLabel = 'rectangle';
-      astuce = 'Astuce : dans un rectangle, les côtés opposés ont la même longueur — pas besoin de tous les mesurer !';
-      total = (L + l) * 2;
-    }
-
+  /*
+   * Étape A — démonstration ANIMÉE (regardée, pas manipulée) : le contour se
+   * déplie tout seul après un court délai, une règle semi-transparente
+   * apparaît sous le segment obtenu pour conclure que « le périmètre, c'est
+   * la longueur du contour déplié ». Le bouton « Continuer » ne se débloque
+   * qu'une fois l'animation terminée, et valide toujours (ce n'est pas un
+   * exercice noté, juste une observation).
+   */
+  function genererPerimetreDemo(zone, cfg) {
+    const cap = cfg.capCm || 16;
     zone.appendChild(creerBlocConsigne(
-      'Le tour de cette clairière (' + texteFormeLabel + ') fait combien de centimètres en tout ?',
-      'Utilise les longueurs données pour trouver le tour complet de la clairière, en centimètres.'
+      'Regarde bien : le périmètre, c\'est la longueur du contour, une fois déplié !',
+      'Le contour de cette clairière va se déplier en une seule ligne droite. On peut alors la mesurer avec la règle, comme n\'importe quelle longueur.'
     ));
 
-    const infosCotes = document.createElement('p');
-    infosCotes.className = 'legende';
-    if (forme === 'carre') infosCotes.textContent = 'Un côté mesure ' + cotes[0] + ' cm.';
-    else if (forme === 'rectangle') infosCotes.textContent = 'Longueur : ' + cotes[0] + ' cm — Largeur : ' + cotes[1] + ' cm.';
-    else infosCotes.textContent = 'Côtés : ' + cotes.map((c) => c + ' cm').join(' · ');
-    zone.appendChild(infosCotes);
+    const boutonContinuer = document.createElement('button');
+    boutonContinuer.type = 'button'; boutonContinuer.className = 'bouton-principal'; boutonContinuer.textContent = 'J\'ai compris, continuer';
+    boutonContinuer.disabled = true;
 
-    if (astuce) {
-      zone.appendChild(Object.assign(document.createElement('p'), { className: 'legende', textContent: astuce }));
+    const { total, lancerDepliage } = construireContourEtDepliage(zone, cap, (totalDeplie) => {
+      const regle = construireRegle({ longueurUnites: cap, objetLongueur: totalDeplie, unite: 'cm' });
+      regle.querySelector('.regle-graduee').classList.add('regle-graduee-semi-transparente');
+      zone.insertBefore(regle, boutonContinuer);
+      const conclusion = document.createElement('p');
+      conclusion.className = 'legende';
+      conclusion.textContent = 'Le contour déplié mesure ' + totalDeplie + ' cm : c\'est le périmètre de la clairière !';
+      zone.insertBefore(conclusion, boutonContinuer);
+      boutonContinuer.disabled = false;
+    });
+    zone.appendChild(boutonContinuer);
+
+    boutonContinuer.addEventListener('click', () => validerTour(true, boutonContinuer));
+
+    const preferesMouvementReduit = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setTimeout(lancerDepliage, preferesMouvementReduit ? 0 : 900);
+  }
+
+  /*
+   * Étape B — dépliage ACTIF : l'enfant déclenche lui-même le dépliage du
+   * contour (tap), puis lit le périmètre obtenu à la règle graduée semi-
+   * transparente (QCM), exactement comme dans « L'exploration » (mini-jeu 2).
+   */
+  function genererPerimetreDepliageActif(zone, cfg) {
+    const cap = cfg.capCm || 16;
+    zone.appendChild(creerBlocConsigne(
+      'Déplie le contour de cette clairière, puis mesure le périmètre à la règle.',
+      'Touche le bouton pour dérouler le contour en une ligne droite, puis lis sa longueur sur la règle graduée pour trouver le périmètre.'
+    ));
+
+    const boutonDeplier = document.createElement('button');
+    boutonDeplier.type = 'button'; boutonDeplier.className = 'bouton-principal'; boutonDeplier.textContent = 'Déplier le contour';
+
+    const { total, lancerDepliage } = construireContourEtDepliage(zone, cap, (totalDeplie) => {
+      boutonDeplier.hidden = true;
+      const regle = construireRegle({ longueurUnites: cap, objetLongueur: totalDeplie, unite: 'cm' });
+      regle.querySelector('.regle-graduee').classList.add('regle-graduee-semi-transparente');
+      zone.appendChild(regle);
+
+      const distracteurs = new Set([totalDeplie]);
+      let tentatives = 0;
+      while (distracteurs.size < 4 && tentatives < 30) {
+        tentatives++;
+        const d = totalDeplie + choisir([-3, -2, -1, 1, 2, 3]);
+        if (d >= 1 && d <= cap) distracteurs.add(d);
+      }
+      const options = Array.from(distracteurs).map(String);
+      const indexBonne = options.indexOf(String(totalDeplie));
+      const { options: optionsMelangees, indexCorrect } = melangerOptions(options, indexBonne);
+      const grille = document.createElement('div');
+      grille.className = 'grille-options';
+      optionsMelangees.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'bouton-option'; btn.textContent = opt + ' cm';
+        btn.addEventListener('click', () => {
+          Array.from(grille.children).forEach((b) => { b.disabled = true; });
+          const correct = i === indexCorrect;
+          btn.classList.add(correct ? 'correct' : 'incorrect');
+          if (!correct) grille.children[indexCorrect].classList.add('correct');
+          validerTour(correct, btn);
+        });
+        grille.appendChild(btn);
+      });
+      zone.appendChild(grille);
+    });
+
+    boutonDeplier.addEventListener('click', () => { boutonDeplier.disabled = true; lancerDepliage(); });
+    zone.appendChild(boutonDeplier);
+  }
+
+  /*
+   * Composant réutilisable : règle mobile qu'on peut GLISSER (translation,
+   * 1 doigt/pointeur) et FAIRE PIVOTER (pincement à deux doigts, 2 pointeurs
+   * simultanés suivis par pointerId). Accroche magnétique : dès que l'angle
+   * s'approche à moins de 12° d'un multiple de 90°, il s'y verrouille
+   * exactement plutôt que de rester à une valeur approximative.
+   * `angleInitial` fige la règle dans une orientation (utilisé par le repli
+   * « deux règles indépendantes », qui n'a pas besoin de pivoter).
+   */
+  function creerRegleMobile(cap, angleInitial, onAngleAccroche) {
+    const PX = 16;
+    const regle = document.createElement('div');
+    regle.className = 'regle-graduee regle-mobile';
+    regle.style.width = (cap * PX + 24) + 'px';
+    for (let i = 0; i <= cap; i++) {
+      const tick = document.createElement('div');
+      tick.className = 'regle-tick' + (i % 2 === 0 ? ' regle-tick-forte' : '');
+      tick.style.left = (i * PX) + 'px';
+      regle.appendChild(tick);
+      if (i % 2 === 0) {
+        const lab = document.createElement('div');
+        lab.className = 'regle-label';
+        lab.style.left = (i * PX) + 'px';
+        lab.textContent = String(i);
+        regle.appendChild(lab);
+      }
     }
 
-    creerSaisieSimple(zone, total);
+    let x = 20, y = 20, angleLogique = angleInitial || 0, angleAccroche = angleInitial || 0;
+    function normaliser360(a) { return ((a % 360) + 360) % 360; }
+    function accrocher(a) {
+      const n = normaliser360(a);
+      const paliers = [0, 90, 180, 270, 360];
+      for (let i = 0; i < paliers.length; i++) {
+        if (Math.abs(n - paliers[i]) <= 12) return paliers[i] % 360;
+      }
+      return null; // pas assez proche d'un palier à 90° : pas d'accroche
+    }
+    function appliquer() {
+      regle.style.transform = 'translate(' + x + 'px,' + y + 'px) rotate(' + angleAccroche + 'deg)';
+    }
+    appliquer();
+
+    if (angleInitial === undefined) {
+      // Mode ROTATABLE (règle unique) : glisser à 1 doigt, pivoter à 2.
+      const pointeurs = new Map();
+      let dragDepart = null;
+      let rotationDepart = null;
+      regle.addEventListener('pointerdown', (e) => {
+        if (etat.verrouille) return;
+        pointeurs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        try { regle.setPointerCapture(e.pointerId); } catch (err) { /* pointeur déjà relâché : tant pis */ }
+        if (pointeurs.size === 1) {
+          dragDepart = { startX: e.clientX, startY: e.clientY, x0: x, y0: y };
+          rotationDepart = null;
+        } else if (pointeurs.size === 2) {
+          dragDepart = null;
+          const pts = Array.from(pointeurs.values());
+          const dx = pts[1].x - pts[0].x, dy = pts[1].y - pts[0].y;
+          rotationDepart = { angleVecteur0: Math.atan2(dy, dx) * 180 / Math.PI, angleRegle0: angleLogique };
+        }
+      });
+      regle.addEventListener('pointermove', (e) => {
+        if (!pointeurs.has(e.pointerId)) return;
+        pointeurs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        e.preventDefault();
+        if (pointeurs.size === 1 && dragDepart) {
+          x = dragDepart.x0 + (e.clientX - dragDepart.startX);
+          y = dragDepart.y0 + (e.clientY - dragDepart.startY);
+        } else if (pointeurs.size === 2 && rotationDepart) {
+          const pts = Array.from(pointeurs.values());
+          const dx = pts[1].x - pts[0].x, dy = pts[1].y - pts[0].y;
+          const angleVecteurActuel = Math.atan2(dy, dx) * 180 / Math.PI;
+          angleLogique = rotationDepart.angleRegle0 + (angleVecteurActuel - rotationDepart.angleVecteur0);
+        }
+        const accroche = accrocher(angleLogique);
+        const nouvelAngle = accroche !== null ? accroche : angleAccroche;
+        regle.classList.toggle('regle-mobile-accrochee', accroche !== null);
+        if (nouvelAngle !== angleAccroche) {
+          angleAccroche = nouvelAngle;
+          if (onAngleAccroche) onAngleAccroche(angleAccroche);
+        }
+        appliquer();
+      });
+      function relever(e) {
+        pointeurs.delete(e.pointerId);
+        if (pointeurs.size === 1) {
+          const restant = Array.from(pointeurs.values())[0];
+          dragDepart = { startX: restant.x, startY: restant.y, x0: x, y0: y };
+          rotationDepart = null;
+        } else if (pointeurs.size === 0) {
+          dragDepart = null; rotationDepart = null;
+        }
+      }
+      regle.addEventListener('pointerup', relever);
+      regle.addEventListener('pointercancel', relever);
+    } else {
+      // Mode FIXE en rotation (repli « deux règles ») : glisser seulement.
+      let enGlissement = false;
+      let departX = 0, departY = 0, x0 = 0, y0 = 0;
+      regle.addEventListener('pointerdown', (e) => {
+        if (etat.verrouille) return;
+        enGlissement = true;
+        departX = e.clientX; departY = e.clientY; x0 = x; y0 = y;
+        try { regle.setPointerCapture(e.pointerId); } catch (err) { /* pointeur déjà relâché : tant pis */ }
+      });
+      regle.addEventListener('pointermove', (e) => {
+        if (!enGlissement) return;
+        e.preventDefault();
+        x = x0 + (e.clientX - departX);
+        y = y0 + (e.clientY - departY);
+        appliquer();
+      });
+      function relever() { enGlissement = false; }
+      regle.addEventListener('pointerup', relever);
+      regle.addEventListener('pointercancel', relever);
+    }
+
+    return { el: regle, get angleAccroche() { return angleAccroche; } };
+  }
+
+  /*
+   * Étape C — mesure SANS dépliage, côté par côté, avec une règle mobile
+   * (rectangle uniquement : les côtés restent horizontaux/verticaux à
+   * l'écran, ce qui rend le pivot à 90° réellement nécessaire pour passer
+   * d'un côté horizontal à un côté vertical). L'enfant glisse la règle sur
+   * le côté horizontal pour mesurer la longueur (L), doit la faire PIVOTER
+   * à 90° (pincement à deux doigts, accroche magnétique) pour débloquer la
+   * mesure de la largeur (l) — ou bascule sur le repli « deux règles
+   * indépendantes » (perpendiculaires, sans geste de rotation) si le
+   * pincement s'avère trop difficile. Une question « as-tu vraiment besoin
+   * de mesurer les 4 côtés ? » précède la saisie du périmètre total, pour
+   * amener l'enfant à réaliser qu'il suffit de L et l (jamais de formule
+   * enseignée).
+   */
+  function genererPerimetreReglesMobiles(zone, cfg) {
+    const cap = cfg.capCm || 16;
+    const l = nombreAleatoire(3, Math.floor(cap / 2) - 1);
+    const L = nombreAleatoire(l + 2, cap - 2);
+    const total = (L + l) * 2;
+
+    zone.appendChild(creerBlocConsigne(
+      'Mesure ce rectangle avec ta règle mobile, sans le déplier.',
+      'Fais glisser la règle sur le côté horizontal pour mesurer la longueur. Pince avec deux doigts pour la faire pivoter à 90°, puis mesure le côté vertical.'
+    ));
+
+    const scene = document.createElement('div');
+    scene.className = 'perimetre-scene';
+    const RECT_PX = 16;
+    const rectLargeurPx = L * RECT_PX;
+    const rectHauteurPx = l * RECT_PX;
+    const rect = document.createElement('div');
+    rect.className = 'perimetre-rectangle';
+    rect.style.left = '30px'; rect.style.top = '70px';
+    rect.style.width = rectLargeurPx + 'px'; rect.style.height = rectHauteurPx + 'px';
+    scene.appendChild(rect);
+    zone.appendChild(scene);
+
+    const conteneurRegles = document.createElement('div');
+    scene.appendChild(conteneurRegles);
+
+    const boutonRepli = document.createElement('button');
+    boutonRepli.type = 'button'; boutonRepli.className = 'bouton-secondaire';
+    boutonRepli.textContent = 'Difficile à tourner ? Essaie 2 règles';
+
+    const zoneLongueur = document.createElement('div');
+    const zoneLargeur = document.createElement('div');
+    zoneLargeur.hidden = true;
+    const zoneAstuce = document.createElement('div');
+    zoneAstuce.hidden = true;
+    const zoneTotal = document.createElement('div');
+    zoneTotal.hidden = true;
+
+    let modeDouble = false;
+    let largeurDebloquee = false;
+
+    function debloquerLargeur() {
+      if (largeurDebloquee) return;
+      largeurDebloquee = true;
+      zoneLargeur.hidden = false;
+    }
+
+    function rendreRegles() {
+      conteneurRegles.innerHTML = '';
+      if (!modeDouble) {
+        const { el } = creerRegleMobile(cap, undefined, (angleAccroche) => {
+          if (angleAccroche === 90 || angleAccroche === 270) debloquerLargeur();
+        });
+        conteneurRegles.appendChild(el);
+      } else {
+        const rH = creerRegleMobile(cap, 0);
+        const rV = creerRegleMobile(cap, 90);
+        conteneurRegles.appendChild(rH.el);
+        conteneurRegles.appendChild(rV.el);
+        debloquerLargeur();
+      }
+    }
+    rendreRegles();
+
+    boutonRepli.addEventListener('click', () => {
+      modeDouble = true;
+      boutonRepli.hidden = true;
+      rendreRegles();
+    });
+    // En dehors de `scene` : les éléments POSITIONNÉS (la règle mobile,
+    // absolute) peuplent une couche d'empilement au-dessus des éléments en
+    // flux normal même sans z-index explicite, quel que soit l'ordre DOM —
+    // un bouton en flux normal À L'INTÉRIEUR de `scene` se ferait donc
+    // recouvrir (intercepter les clics) par la règle malgré son ordre DOM
+    // plus tardif. En le sortant de `scene`, aucun risque de chevauchement.
+    zone.appendChild(boutonRepli);
+
+    function construireQuestionLongueur(estLongueur, cible, apres) {
+      const cont = estLongueur ? zoneLongueur : zoneLargeur;
+      const legende = document.createElement('p');
+      legende.className = 'legende';
+      legende.textContent = estLongueur
+        ? 'Place (ou glisse) la règle sur le côté horizontal : quelle est sa longueur (L) ?'
+        : 'Fais pivoter la règle à 90° et place-la sur le côté vertical : quelle est sa largeur (l) ?';
+      cont.appendChild(legende);
+      const distracteurs = new Set([cible]);
+      let tentatives = 0;
+      while (distracteurs.size < 4 && tentatives < 30) {
+        tentatives++;
+        const d = cible + choisir([-2, -1, 1, 2]);
+        if (d >= 1 && d <= cap) distracteurs.add(d);
+      }
+      const options = Array.from(distracteurs).map(String);
+      const indexBonne = options.indexOf(String(cible));
+      const { options: optionsMelangees, indexCorrect } = melangerOptions(options, indexBonne);
+      const grille = document.createElement('div');
+      grille.className = 'grille-options';
+      optionsMelangees.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'bouton-option'; btn.textContent = opt + ' cm';
+        btn.addEventListener('click', () => {
+          Array.from(grille.children).forEach((b) => { b.disabled = true; });
+          const correct = i === indexCorrect;
+          btn.classList.add(correct ? 'correct' : 'incorrect');
+          if (!correct) grille.children[indexCorrect].classList.add('correct');
+          apres();
+        });
+        grille.appendChild(btn);
+      });
+      cont.appendChild(grille);
+    }
+
+    construireQuestionLongueur(true, L, () => {
+      zone.appendChild(zoneLargeur);
+      if (!largeurDebloquee) {
+        const attente = document.createElement('p');
+        attente.className = 'legende';
+        attente.textContent = 'Fais pivoter la règle à 90° (pince à deux doigts) pour mesurer le côté vertical, ou essaie le repli 2 règles ci-dessus.';
+        zoneLargeur.appendChild(attente);
+        const verifie = setInterval(() => {
+          // Filet anti-fuite : si la manche a changé entre-temps (scène
+          // retirée du DOM), on arrête le sondage sans jamais toucher à
+          // une zone détachée d'un tour précédent.
+          if (!document.body.contains(scene)) { clearInterval(verifie); return; }
+          if (largeurDebloquee) {
+            clearInterval(verifie);
+            zoneLargeur.innerHTML = '';
+            construireQuestionLongueur(false, l, apresMesures);
+          }
+        }, 200);
+      } else {
+        construireQuestionLongueur(false, l, apresMesures);
+      }
+    });
+    zone.appendChild(zoneLongueur);
+
+    function apresMesures() {
+      zone.appendChild(zoneAstuce);
+      zoneAstuce.hidden = false;
+      const legende = document.createElement('p');
+      legende.className = 'legende';
+      legende.textContent = 'As-tu vraiment besoin de mesurer les 4 côtés d\'un rectangle ?';
+      zoneAstuce.appendChild(legende);
+      const grille = document.createElement('div');
+      grille.className = 'grille-options';
+      ['Non, 2 suffisent', 'Oui, les 4'].forEach((texte, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'bouton-option'; btn.textContent = texte;
+        btn.addEventListener('click', () => {
+          Array.from(grille.children).forEach((b) => { b.disabled = true; });
+          const correct = i === 0;
+          btn.classList.add(correct ? 'correct' : 'incorrect');
+          if (!correct) grille.children[0].classList.add('correct');
+          const explication = document.createElement('p');
+          explication.className = 'legende';
+          explication.textContent = 'Dans un rectangle, les côtés opposés ont la même longueur : mesurer L et l suffit pour connaître les 4 côtés !';
+          zoneAstuce.appendChild(explication);
+          setTimeout(() => {
+            zone.appendChild(zoneTotal);
+            zoneTotal.hidden = false;
+            const legendeTotal = document.createElement('p');
+            legendeTotal.className = 'legende';
+            legendeTotal.textContent = 'Quel est le périmètre total de ce rectangle, en centimètres ?';
+            zoneTotal.appendChild(legendeTotal);
+            creerSaisieSimple(zoneTotal, total);
+          }, 100);
+        });
+        grille.appendChild(btn);
+      });
+      zoneAstuce.appendChild(grille);
+    }
   }
 
   /* ---------- Initialisation ---------- */
