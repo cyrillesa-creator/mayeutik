@@ -2992,17 +2992,18 @@
   }
 
   /*
-   * Sous-type « classement » (étapes A+B) : tableau de 5 colonnes d'unité
+   * Exercice 2 « Classement » : tableau de 5 colonnes d'unité
    * (mm/cm/dm/m/km) réparties sur DEUX RANGÉES très espacées (3 puis 2)
    * pour que les zones de dépôt ne se chevauchent jamais et restent
    * confortables au doigt sur mobile. 5 vignettes À GLISSER, chacune un
    * bloc SOLIDAIRE de 3 éléments empilés (nombre seul, image SVG, nom) —
    * jamais l'unité écrite dessus, elle EST la colonne cible. Glisser-poser
    * réel (pointerdown/pointermove/pointerup, translateX/Y pendant le
-   * geste) : déposer sur une colonne déjà occupée renvoie l'occupante au
-   * plateau plutôt que de rejeter le geste, pour rester tolérant aux
-   * essais successifs. L'état (qui est où) est lu directement dans le DOM
-   * à la validation, jamais dans une structure parallèle qui pourrait se
+   * geste) : déposer sur une colonne déjà occupée ÉCHANGE les deux
+   * vignettes (l'occupante reprend la place de départ de la vignette
+   * déplacée) plutôt que de l'éjecter vers le plateau. L'état (qui est où)
+   * est lu directement dans le DOM à la validation, jamais dans une
+   * structure parallèle qui pourrait se
    * désynchroniser.
    */
   function genererClassementDecouverteCE2(zone) {
@@ -3048,11 +3049,13 @@
     function rendreDeplacable(v) {
       let enGlissement = false;
       let departX = 0, departY = 0;
+      let origine = null; // parent DE DÉPART du geste : là où retourne l'occupante évincée (swap)
       v.addEventListener('pointerdown', (e) => {
         if (etat.verrouille) return;
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         enGlissement = true;
         departX = e.clientX; departY = e.clientY;
+        origine = v.parentElement;
         v.classList.add('decouverte-vignette-glisse');
         try { v.setPointerCapture(e.pointerId); } catch (err) { /* pointeur déjà relâché : tant pis */ }
       });
@@ -3071,11 +3074,15 @@
           return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
         });
         if (cible) {
+          // ÉCHANGE : la vignette déjà présente dans la colonne cible reprend
+          // la place D'OÙ VIENT la vignette déplacée (son parent de départ,
+          // qu'il s'agisse du plateau ou d'une autre colonne) — jamais
+          // éjectée vers le plateau sans raison.
           const occupante = cible.firstElementChild;
-          if (occupante && occupante !== v) plateau.appendChild(occupante);
+          if (occupante && occupante !== v) origine.appendChild(occupante);
           cible.appendChild(v);
         } else {
-          plateau.appendChild(v);
+          origine.appendChild(v);
         }
         majValidation();
       }
