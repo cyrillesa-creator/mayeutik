@@ -486,21 +486,18 @@
   .decouverte-image{ width:2.6rem; height:2.6rem; }
   .decouverte-nom{ font-size:.72rem; font-weight:700; text-align:center; line-height:1.1; }
 
-  /* Exercice 1 « Ranger les unités » : tri par échange de paire (même
-     mécanique que les bâtons CP / arbres CE1, version étiquettes texte). */
-  .bande-unites{ display:flex; justify-content:center; align-items:center; gap:.9rem; margin:1rem 0; flex-wrap:wrap; overflow-x:auto; }
-  .unite-col-case{ position:relative; display:flex; align-items:center; padding:.3rem; border-radius:12px; }
-  .unite-col-case.case-selectionnee{ background:color-mix(in srgb, var(--couleur-soleil) 40%, transparent); }
-  .unite-col-btn{ position:relative; border:none; background:transparent; padding:.2rem; min-height:44px; min-width:44px;
-    display:flex; align-items:center; justify-content:center; touch-action:none; cursor:grab; }
-  .unite-col-btn.unite-col-glisse{ z-index:5; cursor:grabbing; }
-  .unite-col-contenu{ display:flex; align-items:center; justify-content:center; }
+  /* Exercice 1 « Ranger les unités » : pioche en désordre (ligne basse) à
+     glisser vers 5 emplacements pré-marqués en pointillés (ligne haute). */
+  .rangerunites-ligne-slots{ display:flex; justify-content:center; gap:.9rem; margin:1rem 0 .6rem; flex-wrap:wrap; }
+  .rangerunites-slot{ min-height:4.4rem; min-width:4.4rem; border-radius:14px; border:2.5px dashed color-mix(in srgb, var(--couleur-encre) 25%, white);
+    background:color-mix(in srgb, var(--couleur-menthe) 8%, white); display:flex; align-items:center; justify-content:center; }
+  .rangerunites-ligne-plateau{ display:flex; justify-content:center; gap:.8rem; flex-wrap:wrap; margin-top:1rem; padding-top:.8rem;
+    border-top:2px dashed color-mix(in srgb, var(--couleur-soleil) 45%, white); min-height:4.4rem; }
   .unite-etiquette{ display:inline-flex; align-items:center; justify-content:center; min-width:3.6rem; min-height:3.6rem;
     padding:.4rem .6rem; border-radius:14px; background:#ffffff; border:2.5px solid color-mix(in srgb, var(--couleur-encre) 18%, white);
     box-shadow:0 3px 0 color-mix(in srgb, var(--couleur-encre) 12%, white); font-weight:700; font-size:1.15rem;
-    color:var(--couleur-mandarine); user-select:none; }
-  .unite-fantome{ position:fixed; pointer-events:none; z-index:80; transition:transform .25s ease; will-change:transform; }
-  @media (prefers-reduced-motion:reduce){ .unite-fantome{ transition:none; } }
+    color:var(--couleur-mandarine); user-select:none; touch-action:none; cursor:grab; }
+  .unite-etiquette.unite-etiquette-glisse{ z-index:10; cursor:grabbing; box-shadow:0 6px 14px rgba(0,0,0,.18); }
 
   /* Exercice 3 « QCM d'unités » : illustration de l'animal + définition
      révélée après validation. */
@@ -2933,162 +2930,104 @@
   const ORDRE_UNITES_CE2 = ['mm', 'cm', 'dm', 'm', 'km'];
 
   /*
-   * Exercice 1 « Ranger les unités » : 5 étiquettes (juste le nom de
-   * l'unité) à ranger par ordre croissant. Même mécanique de tri par
-   * ÉCHANGE PAR PAIRE déjà éprouvée (bâtons du CP, arbres du CE1) :
-   * positions fixes, glisser une étiquette vers une autre colonne pour les
-   * permuter, transition en pure TRANSLATION (translateX, jamais de
-   * changement de taille pendant le geste) via un fantôme cloné de taille
-   * figée. Bouton « Valider » pour la correction finale (pas de
-   * validation automatique à chaque échange).
+   * Exercice 1 « Ranger les unités » : les 5 étiquettes (mm/cm/dm/m/km)
+   * sont proposées EN DÉSORDRE sur une ligne BASSE (la pioche), et les 5
+   * emplacements de réponse — pré-marqués en pointillés — sont alignés sur
+   * une seule ligne HAUTE. Glisser-poser depuis la pioche vers un
+   * emplacement : même mécanique que l'exercice « classement » ci-dessous
+   * (déposer sur un emplacement déjà occupé ÉCHANGE les deux étiquettes,
+   * l'occupante reprenant la place de départ de l'étiquette déplacée,
+   * plutôt que d'être éjectée). Bouton « Valider » (activé une fois les 5
+   * emplacements remplis) pour la correction finale — pas de validation
+   * automatique à chaque dépôt.
    */
   function genererRangerUnitesCE2(zone) {
-    const n = 5;
-    let ordre = melanger(ORDRE_UNITES_CE2.slice());
-    const estTrie = (t) => t.every((v, i) => i === 0 || ORDRE_UNITES_CE2.indexOf(t[i - 1]) <= ORDRE_UNITES_CE2.indexOf(v));
-    let garde = 0;
-    while (estTrie(ordre) && garde < 10) { ordre = melanger(ORDRE_UNITES_CE2.slice()); garde++; }
-
     zone.appendChild(creerBlocConsigne(
       'Range les unités dans l\'ordre, de la plus petite à la plus grande.',
-      'Fais glisser une étiquette vers une autre colonne pour échanger leur place, jusqu\'à ce qu\'elles soient rangées de la plus petite à la plus grande unité. Tu peux aussi toucher une étiquette, puis une autre colonne, pour les échanger.'
+      'Fais glisser chaque étiquette de la ligne du bas vers un emplacement de la ligne du haut, de la plus petite unité à gauche jusqu\'à la plus grande à droite. Valide quand les 5 emplacements sont remplis.'
     ));
 
-    const bande = document.createElement('div');
-    bande.className = 'bande-unites';
-    const cases = [];
-    let selection = null;
-    let ignorerProchainClic = false;
-
-    function rendreCase(i) {
-      const contenu = cases[i].querySelector('.unite-col-contenu');
-      contenu.innerHTML = '';
-      const etiquette = document.createElement('span');
-      etiquette.className = 'unite-etiquette';
-      etiquette.textContent = ordre[i];
-      contenu.appendChild(etiquette);
-      cases[i].querySelector('.unite-col-btn').setAttribute('aria-label', 'Étiquette ' + ordre[i] + ', colonne ' + (i + 1));
+    const ligneSlots = document.createElement('div');
+    ligneSlots.className = 'rangerunites-ligne-slots';
+    const slots = [];
+    for (let i = 0; i < ORDRE_UNITES_CE2.length; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'rangerunites-slot';
+      slot.setAttribute('aria-label', 'Emplacement ' + (i + 1));
+      ligneSlots.appendChild(slot);
+      slots.push(slot);
     }
-    function deselectionner() {
-      if (selection === null) return;
-      cases[selection].classList.remove('case-selectionnee');
-      selection = null;
+    zone.appendChild(ligneSlots);
+
+    const plateau = document.createElement('div');
+    plateau.className = 'rangerunites-ligne-plateau';
+    zone.appendChild(plateau);
+
+    const boutonValider = document.createElement('button');
+    boutonValider.type = 'button'; boutonValider.className = 'bouton-principal'; boutonValider.textContent = 'Valider';
+    boutonValider.disabled = true;
+
+    function toutPlace() {
+      return slots.every((s) => s.children.length === 1) && plateau.children.length === 0;
     }
+    function majValidation() { boutonValider.disabled = !toutPlace(); }
 
-    const preferesMouvementReduit = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    function creerFantomeUnite(contenuOriginal, rect) {
-      const fantome = contenuOriginal.cloneNode(true);
-      fantome.classList.add('unite-fantome');
-      fantome.setAttribute('aria-hidden', 'true');
-      fantome.style.left = rect.left + 'px';
-      fantome.style.top = rect.top + 'px';
-      fantome.style.width = rect.width + 'px';
-      fantome.style.height = rect.height + 'px';
-      document.body.appendChild(fantome);
-      return fantome;
-    }
-
-    function echanger(i, j) {
-      if (i === j) return;
-      const contenuI = cases[i].querySelector('.unite-col-contenu');
-      const contenuJ = cases[j].querySelector('.unite-col-contenu');
-      const rectI = contenuI.getBoundingClientRect();
-      const rectJ = contenuJ.getBoundingClientRect();
-
-      const tmp = ordre[i]; ordre[i] = ordre[j]; ordre[j] = tmp;
-      rendreCase(i); rendreCase(j);
-
-      if (preferesMouvementReduit) return;
-
-      const fantomeI = creerFantomeUnite(contenuI, rectI);
-      const fantomeJ = creerFantomeUnite(contenuJ, rectJ);
-      contenuI.style.visibility = 'hidden';
-      contenuJ.style.visibility = 'hidden';
-      const versJ = rectJ.left - rectI.left;
-      const versI = rectI.left - rectJ.left;
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          fantomeI.style.transform = 'translateX(' + versJ + 'px)';
-          fantomeJ.style.transform = 'translateX(' + versI + 'px)';
-        });
-      });
-      setTimeout(() => {
-        fantomeI.remove();
-        fantomeJ.remove();
-        contenuI.style.visibility = '';
-        contenuJ.style.visibility = '';
-      }, 260);
-    }
-
-    for (let i = 0; i < n; i++) {
-      const caseDiv = document.createElement('div');
-      caseDiv.className = 'unite-col-case';
-      const btn = document.createElement('button');
-      btn.type = 'button'; btn.className = 'unite-col-btn';
-      const contenu = document.createElement('span');
-      contenu.className = 'unite-col-contenu';
-      btn.appendChild(contenu);
-      caseDiv.appendChild(btn);
-      bande.appendChild(caseDiv);
-      cases.push(caseDiv);
-
-      btn.addEventListener('click', () => {
-        if (etat.verrouille) return;
-        if (ignorerProchainClic) { ignorerProchainClic = false; return; }
-        if (selection === null) {
-          selection = i;
-          caseDiv.classList.add('case-selectionnee');
-        } else if (selection === i) {
-          deselectionner();
-        } else {
-          const precedente = selection;
-          deselectionner();
-          echanger(precedente, i);
-        }
-      });
-
+    function rendreDeplacable(etiquette) {
       let enGlissement = false;
       let departX = 0, departY = 0;
-      btn.addEventListener('pointerdown', (e) => {
+      let origine = null; // parent DE DÉPART du geste : là où retourne l'occupante évincée (swap)
+      etiquette.addEventListener('pointerdown', (e) => {
         if (etat.verrouille) return;
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         enGlissement = true;
         departX = e.clientX; departY = e.clientY;
-        try { btn.setPointerCapture(e.pointerId); } catch (err) { /* pointeur déjà relâché : tant pis */ }
+        origine = etiquette.parentElement;
+        etiquette.classList.add('unite-etiquette-glisse');
+        try { etiquette.setPointerCapture(e.pointerId); } catch (err) { /* pointeur déjà relâché : tant pis */ }
       });
-      btn.addEventListener('pointermove', (e) => {
+      etiquette.addEventListener('pointermove', (e) => {
         if (!enGlissement) return;
         e.preventDefault();
-        btn.style.transform = 'translate(' + (e.clientX - departX) + 'px,' + (e.clientY - departY) + 'px)';
-        btn.classList.add('unite-col-glisse');
+        etiquette.style.transform = 'translate(' + (e.clientX - departX) + 'px,' + (e.clientY - departY) + 'px)';
       });
-      function relacherGlissement(e) {
+      function relacher(e) {
         if (!enGlissement) return;
         enGlissement = false;
-        btn.style.transform = '';
-        btn.classList.remove('unite-col-glisse');
-        const distanceGlissee = Math.hypot(e.clientX - departX, e.clientY - departY);
-        if (distanceGlissee < 8) return; // simple appui : laissé au gestionnaire 'click'
-        ignorerProchainClic = true;
-        deselectionner();
-        const cible = cases.findIndex((c) => {
-          const r = c.getBoundingClientRect();
+        etiquette.style.transform = '';
+        etiquette.classList.remove('unite-etiquette-glisse');
+        const cible = slots.find((s) => {
+          const r = s.getBoundingClientRect();
           return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
         });
-        if (cible !== -1) echanger(i, cible);
+        if (cible) {
+          const occupante = cible.firstElementChild;
+          if (occupante && occupante !== etiquette) origine.appendChild(occupante);
+          cible.appendChild(etiquette);
+        } else {
+          origine.appendChild(etiquette);
+        }
+        majValidation();
       }
-      btn.addEventListener('pointerup', relacherGlissement);
-      btn.addEventListener('pointercancel', () => { enGlissement = false; btn.style.transform = ''; btn.classList.remove('unite-col-glisse'); });
+      etiquette.addEventListener('pointerup', relacher);
+      etiquette.addEventListener('pointercancel', relacher);
     }
 
-    zone.appendChild(bande);
-    cases.forEach((_, i) => rendreCase(i));
+    melanger(ORDRE_UNITES_CE2.slice()).forEach((unite) => {
+      const etiquette = document.createElement('div');
+      etiquette.className = 'unite-etiquette';
+      etiquette.dataset.unite = unite;
+      etiquette.textContent = unite;
+      etiquette.setAttribute('aria-label', 'Étiquette ' + unite);
+      plateau.appendChild(etiquette);
+      rendreDeplacable(etiquette);
+    });
 
-    const boutonValider = document.createElement('button');
-    boutonValider.type = 'button'; boutonValider.className = 'bouton-principal'; boutonValider.textContent = 'Valider';
     boutonValider.addEventListener('click', () => {
-      validerTour(estTrie(ordre), boutonValider);
+      const correct = slots.every((s, i) => {
+        const etiquette = s.firstElementChild;
+        return etiquette && etiquette.dataset.unite === ORDRE_UNITES_CE2[i];
+      });
+      validerTour(correct, boutonValider);
     });
     zone.appendChild(boutonValider);
   }
