@@ -550,8 +550,7 @@
   .regle-graduee.regle-mobile .regle-unite{ opacity:1; text-shadow:0 0 3px #fff, 0 0 3px #fff; }
   .regle-graduee.regle-mobile.regle-mobile-accrochee{ border-color:var(--couleur-menthe); }
 
-  /* ---- Saisies numériques (conversions, périmètre mesuré) ---- */
-  .saisie-longueur{ display:block; margin:.9rem auto; width:6.5rem; min-height:2.8rem; border-radius:10px; border:2px solid var(--couleur-mandarine); text-align:center; font-family:inherit; font-size:1.1rem; }
+  /* ---- Saisies numériques (conversions décomposées) ---- */
   .saisie-decomposition{ display:flex; gap:.7rem; justify-content:center; margin:.9rem 0; flex-wrap:wrap; }
   .champ-decomposition{ display:flex; flex-direction:column; align-items:center; gap:.3rem; font-size:.82rem; font-weight:700; }
   .champ-decomposition input{ width:4.4rem; min-height:2.6rem; border-radius:10px; border:2px solid var(--couleur-mandarine); text-align:center; font-family:inherit; font-size:1.05rem; }
@@ -2588,20 +2587,6 @@
     zone.appendChild(grille);
   }
 
-  function creerSaisieSimple(zone, reponse) {
-    const input = document.createElement('input');
-    input.type = 'number'; input.min = '0'; input.inputMode = 'numeric'; input.className = 'saisie-longueur';
-    input.setAttribute('aria-label', 'Ta réponse');
-    const boutonValider = document.createElement('button');
-    boutonValider.type = 'button'; boutonValider.className = 'bouton-principal'; boutonValider.textContent = 'Valider';
-    boutonValider.addEventListener('click', () => {
-      const saisie = parseInt(input.value, 10);
-      validerTour(saisie === reponse, boutonValider);
-    });
-    zone.appendChild(input);
-    zone.appendChild(boutonValider);
-  }
-
   /* ================================================================
      Mini-jeu : « Entre deux graduations » (encadrer, CE1)
      ================================================================ */
@@ -3858,11 +3843,16 @@
 
   /*
    * Composant réutilisable : règle mobile qu'on peut GLISSER (translation,
-   * 1 doigt/pointeur) et FAIRE PIVOTER (pincement à deux doigts, 2 pointeurs
-   * simultanés suivis par pointerId). Accroche magnétique : dès que l'angle
-   * s'approche à moins de 12° d'un multiple de 90°, il s'y verrouille
-   * exactement plutôt que de rester à une valeur approximative.
-   * `angleInitial` fige la règle dans une orientation (utilisé par le repli
+   * 1 doigt/pointeur) et FAIRE PIVOTER (pincement/rotation à deux doigts,
+   * 2 pointeurs simultanés suivis par pointerId). La règle SUIT les doigts
+   * en continu pendant le geste ; accroche magnétique : dès que l'angle
+   * passe à moins de 12° d'un multiple de 90°, l'AFFICHAGE se verrouille
+   * sur cet angle exact (bordure menthe en retour visuel) au lieu de
+   * rester à la valeur approximative des doigts — et c'est cet angle
+   * affiché qui est retenu quand le geste se termine dans la fenêtre
+   * magnétique. `onAngleAccroche(angle)` est notifié à chaque nouvelle
+   * accroche (90/270 = verticale : sert à débloquer la mesure du côté
+   * vertical). `angleInitial` fige la règle dans une orientation (repli
    * « deux règles indépendantes », qui n'a pas besoin de pivoter).
    */
   function creerRegleMobile(cap, angleInitial, onAngleAccroche) {
@@ -3884,7 +3874,10 @@
       }
     }
 
-    let x = 20, y = 20, angleLogique = angleInitial || 0, angleAccroche = angleInitial || 0;
+    let x = 20, y = 20;
+    let angleLogique = angleInitial || 0;   // l'angle « vrai » des doigts
+    let angleAffiche = angleInitial || 0;   // l'angle rendu (aimanté ou libre)
+    let dernierAccroche = angleInitial || 0;
     function normaliser360(a) { return ((a % 360) + 360) % 360; }
     function accrocher(a) {
       const n = normaliser360(a);
@@ -3892,10 +3885,10 @@
       for (let i = 0; i < paliers.length; i++) {
         if (Math.abs(n - paliers[i]) <= 12) return paliers[i] % 360;
       }
-      return null; // pas assez proche d'un palier à 90° : pas d'accroche
+      return null; // pas assez proche d'un multiple de 90° : rotation libre
     }
     function appliquer() {
-      regle.style.transform = 'translate(' + x + 'px,' + y + 'px) rotate(' + angleAccroche + 'deg)';
+      regle.style.transform = 'translate(' + x + 'px,' + y + 'px) rotate(' + angleAffiche + 'deg)';
     }
     appliquer();
 
@@ -3930,24 +3923,30 @@
           const dx = pts[1].x - pts[0].x, dy = pts[1].y - pts[0].y;
           const angleVecteurActuel = Math.atan2(dy, dx) * 180 / Math.PI;
           angleLogique = rotationDepart.angleRegle0 + (angleVecteurActuel - rotationDepart.angleVecteur0);
-        }
-        const accroche = accrocher(angleLogique);
-        const nouvelAngle = accroche !== null ? accroche : angleAccroche;
-        regle.classList.toggle('regle-mobile-accrochee', accroche !== null);
-        if (nouvelAngle !== angleAccroche) {
-          angleAccroche = nouvelAngle;
-          if (onAngleAccroche) onAngleAccroche(angleAccroche);
+          const accroche = accrocher(angleLogique);
+          regle.classList.toggle('regle-mobile-accrochee', accroche !== null);
+          angleAffiche = accroche !== null ? accroche : normaliser360(angleLogique);
+          if (accroche !== null && accroche !== dernierAccroche) {
+            dernierAccroche = accroche;
+            if (onAngleAccroche) onAngleAccroche(accroche);
+          }
         }
         appliquer();
       });
       function relever(e) {
         pointeurs.delete(e.pointerId);
+        if (pointeurs.size < 2 && rotationDepart) {
+          // Fin du geste de rotation : la règle reste où l'AFFICHAGE l'a
+          // laissée (l'angle exact si l'aimant a accroché), et le prochain
+          // geste repartira de là — pas de l'angle brut des doigts.
+          rotationDepart = null;
+          angleLogique = angleAffiche;
+        }
         if (pointeurs.size === 1) {
           const restant = Array.from(pointeurs.values())[0];
           dragDepart = { startX: restant.x, startY: restant.y, x0: x, y0: y };
-          rotationDepart = null;
         } else if (pointeurs.size === 0) {
-          dragDepart = null; rotationDepart = null;
+          dragDepart = null;
         }
       }
       regle.addEventListener('pointerup', relever);
@@ -3974,7 +3973,7 @@
       regle.addEventListener('pointercancel', relever);
     }
 
-    return { el: regle, get angleAccroche() { return angleAccroche; } };
+    return { el: regle };
   }
 
   /*
@@ -3993,24 +3992,22 @@
    */
   function genererPerimetreReglesMobiles(zone, cfg) {
     const cap = cfg.capCm || 16;
-    const l = nombreAleatoire(3, Math.floor(cap / 2) - 1);
-    const L = nombreAleatoire(l + 2, cap - 2);
+    const l = nombreAleatoire(3, 6);
+    const L = nombreAleatoire(l + 2, Math.min(cap - 2, 13));
     const total = (L + l) * 2;
 
     zone.appendChild(creerBlocConsigne(
       'Mesure ce rectangle avec ta règle mobile, sans le déplier.',
-      'Fais glisser la règle sur le côté horizontal pour mesurer la longueur. Pince avec deux doigts pour la faire pivoter à 90°, puis mesure le côté vertical.'
+      'Fais glisser la règle sur le côté horizontal pour mesurer la longueur. Pince avec deux doigts pour la faire pivoter à 90°, puis mesure le côté vertical. Si c\'est trop difficile à tourner, un bouton te donne deux règles déjà orientées.'
     ));
 
     const scene = document.createElement('div');
     scene.className = 'perimetre-scene';
     const RECT_PX = 16;
-    const rectLargeurPx = L * RECT_PX;
-    const rectHauteurPx = l * RECT_PX;
     const rect = document.createElement('div');
     rect.className = 'perimetre-rectangle';
-    rect.style.left = '30px'; rect.style.top = '70px';
-    rect.style.width = rectLargeurPx + 'px'; rect.style.height = rectHauteurPx + 'px';
+    rect.style.left = '30px'; rect.style.top = '84px';
+    rect.style.width = (L * RECT_PX) + 'px'; rect.style.height = (l * RECT_PX) + 'px';
     scene.appendChild(rect);
     zone.appendChild(scene);
 
@@ -4023,19 +4020,25 @@
 
     const zoneLongueur = document.createElement('div');
     const zoneLargeur = document.createElement('div');
-    zoneLargeur.hidden = true;
     const zoneAstuce = document.createElement('div');
-    zoneAstuce.hidden = true;
-    const zoneTotal = document.createElement('div');
-    zoneTotal.hidden = true;
 
     let modeDouble = false;
     let largeurDebloquee = false;
+    let longueurRepondue = false;
+    let questionLargeurAffichee = false;
 
+    // Déblocage ÉVÉNEMENTIEL de la question « largeur » : il faut À LA FOIS
+    // avoir répondu à la longueur ET avoir tourné la règle à la verticale
+    // (ou basculé sur le repli 2 règles) — dans n'importe quel ordre.
+    function majQuestionLargeur() {
+      if (!longueurRepondue || !largeurDebloquee || questionLargeurAffichee) return;
+      questionLargeurAffichee = true;
+      zoneLargeur.innerHTML = '';
+      construireQuestionCote(zoneLargeur, false, l, apresMesures);
+    }
     function debloquerLargeur() {
-      if (largeurDebloquee) return;
       largeurDebloquee = true;
-      zoneLargeur.hidden = false;
+      majQuestionLargeur();
     }
 
     function rendreRegles() {
@@ -4068,13 +4071,12 @@
     // plus tardif. En le sortant de `scene`, aucun risque de chevauchement.
     zone.appendChild(boutonRepli);
 
-    function construireQuestionLongueur(estLongueur, cible, apres) {
-      const cont = estLongueur ? zoneLongueur : zoneLargeur;
+    function construireQuestionCote(cont, estLongueur, cible, apres) {
       const legende = document.createElement('p');
       legende.className = 'legende';
       legende.textContent = estLongueur
         ? 'Place (ou glisse) la règle sur le côté horizontal : quelle est sa longueur (L) ?'
-        : 'Fais pivoter la règle à 90° et place-la sur le côté vertical : quelle est sa largeur (l) ?';
+        : 'Place la règle verticale sur le côté vertical : quelle est sa largeur (l) ?';
       cont.appendChild(legende);
       const distracteurs = new Set([cible]);
       let tentatives = 0;
@@ -4103,33 +4105,21 @@
       cont.appendChild(grille);
     }
 
-    construireQuestionLongueur(true, L, () => {
-      zone.appendChild(zoneLargeur);
+    construireQuestionCote(zoneLongueur, true, L, () => {
+      longueurRepondue = true;
       if (!largeurDebloquee) {
         const attente = document.createElement('p');
         attente.className = 'legende';
-        attente.textContent = 'Fais pivoter la règle à 90° (pince à deux doigts) pour mesurer le côté vertical, ou essaie le repli 2 règles ci-dessus.';
+        attente.textContent = 'Fais pivoter la règle à 90° (pince à deux doigts) pour mesurer le côté vertical — ou touche le bouton « 2 règles » ci-dessus.';
         zoneLargeur.appendChild(attente);
-        const verifie = setInterval(() => {
-          // Filet anti-fuite : si la manche a changé entre-temps (scène
-          // retirée du DOM), on arrête le sondage sans jamais toucher à
-          // une zone détachée d'un tour précédent.
-          if (!document.body.contains(scene)) { clearInterval(verifie); return; }
-          if (largeurDebloquee) {
-            clearInterval(verifie);
-            zoneLargeur.innerHTML = '';
-            construireQuestionLongueur(false, l, apresMesures);
-          }
-        }, 200);
-      } else {
-        construireQuestionLongueur(false, l, apresMesures);
       }
+      majQuestionLargeur();
     });
     zone.appendChild(zoneLongueur);
+    zone.appendChild(zoneLargeur);
 
     function apresMesures() {
       zone.appendChild(zoneAstuce);
-      zoneAstuce.hidden = false;
       const legende = document.createElement('p');
       legende.className = 'legende';
       legende.textContent = 'As-tu vraiment besoin de mesurer les 4 côtés d\'un rectangle ?';
@@ -4148,15 +4138,14 @@
           explication.className = 'legende';
           explication.textContent = 'Dans un rectangle, les côtés opposés ont la même longueur : mesurer L et l suffit pour connaître les 4 côtés !';
           zoneAstuce.appendChild(explication);
-          setTimeout(() => {
-            zone.appendChild(zoneTotal);
-            zoneTotal.hidden = false;
-            const legendeTotal = document.createElement('p');
-            legendeTotal.className = 'legende';
-            legendeTotal.textContent = 'Quel est le périmètre total de ce rectangle, en centimètres ?';
-            zoneTotal.appendChild(legendeTotal);
-            creerSaisieSimple(zoneTotal, total);
-          }, 100);
+          const legendeTotal = document.createElement('p');
+          legendeTotal.className = 'legende';
+          legendeTotal.textContent = 'Additionne les côtés : quel est le périmètre total de ce rectangle, en centimètres ?';
+          zoneAstuce.appendChild(legendeTotal);
+          // Saisie au pavé numérique diégétique, comme les conversions du
+          // mini-jeu 2 (série CE2) — total à 2 chiffres au maximum.
+          const pave = creerPave((valeur) => { pave.verrouiller(true); validerTour(valeur === total, null); }, 2);
+          zoneAstuce.appendChild(pave.el);
         });
         grille.appendChild(btn);
       });
