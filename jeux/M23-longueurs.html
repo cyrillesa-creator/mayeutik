@@ -3522,11 +3522,16 @@
     droite.setAttribute('stroke-dasharray', '6 5');
     svg.appendChild(droite);
 
-    // La « clairière » : remplissage doux de la figure d'origine, qui
-    // s'estompe au fil du dépliage.
+    // La « clairière » d'origine, en couleur CLAIRE : elle reste affichée
+    // pendant tout le dépliage ET pendant la mesure, comme mémoire de la
+    // forme dont on est parti — l'enfant voit ainsi en permanence que la
+    // ligne droite qu'il mesure est bien le contour de CETTE figure-là.
     const fond = document.createElementNS(SVGNS, 'polygon');
     fond.setAttribute('points', base.map((p) => (p[0] + ox) + ',' + (p[1] + oy)).join(' '));
-    fond.style.fill = 'color-mix(in srgb, var(--couleur-menthe) 30%, white)';
+    fond.style.fill = 'color-mix(in srgb, var(--couleur-menthe) 22%, white)';
+    fond.style.stroke = 'color-mix(in srgb, var(--couleur-menthe) 55%, white)';
+    fond.setAttribute('stroke-width', '2');
+    fond.setAttribute('stroke-dasharray', '5 4');
     svg.appendChild(fond);
 
     const lignes = [];
@@ -3570,7 +3575,6 @@
         const t = duree === 0 ? 1 : Math.min(1, (maintenant - debut) / duree);
         const doux = t * (2 - t);
         dessiner(appliquerRotation(e.depart, e.pivot, e.delta * doux));
-        fond.style.opacity = String(Math.max(0, 1 - (indexEtape + t) / etapes.length));
         if (t < 1) { requestAnimationFrame(frame); return; }
         indexEtape++;
         animationEnCours = false;
