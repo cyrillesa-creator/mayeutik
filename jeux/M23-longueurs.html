@@ -517,18 +517,6 @@
   .qcm-animal-image{ width:6rem; height:6rem; margin:.6rem auto; }
   .qcm-animal-definition{ margin-top:.8rem; padding-top:.7rem; border-top:2px dashed color-mix(in srgb, var(--couleur-soleil) 45%, white); }
 
-  /* ---- Périmètre : côtés à reporter au compas ---- */
-  .bloc-polygone{ text-align:center; font-weight:700; margin-bottom:.3rem; }
-  .rangee-cotes{ display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; margin:.4rem 0 .7rem; }
-  .cote-rod{ min-height:44px; min-width:44px; border-radius:10px; border:2px solid color-mix(in srgb, var(--couleur-encre) 15%, white); background:#ffffff; display:flex; align-items:center; justify-content:center; padding:0 .5rem; }
-  .cote-rod:disabled{ opacity:.3; }
-  .rod-barre{ display:block; height:14px; border-radius:4px; }
-  .ligne-report{ display:flex; align-items:center; min-height:30px; padding:.4rem; border-radius:10px;
-    background:color-mix(in srgb, var(--couleur-fond) 100%, white); border:2px dashed color-mix(in srgb, var(--couleur-encre) 22%, white); margin-bottom:.8rem; }
-  .segment-report{ display:block; height:16px; }
-  .segment-report:first-child{ border-top-left-radius:8px; border-bottom-left-radius:8px; }
-  .segment-report:last-child{ border-top-right-radius:8px; border-bottom-right-radius:8px; }
-
   /* ---- Périmètre CE2 « La cartographie » — étapes A/B : la figure SVG dont
      le contour se déplie charnière par charnière en un segment posé sur une
      droite (rotations pures, longueurs des côtés préservées pendant toute
@@ -3386,25 +3374,25 @@
 
   /* ================================================================
      Mini-jeu 3 : « La cartographie » (périmètre, CE2, ex-M31 fusionné)
-     Alterne, manche par manche : comparaison SANS règle (report au compas,
-     genererPerimetreComparer) et détermination AVEC règle graduée. Cette
-     seconde famille suit une progression fixe sur ses 3 occurrences d'une
-     partie (nbTours = 6 → 3 « comparer » + 3 « mesurer ») :
-       1re occurrence « mesurer » → étape A, démonstration ANIMÉE : le
-         contour d'une VRAIE figure (rectangle/triangle dessiné en SVG) se
-         déplie charnière par charnière en un segment droit, mesuré à la
-         règle pour conclure (regardée, pas manipulée) ;
-       occurrences suivantes → étape C, mesure SANS dépliage avec une
-         règle mobile qu'on glisse ET qu'on pivote à 90° (pincement à deux
-         doigts, accroche magnétique), avec repli « deux règles
-         indépendantes » en cas de geste trop difficile.
+     Progression fixe sur les manches d'une partie :
+       manche 1 → étape A, démonstration ANIMÉE : le contour d'une VRAIE
+         figure (rectangle/triangle dessiné en SVG) se déplie charnière par
+         charnière en un segment droit, sur lequel la règle vient se poser
+         pour le mesurer (regardée, pas manipulée) ;
+       manches suivantes → alternance de deux manipulations :
+         étape B, dépliage ACTIF côté par côté (figures variées : rectangle,
+           triangle, figure en L) puis lecture du périmètre à la règle ;
+         étape C, mesure SANS dépliage d'un rectangle avec une règle mobile
+           qu'on glisse ET qu'on pivote à 90° (pincement à deux doigts,
+           accroche magnétique), avec repli « deux règles indépendantes »
+           en cas de geste trop difficile.
      ================================================================ */
 
   function genererPerimetre(zone, cfg) {
-    const sousType = (etat.index % 2 === 1) ? 'comparer' : 'mesurer';
-    if (sousType === 'comparer') { genererPerimetreComparer(zone, cfg); return; }
-    etat.perimetreMesurerVues = (etat.perimetreMesurerVues || 0) + 1;
-    if (etat.perimetreMesurerVues === 1) genererPerimetreDemo(zone, cfg);
+    if (etat.index === 1) { genererPerimetreDemo(zone, cfg); return; }
+    // Après la démonstration, on alterne dépliage actif / mesure à la règle
+    // mobile (manche 2 = B, 3 = C, 4 = B, …).
+    if (etat.index % 2 === 0) genererPerimetreDepliageActif(zone, cfg);
     else genererPerimetreReglesMobiles(zone, cfg);
   }
 
@@ -3427,13 +3415,27 @@
         cotes: [grand, petit, grand, petit]
       };
     }
-    // Côtés [a, b, c] dans l'ordre du parcours (base a, puis b, puis c) :
-    // triangles valides (inégalité triangulaire) de périmètre 10 à 14 cm.
-    const [a, b, c] = choisir([[4, 3, 3], [5, 4, 3], [4, 4, 3], [5, 5, 4], [4, 4, 5], [6, 4, 4]]);
-    // Sommet C par intersection de cercles : |CA| = c, |CB| = b.
-    const x = (a * a + c * c - b * b) / (2 * a);
-    const h = Math.sqrt(Math.max(0.5, c * c - x * x));
-    return { nom: 'triangle', pts: [[0, h], [a, h], [x, 0], [0, h]], cotes: [a, b, c] };
+    if (type === 'triangle') {
+      // Côtés [a, b, c] dans l'ordre du parcours (base a, puis b, puis c) :
+      // triangles valides (inégalité triangulaire) de périmètre 10 à 14 cm.
+      const [a, b, c] = choisir([[4, 3, 3], [5, 4, 3], [4, 4, 3], [5, 5, 4], [4, 4, 5], [6, 4, 4]]);
+      // Sommet C par intersection de cercles : |CA| = c, |CB| = b.
+      const x = (a * a + c * c - b * b) / (2 * a);
+      const h = Math.sqrt(Math.max(0.5, c * c - x * x));
+      return { nom: 'triangle', pts: [[0, h], [a, h], [x, 0], [0, h]], cotes: [a, b, c] };
+    }
+    // « figure en L » : hexagone rectiligne (rectangle L×H auquel on a
+    // retiré un coin w1×h1 en haut à droite) — côtés tous entiers,
+    // périmètre = 2(L+H) exactement comme le rectangle englobant.
+    const L = nombreAleatoire(3, 4);
+    const H = nombreAleatoire(2, Math.max(2, 7 - L));
+    const w1 = nombreAleatoire(1, L - 1);
+    const h1 = nombreAleatoire(1, Math.max(1, H - 1));
+    return {
+      nom: 'figure en L',
+      pts: [[0, H], [L, H], [L, h1], [L - w1, h1], [L - w1, 0], [0, 0], [0, H]],
+      cotes: [L, H - h1, w1, h1, L - w1, H]
+    };
   }
 
   /*
@@ -3446,7 +3448,10 @@
    * chaque instant de l'animation (c'est tout l'argument pédagogique : le
    * contour déplié a la MÊME longueur que le contour de la figure).
    *
-   * Rend { el, toutDeplier(onFini), poserRegleSurSegment(cap, onFini) } —
+   * Rend { el, restantes(), etapeSuivante(onFini), toutDeplier(onFini),
+   * poserRegleSurSegment(cap, onFini) } — `etapeSuivante` anime UNE
+   * charnière et appelle onFini(toutEstDeplie) (dépliage actif, étape B),
+   * `toutDeplier` les enchaîne toutes (démonstration, étape A).
    * `poserRegleSurSegment` fait GLISSER une règle semi-transparente (sans
    * barre interne : le segment déplié EST l'objet mesuré, visible par
    * transparence) depuis le bord de la scène jusque SUR le segment, son
@@ -3615,110 +3620,16 @@
       setTimeout(() => { if (onFini) onFini(); }, 880);
     }
 
-    return { el: wrap, toutDeplier, poserRegleSurSegment };
+    return {
+      el: wrap,
+      restantes: () => etapes.length - indexEtape,
+      etapeSuivante,
+      toutDeplier,
+      poserRegleSurSegment
+    };
   }
 
   const COULEURS_COTES = ['var(--couleur-mandarine)', 'var(--couleur-menthe)', 'var(--couleur-corail)', 'var(--couleur-soleil)'];
-
-  function genererPerimetreComparer(zone, cfg) {
-    const UNITE_PX = 14;
-    function polygoneAleatoire() {
-      const n = choisir([3, 3, 4]);
-      const cotes = [];
-      for (let i = 0; i < n; i++) cotes.push(nombreAleatoire(2, 9));
-      return cotes;
-    }
-    const cotesA = polygoneAleatoire();
-    let cotesB = polygoneAleatoire();
-    let garde = 0;
-    while (cotesA.reduce((a, b) => a + b, 0) === cotesB.reduce((a, b) => a + b, 0) && garde < 10) {
-      cotesB = polygoneAleatoire();
-      garde++;
-    }
-    const demanderPlusGrand = Math.random() < 0.5;
-
-    zone.appendChild(creerBlocConsigne(
-      'Sans les mesurer, reporte chaque côté sur la ligne pour comparer les deux tours de clairière.',
-      'Clique sur chaque côté de la clairière A, puis de la clairière B, pour reporter sa longueur sur la ligne de comparaison.'
-    ));
-
-    function construireBlocPolygone(lettre, cotes, ligneReport, restant, verifierFin) {
-      const bloc = document.createElement('div');
-      const titre = document.createElement('div');
-      titre.className = 'bloc-polygone';
-      titre.textContent = 'Clairière ' + lettre;
-      bloc.appendChild(titre);
-      const rangee = document.createElement('div');
-      rangee.className = 'rangee-cotes';
-      cotes.forEach((longueur, i) => {
-        const btn = document.createElement('button');
-        btn.type = 'button'; btn.className = 'cote-rod';
-        const barre = document.createElement('span');
-        barre.className = 'rod-barre';
-        barre.style.width = (longueur * UNITE_PX) + 'px';
-        barre.style.background = COULEURS_COTES[i % COULEURS_COTES.length];
-        btn.appendChild(barre);
-        btn.setAttribute('aria-label', 'Reporter le côté ' + (i + 1) + ' de la clairière ' + lettre);
-        btn.addEventListener('click', () => {
-          if (btn.disabled) return;
-          btn.disabled = true;
-          const seg = document.createElement('span');
-          seg.className = 'segment-report';
-          seg.style.width = (longueur * UNITE_PX) + 'px';
-          seg.style.background = COULEURS_COTES[i % COULEURS_COTES.length];
-          ligneReport.appendChild(seg);
-          restant.n--;
-          if (restant.n === 0) verifierFin();
-        });
-        rangee.appendChild(btn);
-      });
-      bloc.appendChild(rangee);
-      return bloc;
-    }
-
-    const ligneA = document.createElement('div'); ligneA.className = 'ligne-report';
-    const ligneB = document.createElement('div'); ligneB.className = 'ligne-report';
-    const restant = { n: cotesA.length + cotesB.length };
-
-    const grille = document.createElement('div');
-    grille.className = 'grille-options';
-    grille.hidden = true;
-
-    function verifierFin() {
-      const totalA = cotesA.reduce((a, b) => a + b, 0);
-      const totalB = cotesB.reduce((a, b) => a + b, 0);
-      const bonneLettre = demanderPlusGrand
-        ? (totalA > totalB ? 'A' : 'B')
-        : (totalA < totalB ? 'A' : 'B');
-      grille.hidden = false;
-      ['A', 'B'].forEach((lettre) => {
-        const btn = document.createElement('button');
-        btn.type = 'button'; btn.className = 'bouton-option';
-        btn.textContent = 'Clairière ' + lettre;
-        btn.addEventListener('click', () => {
-          Array.from(grille.children).forEach((b) => { b.disabled = true; });
-          const correct = lettre === bonneLettre;
-          btn.classList.add(correct ? 'correct' : 'incorrect');
-          if (!correct) {
-            const bonneBtn = Array.from(grille.children).find((b) => b.textContent === 'Clairière ' + bonneLettre);
-            if (bonneBtn) bonneBtn.classList.add('correct');
-          }
-          validerTour(correct, btn);
-        });
-        grille.appendChild(btn);
-      });
-    }
-
-    zone.appendChild(construireBlocPolygone('A', cotesA, ligneA, restant, verifierFin));
-    zone.appendChild(ligneA);
-    zone.appendChild(construireBlocPolygone('B', cotesB, ligneB, restant, verifierFin));
-    zone.appendChild(ligneB);
-    zone.appendChild(Object.assign(document.createElement('p'), {
-      className: 'legende',
-      textContent: 'Quelle clairière a le tour le plus ' + (demanderPlusGrand ? 'grand' : 'petit') + ' ?'
-    }));
-    zone.appendChild(grille);
-  }
 
   /*
    * Étape A — démonstration ANIMÉE (regardée, pas manipulée) : la clairière
@@ -3766,6 +3677,92 @@
         });
       });
     }, preferesMouvementReduit ? 0 : 900);
+  }
+
+  /* QCM de lecture du périmètre sur la règle (étape B) : 4 options en cm
+     autour de la bonne valeur. */
+  function construireQCMPerimetre(zone, bonne, cap, borneMin) {
+    const distracteurs = new Set([bonne]);
+    let tentatives = 0;
+    while (distracteurs.size < 4 && tentatives < 30) {
+      tentatives++;
+      const d = bonne + choisir([-3, -2, -1, 1, 2, 3]);
+      if (d >= (borneMin || 1) && d <= cap) distracteurs.add(d);
+    }
+    const options = Array.from(distracteurs).map(String);
+    const indexBonne = options.indexOf(String(bonne));
+    const { options: optionsMelangees, indexCorrect } = melangerOptions(options, indexBonne);
+    const grille = document.createElement('div');
+    grille.className = 'grille-options';
+    optionsMelangees.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'bouton-option'; btn.textContent = opt + ' cm';
+      btn.addEventListener('click', () => {
+        Array.from(grille.children).forEach((b) => { b.disabled = true; });
+        const correct = i === indexCorrect;
+        btn.classList.add(correct ? 'correct' : 'incorrect');
+        if (!correct) grille.children[indexCorrect].classList.add('correct');
+        validerTour(correct, btn);
+      });
+      grille.appendChild(btn);
+    });
+    zone.appendChild(grille);
+  }
+
+  /*
+   * Étape B — dépliage ACTIF : cette fois c'est l'enfant qui déroule le
+   * contour, un côté à la fois (tap sur le bouton OU sur la figure), sur
+   * une figure variée (rectangle, triangle ou figure en L). Une fois la
+   * ligne toute droite, la règle vient se poser dessus et l'enfant lit le
+   * périmètre (QCM, comme les lectures de règle du mini-jeu 2).
+   */
+  function genererPerimetreDepliageActif(zone, cfg) {
+    const cap = cfg.capCm || 16;
+    const figure = figureCartographie(['rectangle', 'triangle', 'coin']);
+    const total = figure.cotes.reduce((a, b) => a + b, 0);
+
+    zone.appendChild(creerBlocConsigne(
+      'À toi ! Déplie le contour côté par côté, puis mesure le périmètre.',
+      'Touche le bouton, ou la figure, pour déplier le contour de la clairière en forme de ' + figure.nom +
+        ', un côté à la fois. Quand la ligne est toute droite, la règle vient se poser dessus : lis sa longueur, c\'est le périmètre.'
+    ));
+
+    const depliage = creerDepliageCartographie(figure, pxParUniteRegle(cap));
+    zone.appendChild(depliage.el);
+
+    const boutonDeplier = document.createElement('button');
+    boutonDeplier.type = 'button'; boutonDeplier.className = 'bouton-principal';
+    function majLibelle() {
+      const restantes = depliage.restantes();
+      boutonDeplier.textContent = 'Déplier le côté suivant (' + restantes + ' restant' + (restantes > 1 ? 's' : '') + ')';
+    }
+    majLibelle();
+
+    const zoneLecture = document.createElement('div');
+
+    function toutEstDeplie() {
+      boutonDeplier.hidden = true;
+      depliage.poserRegleSurSegment(cap, () => {
+        const legende = document.createElement('p');
+        legende.className = 'legende';
+        legende.textContent = 'La ligne est toute droite et la règle est posée ! Combien mesure-t-elle ? C\'est le périmètre de la clairière.';
+        zoneLecture.appendChild(legende);
+        construireQCMPerimetre(zoneLecture, total, cap, 5);
+      });
+    }
+
+    function deplier() {
+      if (etat.verrouille) return;
+      depliage.etapeSuivante((fini) => {
+        if (fini) toutEstDeplie();
+        else majLibelle();
+      });
+    }
+    boutonDeplier.addEventListener('click', deplier);
+    depliage.el.addEventListener('click', deplier);
+
+    zone.appendChild(boutonDeplier);
+    zone.appendChild(zoneLecture);
   }
 
   /*
