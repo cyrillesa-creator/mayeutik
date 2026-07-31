@@ -502,6 +502,11 @@
   .unite-fantome{ position:fixed; pointer-events:none; z-index:80; transition:transform .25s ease; will-change:transform; }
   @media (prefers-reduced-motion:reduce){ .unite-fantome{ transition:none; } }
 
+  /* Exercice 3 « QCM d'unités » : illustration de l'animal + définition
+     révélée après validation. */
+  .qcm-animal-image{ width:6rem; height:6rem; margin:.6rem auto; }
+  .qcm-animal-definition{ margin-top:.8rem; padding-top:.7rem; border-top:2px dashed color-mix(in srgb, var(--couleur-soleil) 45%, white); }
+
   /* ---- Périmètre : côtés à reporter au compas ---- */
   .bloc-polygone{ text-align:center; font-weight:700; margin-bottom:.3rem; }
   .rangee-cotes{ display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; margin:.4rem 0 .7rem; }
@@ -2761,26 +2766,114 @@
     { id: 'fleuve', nom: 'Fleuve Amazone', unite: 'km', taille: 7000, svg: SVG_FLEUVE }
   ];
 
-  /* Sous-type « ordre de grandeur » (étape C) : même esprit que les
-     questions similaires du palier CE1 (texte à trou, QCM par clic), mais
-     étendu aux 5 unités mm/cm/dm/m/km — chaque item propose un
-     SOUS-ENSEMBLE pertinent de 2 à 3 unités plutôt que les 5 à chaque
-     fois (un choix à 5 options serait disproportionné pour une question
-     d'ordre de grandeur). 12 items (> 2× les 6 manches par partie, CHARTE
-     §13), tirage sans redondance par partie (etat.grandeurVues). */
-  const ORDRE_GRANDEUR_CE2 = [
-    { texte: "La longueur d'une fourmi s'exprime plutôt en ___", bonne: 'mm', options: ['mm', 'cm', 'dm'] },
-    { texte: "L'épaisseur d'une feuille s'exprime plutôt en ___", bonne: 'mm', options: ['mm', 'cm'] },
-    { texte: "La longueur d'un scarabée s'exprime plutôt en ___", bonne: 'cm', options: ['mm', 'cm'] },
-    { texte: "La taille d'une grenouille s'exprime plutôt en ___", bonne: 'cm', options: ['mm', 'cm', 'dm'] },
-    { texte: "La longueur d'un toucan s'exprime plutôt en ___", bonne: 'dm', options: ['cm', 'dm', 'm'] },
-    { texte: "L'épaisseur d'un tronc d'arbre s'exprime plutôt en ___", bonne: 'dm', options: ['cm', 'dm', 'm'] },
-    { texte: "La longueur d'un jaguar s'exprime plutôt en ___", bonne: 'm', options: ['dm', 'm', 'km'] },
-    { texte: "La longueur d'un anaconda s'exprime plutôt en ___", bonne: 'm', options: ['dm', 'm', 'km'] },
-    { texte: "La hauteur d'un grand arbre de la forêt amazonienne s'exprime plutôt en ___", bonne: 'm', options: ['cm', 'm', 'km'] },
-    { texte: "La largeur d'une pirogue s'exprime plutôt en ___", bonne: 'm', options: ['dm', 'm', 'km'] },
-    { texte: "La longueur du fleuve Amazone s'exprime plutôt en ___", bonne: 'km', options: ['m', 'km'] },
-    { texte: "La distance parcourue lors d'une randonnée dans la jungle s'exprime plutôt en ___", bonne: 'km', options: ['m', 'km'] }
+  /* Illustrations SVG des 5 animaux/éléments du QCM (exercice 3), reprises
+     telles quelles depuis la référence fournie (apercu_qcm_amazonie.html) —
+     même style, non réinventées. */
+  const SVG_PARESSEUX = '<svg viewBox="0 0 70 70" width="100%" height="100%" aria-hidden="true">' +
+    '<line x1="8" y1="20" x2="62" y2="20" stroke="#8a5a2a" stroke-width="4" stroke-linecap="round"/>' +
+    '<path d="M 26 20 Q 22 30 24 40" stroke="#a8834a" stroke-width="6" fill="none" stroke-linecap="round"/>' +
+    '<path d="M 44 20 Q 48 30 46 40" stroke="#a8834a" stroke-width="6" fill="none" stroke-linecap="round"/>' +
+    '<ellipse cx="35" cy="46" rx="14" ry="16" fill="#a8834a"/>' +
+    '<circle cx="35" cy="38" r="10" fill="#c9a86a"/>' +
+    '<ellipse cx="31" cy="36" rx="2.2" ry="2.6" fill="#1a1a1a"/>' +
+    '<ellipse cx="39" cy="36" rx="2.2" ry="2.6" fill="#1a1a1a"/>' +
+    '<path d="M 30 42 Q 35 45 40 42" stroke="#6b4a2a" stroke-width="1.4" fill="none"/>' +
+    '<ellipse cx="35" cy="40" rx="2" ry="1.5" fill="#6b4a2a"/>' +
+    '<path d="M 22 39 l -3 2 M 24 41 l -3 3 M 26 43 l -2 4" stroke="#5a3a1a" stroke-width="1.3"/>' +
+    '<path d="M 48 39 l 3 2 M 46 41 l 3 3 M 44 43 l 2 4" stroke="#5a3a1a" stroke-width="1.3"/>' +
+    '</svg>';
+  const SVG_ANACONDA = '<svg viewBox="0 0 70 70" width="100%" height="100%" aria-hidden="true">' +
+    '<path d="M 8 55 Q 15 35 30 40 Q 45 45 40 25 Q 37 15 48 12" stroke="#3d6b3d" stroke-width="11" fill="none" stroke-linecap="round"/>' +
+    '<path d="M 8 55 Q 15 35 30 40 Q 45 45 40 25 Q 37 15 48 12" stroke="#5a8a4a" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.6"/>' +
+    '<ellipse cx="51" cy="11" rx="7" ry="5" fill="#3d6b3d"/>' +
+    '<circle cx="54" cy="9" r="1.3" fill="#1a1a1a"/>' +
+    '<path d="M 58 11 l 4 1" stroke="#e63946" stroke-width="1.3"/>' +
+    '<ellipse cx="14" cy="48" rx="3" ry="2" fill="#2a4a2a"/>' +
+    '<ellipse cx="24" cy="40" rx="3" ry="2" fill="#2a4a2a"/>' +
+    '<ellipse cx="36" cy="34" rx="3" ry="2" fill="#2a4a2a"/>' +
+    '<ellipse cx="38" cy="20" rx="3" ry="2" fill="#2a4a2a"/>' +
+    '</svg>';
+  const SVG_SINGE_ECUREUIL = '<svg viewBox="0 0 70 70" width="100%" height="100%" aria-hidden="true">' +
+    '<path d="M 44 42 Q 60 36 60 52 Q 60 62 50 60 Q 56 52 52 44" fill="#c9a860"/>' +
+    '<path d="M 50 60 Q 44 62 46 56" fill="#3a2a1a"/>' +
+    '<ellipse cx="28" cy="46" rx="12" ry="14" fill="#e8c07a"/>' +
+    '<line x1="10" y1="48" x2="18" y2="55" stroke="#e8c07a" stroke-width="4" stroke-linecap="round"/>' +
+    '<line x1="40" y1="50" x2="34" y2="58" stroke="#e8c07a" stroke-width="4" stroke-linecap="round"/>' +
+    '<circle cx="26" cy="24" r="12" fill="#e8c07a"/>' +
+    '<path d="M 15 20 Q 15 12 26 12 Q 37 12 37 20 Q 37 27 26 28 Q 15 27 15 20 Z" fill="#fdf3e0"/>' +
+    '<ellipse cx="26" cy="28" rx="6" ry="5" fill="#2a1a10"/>' +
+    '<ellipse cx="25" cy="27" rx="1" ry="0.8" fill="#5a3a1a"/>' +
+    '<circle cx="20" cy="20" r="2.3" fill="#1a1a1a"/>' +
+    '<circle cx="32" cy="20" r="2.3" fill="#1a1a1a"/>' +
+    '<circle cx="20.6" cy="19.3" r="0.6" fill="#fff"/>' +
+    '<circle cx="32.6" cy="19.3" r="0.6" fill="#fff"/>' +
+    '<circle cx="13" cy="16" r="3.2" fill="#e8c07a"/>' +
+    '<circle cx="39" cy="16" r="3.2" fill="#e8c07a"/>' +
+    '</svg>';
+  const SVG_DAUPHIN_ROSE = '<svg viewBox="0 0 70 70" width="100%" height="100%" aria-hidden="true">' +
+    '<path d="M 6 40 C 10 26, 26 20, 40 24 C 50 27, 56 33, 58 38 C 52 38, 48 36, 44 38 C 40 42, 46 44, 50 46 C 40 48, 24 48, 14 44 C 9 42, 6 41, 6 40 Z" fill="#f2a6b8"/>' +
+    '<path d="M 6 40 Q -2 39 0 34 Q 6 35 10 39 Z" fill="#e58aa0"/>' +
+    '<circle cx="12" cy="34" r="1.4" fill="#1a1a1a"/>' +
+    '<path d="M 1 37 Q 5 38 9 38" stroke="#c96a80" stroke-width="1" fill="none"/>' +
+    '<path d="M 10 30 Q 14 24 20 25" stroke="#e58aa0" stroke-width="1" fill="none" opacity="0.5"/>' +
+    '<path d="M 30 22 Q 33 10 40 20 Q 36 24 30 22 Z" fill="#e58aa0"/>' +
+    '<path d="M 20 38 Q 14 46 22 48 Q 26 42 20 38 Z" fill="#e58aa0"/>' +
+    '<path d="M 55 40 Q 65 33 63 40 Q 65 47 55 42 Z" fill="#e58aa0"/>' +
+    '</svg>';
+  const SVG_FOURMI_AMAZONE = '<svg viewBox="0 0 70 70" width="100%" height="100%" aria-hidden="true">' +
+    '<ellipse cx="35" cy="44" rx="11" ry="9" fill="#8a3a1a"/>' +
+    '<ellipse cx="35" cy="30" rx="6.5" ry="6.5" fill="#8a3a1a"/>' +
+    '<circle cx="35" cy="18" r="5.5" fill="#8a3a1a"/>' +
+    '<path d="M 31 18 Q 24 16 22 21 Q 27 22 32 20 Z" fill="#5a2410"/>' +
+    '<path d="M 39 18 Q 46 16 48 21 Q 43 22 38 20 Z" fill="#5a2410"/>' +
+    '<line x1="30" y1="16" x2="26" y2="10" stroke="#8a3a1a" stroke-width="1.5"/>' +
+    '<line x1="40" y1="16" x2="44" y2="10" stroke="#8a3a1a" stroke-width="1.5"/>' +
+    '<line x1="27" y1="40" x2="17" y2="36" stroke="#8a3a1a" stroke-width="1.6"/>' +
+    '<line x1="27" y1="44" x2="16" y2="44" stroke="#8a3a1a" stroke-width="1.6"/>' +
+    '<line x1="27" y1="48" x2="17" y2="52" stroke="#8a3a1a" stroke-width="1.6"/>' +
+    '<line x1="43" y1="40" x2="53" y2="36" stroke="#8a3a1a" stroke-width="1.6"/>' +
+    '<line x1="43" y1="44" x2="54" y2="44" stroke="#8a3a1a" stroke-width="1.6"/>' +
+    '<line x1="43" y1="48" x2="53" y2="52" stroke="#8a3a1a" stroke-width="1.6"/>' +
+    '</svg>';
+
+  /* Sous-exercice 3 « QCM d'unités » : illustration de l'animal + QCM
+     combinant VALEUR ET UNITÉ (jamais l'unité seule), distracteurs faux en
+     valeur OU en unité. Après validation (bonne ou mauvaise réponse), une
+     courte définition de l'animal est révélée. 5 items (correspond
+     exactement aux 3 questions tirées sans redondance par partie, CHARTE
+     §13 — bank à étoffer si de nouveaux items sont ajoutés plus tard),
+     tirage sans redondance par partie (etat.animalVues). */
+  const ANIMAUX_QCM_CE2 = [
+    {
+      id: 'paresseux', nom: 'Paresseux', svg: SVG_PARESSEUX,
+      texte: "Quelle est la taille d'un paresseux ?",
+      bonne: '5 à 7 dm', options: ['5 à 7 dm', '5 à 7 cm', '5 à 7 m', '1 à 2 dm'],
+      definition: "Le paresseux vit accroché aux branches et se déplace très lentement : il mesure environ 5 à 7 dm et pèse entre 4 et 8 kg."
+    },
+    {
+      id: 'anaconda', nom: 'Anaconda vert', svg: SVG_ANACONDA,
+      texte: "Quelle est la taille d'un anaconda vert ?",
+      bonne: '5 à 6 m', options: ['5 à 6 m', '5 à 6 dm', '5 à 6 km', '1 à 2 m'],
+      definition: "L'anaconda vert est l'un des plus grands serpents du monde : il peut dépasser 5 à 6 m de long et peser plus de 100 kg."
+    },
+    {
+      id: 'singe-ecureuil', nom: 'Singe écureuil', svg: SVG_SINGE_ECUREUIL,
+      texte: "Quelle est la taille d'un singe écureuil (sans la queue) ?",
+      bonne: '25 à 35 cm', options: ['25 à 35 cm', '25 à 35 mm', '25 à 35 dm', '60 à 70 cm'],
+      definition: "Le singe écureuil est un petit singe léger d'environ 25 à 35 cm, avec une longue queue touffue presque aussi longue que son corps."
+    },
+    {
+      id: 'dauphin-rose', nom: 'Dauphin rose', svg: SVG_DAUPHIN_ROSE,
+      texte: "Quelle est la taille d'un dauphin rose de l'Amazone ?",
+      bonne: '2 à 3 m', options: ['2 à 3 m', '2 à 3 dm', '20 à 30 m', '5 à 6 m'],
+      definition: "Le dauphin rose de l'Amazone, aussi appelé boto, est le plus grand dauphin d'eau douce du monde : environ 2 à 3 m pour 100 à 150 kg."
+    },
+    {
+      id: 'fourmi-amazone', nom: 'Fourmi amazone', svg: SVG_FOURMI_AMAZONE,
+      texte: "Quelle est la taille d'une fourmi amazone ?",
+      bonne: '5 à 7 mm', options: ['5 à 7 mm', '5 à 7 cm', '5 à 7 dm', '1 à 2 mm'],
+      definition: "La fourmi amazone a un thorax roux et de puissantes mandibules recourbées, comme deux petits sabres, pour un corps d'environ 5 à 7 mm."
+    }
   ];
 
   /* Dispatcher du mini-jeu 1 : ORDRE FIXE des trois exercices (dérogation
@@ -2793,7 +2886,46 @@
   function genererDecouverteCE2(zone, cfg) {
     if (etat.index === 1) genererRangerUnitesCE2(zone);
     else if (etat.index === 2) genererClassementDecouverteCE2(zone);
-    else genererOrdreGrandeurCE2(zone);
+    else genererQCMAnimauxCE2(zone);
+  }
+
+  function genererQCMAnimauxCE2(zone) {
+    if (!etat.animalVues) etat.animalVues = [];
+    let dispo = ANIMAUX_QCM_CE2.filter((it) => etat.animalVues.indexOf(it.id) === -1);
+    if (!dispo.length) { etat.animalVues = []; dispo = ANIMAUX_QCM_CE2; }
+    const item = choisir(dispo);
+    etat.animalVues.push(item.id);
+
+    zone.appendChild(creerBlocConsigne(item.texte, item.texte));
+    const icone = document.createElement('div');
+    icone.className = 'qcm-animal-image'; icone.innerHTML = item.svg;
+    zone.appendChild(icone);
+
+    const options = melanger(item.options.slice());
+    const grille = document.createElement('div');
+    grille.className = 'grille-options';
+    const definitionEl = document.createElement('p');
+    definitionEl.className = 'legende qcm-animal-definition';
+    definitionEl.hidden = true;
+    options.forEach((opt) => {
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'bouton-option'; btn.textContent = opt;
+      btn.addEventListener('click', () => {
+        Array.from(grille.children).forEach((b) => { b.disabled = true; });
+        const correct = opt === item.bonne;
+        btn.classList.add(correct ? 'correct' : 'incorrect');
+        if (!correct) {
+          const bonne = Array.from(grille.children).find((b) => b.textContent === item.bonne);
+          if (bonne) bonne.classList.add('correct');
+        }
+        definitionEl.textContent = item.definition;
+        definitionEl.hidden = false;
+        validerTour(correct, btn);
+      });
+      grille.appendChild(btn);
+    });
+    zone.appendChild(grille);
+    zone.appendChild(definitionEl);
   }
 
   /* Unités dans l'ORDRE CROISSANT canonique (référence pour la correction
@@ -2959,36 +3091,6 @@
       validerTour(estTrie(ordre), boutonValider);
     });
     zone.appendChild(boutonValider);
-  }
-
-  function genererOrdreGrandeurCE2(zone) {
-    if (!etat.grandeurVues) etat.grandeurVues = [];
-    let dispo = ORDRE_GRANDEUR_CE2.filter((it) => etat.grandeurVues.indexOf(it.texte) === -1);
-    if (!dispo.length) { etat.grandeurVues = []; dispo = ORDRE_GRANDEUR_CE2; }
-    const item = choisir(dispo);
-    etat.grandeurVues.push(item.texte);
-
-    zone.appendChild(creerBlocConsigne(item.texte, item.texte.replace('___', '…') + ' Quelle unité manque ?'));
-
-    const options = melanger(item.options.slice());
-    const grille = document.createElement('div');
-    grille.className = 'grille-options';
-    options.forEach((opt) => {
-      const btn = document.createElement('button');
-      btn.type = 'button'; btn.className = 'bouton-option'; btn.textContent = opt;
-      btn.addEventListener('click', () => {
-        Array.from(grille.children).forEach((b) => { b.disabled = true; });
-        const correct = opt === item.bonne;
-        btn.classList.add(correct ? 'correct' : 'incorrect');
-        if (!correct) {
-          const bonne = Array.from(grille.children).find((b) => b.textContent === item.bonne);
-          if (bonne) bonne.classList.add('correct');
-        }
-        validerTour(correct, btn);
-      });
-      grille.appendChild(btn);
-    });
-    zone.appendChild(grille);
   }
 
   /*
