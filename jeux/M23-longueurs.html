@@ -492,13 +492,16 @@
   .decouverte-image{ width:2.6rem; height:2.6rem; }
   .decouverte-nom{ font-size:.72rem; font-weight:700; text-align:center; line-height:1.1; }
 
-  /* Exercice 1 « Ranger les unités » : pioche en désordre (ligne basse) à
-     glisser vers 5 emplacements pré-marqués en pointillés (ligne haute). */
-  .rangerunites-ligne-slots{ display:flex; justify-content:center; gap:.9rem; margin:1rem 0 .6rem; flex-wrap:wrap; }
-  .rangerunites-slot{ min-height:4.4rem; min-width:4.4rem; border-radius:14px; border:2.5px dashed color-mix(in srgb, var(--couleur-encre) 25%, white);
+  /* Exercice 1 « Ranger les unités » : disposition verticale à deux colonnes
+     — colonne de gauche la pioche en désordre, colonne de droite 5
+     emplacements pré-marqués en pointillés, classement de haut (plus
+     petite unité) en bas (plus grande). */
+  .rangerunites-colonnes{ display:flex; gap:1rem; justify-content:center; margin:1rem auto 0; max-width:20rem; }
+  .rangerunites-colonne{ flex:1; min-width:0; display:flex; flex-direction:column; gap:.6rem; }
+  .rangerunites-colonne-titre{ text-align:center; font-size:.78rem; font-weight:600; opacity:.7; margin:0 0 .1rem; }
+  .rangerunites-colonne-pioche{ display:flex; flex-direction:column; gap:.6rem; }
+  .rangerunites-slot{ min-height:3.8rem; border-radius:14px; border:2.5px dashed color-mix(in srgb, var(--couleur-encre) 25%, white);
     background:color-mix(in srgb, var(--couleur-menthe) 8%, white); display:flex; align-items:center; justify-content:center; }
-  .rangerunites-ligne-plateau{ display:flex; justify-content:center; gap:.8rem; flex-wrap:wrap; margin-top:1rem; padding-top:.8rem;
-    border-top:2px dashed color-mix(in srgb, var(--couleur-soleil) 45%, white); min-height:4.4rem; }
   .unite-etiquette{ display:inline-flex; align-items:center; justify-content:center; min-width:3.6rem; min-height:3.6rem;
     padding:.4rem .6rem; border-radius:14px; background:#ffffff; border:2.5px solid color-mix(in srgb, var(--couleur-encre) 18%, white);
     box-shadow:0 3px 0 color-mix(in srgb, var(--couleur-encre) 12%, white); font-weight:700; font-size:1.15rem;
@@ -2936,10 +2939,10 @@
   const ORDRE_UNITES_CE2 = ['mm', 'cm', 'dm', 'm', 'km'];
 
   /*
-   * Exercice 1 « Ranger les unités » : les 5 étiquettes (mm/cm/dm/m/km)
-   * sont proposées EN DÉSORDRE sur une ligne BASSE (la pioche), et les 5
-   * emplacements de réponse — pré-marqués en pointillés — sont alignés sur
-   * une seule ligne HAUTE. Glisser-poser depuis la pioche vers un
+   * Exercice 1 « Ranger les unités » : disposition verticale à deux
+   * colonnes — colonne de GAUCHE la pioche des 5 étiquettes (mm/cm/dm/m/km)
+   * EN DÉSORDRE, colonne de DROITE les 5 emplacements de réponse pré-
+   * marqués en pointillés. Glisser-poser depuis la pioche vers un
    * emplacement : même mécanique que l'exercice « classement » ci-dessous
    * (déposer sur un emplacement déjà occupé ÉCHANGE les deux étiquettes,
    * l'occupante reprenant la place de départ de l'étiquette déplacée,
@@ -2950,24 +2953,38 @@
   function genererRangerUnitesCE2(zone) {
     zone.appendChild(creerBlocConsigne(
       'Range les unités dans l\'ordre, de la plus petite à la plus grande.',
-      'Fais glisser chaque étiquette de la ligne du bas vers un emplacement de la ligne du haut, de la plus petite unité à gauche jusqu\'à la plus grande à droite. Valide quand les 5 emplacements sont remplis.'
+      'Fais glisser chaque étiquette de la colonne de gauche vers un emplacement de la colonne de droite, de la plus petite unité en haut jusqu\'à la plus grande en bas. Valide quand les 5 emplacements sont remplis.'
     ));
 
-    const ligneSlots = document.createElement('div');
-    ligneSlots.className = 'rangerunites-ligne-slots';
+    const colonnes = document.createElement('div');
+    colonnes.className = 'rangerunites-colonnes';
+
+    const colonneGauche = document.createElement('div');
+    colonneGauche.className = 'rangerunites-colonne';
+    const titreGauche = document.createElement('p');
+    titreGauche.className = 'rangerunites-colonne-titre'; titreGauche.textContent = 'Étiquettes';
+    colonneGauche.appendChild(titreGauche);
+    const plateau = document.createElement('div');
+    plateau.className = 'rangerunites-colonne-pioche';
+    colonneGauche.appendChild(plateau);
+
+    const colonneDroite = document.createElement('div');
+    colonneDroite.className = 'rangerunites-colonne';
+    const titreDroite = document.createElement('p');
+    titreDroite.className = 'rangerunites-colonne-titre'; titreDroite.textContent = 'Réponses';
+    colonneDroite.appendChild(titreDroite);
     const slots = [];
     for (let i = 0; i < ORDRE_UNITES_CE2.length; i++) {
       const slot = document.createElement('div');
       slot.className = 'rangerunites-slot';
       slot.setAttribute('aria-label', 'Emplacement ' + (i + 1));
-      ligneSlots.appendChild(slot);
+      colonneDroite.appendChild(slot);
       slots.push(slot);
     }
-    zone.appendChild(ligneSlots);
 
-    const plateau = document.createElement('div');
-    plateau.className = 'rangerunites-ligne-plateau';
-    zone.appendChild(plateau);
+    colonnes.appendChild(colonneGauche);
+    colonnes.appendChild(colonneDroite);
+    zone.appendChild(colonnes);
 
     const boutonValider = document.createElement('button');
     boutonValider.type = 'button'; boutonValider.className = 'bouton-principal'; boutonValider.textContent = 'Valider';
