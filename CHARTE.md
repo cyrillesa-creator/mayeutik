@@ -713,10 +713,46 @@ function afficherCorrection(zone, donnee, attendue) {
 }
 ```
 
+La fonction de validation de manche du module (`validerTour` / `validerReponse`) prend un
+troisième paramètre facultatif, et se charge elle-même de l'affichage :
+
+```js
+validerTour(estCorrecte, boutonAValider, correction);
+// correction = { donnee, attendue } — ignoré si la réponse est bonne.
+// Exemple (pavé numérique) :
+validerTour(valeur === reponse, null, { donnee: valeur + ' cm', attendue: reponse + ' cm' });
+```
+
+`donnee` peut valoir `null` quand la réponse de l'enfant n'est pas résumable en une valeur
+(tableau à plusieurs cases, par exemple) : seule la bonne réponse est alors affichée, en vert.
+
+### Révélation différée (manipulations)
+
+Quand la mécanique permet de **rejouer** la bonne réponse (tri, appariement, glisser-déposer),
+on ne se contente pas d'un texte : on marque d'abord chaque emplacement en vert ou en rouge —
+l'enfant voit *son* erreur — puis, après une pause d'environ **900 ms**, la scène se remet
+d'elle-même dans l'état correct et tout passe au vert. Deux gardes indispensables :
+
+```js
+setTimeout(() => {
+  if (!element.isConnected) return; // manche déjà quittée : ne rien toucher
+  /* … remise en place, puis .remove('incorrect') / .add('correct') … */
+}, 900);
+```
+
 Points d'attention :
 
 - n'afficher la correction **que** si la réponse est fausse (sur une bonne réponse, elle serait redondante et brouillerait la récompense) ;
-- l'afficher **avant** d'appeler la validation de manche, pour qu'elle soit visible en même temps que le message d'erreur ;
-- verrouiller les éléments interactifs au moment de la correction (`disabled`), afin que l'enfant ne puisse pas « corriger » après coup une réponse déjà validée.
+- elle doit apparaître **en même temps** que le message d'erreur (d'où son passage par la fonction de validation de manche, jamais après coup) ;
+- verrouiller les éléments interactifs au moment de la correction (`disabled`), afin que l'enfant ne puisse pas « corriger » après coup une réponse déjà validée ;
+- le rouge ne doit **jamais** désigner la bonne réponse : quand la solution vient remplacer la
+  proposition de l'enfant dans les mêmes cases, ces cases doivent repasser au vert.
+
+### Exception admise
+
+Un mini-jeu conçu en **essai-erreur libre**, où une tentative fausse n'est pas validée (pas de
+point perdu, l'enfant réessaie jusqu'à réussir), signale les éléments mal placés sans donner la
+solution : c'est le principe même de l'exercice. C'est le cas de « La parade des escargots »
+(M01). Dès qu'une réponse fausse est *validée* — et donc comptée —, la règle §18 s'applique.
 
 **Pour tout nouveau mini-jeu :** cette règle fait partie du gabarit dès la conception, au même titre que la navigation (§17). Un mini-jeu qui signale l'erreur sans montrer la solution est considéré comme non conforme.
