@@ -668,7 +668,7 @@
       "miniJeux": [
         { "id": "unites-decouverte-ce2", "titre": "Découverte : du microscopique à l'immensité", "icone": "🔍", "couleur": "corail", "description": "Classe des unités, puis associe chaque animal à sa taille.", "type": "decouverte-ce2", "nbTours": 5 },
         { "id": "calculs-mesure-ce2", "titre": "L'exploration", "icone": "🛶", "couleur": "soleil", "description": "Calcule des conversions et mesure à la règle, en cm et en mm.", "type": "exploration-ce2", "nbTours": 6, "capCm": 20 },
-        { "id": "perimetre-ce2", "titre": "La cartographie", "icone": "🗺️", "couleur": "mandarine", "description": "Compare des tours au compas, déplie des contours et mesure le périmètre à la règle.", "type": "perimetre", "nbTours": 6, "capCm": 16 }
+        { "id": "perimetre-ce2", "titre": "La cartographie", "icone": "🗺️", "couleur": "mandarine", "description": "Compare des tours au compas, déplie des contours et mesure le périmètre au double décimètre.", "type": "perimetre", "nbTours": 7, "capCm": 16 }
       ]
     }
   }
@@ -3397,13 +3397,15 @@
          figure (rectangle/triangle dessiné en SVG) se déplie charnière par
          charnière en un segment droit, sur lequel la règle vient se poser
          pour le mesurer (regardée, pas manipulée) ;
-       manches suivantes → alternance de deux manipulations :
-         étape B, dépliage ACTIF côté par côté (figures variées : rectangle,
-           triangle, figure en L) puis lecture du périmètre à la règle ;
-         étape C, mesure SANS dépliage d'un rectangle avec une règle mobile
-           qu'on glisse ET qu'on pivote à 90° (pincement à deux doigts,
-           accroche magnétique), avec repli « deux règles indépendantes »
-           en cas de geste trop difficile.
+       manches 4 à 7 → alternance de deux manipulations, la partie se
+         terminant sur une mesure au double décimètre :
+         étape B (manches 4 et 6), dépliage ACTIF côté par côté (figures
+           variées : rectangle, triangle, figure en L) puis lecture du
+           périmètre à la règle ;
+         étape C (manches 5 et 7), mesure SANS dépliage d'un rectangle avec
+           une règle mobile graduée sur ses deux bords qu'on glisse ET qu'on
+           pivote à 90° (pincement à deux doigts, accroche magnétique), avec
+           repli « deux règles indépendantes » en cas de geste trop difficile.
      ================================================================ */
 
   function genererPerimetre(zone, cfg) {
@@ -3415,19 +3417,26 @@
     else genererPerimetreReglesMobiles(zone, cfg);
   }
 
+  /* Échelle et longueur de règle des exercices de dépliage. Les deux sont
+     liées : le contour déplié doit tenir ENTIER à l'écran pour être mesuré
+     sans faire défiler, donc périmètre × PX ≤ largeur utile (~300 px sur
+     mobile). C'est ce plafond qui fixe la taille apparente des figures — on
+     resserre donc les périmètres (10 à 12 cm) pour pouvoir agrandir
+     franchement l'échelle, et donc les figures elles-mêmes. */
+  const PX_DEPLIAGE = 22;
+  const CAP_DEPLIAGE = 13;
+
   /*
    * Une figure à cartographier, en coordonnées ENTIÈRES de cm (y vers le
    * bas, premier côté posé horizontalement sur la « droite » du bas — le
    * sol sur lequel le contour se dépliera). `pts` est la chaîne OUVERTE du
    * contour : dernier point = premier point (le contour est « coupé » au
-   * coin bas-gauche pour pouvoir se dérouler). Tous les périmètres tombent
-   * entre 9 et 14 cm, pour rester lisibles sur la règle de 16 cm.
+   * coin bas-gauche pour pouvoir se dérouler). Périmètres de 10 à 12 cm.
    */
   function figureCartographie(typesAutorises) {
     const type = choisir(typesAutorises);
     if (type === 'rectangle') {
-      const petit = nombreAleatoire(2, 3);
-      const grand = nombreAleatoire(petit + 1, Math.max(petit + 1, 7 - petit));
+      const [grand, petit] = choisir([[3, 2], [4, 2], [3, 3]]);
       return {
         nom: 'rectangle',
         pts: [[0, petit], [grand, petit], [grand, 0], [0, 0], [0, petit]],
@@ -3436,8 +3445,8 @@
     }
     if (type === 'triangle') {
       // Côtés [a, b, c] dans l'ordre du parcours (base a, puis b, puis c) :
-      // triangles valides (inégalité triangulaire) de périmètre 10 à 14 cm.
-      const [a, b, c] = choisir([[4, 3, 3], [5, 4, 3], [4, 4, 3], [5, 5, 4], [4, 4, 5], [6, 4, 4]]);
+      // triangles valides (inégalité triangulaire) de périmètre 10 à 12 cm.
+      const [a, b, c] = choisir([[4, 3, 3], [4, 4, 3], [3, 4, 4], [4, 4, 4], [5, 4, 3], [3, 3, 4]]);
       // Sommet C par intersection de cercles : |CA| = c, |CB| = b.
       const x = (a * a + c * c - b * b) / (2 * a);
       const h = Math.sqrt(Math.max(0.5, c * c - x * x));
@@ -3446,8 +3455,7 @@
     // « figure en L » : hexagone rectiligne (rectangle L×H auquel on a
     // retiré un coin w1×h1 en haut à droite) — côtés tous entiers,
     // périmètre = 2(L+H) exactement comme le rectangle englobant.
-    const L = nombreAleatoire(3, 4);
-    const H = nombreAleatoire(2, Math.max(2, 7 - L));
+    const [L, H] = choisir([[3, 2], [3, 3], [4, 2]]);
     const w1 = nombreAleatoire(1, L - 1);
     const h1 = nombreAleatoire(1, Math.max(1, H - 1));
     return {
@@ -3613,7 +3621,10 @@
     function poserRegleSurSegment(cap, onFini) {
       // Règle SANS objetLongueur : pas de barre interne dupliquée, le
       // segment déplié (visible par transparence) est l'objet mesuré.
-      const wrapRegle = construireRegle({ longueurUnites: cap, unite: 'cm' });
+      // `pxUnite` force la MÊME échelle que le dessin (sans quoi la règle
+      // se dimensionnerait toute seule et la mesure serait fausse) et lui
+      // donne au passage sa variante « grande », mieux lisible.
+      const wrapRegle = construireRegle({ longueurUnites: cap, unite: 'cm', pxUnite: PX });
       const regle = wrapRegle.firstElementChild;
       regle.classList.add('regle-graduee-semi-transparente', 'cartographie-regle-posee');
       // Position finale : zéro de la règle aligné avec le début du segment
@@ -3621,11 +3632,11 @@
       // segment traversant le HAUT de la règle — à la place qu'occupe la
       // barre rouge dans les autres lectures de règle de la série.
       const cibleX = Math.max(0, base[0][0] + ox - 2.5);
-      const cibleY = base[0][1] + oy - 11;
+      const cibleY = base[0][1] + oy - 18;
       regle.style.left = cibleX + 'px';
       regle.style.top = cibleY + 'px';
-      interne.style.width = Math.max(largeur, cibleX + cap * PX + 30) + 'px';
-      interne.style.height = (cibleY + 70) + 'px';
+      interne.style.width = Math.max(largeur, cibleX + cap * PX + 24) + 'px';
+      interne.style.height = (cibleY + 100) + 'px';
       if (preferesMouvementReduit) {
         interne.appendChild(regle);
         if (onFini) onFini();
@@ -3980,7 +3991,7 @@
    * un exercice noté).
    */
   function genererPerimetreDemo(zone, cfg) {
-    const cap = cfg.capCm || 16;
+    const cap = CAP_DEPLIAGE;
     const figure = figureCartographie(['rectangle', 'triangle']);
     const total = figure.cotes.reduce((a, b) => a + b, 0);
 
@@ -3990,7 +4001,7 @@
         ' se déplie, côté après côté, jusqu\'à former une seule ligne droite. La règle vient alors la mesurer : c\'est le périmètre.'
     ));
 
-    const depliage = creerDepliageCartographie(figure, pxParUniteRegle(cap));
+    const depliage = creerDepliageCartographie(figure, PX_DEPLIAGE);
     zone.appendChild(depliage.el);
 
     const legende = document.createElement('p');
@@ -4056,7 +4067,7 @@
    * périmètre (QCM, comme les lectures de règle du mini-jeu 2).
    */
   function genererPerimetreDepliageActif(zone, cfg) {
-    const cap = cfg.capCm || 16;
+    const cap = CAP_DEPLIAGE;
     const figure = figureCartographie(['rectangle', 'triangle', 'coin']);
     const total = figure.cotes.reduce((a, b) => a + b, 0);
 
@@ -4066,7 +4077,7 @@
         ', un côté à la fois. Quand la ligne est toute droite, la règle vient se poser dessus : lis sa longueur, c\'est le périmètre.'
     ));
 
-    const depliage = creerDepliageCartographie(figure, pxParUniteRegle(cap));
+    const depliage = creerDepliageCartographie(figure, PX_DEPLIAGE);
     zone.appendChild(depliage.el);
 
     const boutonDeplier = document.createElement('button');
