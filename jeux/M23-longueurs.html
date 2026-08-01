@@ -4423,7 +4423,7 @@
    * vertical). `angleInitial` fige la règle dans une orientation (repli
    * « deux règles indépendantes », qui n'a pas besoin de pivoter).
    */
-  function creerRegleMobile(cap, angleInitial, onAngleAccroche) {
+  function creerRegleMobile(cap, angleInitial, onAngleAccroche, depart) {
     const PX = 16;
     const regle = document.createElement('div');
     regle.className = 'regle-graduee regle-mobile';
@@ -4458,7 +4458,7 @@
       }
     }
 
-    const X0 = 20, Y0 = 20;
+    const X0 = (depart && depart.x) || 20, Y0 = (depart && depart.y) || 20;
     let x = X0, y = Y0;
     let angleLogique = angleInitial || 0;   // l'angle « vrai » des doigts
     let angleAffiche = angleInitial || 0;   // l'angle rendu (aimanté ou libre)
@@ -4492,15 +4492,19 @@
       return { minX, maxX, minY, maxY, H };
     }
 
-    /* Contrainte de position : la scène est en `overflow:hidden`, donc une
-       règle glissée au-delà de ses bords devient à la fois INVISIBLE et
-       INSAISISSABLE — l'enfant se retrouve bloqué. On borne donc (x, y) au
-       lieu de suivre le doigt indéfiniment : le geste s'arrête net au bord,
-       sans à-coup (on ne fait que rogner la valeur, pas la réinitialiser).
-         - si la règle TIENT dans la scène : elle y est enfermée entièrement ;
-         - sinon (règle verticale plus haute que la scène, par exemple) : on
-           garantit qu'elle la RECOUVRE, donc qu'une partie reste toujours
-           visible et attrapable. */
+    /* Contrainte de position. La règle DOIT pouvoir déborder de la scène :
+       pour mesurer un côté qui va jusqu'au bord, son zéro doit se poser sur ce
+       bord, et le reste de la règle passe forcément au-delà. Mais la scène est
+       en `overflow:hidden` : une règle entièrement sortie devient invisible ET
+       insaisissable, et l'enfant est bloqué.
+       On n'enferme donc pas la règle — on exige seulement qu'il en reste
+       toujours de quoi la reprendre au doigt : au moins un quart de sa
+       longueur, et jamais moins que PRISE_MIN_PX dans chaque direction. Le
+       geste ne s'arrête qu'à cette limite-là, sans à-coup (on rogne la valeur,
+       on ne la réinitialise jamais). */
+    const PRISE_MIN_PX = 56;      // largeur de prise confortable au doigt
+    const PART_VISIBLE_MIN = 0.25; // ...ou un quart de la dimension concernée
+
     function borner() {
       const parent = regle.offsetParent;
       if (!parent) return; // pas encore dans le document : rien à borner
@@ -4508,20 +4512,34 @@
       if (!dispoL || !dispoH) return;
       const e = empreinte();
       const largeur = e.maxX - e.minX, hauteur = e.maxY - e.minY;
-      const gMin = largeur <= dispoL ? 0 : dispoL - largeur;
-      const gMax = largeur <= dispoL ? dispoL - largeur : 0;
-      const hMin = hauteur <= dispoH ? 0 : dispoH - hauteur;
-      const hMax = hauteur <= dispoH ? dispoH - hauteur : 0;
+      // Part qui doit rester DANS la scène sur chaque axe : jamais plus que la
+      // dimension elle-même (une règle plus fine que la prise minimale doit
+      // rester entièrement visible en épaisseur, pas davantage).
+      const visibleX = Math.min(largeur, Math.max(largeur * PART_VISIBLE_MIN, PRISE_MIN_PX));
+      const visibleY = Math.min(hauteur, Math.max(hauteur * PART_VISIBLE_MIN, PRISE_MIN_PX));
       // Bord gauche de l'empreinte = x + e.minX ; bord haut = y + H/2 + e.minY.
+      const bornerAxe = (bord, taille, dispo, visible) => {
+        const min = visible - taille;      // débordement maximal par la gauche/le haut
+        const max = dispo - visible;       // ...par la droite/le bas
+        return Math.min(Math.max(bord, min), Math.max(min, max));
+      };
       const decalageY = e.minY + e.H / 2;
-      x = Math.min(Math.max(x, gMin - e.minX), gMax - e.minX);
-      y = Math.min(Math.max(y, hMin - decalageY), hMax - decalageY);
+      x = bornerAxe(x + e.minX, largeur, dispoL, visibleX) - e.minX;
+      y = bornerAxe(y + decalageY, hauteur, dispoH, visibleY) - decalageY;
     }
 
     function appliquer() {
       borner();
       regle.style.transform = 'translate(' + x + 'px,' + y + 'px) rotate(' + angleAffiche + 'deg)';
     }
+
+    // La règle que l'on saisit passe devant l'autre : sans cela, en mode
+    // « 2 règles », celle du dessous resterait sous les doigts de l'enfant.
+    let compteurPremierPlan = 0;
+    regle.addEventListener('pointerdown', () => {
+      compteurPremierPlan = (window.__mayeutikZRegle = (window.__mayeutikZRegle || 0) + 1);
+      regle.style.zIndex = String(compteurPremierPlan);
+    }, true);
     appliquer();
     // Une fois insérée dans la scène (donc mesurable), on borne une première
     // fois : la position de départ elle-même doit être valide.
@@ -4715,8 +4733,11 @@
         reglesActives.push(regle);
         conteneurRegles.appendChild(regle.el);
       } else {
-        const rH = creerRegleMobile(cap, 0);
-        const rV = creerRegleMobile(cap, 90);
+        // Positions de départ DISJOINTES : posées au même endroit, la règle
+        // verticale masquerait la moitié de l'horizontale et l'enfant ne
+        // verrait qu'une seule règle.
+        const rH = creerRegleMobile(cap, 0, null, { x: 12, y: 14 });
+        const rV = creerRegleMobile(cap, 90, null, { x: 250, y: 96 });
         reglesActives.push(rH, rV);
         conteneurRegles.appendChild(rH.el);
         conteneurRegles.appendChild(rV.el);
