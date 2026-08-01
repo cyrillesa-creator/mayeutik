@@ -837,6 +837,19 @@
     return carte;
   }
 
+  /* Remonte en haut à chaque changement d'écran (CHARTE §17) : sans cela, le
+     nouvel écran hérite du défilement de l'écran précédent — l'enfant qui
+     vient de valider en bas de page se retrouverait au milieu de la manche
+     suivante. Repositionnement instantané (jamais « smooth » : un glissement
+     animé pendant une transition est parasite). */
+  function remonterEnHaut() {
+    try {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    } catch (e) {
+      window.scrollTo(0, 0); // navigateurs sans l'API à options
+    }
+  }
+
   function construireAccueil() {
     document.getElementById('sous-titre-accueil').textContent = donnees.sousTitre;
 
@@ -913,6 +926,7 @@
     document.getElementById('ecran-jeu').hidden = true;
     document.getElementById('ecran-accueil').hidden = false;
     construireAccueil();
+    remonterEnHaut();
   }
 
   function demarrerJeu(miniJeuId) {
@@ -923,6 +937,7 @@
     document.getElementById('ecran-jeu').hidden = false;
     document.getElementById('titre-jeu-courant').textContent = trouve.cfg.titre;
     tourSuivant();
+    remonterEnHaut();
   }
 
   function majProgression() {
@@ -944,6 +959,7 @@
     else if (type === 'tableau-double-entree') genererTableauDoubleEntree(zone, etat.cfg);
     else if (type === 'lecture') genererLecture(zone, etat.cfg);
     else if (type === 'probleme-combine') genererProblemeCombine(zone, etat.cfg);
+    remonterEnHaut();
   }
 
   function validerTour(estCorrecte, boutonAValider) {
@@ -1012,6 +1028,7 @@
     zone.appendChild(bloc);
 
     if (etoilesGagnees === 3) lancerConfettis();
+    remonterEnHaut();
   }
 
   /* ================================================================
