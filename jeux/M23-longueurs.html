@@ -671,7 +671,8 @@
   "sousTitre": "Pars à l'aventure dans la Forêt aux Cent Arbres !",
   "messagesFeedback": {
     "bravo": ["Bravo !", "Super !", "Génial !", "Bien joué !", "C'est ça !", "Trop fort !"],
-    "rate": ["Presque !", "Regarde bien la longueur.", "Pas cette fois, courage !", "On y retourne."]
+    "rate": ["Pas tout à fait : regarde bien la bonne réponse.", "Ce n'est pas ça, la bonne réponse est indiquée.", "Pas cette fois, courage !"],
+    "rateProche": ["Presque ! Il s'en fallait de peu.", "Tout près ! Regarde la bonne réponse.", "Presque : tu y étais !"]
   },
   "estimationsCP": [
     { "texte": "Une fourmi mesure plutôt…", "options": ["2 cm", "20 cm", "1 m"], "bonne": "2 cm" },
@@ -1501,6 +1502,43 @@
     remonterEnHaut();
   }
 
+  /* « Presque » ne se dit QUE d'une réponse voisine de la bonne : appliqué à
+     un résultat complètement faux, le mot sonne faux et brouille le repère que
+     l'enfant se construit sur son propre écart. On compare donc les deux
+     valeurs quand elles sont chiffrées : voisines = écart d'une unité, ou de
+     moins de 10 % de la valeur attendue (une mesure à 34 mm au lieu de 36 est
+     « presque », 3 m au lieu de 300 cm ne l'est pas). Les réponses non
+     chiffrées (unité à choisir, objet à désigner…) ne sont jamais « presque » :
+     on y est juste ou on n'y est pas.
+     `correction.nombres = [donnee, attendue]` permet de fournir directement
+     les valeurs quand le texte affiché ne s'y prête pas. */
+  function extraireNombre(texte) {
+    if (typeof texte === 'number') return texte;
+    if (typeof texte !== 'string') return null;
+    const m = texte.match(/-?\d+(?:[.,]\d+)?/);
+    return m ? parseFloat(m[0].replace(',', '.')) : null;
+  }
+
+  function memeUnite(a, b) {
+    const unite = (t) => (typeof t === 'string' ? (t.replace(/-?\d+(?:[.,]\d+)?/g, '').trim()) : '');
+    return unite(a) === unite(b);
+  }
+
+  function reponseVoisine(correction) {
+    if (!correction) return false;
+    let donnee, attendue;
+    if (correction.nombres) {
+      donnee = correction.nombres[0]; attendue = correction.nombres[1];
+    } else {
+      if (!memeUnite(correction.donnee, correction.attendue)) return false;
+      donnee = extraireNombre(correction.donnee);
+      attendue = extraireNombre(correction.attendue);
+    }
+    if (donnee === null || attendue === null || isNaN(donnee) || isNaN(attendue)) return false;
+    const ecart = Math.abs(donnee - attendue);
+    return ecart > 0 && (ecart <= 1 || ecart <= Math.abs(attendue) * 0.1);
+  }
+
   /* `correction` (facultatif) = { donnee, attendue } : affiché uniquement en cas
      d'erreur, sous le message de feedback (CHARTE §18). */
   function validerTour(estCorrecte, boutonAValider, correction) {
@@ -1515,10 +1553,15 @@
       lancerConfettis();
       jouerSon('bravo');
     } else {
-      zoneFeedback.textContent = choisir(donnees.messagesFeedback.rate);
+      const banque = reponseVoisine(correction) && donnees.messagesFeedback.rateProche
+        ? donnees.messagesFeedback.rateProche
+        : donnees.messagesFeedback.rate;
+      zoneFeedback.textContent = choisir(banque);
       zoneFeedback.className = 'feedback feedback-erreur';
       jouerSon('rate');
-      if (correction) afficherCorrection(zoneFeedback, correction.donnee, correction.attendue);
+      if (correction && correction.afficher !== false) {
+        afficherCorrection(zoneFeedback, correction.donnee, correction.attendue);
+      }
     }
     document.getElementById('bouton-suivant').hidden = false;
   }
@@ -2250,7 +2293,13 @@
           const correct = i === indexCorrect;
           btn.classList.add(correct ? 'correct' : 'incorrect');
           if (!correct) grille.children[indexCorrect].classList.add('correct');
-          validerTour(correct, btn);
+          // Les distracteurs sont voisins de la bonne valeur (±1 à ±3 cm) :
+          // on transmet les deux nombres pour que « Presque ! » ne sorte que
+          // sur un écart d'une unité — le marquage vert/rouge des options fait
+          // déjà office de correction, d'où `afficher: false`.
+          validerTour(correct, btn, correct ? null : {
+            afficher: false, nombres: [Number(opt), Number(optionsMelangees[indexCorrect])]
+          });
         });
         grille.appendChild(btn);
       });
@@ -2325,7 +2374,13 @@
         const correct = i === indexCorrect;
         btn.classList.add(correct ? 'correct' : 'incorrect');
         if (!correct) grille.children[indexCorrect].classList.add('correct');
-        validerTour(correct, btn);
+        // Les distracteurs sont voisins de la bonne valeur (±1 à ±3 cm) :
+        // on transmet les deux nombres pour que « Presque ! » ne sorte que
+        // sur un écart d'une unité — le marquage vert/rouge des options fait
+        // déjà office de correction, d'où `afficher: false`.
+        validerTour(correct, btn, correct ? null : {
+          afficher: false, nombres: [Number(opt), Number(optionsMelangees[indexCorrect])]
+        });
       });
       grille.appendChild(btn);
     });
@@ -3518,7 +3573,13 @@
           const correct = i === indexCorrect;
           btn.classList.add(correct ? 'correct' : 'incorrect');
           if (!correct) grille.children[indexCorrect].classList.add('correct');
-          validerTour(correct, btn);
+          // Les distracteurs sont voisins de la bonne valeur (±1 à ±3 cm) :
+          // on transmet les deux nombres pour que « Presque ! » ne sorte que
+          // sur un écart d'une unité — le marquage vert/rouge des options fait
+          // déjà office de correction, d'où `afficher: false`.
+          validerTour(correct, btn, correct ? null : {
+            afficher: false, nombres: [Number(opt), Number(optionsMelangees[indexCorrect])]
+          });
         });
         grille.appendChild(btn);
       });
@@ -4225,7 +4286,13 @@
         const correct = i === indexCorrect;
         btn.classList.add(correct ? 'correct' : 'incorrect');
         if (!correct) grille.children[indexCorrect].classList.add('correct');
-        validerTour(correct, btn);
+        // Les distracteurs sont voisins de la bonne valeur (±1 à ±3 cm) :
+        // on transmet les deux nombres pour que « Presque ! » ne sorte que
+        // sur un écart d'une unité — le marquage vert/rouge des options fait
+        // déjà office de correction, d'où `afficher: false`.
+        validerTour(correct, btn, correct ? null : {
+          afficher: false, nombres: [Number(opt), Number(optionsMelangees[indexCorrect])]
+        });
       });
       grille.appendChild(btn);
     });
