@@ -2879,8 +2879,10 @@
     '</svg>';
 
   /* Sous-exercice 3 « QCM d'unités » : illustration de l'animal + QCM
-     combinant VALEUR ET UNITÉ (jamais l'unité seule), distracteurs faux en
-     valeur OU en unité. Après validation (bonne ou mauvaise réponse), une
+     combinant VALEUR ET UNITÉ (jamais l'unité seule). Les quatre options
+     d'un item portent TOUJOURS la MÊME valeur et ne diffèrent que par
+     l'unité : la question porte sur l'ordre de grandeur, pas sur un calcul,
+     et l'enfant n'a donc qu'un seul critère à trancher. Après validation (bonne ou mauvaise réponse), une
      courte définition de l'animal est révélée. 5 items (correspond
      exactement aux 3 questions tirées sans redondance par partie, CHARTE
      §13 — bank à étoffer si de nouveaux items sont ajoutés plus tard),
@@ -2889,31 +2891,31 @@
     {
       id: 'paresseux', nom: 'Paresseux', svg: SVG_PARESSEUX,
       texte: "Quelle est la taille d'un paresseux ?",
-      bonne: '5 à 7 dm', options: ['5 à 7 dm', '5 à 7 cm', '5 à 7 m', '1 à 2 dm'],
+      bonne: '5 à 7 dm', options: ['5 à 7 dm', '5 à 7 mm', '5 à 7 cm', '5 à 7 m'],
       definition: "Le paresseux vit accroché aux branches et se déplace très lentement : il mesure environ 5 à 7 dm et pèse entre 4 et 8 kg."
     },
     {
       id: 'anaconda', nom: 'Anaconda vert', svg: SVG_ANACONDA,
       texte: "Quelle est la taille d'un anaconda vert ?",
-      bonne: '5 à 6 m', options: ['5 à 6 m', '5 à 6 dm', '5 à 6 km', '1 à 2 m'],
+      bonne: '5 à 6 m', options: ['5 à 6 m', '5 à 6 cm', '5 à 6 dm', '5 à 6 km'],
       definition: "L'anaconda vert est l'un des plus grands serpents du monde : il peut dépasser 5 à 6 m de long et peser plus de 100 kg."
     },
     {
       id: 'singe-ecureuil', nom: 'Singe écureuil', svg: SVG_SINGE_ECUREUIL,
       texte: "Quelle est la taille d'un singe écureuil (sans la queue) ?",
-      bonne: '25 à 35 cm', options: ['25 à 35 cm', '25 à 35 mm', '25 à 35 dm', '60 à 70 cm'],
+      bonne: '25 à 35 cm', options: ['25 à 35 cm', '25 à 35 mm', '25 à 35 dm', '25 à 35 m'],
       definition: "Le singe écureuil est un petit singe léger d'environ 25 à 35 cm, avec une longue queue touffue presque aussi longue que son corps."
     },
     {
       id: 'dauphin-rose', nom: 'Dauphin rose', svg: SVG_DAUPHIN_ROSE,
       texte: "Quelle est la taille d'un dauphin rose de l'Amazone ?",
-      bonne: '2 à 3 m', options: ['2 à 3 m', '2 à 3 dm', '20 à 30 m', '5 à 6 m'],
+      bonne: '2 à 3 m', options: ['2 à 3 m', '2 à 3 cm', '2 à 3 dm', '2 à 3 km'],
       definition: "Le dauphin rose de l'Amazone, aussi appelé boto, est le plus grand dauphin d'eau douce du monde : environ 2 à 3 m pour 100 à 150 kg."
     },
     {
       id: 'fourmi-amazone', nom: 'Fourmi amazone', svg: SVG_FOURMI_AMAZONE,
       texte: "Quelle est la taille d'une fourmi amazone ?",
-      bonne: '5 à 7 mm', options: ['5 à 7 mm', '5 à 7 cm', '5 à 7 dm', '1 à 2 mm'],
+      bonne: '5 à 7 mm', options: ['5 à 7 mm', '5 à 7 cm', '5 à 7 dm', '5 à 7 m'],
       definition: "La fourmi amazone a un thorax roux et de puissantes mandibules recourbées, comme deux petits sabres, pour un corps d'environ 5 à 7 mm."
     }
   ];
