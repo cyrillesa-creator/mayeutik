@@ -1416,6 +1416,11 @@
     else if (route === '#profils') vueProfils(conteneur);
     else if (route === '#modifier-profil') vueModifierProfil(conteneur);
     else vueAccueil(conteneur);
+    /* Chaque vue s'affiche positionnée tout en haut (CHARTE §17) : sans cela,
+       la nouvelle vue hériterait du défilement de la précédente. Instantané,
+       jamais « smooth » (un glissement animé pendant une transition est
+       parasite). Ne concerne QUE les changements de vue : le scrollIntoView
+       volontaire du bandeau de synthèse, lui, reste interne à une même vue. */
     window.scrollTo(0, 0);
   }
 
