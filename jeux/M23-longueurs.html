@@ -1158,9 +1158,9 @@
       { id: 'foncee', nom: 'foncée', hex: '#4E342E' }
     ] },
     { nom: 'cabane', genre: 'f', axe: 'distance', icone: '🛖', couleurs: [
-      { id: 'rouge', nom: 'rouge', hex: '#E5484D' },
-      { id: 'jaune', nom: 'jaune', hex: '#F5B700' },
-      { id: 'verte', nom: 'verte', hex: '#30A46C' }
+      { id: 'rouge', nom: 'rouge', expression: 'au toit rouge', hex: '#E5484D' },
+      { id: 'jaune', nom: 'jaune', expression: 'au toit jaune', hex: '#F5B700' },
+      { id: 'verte', nom: 'verte', expression: 'au toit vert', hex: '#30A46C' }
     ] },
     { nom: 'champignon', genre: 'm', axe: 'distance', icone: '🍄', couleurs: [
       { id: 'rouge', nom: 'rouge', hex: '#E5484D' },
@@ -1626,6 +1626,13 @@
      chemin ; « près »/« loin » sont invariables).
      ================================================================ */
 
+  // Ce qu'on ÉNONCE d'une couleur : par défaut la teinte seule (« rouge »),
+  // mais certaines familles précisent la partie colorée (« au toit vert »
+  // plutôt que « verte », qui laisserait croire que toute la cabane est verte).
+  function libelleCouleur(couleur) {
+    return couleur.expression || couleur.nom;
+  }
+
   function accorderMot(mot, genre) {
     if (mot === 'long') return genre === 'f' ? 'longue' : 'long';
     if (mot === 'court') return genre === 'f' ? 'courte' : 'court';
@@ -1653,7 +1660,7 @@
     const barre = document.createElement('span');
     barre.className = 'lisiere-barre'; barre.style.width = (valeur * 11) + 'px'; barre.style.background = couleur.hex;
     const label = document.createElement('span');
-    label.className = 'lisiere-nom'; label.textContent = couleur.nom;
+    label.className = 'lisiere-nom'; label.textContent = libelleCouleur(couleur);
     rangee.appendChild(pastille); rangee.appendChild(icone); rangee.appendChild(barre); rangee.appendChild(label);
     return rangee;
   }
@@ -1732,7 +1739,7 @@
       point.appendChild(pastille); point.appendChild(icone);
     }
     const label = document.createElement('span');
-    label.className = 'lisiere-nom'; label.textContent = couleur.nom;
+    label.className = 'lisiere-nom'; label.textContent = libelleCouleur(couleur);
     point.appendChild(label);
     return point;
   }
@@ -1750,9 +1757,9 @@
     const motBase = estLongueur ? (cibleEstGrande ? 'long' : 'court') : (cibleEstGrande ? 'loin' : 'près');
     const motCorrect = estLongueur ? accorderMot(motBase, gabarit.genre) : motBase;
 
-    const phrase = nommerAvecArticle(gabarit.nom, gabarit.genre, true) + ' ' + couleurCible.nom +
+    const phrase = nommerAvecArticle(gabarit.nom, gabarit.genre, true) + ' ' + libelleCouleur(couleurCible) +
       ' est plus _____ ' + (estLongueur ? '' : 'de la clairière ') + 'que ' +
-      nommerAvecArticle(gabarit.nom, gabarit.genre, false) + ' ' + couleurAutre.nom + '.';
+      nommerAvecArticle(gabarit.nom, gabarit.genre, false) + ' ' + libelleCouleur(couleurAutre) + '.';
     const phraseVoix = phrase.replace('_____', '…') + ' Quel mot manque ?';
 
     zone.appendChild(creerBlocConsigne(phrase, phraseVoix));
@@ -2541,10 +2548,10 @@
       : (cibleEstGrande ? 'long' : 'court');
     const motCorrect = accorderMot(motBase, gabarit.genre);
 
-    const phrase = nommerAvecArticle(gabarit.nom, gabarit.genre, true) + ' ' + couleurCible.nom + ' mesure ' + valeurCible + ' ' + gabarit.unite + ', ' +
-      nommerAvecArticle(gabarit.nom, gabarit.genre, false) + ' ' + couleurAutre.nom + ' mesure ' + valeurAutre + ' ' + gabarit.unite + '. ' +
-      nommerAvecArticle(gabarit.nom, gabarit.genre, true) + ' ' + couleurCible.nom + ' est plus _____ que ' +
-      nommerAvecArticle(gabarit.nom, gabarit.genre, false) + ' ' + couleurAutre.nom + '.';
+    const phrase = nommerAvecArticle(gabarit.nom, gabarit.genre, true) + ' ' + libelleCouleur(couleurCible) + ' mesure ' + valeurCible + ' ' + gabarit.unite + ', ' +
+      nommerAvecArticle(gabarit.nom, gabarit.genre, false) + ' ' + libelleCouleur(couleurAutre) + ' mesure ' + valeurAutre + ' ' + gabarit.unite + '. ' +
+      nommerAvecArticle(gabarit.nom, gabarit.genre, true) + ' ' + libelleCouleur(couleurCible) + ' est plus _____ que ' +
+      nommerAvecArticle(gabarit.nom, gabarit.genre, false) + ' ' + libelleCouleur(couleurAutre) + '.';
     const phraseVoix = phrase.replace('_____', '…') + ' Quel mot manque ?';
 
     zone.appendChild(creerBlocConsigne(phrase, phraseVoix));
@@ -2561,7 +2568,7 @@
       const barre = document.createElement('span');
       barre.className = 'foret-barre'; barre.style.width = (valeur * gabarit.pxParUnite + 20) + 'px'; barre.style.background = couleur.hex;
       const label = document.createElement('span');
-      label.className = 'foret-nom'; label.textContent = couleur.nom + ' (' + valeur + ' ' + gabarit.unite + ')';
+      label.className = 'foret-nom'; label.textContent = libelleCouleur(couleur) + ' (' + valeur + ' ' + gabarit.unite + ')';
       rangee.appendChild(pastille); rangee.appendChild(icone); rangee.appendChild(barre); rangee.appendChild(label);
       cont.appendChild(rangee);
     });
@@ -4188,7 +4195,7 @@
       grille.hidden = false;
       const question = document.createElement('p');
       question.className = 'legende';
-      question.textContent = 'Regarde les deux lignes : quelle clairière a le tour le plus '
+      question.textContent = 'Regarde les deux lignes : quelle clairière a le périmètre le plus '
         + (demanderPlusGrand ? 'grand' : 'petit') + ' ?';
       zone.insertBefore(question, grille);
       lireAVoixHaute(question.textContent);
@@ -4996,7 +5003,7 @@
     const total = cotes.reduce((a, b) => a + b, 0);
 
     zone.appendChild(creerBlocConsigne(
-      'Fais le tour de la parcelle : additionne les ' + nbCotes + ' côtés pour trouver le périmètre.',
+      'Fais le périmètre de la parcelle : additionne les ' + nbCotes + ' côtés.',
       'Cette parcelle a ' + nbCotes + ' côtés, et la longueur de chacun est écrite dessus. Additionne-les toutes : le résultat est le périmètre, en centimètres.'
     ));
     zone.appendChild(creerSceneArpentage(pts, cotes.map((c) => c + ' cm')));
