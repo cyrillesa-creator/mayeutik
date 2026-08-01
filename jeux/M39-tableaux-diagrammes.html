@@ -105,6 +105,13 @@
     .paquet-cadeau.paquet-cadeau-ouverture .paquet-cadeau-boite{ animation:none; opacity:0; transition:opacity .3s ease; }
   }
 
+  /* Correction affichée après une MAUVAISE réponse (CHARTE §18) : la réponse
+     donnée en rouge, la bonne en vert. Mêmes teintes que .feedback-succes /
+     .feedback-erreur, assombries pour rester lisibles sur blanc. */
+  .bloc-correction{ text-align:center; font-weight:700; font-size:.98rem; margin:.7rem 0 .2rem; }
+  .correction-donnee{ color:color-mix(in srgb, var(--couleur-corail) 70%, black 20%); }
+  .correction-attendue{ color:color-mix(in srgb, var(--couleur-menthe) 70%, black 20%); }
+
   #ecran-jeu{ max-width:640px; margin:0 auto; padding:.8rem 1rem 2.5rem; }
   .entete-jeu{ display:flex; align-items:center; gap:.6rem; margin-bottom:.8rem; }
   .bouton-retour{
@@ -216,6 +223,8 @@
   .tableau-double td.cellule-manquante input{
     width:3rem; min-height:2.2rem; border-radius:8px; border:2px solid var(--couleur-mandarine); text-align:center; font-family:inherit; font-size:1rem;
   }
+  .tableau-double td.cellule-manquante input.correct{ background:color-mix(in srgb, var(--couleur-menthe) 45%, white); border-color:var(--couleur-menthe); }
+  .tableau-double td.cellule-manquante input.incorrect{ background:color-mix(in srgb, var(--couleur-corail) 35%, white); border-color:var(--couleur-corail); }
   .pool-population{ display:flex; flex-wrap:wrap; gap:.4rem; justify-content:center; padding:.5rem; border-radius:14px;
     background:color-mix(in srgb, var(--couleur-fond) 100%, white); border:2px dashed color-mix(in srgb, var(--couleur-encre) 20%, white); margin-bottom:.7rem; min-height:3rem; }
   .bete-pool{
@@ -850,6 +859,27 @@
     }
   }
 
+  /* Correction après une MAUVAISE réponse (CHARTE §18) : ce que l'enfant a
+     répondu en rouge, ce qu'il fallait répondre en vert. N'est jamais appelée
+     sur une bonne réponse (elle brouillerait la récompense). */
+  function afficherCorrection(zone, donnee, attendue) {
+    const bloc = document.createElement('p');
+    bloc.className = 'bloc-correction';
+    if (donnee !== null && donnee !== undefined && donnee !== '') {
+      const d = document.createElement('span');
+      d.className = 'correction-donnee';
+      d.textContent = 'Ta réponse : ' + donnee;
+      bloc.appendChild(d);
+      bloc.appendChild(document.createTextNode(' — '));
+    }
+    const a = document.createElement('span');
+    a.className = 'correction-attendue';
+    a.textContent = 'La bonne réponse : ' + attendue;
+    bloc.appendChild(a);
+    zone.appendChild(bloc);
+    return bloc;
+  }
+
   function construireAccueil() {
     document.getElementById('sous-titre-accueil').textContent = donnees.sousTitre;
 
@@ -962,7 +992,9 @@
     remonterEnHaut();
   }
 
-  function validerTour(estCorrecte, boutonAValider) {
+  /* `correction` (facultatif) = { donnee, attendue } : affiché uniquement en cas
+     d'erreur, sous le message de feedback (CHARTE §18). */
+  function validerTour(estCorrecte, boutonAValider, correction) {
     if (etat.verrouille) return;
     etat.verrouille = true;
     if (boutonAValider) boutonAValider.disabled = true;
@@ -977,6 +1009,7 @@
       zoneFeedback.textContent = choisir(donnees.messagesFeedback.rate);
       zoneFeedback.className = 'feedback feedback-erreur';
       jouerSon('rate');
+      if (correction) afficherCorrection(zoneFeedback, correction.donnee, correction.attendue);
     }
     document.getElementById('bouton-suivant').hidden = false;
   }
@@ -1133,7 +1166,14 @@
       boutonValider.textContent = 'Valider mon diagramme';
       boutonValider.addEventListener('click', () => {
         const correct = especes.every((e) => valeursDiagramme[e.id] === comptesActuels[e.id]);
-        validerTour(correct, boutonValider);
+        if (!correct) {
+          // CHARTE §18 : on rappelle le décompte exact espèce par espèce.
+          const enTexte = (source) => especes.map((e) => e.emoji + ' ' + source[e.id]).join('  ');
+          validerTour(false, boutonValider,
+            { donnee: enTexte(valeursDiagramme), attendue: enTexte(comptesActuels) });
+        } else {
+          validerTour(true, boutonValider);
+        }
       });
       zone.appendChild(boutonValider);
     });
@@ -1221,7 +1261,18 @@
     boutonValider.disabled = true;
     boutonValider.addEventListener('click', () => {
       const correct = especes.every((e) => couleurs.every((c) => valeursActuelles[e.id][c.id] === valeursVraies[e.id][c.id]));
-      validerTour(correct, boutonValider);
+      if (!correct) {
+        // CHARTE §18 : on n'énumère que les cases fausses, avec leur bonne valeur.
+        const fautives = [];
+        especes.forEach((e) => couleurs.forEach((c) => {
+          if (valeursActuelles[e.id][c.id] !== valeursVraies[e.id][c.id]) {
+            fautives.push(e.emoji + ' ' + c.nom + ' : ' + valeursVraies[e.id][c.id]);
+          }
+        }));
+        validerTour(false, boutonValider, { donnee: null, attendue: fautives.join('  ·  ') });
+      } else {
+        validerTour(true, boutonValider);
+      }
     });
     zone.appendChild(boutonValider);
   }
@@ -1409,7 +1460,13 @@
     boutonValider.addEventListener('click', () => {
       const attendu = valeursVraies[especeCachee.id][trancheCachee.id];
       const saisie = parseInt(input.value, 10);
-      validerTour(saisie === attendu, boutonValider);
+      const correct = saisie === attendu;
+      // CHARTE §18 : la case saisie passe au vert ou au rouge et la valeur
+      // attendue est rappelée sous le feedback.
+      input.disabled = true;
+      input.classList.add(correct ? 'correct' : 'incorrect');
+      validerTour(correct, boutonValider, correct ? null
+        : { donnee: isNaN(saisie) ? '(vide)' : String(saisie), attendue: String(attendu) });
     });
     zone.appendChild(boutonValider);
   }
