@@ -506,7 +506,10 @@
   button, .cellule-interactive, .tick-interactive, .carte-comparaison,
   .slot-ordre, .etiquette-ordre { touch-action: manipulation; }
   .cellule-interactive.rempli { background: var(--couleur-soleil); }
-  .forme-bande-interactive.verrouille .cellule-interactive.rempli { background: var(--couleur-menthe); }
+  .forme-bande-interactive.verrouille-correct .cellule-interactive.rempli { background: var(--couleur-menthe); }
+  .forme-bande-interactive.verrouille-correct { border-color: var(--couleur-menthe); }
+  .forme-bande-interactive.verrouille-incorrect .cellule-interactive.rempli { background: var(--couleur-corail); }
+  .forme-bande-interactive.verrouille-incorrect { border-color: var(--couleur-corail); }
   /* Correction GRAPHIQUE du mini-jeu « Calculer » : même gabarit que la bande
      manipulée juste au-dessus, remplie en vert (couleur de la bonne réponse). */
   .bande-correction { margin: .4rem auto 0; max-width: 22rem; }
@@ -1769,7 +1772,11 @@
       if (etat.verrouille) return;
       const total = rempli.filter(Boolean).length;
       const estCorrecte = total === calc.resultat.n;
-      interactive.classList.add('verrouille');
+      // CHARTE §18 : la bande que l'enfant a construite prend la couleur de SA
+      // réponse — verte si elle est juste, rouge sinon. Elle ne doit jamais
+      // verdir sur une erreur : le vert est réservé à la bonne réponse, montrée
+      // séparément ci-dessous.
+      interactive.classList.add(estCorrecte ? 'verrouille-correct' : 'verrouille-incorrect');
       cellules.forEach((c) => (c.disabled = true));
       boutonValider.disabled = true;
       boutonValider.hidden = true;
