@@ -1266,6 +1266,19 @@
     return carte;
   }
 
+  /* Remonte en haut à chaque changement d'écran (CHARTE §17) : sans cela, le
+     nouvel écran hérite du défilement de l'écran précédent — l'enfant qui
+     vient de valider en bas de page se retrouverait au milieu de la manche
+     suivante. Repositionnement instantané (jamais « smooth » : un glissement
+     animé pendant une transition est parasite). */
+  function remonterEnHaut() {
+    try {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    } catch (e) {
+      window.scrollTo(0, 0); // navigateurs sans l'API à options
+    }
+  }
+
   function construireAccueil() {
     // Sous-titre : par défaut celui du module, mais un palier peut définir le
     // sien (ex. CP : univers « Le Bois », volontairement distinct de « La
@@ -1347,6 +1360,7 @@
     document.getElementById('ecran-jeu').hidden = true;
     document.getElementById('ecran-accueil').hidden = false;
     construireAccueil();
+    remonterEnHaut();
   }
 
   function demarrerJeu(miniJeuId) {
@@ -1362,6 +1376,7 @@
     document.getElementById('ecran-jeu').hidden = false;
     document.getElementById('titre-jeu-courant').textContent = trouve.cfg.titre;
     tourSuivant();
+    remonterEnHaut();
   }
 
   function majProgression() {
@@ -1388,6 +1403,7 @@
     else if (type === 'exploration-ce2') genererExplorationCE2(zone, etat.cfg);
     else if (type === 'perimetre') genererPerimetre(zone, etat.cfg);
     else if (type === 'perimetre-calcul') genererArpentage(zone, etat.cfg);
+    remonterEnHaut();
   }
 
   function validerTour(estCorrecte, boutonAValider) {
@@ -1456,6 +1472,7 @@
     zone.appendChild(bloc);
 
     if (etoilesGagnees === 3) lancerConfettis();
+    remonterEnHaut();
   }
 
   /* ================================================================
