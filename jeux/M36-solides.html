@@ -858,6 +858,15 @@ const $ = id => document.getElementById(id);
 const ecrans = {home:$("home"), discover:$("discover"), game:$("game"), end:$("end")};
 let file = [], pos = 0, score = 0, modeCourant = null, demarreLe = 0;
 
+/* Remonte en haut à chaque changement d'écran (CHARTE §17) : sans cela, le
+   nouvel écran hérite du défilement de l'écran précédent. Repositionnement
+   instantané (jamais « smooth » : un glissement animé pendant une transition
+   est parasite). */
+function remonterEnHaut(){
+  try { window.scrollTo({ top: 0, left: 0, behavior: "auto" }); }
+  catch(e){ window.scrollTo(0, 0); } // navigateurs sans l'API à options
+}
+
 function montreEcran(nom){
   Object.values(ecrans).forEach(e => e.hidden = true);
   ecrans[nom].hidden = false;
@@ -867,6 +876,7 @@ function montreEcran(nom){
   const slot = nom==="discover" ? $("viewportSlot1") : nom==="game" ? $("viewportSlot2") : null;
   if(slot){ slot.appendChild(viewport); viewport.style.display="block"; requestAnimationFrame(resize); }
   else viewport.style.display = "none";
+  remonterEnHaut();
 }
 
 $("btnBack").addEventListener("click", () => { stopSequence(); tapHandler=null; document.querySelectorAll(".patronTmp").forEach(el=>el.remove()); montreEcran("home"); majEtoilesHome(); });
