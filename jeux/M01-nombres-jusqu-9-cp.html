@@ -137,6 +137,13 @@
   .bloc-resultats .score-texte{ font-size:1.1rem; font-weight:500; margin-bottom:1rem; }
   .boutons-resultats{ display:flex; justify-content:center; gap:.7rem; flex-wrap:wrap; margin-top:.6rem; }
 
+  /* Correction affichée après une MAUVAISE réponse (CHARTE §18) : la réponse
+     donnée en rouge, la bonne en vert. Mêmes teintes que .feedback-succes /
+     .feedback-erreur, assombries pour rester lisibles sur blanc. */
+  .bloc-correction{ text-align:center; font-weight:700; font-size:.98rem; margin:.7rem 0 .2rem; }
+  .correction-donnee{ color:color-mix(in srgb, var(--couleur-corail) 70%, black 20%); }
+  .correction-attendue{ color:color-mix(in srgb, var(--couleur-menthe) 70%, black 20%); }
+
   /* jardin — dénombrer */
   .zone-jardin{
     position:relative; height:11rem; border-radius:20px;
@@ -185,6 +192,10 @@
   .carte-etiquetage.liee, .etiquette-nombre.liee{
     border-color: var(--couleur-lien); background: color-mix(in srgb, var(--couleur-lien) 22%, white);
   }
+  .contenant-correct{ outline:3px solid var(--couleur-menthe); outline-offset:3px; border-radius:14px;
+    background:color-mix(in srgb, var(--couleur-menthe) 18%, transparent); }
+  .contenant-incorrect{ outline:3px solid var(--couleur-corail); outline-offset:3px; border-radius:14px;
+    background:color-mix(in srgb, var(--couleur-corail) 16%, transparent); }
   .carte-etiquetage.appariee, .etiquette-nombre.appariee{
     border-color:var(--couleur-menthe); border-width:4px; box-shadow:0 0 0 3px color-mix(in srgb, var(--couleur-menthe) 30%, transparent);
   }
@@ -656,6 +667,27 @@
     }
   }
 
+  /* Correction après une MAUVAISE réponse (CHARTE §18) : ce que l'enfant a
+     répondu en rouge, ce qu'il fallait répondre en vert. N'est jamais appelée
+     sur une bonne réponse (elle brouillerait la récompense). */
+  function afficherCorrection(zone, donnee, attendue) {
+    const bloc = document.createElement('p');
+    bloc.className = 'bloc-correction';
+    if (donnee !== null && donnee !== undefined && donnee !== '') {
+      const d = document.createElement('span');
+      d.className = 'correction-donnee';
+      d.textContent = 'Ta réponse : ' + donnee;
+      bloc.appendChild(d);
+      bloc.appendChild(document.createTextNode(' — '));
+    }
+    const a = document.createElement('span');
+    a.className = 'correction-attendue';
+    a.textContent = 'La bonne réponse : ' + attendue;
+    bloc.appendChild(a);
+    zone.appendChild(bloc);
+    return bloc;
+  }
+
   function construireAccueil() {
     document.getElementById('sous-titre-accueil').textContent = donnees.sousTitre;
     const grille = document.getElementById('grille-jeux');
@@ -733,7 +765,9 @@
     remonterEnHaut();
   }
 
-  function validerReponse(estCorrecte) {
+  /* `correction` (facultatif) = { donnee, attendue } : affiché uniquement en cas
+     d'erreur, sous le message de feedback (CHARTE §18). */
+  function validerReponse(estCorrecte, correction) {
     if (etat.verrouille) return;
     etat.verrouille = true;
     const zoneFeedback = document.getElementById('zone-feedback');
@@ -747,6 +781,7 @@
       zoneFeedback.textContent = choisir(donnees.messagesFeedback.rate);
       zoneFeedback.className = 'feedback feedback-erreur';
       jouerSon('rate');
+      if (correction) afficherCorrection(zoneFeedback, correction.donnee, correction.attendue);
     }
     document.getElementById('bouton-suivant').hidden = false;
   }
@@ -1059,6 +1094,24 @@
       });
       boutonValider.disabled = true;
       boutonValider.hidden = true;
+      if (!tousCorrects) {
+        // CHARTE §18 : après avoir montré en rouge les liens faux, on refait
+        // sous ses yeux le bon appariement, entièrement en vert.
+        setTimeout(() => {
+          if (!zoneMatch.isConnected) return; // manche déjà quittée
+          const libres = Object.keys(droites);
+          Object.keys(gauches).forEach((gid) => {
+            const k = libres.findIndex((did) => droites[did].n === gauches[gid].n);
+            if (k === -1) return;
+            connecter(gid, libres.splice(k, 1)[0]);
+          });
+          Object.values(gauches).concat(Object.values(droites)).forEach((e) => {
+            e.btn.classList.remove('non-appariee');
+            e.btn.classList.add('appariee');
+          });
+          boutonValider.hidden = true; // connecter() rappelle majBoutonValider()
+        }, 900);
+      }
       validerReponse(tousCorrects);
     });
     zone.appendChild(boutonValider);
@@ -1209,7 +1262,11 @@
       Array.from(grilleCible.children).forEach((b) => { b.style.pointerEvents = 'none'; });
       boutonValider.disabled = true;
       boutonValider.hidden = true;
-      validerReponse(estCorrecte);
+      // CHARTE §18 : le contenant vire au vert ou au rouge, et le bon nombre
+      // est rappelé sous le feedback.
+      contenantCible.classList.add(estCorrecte ? 'contenant-correct' : 'contenant-incorrect');
+      validerReponse(estCorrecte, estCorrecte ? null
+        : { donnee: place + (place > 1 ? ' bêtes' : ' bête'), attendue: n + (n > 1 ? ' bêtes' : ' bête') });
     });
     zone.appendChild(boutonValider);
   }
@@ -1320,7 +1377,11 @@
       Array.from(collCible.children).forEach((el) => (el.disabled = true));
       boutonValider.disabled = true;
       boutonValider.hidden = true;
-      validerReponse(estCorrecte);
+      // CHARTE §18 : la collection construite vire au vert ou au rouge, et le
+      // nombre attendu est rappelé sous le feedback.
+      collCible.classList.add(estCorrecte ? 'contenant-correct' : 'contenant-incorrect');
+      validerReponse(estCorrecte, estCorrecte ? null
+        : { donnee: compte + (compte > 1 ? ' bêtes' : ' bête'), attendue: cible + (cible > 1 ? ' bêtes' : ' bête') });
     });
     zone.appendChild(boutonValider);
   }
