@@ -127,6 +127,13 @@
   .touche-valider{ background:var(--couleur-menthe); color:#ffffff; box-shadow:0 3px 0 color-mix(in srgb, var(--couleur-menthe) 60%, black 10%); }
   .touche-effacer{ background:var(--couleur-corail); color:#ffffff; box-shadow:0 3px 0 color-mix(in srgb, var(--couleur-corail) 60%, black 10%); }
 
+  /* Correction affichée après une MAUVAISE réponse (CHARTE §18) : la réponse
+     donnée en rouge, la bonne en vert. Mêmes teintes que .feedback-succes /
+     .feedback-erreur, assombries pour rester lisibles sur blanc. */
+  .bloc-correction{ text-align:center; font-weight:700; font-size:.98rem; margin:.7rem 0 .2rem; }
+  .correction-donnee{ color:color-mix(in srgb, var(--couleur-corail) 70%, black 20%); }
+  .correction-attendue{ color:color-mix(in srgb, var(--couleur-menthe) 70%, black 20%); }
+
   #ecran-jeu{ max-width:640px; margin:0 auto; padding:.8rem 1rem 2.5rem; }
   .entete-jeu{ display:flex; align-items:center; gap:.6rem; margin-bottom:.8rem; }
   .bouton-retour{
@@ -274,6 +281,8 @@
   .comparaison-report{ display:flex; justify-content:center; align-items:flex-end;
     gap:clamp(.5rem, 3vw, 1.8rem); margin:1rem 0; min-height:9.5rem;
     overflow-x:auto; padding:0 .1rem; }
+  .arbre-col.correct, .brindille-btn.correct, .clairiere-btn.correct{ outline:3px solid var(--couleur-menthe); outline-offset:2px; border-radius:12px; background:color-mix(in srgb, var(--couleur-menthe) 25%, transparent); }
+  .arbre-col.incorrect, .brindille-btn.incorrect, .clairiere-btn.incorrect{ outline:3px solid var(--couleur-corail); outline-offset:2px; border-radius:12px; background:color-mix(in srgb, var(--couleur-corail) 22%, transparent); }
   .arbre-col{ border:none; background:transparent; display:flex; flex-direction:column; align-items:center; gap:.15rem;
     min-width:52px; flex:0 0 auto; min-height:44px; }
   .balade-arbre{ display:flex; flex-direction:column; align-items:center; }
@@ -391,6 +400,8 @@
   .bande-batons{ display:flex; flex-direction:column; gap:.55rem; margin:1rem 0; }
   .baton-case{ position:relative; display:flex; align-items:center; padding:.3rem .4rem; border-radius:12px; }
   .baton-case.case-selectionnee{ background:color-mix(in srgb, var(--couleur-soleil) 40%, transparent); }
+  .baton-case.correct{ background:color-mix(in srgb, var(--couleur-menthe) 30%, transparent); }
+  .baton-case.incorrect{ background:color-mix(in srgb, var(--couleur-corail) 26%, transparent); }
   .baton-btn{ position:relative; border:none; background:transparent; padding:.2rem; min-height:44px;
     display:flex; align-items:center; touch-action:none; cursor:grab; }
   .baton-btn.baton-glisse{ z-index:5; cursor:grabbing; }
@@ -460,6 +471,8 @@
   .bande-arbres{ display:flex; justify-content:center; align-items:flex-end; gap:.9rem; margin:1rem 0; min-height:12.5rem; overflow-x:auto; }
   .arbre-col-case{ position:relative; display:flex; align-items:flex-end; padding:.3rem .2rem; border-radius:12px; }
   .arbre-col-case.case-selectionnee{ background:color-mix(in srgb, var(--couleur-soleil) 40%, transparent); }
+  .arbre-col-case.correct{ background:color-mix(in srgb, var(--couleur-menthe) 30%, transparent); }
+  .arbre-col-case.incorrect{ background:color-mix(in srgb, var(--couleur-corail) 26%, transparent); }
   .arbre-col-btn{ position:relative; border:none; background:transparent; padding:.2rem; min-height:44px; min-width:44px;
     display:flex; align-items:flex-end; justify-content:center; touch-action:none; cursor:grab; }
   .arbre-col-btn.arbre-col-glisse{ z-index:5; cursor:grabbing; }
@@ -476,6 +489,8 @@
   .decouverte-rangee{ display:flex; justify-content:center; gap:.9rem; flex-wrap:wrap; }
   .decouverte-colonne{ display:flex; flex-direction:column; align-items:center; gap:.4rem; min-width:5.2rem; }
   .decouverte-entete{ font-weight:700; font-size:1rem; color:color-mix(in srgb, var(--couleur-encre) 85%, white); }
+  .decouverte-depot.correct{ border-style:solid; border-color:var(--couleur-menthe); background:color-mix(in srgb, var(--couleur-menthe) 25%, transparent); }
+  .decouverte-depot.incorrect{ border-style:solid; border-color:var(--couleur-corail); background:color-mix(in srgb, var(--couleur-corail) 22%, transparent); }
   .decouverte-depot{ min-height:6.8rem; width:5.2rem; border-radius:14px; border:2.5px dashed color-mix(in srgb, var(--couleur-encre) 25%, white);
     background:color-mix(in srgb, var(--couleur-menthe) 8%, white); display:flex; align-items:center; justify-content:center; }
   /* Bloc SOLIDAIRE nombre + image + nom : les 3 éléments empilés forment
@@ -500,6 +515,8 @@
   .rangerunites-colonne{ flex:1; min-width:0; display:flex; flex-direction:column; gap:.6rem; }
   .rangerunites-colonne-titre{ text-align:center; font-size:.78rem; font-weight:600; opacity:.7; margin:0 0 .1rem; }
   .rangerunites-colonne-pioche{ display:flex; flex-direction:column; gap:.6rem; align-items:center; }
+  .rangerunites-slot.correct{ border-style:solid; border-color:var(--couleur-menthe); background:color-mix(in srgb, var(--couleur-menthe) 25%, transparent); }
+  .rangerunites-slot.incorrect{ border-style:solid; border-color:var(--couleur-corail); background:color-mix(in srgb, var(--couleur-corail) 22%, transparent); }
   .rangerunites-slot{ min-height:3.8rem; border-radius:14px; border:2.5px dashed color-mix(in srgb, var(--couleur-encre) 25%, white);
     background:color-mix(in srgb, var(--couleur-menthe) 8%, white); display:flex; align-items:center; justify-content:center; }
   /* Largeur FIXE (pas en %) : la taille de l'étiquette ne doit pas changer
@@ -578,6 +595,8 @@
   .saisie-decomposition{ display:flex; gap:.7rem; justify-content:center; margin:.9rem 0; flex-wrap:wrap; }
   .champ-decomposition{ display:flex; flex-direction:column; align-items:center; gap:.3rem; font-size:.82rem; font-weight:700; }
   .champ-decomposition input{ width:4.4rem; min-height:2.6rem; border-radius:10px; border:2px solid var(--couleur-mandarine); text-align:center; font-family:inherit; font-size:1.05rem; }
+  .champ-decomposition input.correct{ background:color-mix(in srgb, var(--couleur-menthe) 45%, white); border-color:var(--couleur-menthe); }
+  .champ-decomposition input.incorrect{ background:color-mix(in srgb, var(--couleur-corail) 35%, white); border-color:var(--couleur-corail); }
 
   /* confettis */
   #confettis-conteneur{ position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:999; }
@@ -1279,6 +1298,77 @@
     }
   }
 
+  /* Correction après une MAUVAISE réponse (CHARTE §18) : ce que l'enfant a
+     répondu en rouge, ce qu'il fallait répondre en vert. N'est jamais appelée
+     sur une bonne réponse (elle brouillerait la récompense). */
+  function afficherCorrection(zone, donnee, attendue) {
+    const bloc = document.createElement('p');
+    bloc.className = 'bloc-correction';
+    if (donnee !== null && donnee !== undefined && donnee !== '') {
+      const d = document.createElement('span');
+      d.className = 'correction-donnee';
+      d.textContent = 'Ta réponse : ' + donnee;
+      bloc.appendChild(d);
+      bloc.appendChild(document.createTextNode(' — '));
+    }
+    const a = document.createElement('span');
+    a.className = 'correction-attendue';
+    a.textContent = 'La bonne réponse : ' + attendue;
+    bloc.appendChild(a);
+    zone.appendChild(bloc);
+    return bloc;
+  }
+
+  /* Révélation du bon rangement après une erreur de tri (CHARTE §18) : on
+     marque d'abord en rouge les places occupées par le mauvais élément (et en
+     vert celles déjà bonnes), puis la bande se remet d'elle-même dans l'ordre
+     attendu, tout en vert — l'enfant voit à la fois SON erreur et la réponse.
+     `ordre` est muté en place : c'est le modèle que `rendreCase` relit. */
+  function revelerRangement(cases, ordre, attendu, rendreCase) {
+    cases.forEach((caseDiv, i) => {
+      caseDiv.classList.remove('case-selectionnee');
+      caseDiv.classList.add(ordre[i] === attendu[i] ? 'correct' : 'incorrect');
+    });
+    setTimeout(() => {
+      if (!cases[0] || !cases[0].isConnected) return; // manche déjà quittée
+      attendu.forEach((v, i) => { ordre[i] = v; });
+      cases.forEach((caseDiv, i) => {
+        rendreCase(i);
+        caseDiv.classList.remove('incorrect');
+        caseDiv.classList.add('correct');
+      });
+    }, 900);
+  }
+
+  /* Révélation de la bonne répartition d'un glisser-déposer (CHARTE §18) :
+     chaque emplacement passe au vert s'il contenait déjà le bon élément, au
+     rouge sinon ; après une pause, l'élément attendu vient de lui-même s'y
+     placer et tout passe au vert. `depots` = [{ el, attendu }], `elements` =
+     la liste complète des étiquettes/vignettes (attribut data-unite). */
+  function revelerDepots(depots, elements) {
+    depots.forEach(({ el, attendu }) => {
+      const present = el.firstElementChild;
+      el.classList.add(present && present.dataset.unite === attendu ? 'correct' : 'incorrect');
+    });
+    setTimeout(() => {
+      if (!depots[0] || !depots[0].el.isConnected) return; // manche déjà quittée
+      depots.forEach(({ el, attendu }) => {
+        const bon = elements.find((e) => e.dataset.unite === attendu);
+        if (bon && bon.parentElement !== el) el.appendChild(bon); // appendChild déplace
+        el.classList.remove('incorrect');
+        el.classList.add('correct');
+      });
+    }, 900);
+  }
+
+  /* Marquage d'un choix parmi des vignettes illustrées (arbres, brindilles,
+     clairières) : vert sur la bonne, rouge sur celle qui a été touchée à tort
+     (CHARTE §18). Sur une bonne réponse, seule la vignette choisie verdit. */
+  function marquerChoix(boutons, choisi, correct, attendu) {
+    choisi.classList.add(correct ? 'correct' : 'incorrect');
+    if (!correct && attendu && attendu !== choisi) attendu.classList.add('correct');
+  }
+
   function construireAccueil() {
     // Sous-titre : par défaut celui du module, mais un palier peut définir le
     // sien (ex. CP : univers « Le Bois », volontairement distinct de « La
@@ -1406,7 +1496,9 @@
     remonterEnHaut();
   }
 
-  function validerTour(estCorrecte, boutonAValider) {
+  /* `correction` (facultatif) = { donnee, attendue } : affiché uniquement en cas
+     d'erreur, sous le message de feedback (CHARTE §18). */
+  function validerTour(estCorrecte, boutonAValider, correction) {
     if (etat.verrouille) return;
     etat.verrouille = true;
     if (boutonAValider) boutonAValider.disabled = true;
@@ -1421,6 +1513,7 @@
       zoneFeedback.textContent = choisir(donnees.messagesFeedback.rate);
       zoneFeedback.className = 'feedback feedback-erreur';
       jouerSon('rate');
+      if (correction) afficherCorrection(zoneFeedback, correction.donnee, correction.attendue);
     }
     document.getElementById('bouton-suivant').hidden = false;
   }
@@ -1787,6 +1880,7 @@
     if (gabarit.axe === 'hauteur') {
       const cont = document.createElement('div');
       cont.className = 'comparaison-report';
+      const boutons = [];
       valeurs.forEach((hauteur, i) => {
         const col = document.createElement('button');
         col.type = 'button'; col.className = 'arbre-col';
@@ -1794,14 +1888,18 @@
         col.setAttribute('aria-label', 'Arbre ' + (i + 1));
         col.addEventListener('click', () => {
           Array.from(cont.querySelectorAll('.arbre-col')).forEach((b) => { b.disabled = true; });
-          validerTour(hauteur === cible, col);
+          const correct = hauteur === cible;
+          marquerChoix(boutons, col, correct, boutons[valeurs.indexOf(cible)]);
+          validerTour(correct, col);
         });
+        boutons.push(col);
         cont.appendChild(col);
       });
       zone.appendChild(cont);
     } else if (gabarit.axe === 'longueur') {
       const cont = document.createElement('div');
       cont.className = 'comparaison-objets';
+      const boutons = [];
       valeurs.forEach((longueur, i) => {
         const rangee = document.createElement('div'); rangee.className = 'rangee-brindille';
         const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'brindille-btn';
@@ -1809,8 +1907,11 @@
         btn.setAttribute('aria-label', 'Élément ' + (i + 1));
         btn.addEventListener('click', () => {
           Array.from(cont.querySelectorAll('.brindille-btn')).forEach((b) => { b.disabled = true; });
-          validerTour(longueur === cible, btn);
+          const correct = longueur === cible;
+          marquerChoix(boutons, btn, correct, boutons[valeurs.indexOf(cible)]);
+          validerTour(correct, btn);
         });
+        boutons.push(btn);
         rangee.appendChild(btn);
         cont.appendChild(rangee);
       });
@@ -1827,6 +1928,7 @@
       // ci-dessus : convertir en % de la largeur RÉELLE de la piste (plutôt
       // qu'en px fixes) évite tout débordement du cadre blanc sur mobile.
       const DISTANCE_MAX_BALADE = 20;
+      const boutons = [];
       valeurs.forEach((distance, i) => {
         const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'clairiere-btn';
         btn.style.left = 'min(' + (distance / DISTANCE_MAX_BALADE * 100) + '%, calc(100% - 56px))';
@@ -1834,8 +1936,11 @@
         btn.setAttribute('aria-label', 'Élément ' + (i + 1));
         btn.addEventListener('click', () => {
           Array.from(piste.querySelectorAll('.clairiere-btn')).forEach((b) => { b.disabled = true; });
-          validerTour(distance === cible, btn);
+          const correct = distance === cible;
+          marquerChoix(boutons, btn, correct, boutons[valeurs.indexOf(cible)]);
+          validerTour(correct, btn);
         });
+        boutons.push(btn);
         piste.appendChild(btn);
       });
       sentier.appendChild(piste);
@@ -2023,7 +2128,12 @@
     const boutonValider = document.createElement('button');
     boutonValider.type = 'button'; boutonValider.className = 'bouton-principal'; boutonValider.textContent = 'Valider';
     boutonValider.addEventListener('click', () => {
-      validerTour(estTrie(ordre), boutonValider);
+      const correct = estTrie(ordre);
+      if (!correct) {
+        const attendu = ordre.slice().sort((a, b) => (croissant ? a - b : b - a));
+        revelerRangement(cases, ordre, attendu, rendreCase);
+      }
+      validerTour(correct, boutonValider);
     });
     zone.appendChild(boutonValider);
   }
@@ -2300,22 +2410,22 @@
   // nombre total, saisi au pavé numérique diégétique (jamais de champ brut).
   function genererConversionCE1(zone) {
     if (!etat.conversionVues) etat.conversionVues = [];
-    let texte, reponse;
+    let texte, reponse, uniteReponse;
     for (let essai = 0; essai < 20; essai++) {
       const type = choisir(['m-cm-somme', 'km-m', 'm-cm-simple']);
       if (type === 'm-cm-somme') {
         const m = nombreAleatoire(1, 3);
         const cm = nombreAleatoire(1, 90);
         texte = m + ' m + ' + cm + ' cm = combien de cm en tout ?';
-        reponse = m * 100 + cm;
+        reponse = m * 100 + cm; uniteReponse = 'cm';
       } else if (type === 'km-m') {
         const km = nombreAleatoire(1, 5);
         texte = km + ' km = combien de m ?';
-        reponse = km * 1000;
+        reponse = km * 1000; uniteReponse = 'm';
       } else {
         const m = nombreAleatoire(1, 9);
         texte = m + ' m = combien de cm ?';
-        reponse = m * 100;
+        reponse = m * 100; uniteReponse = 'cm';
       }
       if (etat.conversionVues.indexOf(texte) === -1) break;
     }
@@ -2327,7 +2437,7 @@
     }));
     const pave = creerPave((valeur) => {
       pave.verrouiller(true);
-      validerTour(valeur === reponse, null);
+      validerTour(valeur === reponse, null, { donnee: valeur + ' ' + uniteReponse, attendue: reponse + ' ' + uniteReponse });
     }, 4); // km-m peut atteindre 5000
     zone.appendChild(pave.el);
   }
@@ -2577,7 +2687,12 @@
     const boutonValider = document.createElement('button');
     boutonValider.type = 'button'; boutonValider.className = 'bouton-principal'; boutonValider.textContent = 'Valider';
     boutonValider.addEventListener('click', () => {
-      validerTour(estTrie(ordre), boutonValider);
+      const correct = estTrie(ordre);
+      if (!correct) {
+        const attendu = ordre.slice().sort((a, b) => (croissant ? a - b : b - a));
+        revelerRangement(cases, ordre, attendu, rendreCase);
+      }
+      validerTour(correct, boutonValider);
     });
     zone.appendChild(boutonValider);
   }
@@ -2686,7 +2801,10 @@
     boutonValider.type = 'button'; boutonValider.className = 'bouton-principal'; boutonValider.textContent = 'Valider';
     boutonValider.disabled = true;
     boutonValider.addEventListener('click', () => {
-      validerTour(zoneSelectionnee === indexBas, boutonValider);
+      const correct = zoneSelectionnee === indexBas;
+      const enTexte = (i) => 'entre ' + i + ' et ' + (i + 1) + ' cm';
+      validerTour(correct, boutonValider, correct ? null
+        : { donnee: enTexte(zoneSelectionnee), attendue: enTexte(indexBas) });
     });
 
     function majNote() {
@@ -3105,6 +3223,12 @@
         const etiquette = s.firstElementChild;
         return etiquette && etiquette.dataset.unite === ORDRE_UNITES_CE2[i];
       });
+      if (!correct) {
+        revelerDepots(
+          slots.map((el, i) => ({ el, attendu: ORDRE_UNITES_CE2[i] })),
+          Array.from(zone.querySelectorAll('.unite-etiquette'))
+        );
+      }
       validerTour(correct, boutonValider);
     });
     zone.appendChild(boutonValider);
@@ -3230,6 +3354,12 @@
         const v = depot.firstElementChild;
         return v && v.dataset.unite === u;
       });
+      if (!correct) {
+        revelerDepots(
+          Object.entries(colonnes).map(([u, el]) => ({ el, attendu: u })),
+          Array.from(zone.querySelectorAll('.decouverte-vignette'))
+        );
+      }
       validerTour(correct, boutonValider);
     });
     zone.appendChild(boutonValider);
@@ -3274,7 +3404,7 @@
         texte = cm + ' cm + ' + mm + ' mm = combien de mm en tout ?';
         texteVoix = texte;
         construire = () => {
-          const pave = creerPave((valeur) => { pave.verrouiller(true); validerTour(valeur === reponse, null); }, 3);
+          const pave = creerPave((valeur) => { pave.verrouiller(true); validerTour(valeur === reponse, null, { donnee: valeur + ' mm', attendue: reponse + ' mm' }); }, 3);
           zone.appendChild(pave.el);
         };
       } else if (type === 'cm-mm-simple') {
@@ -3283,7 +3413,7 @@
         texte = cm + ' cm = combien de mm ?';
         texteVoix = texte;
         construire = () => {
-          const pave = creerPave((valeur) => { pave.verrouiller(true); validerTour(valeur === reponse, null); }, 3);
+          const pave = creerPave((valeur) => { pave.verrouiller(true); validerTour(valeur === reponse, null, { donnee: valeur + ' mm', attendue: reponse + ' mm' }); }, 3);
           zone.appendChild(pave.el);
         };
       } else if (type === 'cm-vers-mdc') {
@@ -3300,7 +3430,7 @@
         texte = m + ' m = combien de cm ?';
         texteVoix = texte;
         construire = () => {
-          const pave = creerPave((valeur) => { pave.verrouiller(true); validerTour(valeur === reponse, null); }, 4);
+          const pave = creerPave((valeur) => { pave.verrouiller(true); validerTour(valeur === reponse, null, { donnee: valeur + ' cm', attendue: reponse + ' cm' }); }, 4);
           zone.appendChild(pave.el);
         };
       } else if (type === 'km-vers-m') {
@@ -3309,7 +3439,7 @@
         texte = km + ' km = combien de m ?';
         texteVoix = texte;
         construire = () => {
-          const pave = creerPave((valeur) => { pave.verrouiller(true); validerTour(valeur === reponse, null); }, 5);
+          const pave = creerPave((valeur) => { pave.verrouiller(true); validerTour(valeur === reponse, null, { donnee: valeur + ' m', attendue: reponse + ' m' }); }, 5);
           zone.appendChild(pave.el);
         };
       } else {
@@ -3319,7 +3449,7 @@
         texte = km + ' km + ' + m + ' m = combien de m en tout ?';
         texteVoix = texte;
         construire = () => {
-          const pave = creerPave((valeur) => { pave.verrouiller(true); validerTour(valeur === reponse, null); }, 5);
+          const pave = creerPave((valeur) => { pave.verrouiller(true); validerTour(valeur === reponse, null, { donnee: valeur + ' m', attendue: reponse + ' m' }); }, 5);
           zone.appendChild(pave.el);
         };
       }
@@ -3360,7 +3490,7 @@
 
     if (demanderMm) {
       const reponse = longueurCm * 10;
-      const pave = creerPave((valeur) => { pave.verrouiller(true); validerTour(valeur === reponse, null); }, 3);
+      const pave = creerPave((valeur) => { pave.verrouiller(true); validerTour(valeur === reponse, null, { donnee: valeur + ' mm', attendue: reponse + ' mm' }); }, 3);
       zone.appendChild(pave.el);
     } else {
       const distracteurs = new Set([longueurCm]);
@@ -3411,7 +3541,14 @@
     boutonValider.addEventListener('click', () => {
       const saisies = champs.map((c) => parseInt(c.value, 10));
       const correct = saisies.every((v, i) => v === reponses[i]);
-      validerTour(correct, boutonValider);
+      // CHARTE §18 : chaque champ passe au vert ou au rouge, et la
+      // décomposition attendue est rappelée en toutes lettres.
+      champs.forEach((champ, i) => {
+        champ.disabled = true;
+        champ.classList.add(saisies[i] === reponses[i] ? 'correct' : 'incorrect');
+      });
+      const enTexte = (vals) => vals.map((v, i) => (isNaN(v) ? '?' : v) + ' ' + unites[i]).join(' + ');
+      validerTour(correct, boutonValider, correct ? null : { donnee: enTexte(saisies), attendue: enTexte(reponses) });
     });
     zone.appendChild(boutonValider);
   }
@@ -4465,7 +4602,7 @@
           zoneAstuce.appendChild(legendeTotal);
           // Saisie au pavé numérique diégétique, comme les conversions du
           // mini-jeu 2 (série CE2) — total à 2 chiffres au maximum.
-          const pave = creerPave((valeur) => { pave.verrouiller(true); validerTour(valeur === total, null); }, 2);
+          const pave = creerPave((valeur) => { pave.verrouiller(true); validerTour(valeur === total, null, { donnee: valeur + ' cm', attendue: total + ' cm' }); }, 2);
           zoneAstuce.appendChild(pave.el);
         });
         grille.appendChild(btn);
@@ -4681,7 +4818,7 @@
     zone.appendChild(legende);
     const pave = creerPave((valeur) => {
       pave.verrouiller(true);
-      validerTour(valeur === reponse, null);
+      validerTour(valeur === reponse, null, { donnee: valeur + ' cm', attendue: reponse + ' cm' });
     }, 3);
     zone.appendChild(pave.el);
   }
