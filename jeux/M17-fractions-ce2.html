@@ -263,20 +263,25 @@
 
   /* Droite graduée */
 
+  /* La droite ne défile JAMAIS horizontalement : un enfant qui doit faire
+     glisser la page pour voir « 1 » perd le sens même de la droite graduée
+     (voir d'un coup d'œil où se situe la fraction entre 0 et 1). Elle tient
+     donc toujours dans la largeur disponible ; c'est la TAILLE des repères qui
+     s'adapte au dénominateur, pas la longueur de la droite. */
   .droite-scroll {
     width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 2px;
+    overflow: visible;
   }
   .droite-graduee {
     position: relative;
     height: 6rem;
-    min-width: 100%;
+    width: 100%;
     margin: 1.8rem 0 1rem;
-    /* Marge interne réservée pour que les graduations et labels des extrémités
-       (0 et surtout 1) ne soient jamais rognés par le débordement du conteneur. */
-    padding: 0 1.5rem;
+    /* Marge interne réservée pour que les graduations, les labels et la moitié
+       du repère des extrémités (0 et 1) ne débordent jamais du cadre. Valeur
+       par défaut ; le JS la resserre quand les repères sont petits, pour rendre
+       la largeur gagnée aux cibles tactiles. */
+    padding: 0 1.8rem;
     box-sizing: border-box;
   }
   .piste-graduation {
@@ -313,15 +318,19 @@
     font-size: 1.5rem;
     color: var(--couleur-mandarine);
   }
+  /* Chaque repère est une BANDE tactile pleine hauteur, large d'un intervalle
+     (largeur posée en ligne par le JS) : les bandes sont jointives, donc un
+     appui approximatif tombe toujours sur le repère le plus proche — pas de
+     zone morte entre deux cibles, même avec un dénominateur 12. La pastille
+     visible, elle, se contente de la place disponible. */
   .tick-interactive {
     position: absolute;
-    top: calc(50% - 23px);
+    top: calc(50% - 27px);
     transform: translateX(-50%);
-    width: 2.7rem;
-    height: 2.7rem;
-    border-radius: 50%;
-    border: 2.5px solid var(--couleur-encre);
-    background: #ffffff;
+    height: 54px;
+    max-width: 3.4rem;
+    border: none;
+    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -329,8 +338,20 @@
     font-weight: 600;
     font-size: 0.85rem;
   }
-  .tick-interactive.correct { background: color-mix(in srgb, var(--couleur-menthe) 45%, white); border-color: var(--couleur-menthe); }
-  .tick-interactive.incorrect { background: color-mix(in srgb, var(--couleur-corail) 35%, white); border-color: var(--couleur-corail); }
+  .tick-pastille {
+    width: 100%;
+    max-width: 2.7rem;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    border: 2.5px solid var(--couleur-encre);
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+  .tick-interactive.correct .tick-pastille { background: color-mix(in srgb, var(--couleur-menthe) 45%, white); border-color: var(--couleur-menthe); }
+  .tick-interactive.incorrect .tick-pastille { background: color-mix(in srgb, var(--couleur-corail) 35%, white); border-color: var(--couleur-corail); }
 
   /* Fractions égales : cartes de comparaison */
 
@@ -388,6 +409,19 @@
     background: color-mix(in srgb, var(--couleur-soleil) 12%, white);
   }
   .slot-ordre.rempli { border-style: solid; background: color-mix(in srgb, var(--couleur-soleil) 30%, white); }
+  /* Étiquette posée dans une case : elle reste MOBILE (glisser vers une autre
+     case pour échanger, appuyer pour la reprendre) tant que le rangement n'est
+     pas validé. */
+  .etiquette-ordre {
+    display: flex; align-items: center; justify-content: center;
+    min-width: 2.8rem; min-height: 2.8rem; padding: 0 .2rem;
+    border-radius: 10px; background: #ffffff;
+    border: 2px solid color-mix(in srgb, var(--couleur-encre) 30%, white);
+    cursor: grab; user-select: none;
+  }
+  .etiquette-ordre.etiquette-glisse { z-index: 5; cursor: grabbing; box-shadow: 0 6px 14px rgba(0,0,0,.18); }
+  .slot-ordre.correct .etiquette-ordre { border-color: var(--couleur-menthe); }
+  .slot-ordre.incorrect .etiquette-ordre { border-color: var(--couleur-corail); }
   .slot-ordre.correct { border-color: var(--couleur-menthe); background: color-mix(in srgb, var(--couleur-menthe) 40%, white); }
   .slot-ordre.incorrect { border-color: var(--couleur-corail); background: color-mix(in srgb, var(--couleur-corail) 30%, white); }
   .fleche-ordre { font-size: 1.1rem; opacity: 0.6; }
@@ -467,8 +501,21 @@
     padding: 0;
   }
   .cellule-interactive:last-child { border-right: none; }
+  /* Le zoom au double-tap est un parasite ici : deux appuis rapprochés sur une
+     même case sont un geste NORMAL du jeu (remplir puis vider). */
+  button, .cellule-interactive, .tick-interactive, .carte-comparaison,
+  .slot-ordre, .etiquette-ordre { touch-action: manipulation; }
   .cellule-interactive.rempli { background: var(--couleur-soleil); }
   .forme-bande-interactive.verrouille .cellule-interactive.rempli { background: var(--couleur-menthe); }
+  /* Correction GRAPHIQUE du mini-jeu « Calculer » : même gabarit que la bande
+     manipulée juste au-dessus, remplie en vert (couleur de la bonne réponse). */
+  .bande-correction { margin: .4rem auto 0; max-width: 22rem; }
+  .bande-correction .forme-bande {
+    width: 100%; height: 2.6rem; border-radius: 10px; overflow: hidden;
+    border: 2.5px solid var(--couleur-menthe);
+  }
+  .bande-correction .segment-bande.rempli { background: var(--couleur-menthe); }
+  .bande-correction .legende-petite { margin: 0 0 .25rem; font-weight: 700; }
 
   /* Correction affichée après une MAUVAISE réponse (CHARTE §18) : la réponse
      donnée en rouge, la bonne en vert. Mêmes teintes que .feedback-succes /
@@ -604,7 +651,7 @@
   "denominateursAutorises": [2, 3, 4, 5, 6, 8, 10, 12],
   "messagesFeedback": {
     "bravo": ["Bravo !", "Super !", "Génial !", "Exact, bien joué !", "C'est ça !", "Parfait !", "Trop fort !"],
-    "rate": ["Pas tout à fait...", "Essaie encore la prochaine fois !", "Presque !", "Regarde bien la forme.", "Pas cette fois, courage !"]
+    "rate": ["Pas tout à fait...", "Essaie encore la prochaine fois !", "Presque !", "Pas cette fois, courage !"]
   },
   "jeux": [
     { "id": "decouverte", "titre": "Découverte", "icone": "🔎", "couleur": "mandarine", "description": "Observe une forme partagée et trouve la fraction représentée.", "nbQuestions": 6, "consigneLire": "Quelle fraction est représentée ?" },
@@ -1169,13 +1216,6 @@
     });
     zone.appendChild(optionsCont);
 
-    const legende = document.createElement('p');
-    legende.className = 'legende';
-    legende.innerHTML =
-      '<strong>' + n + '</strong> ' + donnees.vocabulaire.numerateur.toLowerCase() +
-      ' sur <strong>' + d + '</strong> ' + donnees.vocabulaire.denominateur.toLowerCase();
-    zone.appendChild(legende);
-
     const typesRestants = ['bande', 'disque', 'quadrillage'].filter((t) => t !== type);
     const wrapAlt = document.createElement('div');
     wrapAlt.className = 'bloc-representation-alt';
@@ -1197,12 +1237,28 @@
     scroll.className = 'droite-scroll';
     const cont = document.createElement('div');
     cont.className = 'droite-graduee';
-    // Largeur proportionnelle au nombre de graduations, pour que les cibles
-    // tactiles (44px min.) ne se chevauchent jamais, même avec un dénominateur 12.
-    // La marge (padding) de .droite-graduee est incluse dans cette largeur
-    // (box-sizing: border-box), donc elle ne réduit pas l'espacement des graduations.
-    cont.style.width = Math.max(d * 46, 260) + 'px';
     scroll.appendChild(cont);
+    /* Les extrémités (0 et 1) ne débordent que de la MOITIÉ de leur repère :
+       réserver 1.8rem de chaque côté quels que soient les repères gaspillerait
+       de la largeur, et donc de la précision tactile, là où on en manque le
+       plus (dénominateur 12 sur un petit écran). On ajuste donc la marge à ce
+       dont les repères ont réellement besoin. */
+    if (opts.interactif) {
+      requestAnimationFrame(() => {
+        if (!cont.isConnected) return;
+        const style = getComputedStyle(cont);
+        const margeParDefaut = parseFloat(style.paddingLeft) || 0; // 1.8rem, quelle que soit la taille de police
+        const dispo = cont.clientWidth + 2 * margeParDefaut;       // largeur brute, marges comprises
+        // C'est la BANDE tactile (plus large que la pastille, plafonnée à
+        // 3.4rem par le CSS) qui déborde le plus aux extrémités : c'est donc
+        // sa demi-largeur qui fixe la marge à réserver.
+        const bandeMax = 3.4 * parseFloat(getComputedStyle(document.documentElement).fontSize);
+        const bande = Math.min(bandeMax, dispo / d);
+        const marge = Math.min(margeParDefaut, bande / 2 + 2);
+        cont.style.paddingLeft = marge + 'px';
+        cont.style.paddingRight = marge + 'px';
+      });
+    }
     // La piste interne (position:relative) devient le repère à 100% pour les
     // graduations : leurs positions en pourcentage restent donc bien à
     // l'intérieur de la marge réservée par .droite-graduee, et ne sont jamais
@@ -1220,8 +1276,14 @@
         const btn = document.createElement('button');
         btn.className = 'tick-interactive';
         btn.style.left = pct + '%';
+        // Largeur = un intervalle : les bandes tactiles sont jointives et
+        // couvrent toute la droite, sans jamais la faire déborder.
+        btn.style.width = (100 / d) + '%';
         btn.dataset.index = i;
-        btn.textContent = i === 0 ? '0' : (i === d ? '1' : '');
+        const pastille = document.createElement('span');
+        pastille.className = 'tick-pastille';
+        pastille.textContent = i === 0 ? '0' : (i === d ? '1' : '');
+        btn.appendChild(pastille);
         btn.addEventListener('click', () => opts.onTick(i, btn, piste));
         piste.appendChild(btn);
       } else {
@@ -1409,12 +1471,14 @@
     rangeeSlots.className = 'rangee-slots';
 
     const ordreAffiche = melanger(fractions.map((f, i) => i));
-    const selection = [];
     const slots = [];
+    const cartes = {};              // index de fraction -> carte de la pioche
+    const contenu = new Array(fractions.length).fill(null); // slot -> index, ou null
 
     fractions.forEach((f, i) => {
       const slot = document.createElement('div');
       slot.className = 'slot-ordre';
+      slot.dataset.rang = i;
       slots.push(slot);
       rangeeSlots.appendChild(slot);
       if (i < fractions.length - 1) {
@@ -1425,6 +1489,101 @@
       }
     });
 
+    const boutonValider = document.createElement('button');
+    boutonValider.className = 'bouton-principal';
+    boutonValider.style.display = 'block';
+    boutonValider.style.margin = '0.4rem auto 0';
+    boutonValider.textContent = 'Valider mon rangement';
+    boutonValider.disabled = true;
+
+    const aide = document.createElement('p');
+    aide.className = 'legende-petite';
+    aide.textContent = 'Tu peux déplacer une étiquette d\'une case à l\'autre, ou la toucher pour la retirer.';
+
+    function majValider() {
+      boutonValider.disabled = contenu.some((v) => v === null);
+    }
+
+    /* Une étiquette posée dans un slot : elle se DÉPLACE (glisser-déposer vers
+       une autre case, qui échange les deux contenus) et se REPREND (simple
+       appui, l'étiquette retourne dans la pioche). Rien n'est validé tant que
+       l'enfant n'a pas appuyé sur « Valider » : il peut se reprendre autant de
+       fois qu'il veut, ce que l'ancien enchaînement automatique interdisait. */
+    function creerEtiquette(idxFraction) {
+      const f = fractions[idxFraction];
+      const etq = document.createElement('div');
+      etq.className = 'etiquette-ordre';
+      etq.dataset.fraction = idxFraction;
+      etq.appendChild(creerFractionLabel(f.n, f.d));
+
+      let enGlissement = false;
+      let departX = 0, departY = 0, aBouge = false;
+
+      etq.addEventListener('pointerdown', (e) => {
+        if (etat.verrouille) return;
+        enGlissement = true; aBouge = false;
+        departX = e.clientX; departY = e.clientY;
+        try { etq.setPointerCapture(e.pointerId); } catch (err) { /* pointeur déjà relâché */ }
+      });
+      etq.addEventListener('pointermove', (e) => {
+        if (!enGlissement) return;
+        e.preventDefault();
+        const dx = e.clientX - departX, dy = e.clientY - departY;
+        if (!aBouge && Math.hypot(dx, dy) < 8) return; // simple appui, pas un glissement
+        aBouge = true;
+        etq.classList.add('etiquette-glisse');
+        etq.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+      });
+      function relacher(e) {
+        if (!enGlissement) return;
+        enGlissement = false;
+        etq.style.transform = '';
+        etq.classList.remove('etiquette-glisse');
+        const rangDepart = Number(etq.parentElement.dataset.rang);
+        if (!aBouge) { retirer(rangDepart); return; } // appui simple : on reprend l'étiquette
+        const cible = slots.findIndex((s) => {
+          const r = s.getBoundingClientRect();
+          return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+        });
+        if (cible !== -1 && cible !== rangDepart) echanger(rangDepart, cible);
+      }
+      etq.addEventListener('pointerup', relacher);
+      etq.addEventListener('pointercancel', relacher);
+      return etq;
+    }
+
+    function rendreSlot(rang) {
+      const slot = slots[rang];
+      slot.innerHTML = '';
+      const idx = contenu[rang];
+      slot.classList.toggle('rempli', idx !== null);
+      if (idx !== null) slot.appendChild(creerEtiquette(idx));
+    }
+
+    function poser(idxFraction, rang) {
+      contenu[rang] = idxFraction;
+      cartes[idxFraction].classList.add('selectionnee');
+      cartes[idxFraction].disabled = true;
+      rendreSlot(rang);
+      majValider();
+    }
+
+    function retirer(rang) {
+      const idx = contenu[rang];
+      if (idx === null) return;
+      contenu[rang] = null;
+      cartes[idx].classList.remove('selectionnee');
+      cartes[idx].disabled = false;
+      rendreSlot(rang);
+      majValider();
+    }
+
+    function echanger(a, b) {
+      const tmp = contenu[a]; contenu[a] = contenu[b]; contenu[b] = tmp;
+      rendreSlot(a); rendreSlot(b);
+      majValider();
+    }
+
     ordreAffiche.forEach((idx) => {
       const f = fractions[idx];
       const carte = document.createElement('button');
@@ -1432,43 +1591,53 @@
       carte.appendChild(creerBande(f.d, f.n));
       carte.appendChild(creerFractionLabel(f.n, f.d));
       carte.addEventListener('click', () => {
-        if (etat.verrouille || selection.includes(idx)) return;
-        selection.push(idx);
-        carte.classList.add('selectionnee');
-        carte.disabled = true;
-        const slot = slots[selection.length - 1];
-        slot.classList.add('rempli');
-        slot.innerHTML = '';
-        slot.appendChild(creerFractionLabel(f.n, f.d));
-        if (selection.length === fractions.length) {
-          const estCorrecte = selection.every((v, i) => v === ordreCorrect[i]);
-          // CHARTE §18 : d'abord SON rangement, chaque case en vert ou en
-          // rouge selon qu'elle est bien placée ; puis, après une pause, la
-          // solution vient s'y écrire — en VERT, jamais en rouge (le rouge
-          // ne doit jamais désigner la bonne réponse).
-          slots.forEach((s, i) => {
-            s.classList.add(selection[i] === ordreCorrect[i] ? 'correct' : 'incorrect');
-          });
-          if (!estCorrecte) {
-            setTimeout(() => {
-              if (!slots[0].isConnected) return; // question déjà quittée
-              slots.forEach((s, i) => {
-                const bonneFraction = fractions[ordreCorrect[i]];
-                s.innerHTML = '';
-                s.appendChild(creerFractionLabel(bonneFraction.n, bonneFraction.d));
-                s.classList.remove('incorrect');
-                s.classList.add('correct');
-              });
-            }, 900);
-          }
-          validerReponse(estCorrecte);
-        }
+        if (etat.verrouille || carte.disabled) return;
+        const libre = contenu.indexOf(null);
+        if (libre === -1) return;
+        poser(idx, libre);
       });
+      cartes[idx] = carte;
       rangeeCartes.appendChild(carte);
+    });
+
+    // Les slots aussi acceptent le dépôt d'une étiquette venue d'une autre
+    // case : le geste est intercepté par l'étiquette elle-même (ci-dessus),
+    // mais un appui sur une case VIDE avec une carte en attente ne fait rien —
+    // c'est la carte de la pioche qui reste le point d'entrée.
+    boutonValider.addEventListener('click', () => {
+      if (etat.verrouille || contenu.some((v) => v === null)) return;
+      const estCorrecte = contenu.every((v, i) => v === ordreCorrect[i]);
+      boutonValider.disabled = true;
+      boutonValider.hidden = true;
+      aide.hidden = true;
+      // CHARTE §18 : d'abord SON rangement, chaque case en vert ou en rouge
+      // selon qu'elle est bien placée ; puis, après une pause, la solution
+      // vient s'y écrire — en VERT, jamais en rouge.
+      slots.forEach((s, i) => {
+        s.classList.add(contenu[i] === ordreCorrect[i] ? 'correct' : 'incorrect');
+      });
+      if (!estCorrecte) {
+        setTimeout(() => {
+          if (!slots[0].isConnected) return; // question déjà quittée
+          slots.forEach((s, i) => {
+            const bonneFraction = fractions[ordreCorrect[i]];
+            s.innerHTML = '';
+            const etq = document.createElement('div');
+            etq.className = 'etiquette-ordre';
+            etq.appendChild(creerFractionLabel(bonneFraction.n, bonneFraction.d));
+            s.appendChild(etq);
+            s.classList.remove('incorrect');
+            s.classList.add('correct');
+          });
+        }, 900);
+      }
+      validerReponse(estCorrecte);
     });
 
     zone.appendChild(rangeeCartes);
     zone.appendChild(rangeeSlots);
+    zone.appendChild(aide);
+    zone.appendChild(boutonValider);
   }
 
   /* ---------- Mini-jeu 5 : Calculer (facile = petits dénominateurs, difficile = grands dénominateurs) ---------- */
@@ -1610,6 +1779,18 @@
         // CHARTE §18 : sa réponse en rouge, la bonne en vert.
         compteur.textContent = '';
         afficherCorrection(compteur, total + '/' + dGrand, calc.resultat.n + '/' + dGrand);
+        // Le mini-jeu se joue sur une BANDE : la correction doit donc être
+        // graphique elle aussi, sinon l'enfant doit traduire mentalement un
+        // écart de nombres en écart de cases. On montre la bande attendue,
+        // sous celle qu'il a construite, à la même échelle.
+        const bonne = document.createElement('div');
+        bonne.className = 'bande-correction';
+        const titre = document.createElement('p');
+        titre.className = 'legende-petite correction-attendue';
+        titre.textContent = 'La bonne réponse : ' + calc.resultat.n + '/' + dGrand;
+        bonne.appendChild(titre);
+        bonne.appendChild(creerBande(dGrand, calc.resultat.n));
+        zone.insertBefore(bonne, compteur);
       }
       validerReponse(estCorrecte);
     });
