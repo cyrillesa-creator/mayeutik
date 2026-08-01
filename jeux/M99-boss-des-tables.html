@@ -192,6 +192,9 @@
   .feedback { text-align: center; font-weight: 700; font-size: 1.05rem; min-height: 1.6rem; margin: 0.8rem 0 0.2rem; }
   .feedback-succes { color: color-mix(in srgb, var(--couleur-menthe) 70%, black 20%); }
   .feedback-erreur { color: color-mix(in srgb, var(--couleur-corail) 70%, black 20%); }
+  /* CHARTE §18 : dans un message d'erreur, la BONNE réponse reste en vert —
+     le rouge ne doit jamais désigner ce qu'il fallait répondre. */
+  .correction-attendue{ color:color-mix(in srgb, var(--couleur-menthe) 70%, black 20%); }
 
   /* Résultats */
   .bloc-resultats { text-align: center; }
@@ -684,7 +687,11 @@
         nouvelleQuestion();
       } else {
         etat.coeurs--; etat.serie = 0; etat.fievre = false;
-        fb.textContent = 'Aïe ! ' + etat.question.a + ' × ' + etat.question.b + ' = ' + etat.question.rep;
+        fb.textContent = 'Aïe ! ';
+        const bonne = document.createElement('span');
+        bonne.className = 'correction-attendue';
+        bonne.textContent = etat.question.a + ' × ' + etat.question.b + ' = ' + etat.question.rep;
+        fb.appendChild(bonne);
         fb.className = 'feedback feedback-erreur';
         jouerSon('rate');
         majAffichage();

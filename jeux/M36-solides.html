@@ -122,6 +122,9 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
   font-size:1.06rem; line-height:1.35; padding:0 6px;
 }
 #feedback.bon{color:var(--menthe-t);} #feedback.mauvais{color:var(--corail-t);}
+/* CHARTE §18 : dans un message d'erreur, la BONNE réponse reste en vert —
+   le rouge ne doit jamais désigner ce qu'il fallait répondre. */
+#feedback .correction-attendue{color:var(--menthe-t);}
 
 #btnNext{
   display:none; margin:12px auto 0; border:none; border-radius:18px;
@@ -1040,10 +1043,13 @@ function repond(bon, bouton, q){
       const lbl = (q.mode==="patrons" && q.type==="netToName") ? (CONTENU.solides[val]?.court ?? val) : val;
       correction = `La bonne réponse était : ${lbl}`;
     }
-    $("feedback").textContent = "Presque ! " + correction;
+    $("feedback").textContent = "Presque ! ";
+    const span = document.createElement("span");
+    span.className = "correction-attendue";
+    span.textContent = q.expl && bon===false ? q.expl : correction;
+    $("feedback").appendChild(span);
     $("feedback").className = "mauvais";
   }
-  if(q.expl && bon===false){ $("feedback").textContent = "Presque ! " + q.expl; }
   $("btnNext").style.display = "block";
   $("btnNext").textContent = pos === file.length-1 ? "Voir mon score ⭐" : "Suivant ➜";
   majDots();
