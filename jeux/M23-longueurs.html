@@ -4923,6 +4923,108 @@
    * `options.coteOuvert` (facultatif) est l'indice du côté à NE PAS tracer :
    * c'est l'entrée du terrain, dessinée en portail ouvert avec son chemin.
    */
+  /* Distance à laquelle une étiquette de longueur se pose de son côté, avant
+     tout ajustement. */
+  const OFFSET_ETIQUETTE = 15;
+  /* Écart minimal EXIGÉ entre deux étiquettes (en px, sur chaque axe) : en
+     dessous, les deux nombres se touchent et deviennent illisibles. */
+  const ECART_MIN_ETIQUETTES = 5;
+
+  /*
+   * Sur une figure procédurale, rien ne garantit que deux étiquettes ne se
+   * chevauchent pas : deux côtés courts perpendiculaires (2 cm chacun, par
+   * exemple) ont leurs milieux à quelques pixels du sommet qu'ils partagent.
+   * On les écarte donc APRÈS coup, à partir des dimensions réelles du texte.
+   *
+   * L'écartement se fait le long de la droite qui JOINT LES DEUX ÉTIQUETTES,
+   * et non le long de la normale de chaque côté : sur un angle rentrant, la
+   * normale extérieure d'un côté pointe vers l'étiquette voisine, si bien que
+   * « repousser vers l'extérieur » rapprochait encore les deux nombres. On
+   * borne ensuite le déplacement pour qu'une étiquette reste près de son côté
+   * et toujours du bon côté du trait (jamais rejetée dans la figure).
+   */
+  function ecarterEtiquettes(svg, etiquettes, largeur, hauteur) {
+    if (etiquettes.length < 2) return;
+    const PAS = 3;                 // écartement appliqué par passe, à chacune
+    const DEPLACEMENT_MAX = 34;    // au-delà, l'étiquette ne se rattache plus à son côté
+    const MARGE_INTERIEURE = OFFSET_ETIQUETTE * 0.6; // distance mini au trait
+
+    const boite = (e) => {
+      try { const b = e.el.getBBox(); return b && b.width ? b : null; } catch (err) { return null; }
+    };
+    const centre = (b) => ({ x: b.x + b.width / 2, y: b.y + b.height / 2 });
+    const tropPres = (a, b) =>
+      a.x < b.x + b.width + ECART_MIN_ETIQUETTES && b.x < a.x + a.width + ECART_MIN_ETIQUETTES &&
+      a.y < b.y + b.height + ECART_MIN_ETIQUETTES && b.y < a.y + a.height + ECART_MIN_ETIQUETTES;
+
+    // Position courante = base du côté + décalage (ox, oy), initialisé sur la
+    // normale extérieure.
+    etiquettes.forEach((e) => { e.ox = e.nx * OFFSET_ETIQUETTE; e.oy = e.ny * OFFSET_ETIQUETTE; });
+
+    const deplacer = (e, dx, dy) => {
+      let ox = e.ox + dx, oy = e.oy + dy;
+      // Ne jamais repasser du côté intérieur du trait...
+      const projection = ox * e.nx + oy * e.ny;
+      if (projection < MARGE_INTERIEURE) {
+        ox += e.nx * (MARGE_INTERIEURE - projection);
+        oy += e.ny * (MARGE_INTERIEURE - projection);
+      }
+      // ...ni s'éloigner au point de ne plus désigner son propre côté.
+      const d = Math.hypot(ox, oy);
+      if (d > DEPLACEMENT_MAX) { ox = ox / d * DEPLACEMENT_MAX; oy = oy / d * DEPLACEMENT_MAX; }
+      e.ox = ox; e.oy = oy;
+      e.el.setAttribute('x', (e.baseX + ox).toFixed(1));
+      e.el.setAttribute('y', (e.baseY + oy).toFixed(1));
+    };
+
+    const ajuster = () => {
+      if (!svg.isConnected) return;
+      etiquettes.forEach((e) => deplacer(e, 0, 0)); // pose initiale + garde-fous
+      for (let passe = 0; passe < 24; passe++) {
+        let conflit = false;
+        for (let i = 0; i < etiquettes.length; i++) {
+          for (let j = i + 1; j < etiquettes.length; j++) {
+            const bi = boite(etiquettes[i]), bj = boite(etiquettes[j]);
+            if (!bi || !bj) return; // texte pas encore mesurable : on renonce
+            if (!tropPres(bi, bj)) continue;
+            conflit = true;
+            const ci = centre(bi), cj = centre(bj);
+            let ux = ci.x - cj.x, uy = ci.y - cj.y;
+            const n = Math.hypot(ux, uy);
+            // Centres confondus : on écarte selon les normales, faute de mieux.
+            if (n < 0.5) { ux = etiquettes[i].nx; uy = etiquettes[i].ny; }
+            else { ux /= n; uy /= n; }
+            deplacer(etiquettes[i], ux * PAS, uy * PAS);
+            deplacer(etiquettes[j], -ux * PAS, -uy * PAS);
+          }
+        }
+        if (!conflit) break;
+      }
+      // Élargissement du cadre : une étiquette écartée ne doit jamais être
+      // rognée par le viewBox.
+      let minX = 0, minY = 0, maxX = largeur, maxY = hauteur;
+      etiquettes.forEach((e) => {
+        const b = boite(e);
+        if (!b) return;
+        minX = Math.min(minX, b.x - 2); minY = Math.min(minY, b.y - 2);
+        maxX = Math.max(maxX, b.x + b.width + 2); maxY = Math.max(maxY, b.y + b.height + 2);
+      });
+      svg.setAttribute('viewBox', minX.toFixed(1) + ' ' + minY.toFixed(1) + ' ' +
+        (maxX - minX).toFixed(1) + ' ' + (maxY - minY).toFixed(1));
+      svg.setAttribute('width', (maxX - minX).toFixed(1));
+      svg.setAttribute('height', (maxY - minY).toFixed(1));
+    };
+
+    // getBBox n'a de sens qu'une fois le SVG dans le document. On rejoue le
+    // calcul quand les polices sont prêtes : la largeur du texte change avec
+    // la fonte réellement utilisée, et un placement calculé sur la fonte de
+    // repli redeviendrait faux.
+    requestAnimationFrame(ajuster);
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => requestAnimationFrame(ajuster)).catch(() => {});
+    }
+  }
+
   function creerSceneArpentage(pts, etiquettes, options) {
     const opts = options || {};
     const SVGNS = 'http://www.w3.org/2000/svg';
@@ -4932,6 +5034,7 @@
     const largeur = Math.max.apply(null, ecran.map((p) => p[0])) + MARGE;
     const hauteur = Math.max.apply(null, ecran.map((p) => p[1])) + MARGE;
 
+    const etiquettesPosees = [];
     const wrap = document.createElement('div');
     wrap.className = 'arpentage-scene';
     const svg = document.createElementNS(SVGNS, 'svg');
@@ -4974,14 +5077,24 @@
       // s'éloigne de l'intérieur du polygone.
       const nx = (dy / norme) * sens, ny = (-dx / norme) * sens;
       const t = document.createElementNS(SVGNS, 'text');
-      t.setAttribute('x', (p[0] + dx / 2 + nx * 15).toFixed(1));
-      t.setAttribute('y', (p[1] + dy / 2 + ny * 15).toFixed(1));
+      t.setAttribute('x', (p[0] + dx / 2 + nx * OFFSET_ETIQUETTE).toFixed(1));
+      t.setAttribute('y', (p[1] + dy / 2 + ny * OFFSET_ETIQUETTE).toFixed(1));
       t.setAttribute('text-anchor', 'middle');
       t.setAttribute('dominant-baseline', 'middle');
       t.setAttribute('class', 'arpentage-etiquette' + (etiquettes[i] === '?' ? ' arpentage-etiquette-inconnue' : ''));
       t.textContent = etiquettes[i];
       svg.appendChild(t);
+      // Deux côtés courts perpendiculaires ont leurs milieux très proches du
+      // sommet commun : leurs étiquettes, posées chacune à distance fixe de son
+      // côté, finissent par se chevaucher. On garde de quoi les écarter ensuite
+      // (cf. ecarterEtiquettes), une fois leurs vraies dimensions connues.
+      etiquettesPosees.push({
+        el: t, longueurCote: norme,
+        baseX: p[0] + dx / 2, baseY: p[1] + dy / 2, nx, ny
+      });
     }
+
+    ecarterEtiquettes(svg, etiquettesPosees, largeur, hauteur);
 
     if (opts.coteOuvert != null) {
       const p = ecran[opts.coteOuvert], q = ecran[(opts.coteOuvert + 1) % ecran.length];
@@ -5046,14 +5159,15 @@
 
   /* Saisie du périmètre au pavé numérique diégétique (même composant que le
      reste du palier CE2), avec un rappel du total attendu en cm. */
-  function creerSaisiePerimetre(zone, reponse, texteQuestion) {
+  function creerSaisiePerimetre(zone, reponse, texteQuestion, unite) {
+    const u = unite || 'cm';
     const legende = document.createElement('p');
     legende.className = 'legende';
     legende.textContent = texteQuestion;
     zone.appendChild(legende);
     const pave = creerPave((valeur) => {
       pave.verrouiller(true);
-      validerTour(valeur === reponse, null, { donnee: valeur + ' cm', attendue: reponse + ' cm' });
+      validerTour(valeur === reponse, null, { donnee: valeur + ' ' + u, attendue: reponse + ' ' + u });
     }, 3);
     zone.appendChild(pave.el);
   }
@@ -5106,6 +5220,13 @@
   /* Manches 6 et 7 — problème : la clôture entoure le terrain SAUF l'entrée.
      Toutes les longueurs sont données, y compris celle du portail : c'est à
      l'enfant de comprendre qu'il ne faut pas la compter. */
+  /* Problème de clôture : un jardin se mesure en MÈTRES, pas en centimètres —
+     une clôture de 30 cm n'a aucun sens et casse la vraisemblance du problème.
+     Les longueurs tirées (2 à 11) sont directement lisibles comme des mètres :
+     un jardin de 9 m sur 7 m avec un portail de 2 m est réaliste, et les
+     nombres restent additionnables de tête au CE2. */
+  const UNITE_CLOTURE = 'm';
+
   function genererArpentageCloture(zone) {
     const pts = polygoneArpentage(choisir([4, 6]));
     const cotes = cotesDuPolygone(pts);
@@ -5119,14 +5240,14 @@
 
     zone.appendChild(creerBlocConsigne(
       'Quelle est la longueur de la clôture qui entoure la maison ?',
-      'La clôture fait tout le tour du terrain, sauf à l\'entrée : le portail est ouvert, et un chemin mène à la maison. Additionne les côtés clôturés — celui du portail ne compte pas.'
+      'La clôture fait tout le tour du terrain, sauf à l\'entrée : le portail est ouvert, et un chemin mène à la maison. Additionne les côtés clôturés, en mètres — celui du portail ne compte pas.'
     ));
-    zone.appendChild(creerSceneArpentage(pts, cotes.map((c) => c + ' cm'), { coteOuvert: portail }));
+    zone.appendChild(creerSceneArpentage(pts, cotes.map((c) => c + ' ' + UNITE_CLOTURE), { coteOuvert: portail }));
     const aide = document.createElement('p');
     aide.className = 'legende';
-    aide.textContent = 'Le côté du portail (' + cotes[portail] + ' cm) n\'est pas clôturé : ne le compte pas.';
+    aide.textContent = 'Le côté du portail (' + cotes[portail] + ' ' + UNITE_CLOTURE + ') n\'est pas clôturé : ne le compte pas.';
     zone.appendChild(aide);
-    creerSaisiePerimetre(zone, reponse, 'Quelle longueur de clôture faut-il, en centimètres ?');
+    creerSaisiePerimetre(zone, reponse, 'Quelle longueur de clôture faut-il, en mètres ?', UNITE_CLOTURE);
   }
 
   /* ---------- Initialisation ---------- */
