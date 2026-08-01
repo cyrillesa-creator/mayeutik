@@ -2049,7 +2049,6 @@
     const PX_PAR_UNITE = 14;
     const cases = [];
     let selection = null;
-    let ignorerProchainClic = false;
 
     function rendreCase(i) {
       const barre = cases[i].querySelector('.baton-barre');
@@ -2091,15 +2090,24 @@
       // pendant un geste. Les deux vraies barres restent invisibles le
       // temps du survol animé ci-dessous, remplacées visuellement par les
       // fantômes qui, eux, glissent.
+      // Fantômes clonés AVANT la permutation (cf. genererTriArbresCE1) : chacun
+      // porte le bâton qui était là et rejoint sa nouvelle place.
+      const fantomeI = preferesMouvementReduit ? null : creerFantomeBaton(barreI, rectI);
+      const fantomeJ = preferesMouvementReduit ? null : creerFantomeBaton(barreJ, rectJ);
+
       const tmp = ordre[i]; ordre[i] = ordre[j]; ordre[j] = tmp;
       rendreCase(i); rendreCase(j);
 
       if (preferesMouvementReduit) return;
 
-      const fantomeI = creerFantomeBaton(barreI, rectI);
-      const fantomeJ = creerFantomeBaton(barreJ, rectJ);
-      barreI.style.visibility = 'hidden';
-      barreJ.style.visibility = 'hidden';
+      // Compteur d'animations en cours (deux échanges rapprochés peuvent
+      // partager une rangée : la première minuterie ne doit pas la rétablir
+      // alors que la seconde animation court encore).
+      const masquer = (el) => {
+        el.dataset.anim = String((Number(el.dataset.anim) || 0) + 1);
+        el.style.visibility = 'hidden';
+      };
+      masquer(barreI); masquer(barreJ);
       const versJ = rectJ.top - rectI.top;
       const versI = rectI.top - rectJ.top;
       requestAnimationFrame(() => {
@@ -2111,8 +2119,11 @@
       setTimeout(() => {
         fantomeI.remove();
         fantomeJ.remove();
-        barreI.style.visibility = '';
-        barreJ.style.visibility = '';
+        [barreI, barreJ].forEach((el) => {
+          const reste = (Number(el.dataset.anim) || 1) - 1;
+          el.dataset.anim = String(reste);
+          if (reste <= 0) { delete el.dataset.anim; el.style.visibility = ''; }
+        });
       }, 260);
     }
 
@@ -2128,9 +2139,13 @@
       bande.appendChild(caseDiv);
       cases.push(caseDiv);
 
-      btn.addEventListener('click', () => {
+      // Tout se décide sur `pointerup`, jamais sur `click` : cf. le commentaire
+      // détaillé de genererTriArbresCE1 (un glissement terminé sur une autre
+      // rangée envoie le `click` à l'ancêtre commun, si bien qu'un verrou
+      // « ignorer le prochain clic » finissait par manger le tap suivant).
+      // `click` ne sert plus qu'au clavier (detail === 0).
+      function activer() {
         if (etat.verrouille) return;
-        if (ignorerProchainClic) { ignorerProchainClic = false; return; }
         if (selection === null) {
           selection = i;
           caseDiv.classList.add('case-selectionnee');
@@ -2141,10 +2156,16 @@
           deselectionner();
           echanger(precedente, i);
         }
-      });
+      }
+      btn.addEventListener('click', (e) => { if (e.detail === 0) activer(); });
 
       let enGlissement = false;
       let departX = 0, departY = 0;
+      function annulerGeste() {
+        enGlissement = false;
+        btn.style.transform = '';
+        btn.classList.remove('baton-glisse');
+      }
       btn.addEventListener('pointerdown', (e) => {
         if (etat.verrouille) return;
         if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -2160,12 +2181,9 @@
       });
       function relacherGlissement(e) {
         if (!enGlissement) return;
-        enGlissement = false;
-        btn.style.transform = '';
-        btn.classList.remove('baton-glisse');
+        annulerGeste();
         const distanceGlissee = Math.hypot(e.clientX - departX, e.clientY - departY);
-        if (distanceGlissee < 8) return; // simple appui : laissé au gestionnaire 'click'
-        ignorerProchainClic = true;
+        if (distanceGlissee < 8) { activer(); return; } // appui simple
         deselectionner();
         const cible = cases.findIndex((c) => {
           const r = c.getBoundingClientRect();
@@ -2174,7 +2192,8 @@
         if (cible !== -1) echanger(i, cible);
       }
       btn.addEventListener('pointerup', relacherGlissement);
-      btn.addEventListener('pointercancel', () => { enGlissement = false; btn.style.transform = ''; btn.classList.remove('baton-glisse'); });
+      btn.addEventListener('pointercancel', annulerGeste);
+      btn.addEventListener('lostpointercapture', () => { if (enGlissement) annulerGeste(); });
     }
 
     zone.appendChild(bande);
@@ -2627,7 +2646,6 @@
     bande.className = 'bande-arbres';
     const cases = [];
     let selection = null;
-    let ignorerProchainClic = false;
 
     function rendreCase(i) {
       const contenu = cases[i].querySelector('.arbre-col-contenu');
@@ -2662,15 +2680,32 @@
       const rectI = contenuI.getBoundingClientRect();
       const rectJ = contenuJ.getBoundingClientRect();
 
+      // Les fantômes sont clonés AVANT la permutation du modèle : chacun porte
+      // donc l'arbre qui était là, et part de sa vraie place vers sa nouvelle —
+      // cloné après, il aurait montré chaque arbre s'éloignant de la place où
+      // il allait atterrir.
+      const fantomeI = preferesMouvementReduit ? null : creerFantomeArbre(contenuI, rectI);
+      const fantomeJ = preferesMouvementReduit ? null : creerFantomeArbre(contenuJ, rectJ);
+
       const tmp = ordre[i]; ordre[i] = ordre[j]; ordre[j] = tmp;
       rendreCase(i); rendreCase(j);
 
       if (preferesMouvementReduit) return;
 
-      const fantomeI = creerFantomeArbre(contenuI, rectI);
-      const fantomeJ = creerFantomeArbre(contenuJ, rectJ);
-      contenuI.style.visibility = 'hidden';
-      contenuJ.style.visibility = 'hidden';
+      // Compteur d'animations EN COURS par colonne : deux échanges rapprochés
+      // partageant une colonne ne doivent pas se rendre visible l'un l'autre
+      // avant terme (la première minuterie rétablirait une colonne encore en
+      // pleine seconde animation).
+      const masquer = (el) => {
+        el.dataset.anim = String((Number(el.dataset.anim) || 0) + 1);
+        el.style.visibility = 'hidden';
+      };
+      const demasquer = (el) => {
+        const reste = (Number(el.dataset.anim) || 1) - 1;
+        el.dataset.anim = String(reste);
+        if (reste <= 0) { delete el.dataset.anim; el.style.visibility = ''; }
+      };
+      masquer(contenuI); masquer(contenuJ);
       const versJ = rectJ.left - rectI.left;
       const versI = rectI.left - rectJ.left;
       requestAnimationFrame(() => {
@@ -2682,8 +2717,7 @@
       setTimeout(() => {
         fantomeI.remove();
         fantomeJ.remove();
-        contenuI.style.visibility = '';
-        contenuJ.style.visibility = '';
+        demasquer(contenuI); demasquer(contenuJ);
       }, 260);
     }
 
@@ -2699,9 +2733,15 @@
       bande.appendChild(caseDiv);
       cases.push(caseDiv);
 
-      btn.addEventListener('click', () => {
+      // Sélection au doigt : tout est décidé sur `pointerup`, JAMAIS sur
+      // `click`. Un glissement se terminant sur une AUTRE colonne fait partir
+      // le `click` du navigateur vers l'ancêtre commun des deux boutons, et non
+      // vers celui d'origine : un verrou « ignorer le prochain clic » n'y était
+      // donc jamais consommé et mangeait le tap SUIVANT de l'enfant — le
+      // classement paraissait bloqué une prise sur deux. Le `click` ne sert
+      // plus qu'au clavier (detail === 0), qui n'émet aucun événement pointeur.
+      function activer() {
         if (etat.verrouille) return;
-        if (ignorerProchainClic) { ignorerProchainClic = false; return; }
         if (selection === null) {
           selection = i;
           caseDiv.classList.add('case-selectionnee');
@@ -2712,10 +2752,16 @@
           deselectionner();
           echanger(precedente, i);
         }
-      });
+      }
+      btn.addEventListener('click', (e) => { if (e.detail === 0) activer(); });
 
       let enGlissement = false;
       let departX = 0, departY = 0;
+      function annulerGeste() {
+        enGlissement = false;
+        btn.style.transform = '';
+        btn.classList.remove('arbre-col-glisse');
+      }
       btn.addEventListener('pointerdown', (e) => {
         if (etat.verrouille) return;
         if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -2731,12 +2777,9 @@
       });
       function relacherGlissement(e) {
         if (!enGlissement) return;
-        enGlissement = false;
-        btn.style.transform = '';
-        btn.classList.remove('arbre-col-glisse');
+        annulerGeste();
         const distanceGlissee = Math.hypot(e.clientX - departX, e.clientY - departY);
-        if (distanceGlissee < 8) return; // simple appui : laissé au gestionnaire 'click'
-        ignorerProchainClic = true;
+        if (distanceGlissee < 8) { activer(); return; } // appui simple
         deselectionner();
         const cible = cases.findIndex((c) => {
           const r = c.getBoundingClientRect();
@@ -2745,7 +2788,11 @@
         if (cible !== -1) echanger(i, cible);
       }
       btn.addEventListener('pointerup', relacherGlissement);
-      btn.addEventListener('pointercancel', () => { enGlissement = false; btn.style.transform = ''; btn.classList.remove('arbre-col-glisse'); });
+      // Le pointeur peut aussi être perdu sans `pointerup` (capture volée,
+      // geste système) : sans ce filet, la colonne resterait décalée et
+      // `enGlissement` bloqué à true, rendant la colonne inutilisable.
+      btn.addEventListener('pointercancel', annulerGeste);
+      btn.addEventListener('lostpointercapture', () => { if (enGlissement) annulerGeste(); });
     }
 
     zone.appendChild(bande);
