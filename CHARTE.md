@@ -644,3 +644,79 @@ Points d'attention :
 - ne PAS confondre avec un `scrollIntoView()` volontaire à l'intérieur d'un même écran (ex. faire défiler vers une liste après un clic sur un compteur, côté parent) : cette section ne concerne que les **changements d'écran**.
 
 **Pour tout nouveau module :** cette règle fait partie du gabarit dès la conception. Un module dont une transition laisse l'utilisateur en position basse est considéré comme non conforme, au même titre qu'une cible tactile trop petite.
+
+## 18. Feedback d'erreur : toujours montrer la bonne réponse (obligatoire)
+
+**Règle générale, applicable à TOUS les mini-jeux de TOUS les modules :** quand l'enfant valide une réponse FAUSSE, le jeu affiche **la bonne réponse** en plus du retour d'erreur, avec un codage couleur constant :
+
+- **VERT** = la bonne réponse, celle qu'il fallait donner ;
+- **ROUGE** = la réponse erronée effectivement choisie par l'enfant.
+
+Un simple « Presque ! » qui laisse l'enfant sans la solution n'apprend rien : la correction fait partie du feedback, pas de l'écran de résultats.
+
+### Teintes exactes (à reprendre telles quelles, jamais réinventées)
+
+Deux couleurs de base, communes à toute la série :
+
+```css
+--couleur-menthe: #4ECDC4;  /* VERT  : bonne réponse */
+--couleur-corail: #FF6B6B;  /* ROUGE : réponse erronée */
+```
+
+Elles s'emploient sous deux formes, selon qu'on colore un **élément** ou du **texte** :
+
+```css
+/* Éléments cliquables (options de QCM, cartes, touches…) : fond + bordure */
+.correct   { background: color-mix(in srgb, var(--couleur-menthe) 45%, white); border-color: var(--couleur-menthe); }
+.incorrect { background: color-mix(in srgb, var(--couleur-corail) 35%, white); border-color: var(--couleur-corail); }
+
+/* Texte de correction : teintes assombries, pour rester lisibles sur blanc
+   (mêmes valeurs que .feedback-succes / .feedback-erreur, déjà en place) */
+.correction-attendue { color: color-mix(in srgb, var(--couleur-menthe) 70%, black 20%); }
+.correction-donnee   { color: color-mix(in srgb, var(--couleur-corail) 70%, black 20%); }
+```
+
+Ne jamais écrire un vert ou un rouge « en dur » (`green`, `#f00`…) : la teinte doit venir de ces variables, sans quoi le code couleur diffère insensiblement d'un module à l'autre.
+
+### Déclinaison par format de question
+
+| Format | Comportement attendu en cas d'erreur |
+|---|---|
+| **QCM** (une option parmi plusieurs) | L'option cliquée passe en `incorrect` (rouge) ; l'option juste passe en `correct` (vert) **même si elle n'a pas été cliquée**. |
+| **Saisie numérique** (pavé diégétique, champ) | Un bloc de correction affiche la valeur saisie en rouge ET la bonne valeur en vert. |
+| **Glisser-déposer / tri / appariement** | Chaque élément est coloré individuellement selon qu'il est bien placé (vert) ou non (rouge) ; quand la mécanique le permet, la position correcte est révélée en vert. Sinon, à défaut, un bloc de correction en donne la solution. |
+| **Texte à trou** | Le mot choisi à tort en rouge, le mot juste en vert. |
+
+### Utilitaire commun
+
+Pour tout ce qui ne se colore pas élément par élément (saisies, manipulations complexes), chaque module définit :
+
+```js
+/* Correction après une MAUVAISE réponse (CHARTE §18) : ce que l'enfant a
+   répondu en rouge, ce qu'il fallait répondre en vert. */
+function afficherCorrection(zone, donnee, attendue) {
+  const bloc = document.createElement('p');
+  bloc.className = 'bloc-correction';
+  if (donnee !== null && donnee !== undefined && donnee !== '') {
+    const d = document.createElement('span');
+    d.className = 'correction-donnee';
+    d.textContent = 'Ta réponse : ' + donnee;
+    bloc.appendChild(d);
+    bloc.appendChild(document.createTextNode(' — '));
+  }
+  const a = document.createElement('span');
+  a.className = 'correction-attendue';
+  a.textContent = 'La bonne réponse : ' + attendue;
+  bloc.appendChild(a);
+  zone.appendChild(bloc);
+  return bloc;
+}
+```
+
+Points d'attention :
+
+- n'afficher la correction **que** si la réponse est fausse (sur une bonne réponse, elle serait redondante et brouillerait la récompense) ;
+- l'afficher **avant** d'appeler la validation de manche, pour qu'elle soit visible en même temps que le message d'erreur ;
+- verrouiller les éléments interactifs au moment de la correction (`disabled`), afin que l'enfant ne puisse pas « corriger » après coup une réponse déjà validée.
+
+**Pour tout nouveau mini-jeu :** cette règle fait partie du gabarit dès la conception, au même titre que la navigation (§17). Un mini-jeu qui signale l'erreur sans montrer la solution est considéré comme non conforme.
