@@ -517,6 +517,16 @@
   .qcm-animal-image{ width:6rem; height:6rem; margin:.6rem auto; }
   .qcm-animal-definition{ margin-top:.8rem; padding-top:.7rem; border-top:2px dashed color-mix(in srgb, var(--couleur-soleil) 45%, white); }
 
+  /* ---- Périmètre CE2 « L'arpentage » — polygones irréguliers dont on
+     additionne les côtés. Les étiquettes de longueur portent un halo blanc
+     (paint-order) pour rester lisibles où qu'elles tombent, y compris sur le
+     remplissage de la figure ou par-dessus un trait. */
+  .arpentage-scene{ overflow-x:auto; margin:.9rem 0; }
+  .arpentage-scene svg{ display:block; margin:0 auto; }
+  .arpentage-etiquette{ font-family:inherit; font-size:.82rem; font-weight:700;
+    fill:var(--couleur-encre); stroke:#ffffff; stroke-width:3.5px; paint-order:stroke fill; }
+  .arpentage-etiquette-inconnue{ fill:var(--couleur-corail); font-size:1rem; }
+
   /* ---- Périmètre CE2 « La cartographie » — report au compas (manches 1-2) :
      deux polygones dont on reporte les côtés, un à un, sur une droite, pour
      comparer les périmètres SANS jamais lire de mesure. */
@@ -668,7 +678,8 @@
       "miniJeux": [
         { "id": "unites-decouverte-ce2", "titre": "Découverte : du microscopique à l'immensité", "icone": "🔍", "couleur": "corail", "description": "Classe des unités, puis associe chaque animal à sa taille.", "type": "decouverte-ce2", "nbTours": 5 },
         { "id": "calculs-mesure-ce2", "titre": "L'exploration", "icone": "🛶", "couleur": "soleil", "description": "Calcule des conversions et mesure à la règle, en cm et en mm.", "type": "exploration-ce2", "nbTours": 6, "capCm": 20 },
-        { "id": "perimetre-ce2", "titre": "La cartographie", "icone": "🗺️", "couleur": "mandarine", "description": "Compare des tours au compas, déplie des contours et mesure le périmètre au double décimètre.", "type": "perimetre", "nbTours": 7, "capCm": 16 }
+        { "id": "perimetre-ce2", "titre": "La cartographie", "icone": "🗺️", "couleur": "mandarine", "description": "Compare des tours au compas, déplie des contours et mesure le périmètre au double décimètre.", "type": "perimetre", "nbTours": 7, "capCm": 16 },
+        { "id": "perimetre-calcul-ce2", "titre": "L'arpentage", "icone": "📏", "couleur": "menthe", "description": "Additionne les côtés pour trouver le périmètre, même quand une longueur manque.", "type": "perimetre-calcul", "nbTours": 7 }
       ]
     }
   }
@@ -1376,6 +1387,7 @@
     else if (type === 'decouverte-ce2') genererDecouverteCE2(zone, etat.cfg);
     else if (type === 'exploration-ce2') genererExplorationCE2(zone, etat.cfg);
     else if (type === 'perimetre') genererPerimetre(zone, etat.cfg);
+    else if (type === 'perimetre-calcul') genererArpentage(zone, etat.cfg);
   }
 
   function validerTour(estCorrecte, boutonAValider) {
@@ -4441,6 +4453,289 @@
       });
       zoneAstuce.appendChild(grille);
     }
+  }
+
+  /* ================================================================
+     Mini-jeu 4 : « L'arpentage » (périmètre par ADDITION des côtés, CE2)
+     Prolongement du mini-jeu 3 : ici on ne mesure plus, on CALCULE. Les
+     figures sont des polygones irréguliers rectilignes (tous les angles
+     droits), ce qui garantit des côtés de longueur entière et un tracé
+     parfaitement lisible.
+       manches 1 à 3 → toutes les longueurs sont écrites sur la figure ;
+         il n'y a plus qu'à les additionner. Difficulté croissante par le
+         NOMBRE de côtés : 4, puis 6, puis 8.
+       manches 4 et 5 → deux longueurs manquent (« ? ») sur une figure en L :
+         chacune se déduit en additionnant les deux côtés opposés qui la
+         composent, avant de pouvoir faire le total.
+       manches 6 et 7 → problème de la clôture : le contour du terrain n'est
+         PAS fermé (un côté est le portail d'entrée, avec son chemin vers la
+         maison) et ne doit donc pas être compté dans la longueur de clôture.
+     ================================================================ */
+
+  const PX_ARPENTAGE = 22;
+
+  /* Polygones irréguliers RECTILIGNES à 4, 6 ou 8 côtés, en cm entiers, tous
+     les côtés valant au moins 2 cm pour rester lisibles une fois étiquetés. */
+  function polygoneArpentage(nbCotes) {
+    if (nbCotes === 4) {
+      const L = nombreAleatoire(5, 9);
+      const H = nombreAleatoire(3, 7);
+      return [[0, 0], [L, 0], [L, H], [0, H]];
+    }
+    if (nbCotes === 6) {
+      // Forme en L : rectangle L×H amputé d'un coin (w × h) en haut à droite.
+      const L = nombreAleatoire(6, 10);
+      const H = nombreAleatoire(5, 8);
+      const w = nombreAleatoire(2, L - 2);
+      const h = nombreAleatoire(2, H - 2);
+      return [[0, 0], [L, 0], [L, h], [w, h], [w, H], [0, H]];
+    }
+    // 8 côtés : trois familles rectilignes classiques.
+    const famille = choisir(['U', 'T', 'escalier']);
+    if (famille === 'U') {
+      const L = nombreAleatoire(8, 11);
+      const H = nombreAleatoire(5, 8);
+      const a = nombreAleatoire(2, Math.floor((L - 2) / 2));
+      const c = nombreAleatoire(2, H - 2);
+      return [[0, 0], [L, 0], [L, H], [L - a, H], [L - a, c], [a, c], [a, H], [0, H]];
+    }
+    if (famille === 'T') {
+      const L = nombreAleatoire(8, 11);
+      const H = nombreAleatoire(5, 8);
+      const h = nombreAleatoire(2, H - 2);
+      const m = nombreAleatoire(2, L - 4);
+      const w = nombreAleatoire(2, L - m - 2);
+      return [[0, 0], [L, 0], [L, h], [m + w, h], [m + w, H], [m, H], [m, h], [0, h]];
+    }
+    const L = nombreAleatoire(8, 11);
+    const H = nombreAleatoire(6, 8);
+    const a = nombreAleatoire(2, L - 4);
+    const c = nombreAleatoire(a + 2, L - 2);
+    const b = nombreAleatoire(2, H - 4);
+    const d = nombreAleatoire(b + 2, H - 2);
+    return [[0, 0], [a, 0], [a, b], [c, b], [c, d], [L, d], [L, H], [0, H]];
+  }
+
+  function cotesDuPolygone(pts) {
+    return pts.map((p, i) => {
+      const q = pts[(i + 1) % pts.length];
+      return Math.round(Math.hypot(q[0] - p[0], q[1] - p[1]));
+    });
+  }
+
+  /*
+   * Dessine un polygone d'arpentage et écrit une étiquette au milieu de
+   * chaque côté, POUSSÉE VERS L'EXTÉRIEUR : on oriente la normale de chaque
+   * côté d'après le sens de parcours du polygone (aire signée), ce qui place
+   * correctement les étiquettes y compris dans les creux d'une forme en L,
+   * en U ou en T. `etiquettes[i]` vaut null pour ne rien écrire.
+   * `options.coteOuvert` (facultatif) est l'indice du côté à NE PAS tracer :
+   * c'est l'entrée du terrain, dessinée en portail ouvert avec son chemin.
+   */
+  function creerSceneArpentage(pts, etiquettes, options) {
+    const opts = options || {};
+    const SVGNS = 'http://www.w3.org/2000/svg';
+    const PX = PX_ARPENTAGE;
+    const MARGE = 30;
+    const ecran = pts.map((p) => [p[0] * PX + MARGE, p[1] * PX + MARGE]);
+    const largeur = Math.max.apply(null, ecran.map((p) => p[0])) + MARGE;
+    const hauteur = Math.max.apply(null, ecran.map((p) => p[1])) + MARGE;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'arpentage-scene';
+    const svg = document.createElementNS(SVGNS, 'svg');
+    svg.setAttribute('width', largeur);
+    svg.setAttribute('height', hauteur);
+    svg.setAttribute('viewBox', '0 0 ' + largeur + ' ' + hauteur);
+    svg.setAttribute('aria-hidden', 'true');
+    wrap.appendChild(svg);
+
+    // Sens de parcours : l'aire signée donne le côté « extérieur ».
+    let aire = 0;
+    for (let i = 0; i < ecran.length; i++) {
+      const p = ecran[i], q = ecran[(i + 1) % ecran.length];
+      aire += p[0] * q[1] - q[0] * p[1];
+    }
+    const sens = aire > 0 ? 1 : -1;
+
+    const fond = document.createElementNS(SVGNS, 'polygon');
+    fond.setAttribute('points', ecran.map((p) => p[0] + ',' + p[1]).join(' '));
+    fond.style.fill = 'color-mix(in srgb, var(--couleur-menthe) 18%, white)';
+    svg.appendChild(fond);
+
+    for (let i = 0; i < ecran.length; i++) {
+      const p = ecran[i], q = ecran[(i + 1) % ecran.length];
+      const estOuvert = opts.coteOuvert === i;
+      if (!estOuvert) {
+        const trait = document.createElementNS(SVGNS, 'line');
+        trait.setAttribute('x1', p[0]); trait.setAttribute('y1', p[1]);
+        trait.setAttribute('x2', q[0]); trait.setAttribute('y2', q[1]);
+        trait.style.stroke = 'var(--couleur-mandarine)';
+        trait.setAttribute('stroke-width', '5');
+        trait.setAttribute('stroke-linecap', 'round');
+        trait.setAttribute('class', 'arpentage-cote');
+        svg.appendChild(trait);
+      }
+      if (etiquettes[i] == null) continue;
+      const dx = q[0] - p[0], dy = q[1] - p[1];
+      const norme = Math.hypot(dx, dy) || 1;
+      // Normale extérieure : rotation de 90° du côté, dans le sens qui
+      // s'éloigne de l'intérieur du polygone.
+      const nx = (dy / norme) * sens, ny = (-dx / norme) * sens;
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', (p[0] + dx / 2 + nx * 15).toFixed(1));
+      t.setAttribute('y', (p[1] + dy / 2 + ny * 15).toFixed(1));
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('dominant-baseline', 'middle');
+      t.setAttribute('class', 'arpentage-etiquette' + (etiquettes[i] === '?' ? ' arpentage-etiquette-inconnue' : ''));
+      t.textContent = etiquettes[i];
+      svg.appendChild(t);
+    }
+
+    if (opts.coteOuvert != null) {
+      const p = ecran[opts.coteOuvert], q = ecran[(opts.coteOuvert + 1) % ecran.length];
+      const mx = (p[0] + q[0]) / 2, my = (p[1] + q[1]) / 2;
+      const dx = q[0] - p[0], dy = q[1] - p[1];
+      const norme = Math.hypot(dx, dy) || 1;
+      const ux = dx / norme, uy = dy / norme;              // le long du côté
+      const nx = (dy / norme) * sens, ny = (-dx / norme) * sens; // vers l'extérieur
+      // Deux battants OUVERTS : ils pivotent vers l'extérieur depuis chaque
+      // montant, laissant le passage libre entre eux.
+      const battant = norme * 0.32;
+      [[p, 1], [q, -1]].forEach(([base, signe]) => {
+        const bx = base[0] + (ux * signe * battant * 0.15) + nx * battant * 0.95;
+        const by = base[1] + (uy * signe * battant * 0.15) + ny * battant * 0.95;
+        const b = document.createElementNS(SVGNS, 'line');
+        b.setAttribute('x1', base[0]); b.setAttribute('y1', base[1]);
+        b.setAttribute('x2', bx.toFixed(1)); b.setAttribute('y2', by.toFixed(1));
+        b.style.stroke = 'var(--couleur-encre)';
+        b.setAttribute('stroke-width', '4');
+        b.setAttribute('stroke-linecap', 'round');
+        b.setAttribute('class', 'arpentage-battant');
+        svg.appendChild(b);
+      });
+      // Le chemin : du portail vers la maison, en pointillés.
+      const centre = [ecran.reduce((s, e) => s + e[0], 0) / ecran.length,
+        ecran.reduce((s, e) => s + e[1], 0) / ecran.length];
+      const chemin = document.createElementNS(SVGNS, 'line');
+      chemin.setAttribute('x1', mx.toFixed(1)); chemin.setAttribute('y1', my.toFixed(1));
+      chemin.setAttribute('x2', centre[0].toFixed(1)); chemin.setAttribute('y2', centre[1].toFixed(1));
+      chemin.style.stroke = 'color-mix(in srgb, var(--couleur-encre) 35%, white)';
+      chemin.setAttribute('stroke-width', '4');
+      chemin.setAttribute('stroke-dasharray', '7 5');
+      chemin.setAttribute('class', 'arpentage-chemin');
+      svg.appendChild(chemin);
+      // La maison, au bout du chemin.
+      const maison = document.createElementNS(SVGNS, 'g');
+      maison.setAttribute('class', 'arpentage-maison');
+      const cm = 26;
+      const mxs = centre[0] - cm / 2, mys = centre[1] - cm / 2;
+      const mur = document.createElementNS(SVGNS, 'rect');
+      mur.setAttribute('x', mxs.toFixed(1)); mur.setAttribute('y', mys.toFixed(1));
+      mur.setAttribute('width', cm); mur.setAttribute('height', cm);
+      mur.style.fill = 'color-mix(in srgb, var(--couleur-soleil) 55%, white)';
+      mur.style.stroke = 'var(--couleur-encre)';
+      mur.setAttribute('stroke-width', '2');
+      maison.appendChild(mur);
+      const toit = document.createElementNS(SVGNS, 'polygon');
+      toit.setAttribute('points', [
+        (mxs - 4).toFixed(1) + ',' + mys.toFixed(1),
+        (mxs + cm + 4).toFixed(1) + ',' + mys.toFixed(1),
+        centre[0].toFixed(1) + ',' + (mys - 15).toFixed(1)
+      ].join(' '));
+      toit.style.fill = 'var(--couleur-corail)';
+      toit.style.stroke = 'var(--couleur-encre)';
+      toit.setAttribute('stroke-width', '2');
+      maison.appendChild(toit);
+      svg.appendChild(maison);
+    }
+
+    return wrap;
+  }
+
+  /* Saisie du périmètre au pavé numérique diégétique (même composant que le
+     reste du palier CE2), avec un rappel du total attendu en cm. */
+  function creerSaisiePerimetre(zone, reponse, texteQuestion) {
+    const legende = document.createElement('p');
+    legende.className = 'legende';
+    legende.textContent = texteQuestion;
+    zone.appendChild(legende);
+    const pave = creerPave((valeur) => {
+      pave.verrouiller(true);
+      validerTour(valeur === reponse, null);
+    }, 3);
+    zone.appendChild(pave.el);
+  }
+
+  function genererArpentage(zone, cfg) {
+    if (etat.index <= 3) genererArpentageAddition(zone, [4, 6, 8][etat.index - 1]);
+    else if (etat.index <= 5) genererArpentageManquants(zone);
+    else genererArpentageCloture(zone);
+  }
+
+  /* Manches 1 à 3 — toutes les longueurs sont données : additionner. */
+  function genererArpentageAddition(zone, nbCotes) {
+    const pts = polygoneArpentage(nbCotes);
+    const cotes = cotesDuPolygone(pts);
+    const total = cotes.reduce((a, b) => a + b, 0);
+
+    zone.appendChild(creerBlocConsigne(
+      'Fais le tour de la parcelle : additionne les ' + nbCotes + ' côtés pour trouver le périmètre.',
+      'Cette parcelle a ' + nbCotes + ' côtés, et la longueur de chacun est écrite dessus. Additionne-les toutes : le résultat est le périmètre, en centimètres.'
+    ));
+    zone.appendChild(creerSceneArpentage(pts, cotes.map((c) => c + ' cm')));
+    creerSaisiePerimetre(zone, total, 'Quel est le périmètre de cette parcelle, en centimètres ?');
+  }
+
+  /* Manches 4 et 5 — deux longueurs manquent sur une figure en L : les deux
+     GRANDS côtés, chacun égal à la somme des deux côtés opposés qui lui font
+     face. L'enfant doit les déduire avant de pouvoir faire le total. */
+  function genererArpentageManquants(zone) {
+    const pts = polygoneArpentage(6);
+    const cotes = cotesDuPolygone(pts);
+    const total = cotes.reduce((a, b) => a + b, 0);
+    // Côtés de la forme en L : [L, h, L-w, H-h, w, H] — on masque L (indice 0)
+    // et H (indice 5), qui se retrouvent en additionnant respectivement
+    // (L-w)+w et h+(H-h).
+    const masques = [0, 5];
+    const etiquettes = cotes.map((c, i) => (masques.indexOf(i) === -1 ? c + ' cm' : '?'));
+
+    zone.appendChild(creerBlocConsigne(
+      'Deux longueurs manquent : déduis-les, puis calcule le périmètre.',
+      'Sur cette parcelle, deux côtés ne sont pas mesurés : ils sont marqués d\'un point d\'interrogation. Retrouve chacun en additionnant les côtés qui lui font face, puis additionne les six côtés pour trouver le périmètre.'
+    ));
+    zone.appendChild(creerSceneArpentage(pts, etiquettes));
+    const aide = document.createElement('p');
+    aide.className = 'legende';
+    aide.textContent = 'Astuce : un côté marqué « ? » est aussi long que les deux côtés qui lui font face, mis bout à bout.';
+    zone.appendChild(aide);
+    creerSaisiePerimetre(zone, total, 'Quel est le périmètre de cette parcelle, en centimètres ?');
+  }
+
+  /* Manches 6 et 7 — problème : la clôture entoure le terrain SAUF l'entrée.
+     Toutes les longueurs sont données, y compris celle du portail : c'est à
+     l'enfant de comprendre qu'il ne faut pas la compter. */
+  function genererArpentageCloture(zone) {
+    const pts = polygoneArpentage(choisir([4, 6]));
+    const cotes = cotesDuPolygone(pts);
+    const totalFerme = cotes.reduce((a, b) => a + b, 0);
+    // Le portail est pris parmi les côtés les plus courts : une entrée large
+    // comme un grand côté serait invraisemblable.
+    const minCote = Math.min.apply(null, cotes);
+    const candidats = cotes.map((c, i) => ({ c, i })).filter((x) => x.c <= minCote + 1);
+    const portail = choisir(candidats).i;
+    const reponse = totalFerme - cotes[portail];
+
+    zone.appendChild(creerBlocConsigne(
+      'Quelle est la longueur de la clôture qui entoure la maison ?',
+      'La clôture fait tout le tour du terrain, sauf à l\'entrée : le portail est ouvert, et un chemin mène à la maison. Additionne les côtés clôturés — celui du portail ne compte pas.'
+    ));
+    zone.appendChild(creerSceneArpentage(pts, cotes.map((c) => c + ' cm'), { coteOuvert: portail }));
+    const aide = document.createElement('p');
+    aide.className = 'legende';
+    aide.textContent = 'Le côté du portail (' + cotes[portail] + ' cm) n\'est pas clôturé : ne le compte pas.';
+    zone.appendChild(aide);
+    creerSaisiePerimetre(zone, reponse, 'Quelle longueur de clôture faut-il, en centimètres ?');
   }
 
   /* ---------- Initialisation ---------- */
