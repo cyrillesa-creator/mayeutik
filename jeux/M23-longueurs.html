@@ -171,6 +171,11 @@
     display:block; margin:0 auto; min-height:44px; border-radius:14px; border:2.5px solid var(--couleur-encre);
     background:#ffffff; padding:0 1.1rem; font-weight:500; touch-action:manipulation;
   }
+  /* Filet de sécurité de la règle mobile : discret (il ne doit pas concurrencer
+     les boutons de réponse), mais toujours là. */
+  .bouton-recentrer{ margin-top:.5rem; font-size:.86rem; min-height:40px; padding:0 .9rem;
+    border-width:2px; border-color:color-mix(in srgb, var(--couleur-encre) 35%, white);
+    color:color-mix(in srgb, var(--couleur-encre) 75%, white); }
 
   /* Retour à la coquille (CHARTE §7) : bouton discret + confirmation */
   .barre-accueil{ display:flex; margin-bottom:.6rem; }
@@ -4332,7 +4337,8 @@
       }
     }
 
-    let x = 20, y = 20;
+    const X0 = 20, Y0 = 20;
+    let x = X0, y = Y0;
     let angleLogique = angleInitial || 0;   // l'angle « vrai » des doigts
     let angleAffiche = angleInitial || 0;   // l'angle rendu (aimanté ou libre)
     let dernierAccroche = angleInitial || 0;
@@ -4345,10 +4351,76 @@
       }
       return null; // pas assez proche d'un multiple de 90° : rotation libre
     }
+    /* Empreinte réelle de la règle une fois TOURNÉE, exprimée depuis son
+       origine de transformation (0 50%). À 0° elle est large et plate, à 90°
+       haute et étroite : les bornes de déplacement doivent donc être
+       recalculées à chaque application, jamais figées sur la taille au repos. */
+    function empreinte() {
+      const W = regle.offsetWidth, H = regle.offsetHeight;
+      const a = angleAffiche * Math.PI / 180;
+      const cos = Math.cos(a), sin = Math.sin(a);
+      // Coins de la boîte, ramenés à l'origine de transformation (0, H/2).
+      const coins = [[0, -H / 2], [W, -H / 2], [W, H / 2], [0, H / 2]];
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      coins.forEach((pt) => {
+        const rx = pt[0] * cos - pt[1] * sin;
+        const ry = pt[0] * sin + pt[1] * cos;
+        if (rx < minX) minX = rx; if (rx > maxX) maxX = rx;
+        if (ry < minY) minY = ry; if (ry > maxY) maxY = ry;
+      });
+      return { minX, maxX, minY, maxY, H };
+    }
+
+    /* Contrainte de position : la scène est en `overflow:hidden`, donc une
+       règle glissée au-delà de ses bords devient à la fois INVISIBLE et
+       INSAISISSABLE — l'enfant se retrouve bloqué. On borne donc (x, y) au
+       lieu de suivre le doigt indéfiniment : le geste s'arrête net au bord,
+       sans à-coup (on ne fait que rogner la valeur, pas la réinitialiser).
+         - si la règle TIENT dans la scène : elle y est enfermée entièrement ;
+         - sinon (règle verticale plus haute que la scène, par exemple) : on
+           garantit qu'elle la RECOUVRE, donc qu'une partie reste toujours
+           visible et attrapable. */
+    function borner() {
+      const parent = regle.offsetParent;
+      if (!parent) return; // pas encore dans le document : rien à borner
+      const dispoL = parent.clientWidth, dispoH = parent.clientHeight;
+      if (!dispoL || !dispoH) return;
+      const e = empreinte();
+      const largeur = e.maxX - e.minX, hauteur = e.maxY - e.minY;
+      const gMin = largeur <= dispoL ? 0 : dispoL - largeur;
+      const gMax = largeur <= dispoL ? dispoL - largeur : 0;
+      const hMin = hauteur <= dispoH ? 0 : dispoH - hauteur;
+      const hMax = hauteur <= dispoH ? dispoH - hauteur : 0;
+      // Bord gauche de l'empreinte = x + e.minX ; bord haut = y + H/2 + e.minY.
+      const decalageY = e.minY + e.H / 2;
+      x = Math.min(Math.max(x, gMin - e.minX), gMax - e.minX);
+      y = Math.min(Math.max(y, hMin - decalageY), hMax - decalageY);
+    }
+
     function appliquer() {
+      borner();
       regle.style.transform = 'translate(' + x + 'px,' + y + 'px) rotate(' + angleAffiche + 'deg)';
     }
     appliquer();
+    // Une fois insérée dans la scène (donc mesurable), on borne une première
+    // fois : la position de départ elle-même doit être valide.
+    requestAnimationFrame(appliquer);
+
+    /* Filet de sécurité : remet la règle à son point de départ. Utilisé par le
+       bouton « Recentrer la règle », et rejoué à chaque redimensionnement /
+       rotation de l'écran — sans quoi une règle valide en portrait pourrait se
+       retrouver hors cadre en paysage. */
+    function reinitialiser() {
+      x = X0; y = Y0;
+      angleLogique = angleAffiche = angleInitial || 0;
+      regle.classList.remove('regle-mobile-accrochee');
+      appliquer();
+    }
+    function surRedimensionnement() {
+      if (!regle.isConnected) { window.removeEventListener('resize', surRedimensionnement); return; }
+      appliquer(); // re-borne sur les nouvelles dimensions de la scène
+    }
+    window.addEventListener('resize', surRedimensionnement);
 
     if (angleInitial === undefined) {
       // Mode ROTATABLE (règle unique) : glisser à 1 doigt, pivoter à 2.
@@ -4431,7 +4503,7 @@
       regle.addEventListener('pointercancel', relever);
     }
 
-    return { el: regle };
+    return { el: regle, reinitialiser };
   }
 
   /*
@@ -4461,6 +4533,12 @@
 
     const scene = document.createElement('div');
     scene.className = 'perimetre-scene';
+    // La scène doit pouvoir contenir la règle DEBOUT (après pivot à 90°) :
+    // sa hauteur utile vaut donc au moins la LONGUEUR de la règle, marge
+    // comprise. Sans cela, la règle verticale déborderait forcément et
+    // resterait à moitié rognée par l'`overflow:hidden` de la scène.
+    const LONGUEUR_REGLE_PX = cap * 16 + 24;
+    scene.style.minHeight = (LONGUEUR_REGLE_PX + 30) + 'px';
     const RECT_PX = 16;
     const rect = document.createElement('div');
     rect.className = 'perimetre-rectangle';
@@ -4476,11 +4554,18 @@
     boutonRepli.type = 'button'; boutonRepli.className = 'bouton-secondaire';
     boutonRepli.textContent = 'Difficile à tourner ? Essaie 2 règles';
 
+    // Filet de sécurité permanent : même si la règle se retrouvait dans un
+    // état inattendu, un appui la ramène à son point de départ, à plat.
+    const boutonRecentrer = document.createElement('button');
+    boutonRecentrer.type = 'button'; boutonRecentrer.className = 'bouton-secondaire bouton-recentrer';
+    boutonRecentrer.textContent = '⟲ Recentrer la règle';
+
     const zoneLongueur = document.createElement('div');
     const zoneLargeur = document.createElement('div');
     const zoneAstuce = document.createElement('div');
 
     let modeDouble = false;
+    let reglesActives = [];
     let largeurDebloquee = false;
     let longueurRepondue = false;
     let questionLargeurAffichee = false;
@@ -4501,20 +4586,27 @@
 
     function rendreRegles() {
       conteneurRegles.innerHTML = '';
+      reglesActives = [];
       if (!modeDouble) {
-        const { el } = creerRegleMobile(cap, undefined, (angleAccroche) => {
+        const regle = creerRegleMobile(cap, undefined, (angleAccroche) => {
           if (angleAccroche === 90 || angleAccroche === 270) debloquerLargeur();
         });
-        conteneurRegles.appendChild(el);
+        reglesActives.push(regle);
+        conteneurRegles.appendChild(regle.el);
       } else {
         const rH = creerRegleMobile(cap, 0);
         const rV = creerRegleMobile(cap, 90);
+        reglesActives.push(rH, rV);
         conteneurRegles.appendChild(rH.el);
         conteneurRegles.appendChild(rV.el);
         debloquerLargeur();
       }
     }
     rendreRegles();
+
+    boutonRecentrer.addEventListener('click', () => {
+      reglesActives.forEach((r) => r.reinitialiser());
+    });
 
     boutonRepli.addEventListener('click', () => {
       modeDouble = true;
@@ -4528,6 +4620,7 @@
     // recouvrir (intercepter les clics) par la règle malgré son ordre DOM
     // plus tardif. En le sortant de `scene`, aucun risque de chevauchement.
     zone.appendChild(boutonRepli);
+    zone.appendChild(boutonRecentrer);
 
     function construireQuestionCote(cont, estLongueur, cible, apres) {
       const legende = document.createElement('p');
