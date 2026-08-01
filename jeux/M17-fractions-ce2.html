@@ -470,6 +470,13 @@
   .cellule-interactive.rempli { background: var(--couleur-soleil); }
   .forme-bande-interactive.verrouille .cellule-interactive.rempli { background: var(--couleur-menthe); }
 
+  /* Correction affichée après une MAUVAISE réponse (CHARTE §18) : la réponse
+     donnée en rouge, la bonne en vert. Mêmes teintes que .feedback-succes /
+     .feedback-erreur, assombries pour rester lisibles sur blanc. */
+  .bloc-correction{ text-align:center; font-weight:700; font-size:.98rem; margin:.7rem 0 .2rem; }
+  .correction-donnee{ color:color-mix(in srgb, var(--couleur-corail) 70%, black 20%); }
+  .correction-attendue{ color:color-mix(in srgb, var(--couleur-menthe) 70%, black 20%); }
+
   /* Feedback + navigation */
 
   .feedback {
@@ -953,6 +960,27 @@
     }
   }
 
+  /* Correction après une MAUVAISE réponse (CHARTE §18) : ce que l'enfant a
+     répondu en rouge, ce qu'il fallait répondre en vert. N'est jamais appelée
+     sur une bonne réponse (elle brouillerait la récompense). */
+  function afficherCorrection(zone, donnee, attendue) {
+    const bloc = document.createElement('p');
+    bloc.className = 'bloc-correction';
+    if (donnee !== null && donnee !== undefined && donnee !== '') {
+      const d = document.createElement('span');
+      d.className = 'correction-donnee';
+      d.textContent = 'Ta réponse : ' + donnee;
+      bloc.appendChild(d);
+      bloc.appendChild(document.createTextNode(' — '));
+    }
+    const a = document.createElement('span');
+    a.className = 'correction-attendue';
+    a.textContent = 'La bonne réponse : ' + attendue;
+    bloc.appendChild(a);
+    zone.appendChild(bloc);
+    return bloc;
+  }
+
   function construireAccueil() {
     document.getElementById('sous-titre-accueil').textContent = donnees.sousTitre;
     const grille = document.getElementById('grille-jeux');
@@ -1414,15 +1442,24 @@
         slot.appendChild(creerFractionLabel(f.n, f.d));
         if (selection.length === fractions.length) {
           const estCorrecte = selection.every((v, i) => v === ordreCorrect[i]);
+          // CHARTE §18 : d'abord SON rangement, chaque case en vert ou en
+          // rouge selon qu'elle est bien placée ; puis, après une pause, la
+          // solution vient s'y écrire — en VERT, jamais en rouge (le rouge
+          // ne doit jamais désigner la bonne réponse).
           slots.forEach((s, i) => {
-            s.classList.add(estCorrecte ? 'correct' : 'incorrect');
+            s.classList.add(selection[i] === ordreCorrect[i] ? 'correct' : 'incorrect');
           });
           if (!estCorrecte) {
-            slots.forEach((s, i) => {
-              const bonneFraction = fractions[ordreCorrect[i]];
-              s.innerHTML = '';
-              s.appendChild(creerFractionLabel(bonneFraction.n, bonneFraction.d));
-            });
+            setTimeout(() => {
+              if (!slots[0].isConnected) return; // question déjà quittée
+              slots.forEach((s, i) => {
+                const bonneFraction = fractions[ordreCorrect[i]];
+                s.innerHTML = '';
+                s.appendChild(creerFractionLabel(bonneFraction.n, bonneFraction.d));
+                s.classList.remove('incorrect');
+                s.classList.add('correct');
+              });
+            }, 900);
           }
           validerReponse(estCorrecte);
         }
@@ -1567,9 +1604,13 @@
       cellules.forEach((c) => (c.disabled = true));
       boutonValider.disabled = true;
       boutonValider.hidden = true;
-      compteur.innerHTML = estCorrecte
-        ? 'Résultat : <strong>' + calc.resultat.n + '/' + dGrand + '</strong>'
-        : 'La bonne réponse était <strong>' + calc.resultat.n + '/' + dGrand + '</strong> (tu avais ' + total + '/' + dGrand + ')';
+      if (estCorrecte) {
+        compteur.innerHTML = 'Résultat : <strong>' + calc.resultat.n + '/' + dGrand + '</strong>';
+      } else {
+        // CHARTE §18 : sa réponse en rouge, la bonne en vert.
+        compteur.textContent = '';
+        afficherCorrection(compteur, total + '/' + dGrand, calc.resultat.n + '/' + dGrand);
+      }
       validerReponse(estCorrecte);
     });
     zone.appendChild(boutonValider);
