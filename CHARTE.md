@@ -609,3 +609,38 @@ Cette règle complète le standard « Modules adaptatifs par niveau » (section 
 Avant toute modification touchant le filtrage ou l'affichage par domaine/niveau/thème, vérifier qu'elle continue de fonctionner pour une valeur **absente aujourd'hui** des données mais déclarée dans le référentiel (domaine sans module, niveau sans module, palier bonus au-delà du dernier niveau couvert) — c'est le test de non-régression implicite de cette section.
 
 ---
+
+## 17. Navigation : remonter en haut à chaque changement d'écran (obligatoire)
+
+**Règle générale, applicable à la coquille comme à tous les modules :** à chaque changement d'écran, l'écran d'ARRIVÉE s'affiche **positionné tout en haut**. L'utilisateur ne doit jamais avoir à remonter lui-même pour découvrir le début d'un nouveau contenu.
+
+**Pourquoi.** Le défilement appartient au document, pas à l'écran : quand un écran est remplacé par un autre (les deux vivant dans la même page), la position de défilement héritée reste celle de l'écran précédent. Un enfant qui vient de valider une réponse en bas de page (pavé numérique, bouton « Suivant »…) se retrouve alors au milieu — ou en bas — de la manche suivante, devant un contenu qui semble amputé de son début (consigne, figure, question).
+
+**Transitions concernées — sans exception :**
+
+- coquille : tout changement de route/vue (accueil, choix de profil, modification de profil, espace parent) ;
+- modules : accueil du module → mini-jeu, manche → manche suivante, dernière manche → écran de résultats, résultats → accueil, retour arrière depuis un mini-jeu, changement de palier (section 15) ;
+- plus généralement, **toute fonction qui masque un écran pour en révéler un autre**, ou qui reconstruit entièrement le contenu d'un écran.
+
+**Mise en œuvre.** Chaque module définit un utilitaire unique, appelé au moment où le nouvel écran devient visible :
+
+```js
+/* Remonte en haut à chaque changement d'écran (CHARTE §17) : sans cela, le
+   nouvel écran hérite du défilement de l'écran précédent. */
+function remonterEnHaut() {
+  try {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  } catch (e) {
+    window.scrollTo(0, 0); // navigateurs sans l'API à options
+  }
+}
+```
+
+Points d'attention :
+
+- **`behavior: 'auto'`, jamais `'smooth'`** : un défilement animé au moment d'une transition donne une impression de glissement parasite, et peut être interrompu par le rendu du nouvel écran. Le repositionnement doit être instantané et invisible.
+- appeler l'utilitaire **après** avoir basculé la visibilité des écrans et injecté le nouveau contenu, pas avant : remonter puis rallonger la page peut laisser le navigateur restaurer l'ancienne position.
+- si un module introduit un jour un **conteneur de défilement propre** (`overflow-y: auto`) plutôt que le défilement de la fenêtre, c'est ce conteneur qu'il faut remettre à `scrollTop = 0`, en plus de la fenêtre.
+- ne PAS confondre avec un `scrollIntoView()` volontaire à l'intérieur d'un même écran (ex. faire défiler vers une liste après un clic sur un compteur, côté parent) : cette section ne concerne que les **changements d'écran**.
+
+**Pour tout nouveau module :** cette règle fait partie du gabarit dès la conception. Un module dont une transition laisse l'utilisateur en position basse est considéré comme non conforme, au même titre qu'une cible tactile trop petite.
