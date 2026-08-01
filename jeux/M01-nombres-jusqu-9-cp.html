@@ -643,6 +643,19 @@
 
   /* ---------- Écran d'accueil ---------- */
 
+  /* Remonte en haut à chaque changement d'écran (CHARTE §17) : sans cela, le
+     nouvel écran hérite du défilement de l'écran précédent — l'enfant qui
+     vient de valider en bas de page se retrouverait au milieu de la manche
+     suivante. Repositionnement instantané (jamais « smooth » : un glissement
+     animé pendant une transition est parasite). */
+  function remonterEnHaut() {
+    try {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    } catch (e) {
+      window.scrollTo(0, 0); // navigateurs sans l'API à options
+    }
+  }
+
   function construireAccueil() {
     document.getElementById('sous-titre-accueil').textContent = donnees.sousTitre;
     const grille = document.getElementById('grille-jeux');
@@ -679,6 +692,7 @@
     document.getElementById('ecran-jeu').hidden = true;
     document.getElementById('ecran-accueil').hidden = false;
     construireAccueil();
+    remonterEnHaut();
   }
 
   /* ---------- Contrôleur de jeu ---------- */
@@ -691,6 +705,7 @@
     document.getElementById('ecran-jeu').hidden = false;
     document.getElementById('titre-jeu-courant').textContent = trouverConfig(jeuId).titre;
     questionSuivante();
+    remonterEnHaut();
   }
 
   function majProgression() {
@@ -715,6 +730,7 @@
     else if (cfg.id === 'constituer') genererConstituer(zone, cfg);
     else if (cfg.id === 'autant-que') genererAutantQue(zone, cfg);
     else if (cfg.id === 'ranger') genererRanger(zone, cfg);
+    remonterEnHaut();
   }
 
   function validerReponse(estCorrecte) {
@@ -784,6 +800,7 @@
       lancerConfettis();
       jouerSon('bravo');
     }
+    remonterEnHaut();
   }
 
   /* ---------- Mini-jeu 1 : Compte les petites bêtes (dénombrer — tap) ---------- */
