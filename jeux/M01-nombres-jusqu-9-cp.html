@@ -1330,9 +1330,8 @@
       bete.textContent = espece.emoji;
       reserve.appendChild(bete);
       activerDrag(bete, {
-        onDepose(x, y) {
-          const rect = grilleCible.getBoundingClientRect();
-          const dansZone = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+        onDepose(x, y, el, rectLache) {
+          const dansZone = scoreDepot(rectLache, x, y, grilleCible) > 0;
           if (dansZone && bete.parentElement !== grilleCible) grilleCible.appendChild(bete);
           else if (!dansZone && bete.parentElement === grilleCible) reserve.appendChild(bete);
         }
@@ -1553,11 +1552,8 @@
       elements[val] = el;
 
       activerDrag(el, {
-        onDepose(x, y) {
-          const slotCible = slots.find((s) => {
-            const r = s.getBoundingClientRect();
-            return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
-          });
+        onDepose(x, y, elem, rectLache) {
+          const slotCible = meilleureCible(rectLache, x, y, slots);
           if (!slotCible) {
             if (el.dataset.slot !== '') { reserve.appendChild(el); el.dataset.slot = ''; }
             verifierRemplissage();
