@@ -237,6 +237,39 @@
   .tally-marques{ letter-spacing:1px; color:color-mix(in srgb, var(--couleur-mandarine) 70%, black 10%); font-weight:700; }
 
   /* ---- Diagramme en barres (construction et lecture) ---- */
+
+  /* ---- Sondage du jardin : décompte manuel puis report au pavé ---- */
+  /* Marques de comptage groupées par cinq : c'est le groupement qui rend le
+     total dénombrable d'un coup d'œil, seul intérêt d'un tableau de décompte. */
+  .tally-paquet{ display:inline-block; margin-right:.55rem; letter-spacing:2px; white-space:nowrap; }
+  .tally-paquet.complet{ text-decoration:line-through; text-decoration-thickness:2px; }
+  .cellule-total{ min-width:3.2rem; }
+  .cellule-total.a-saisir{ cursor:pointer; background:color-mix(in srgb, var(--couleur-soleil) 25%, white);
+    border:2px dashed var(--couleur-mandarine); font-weight:700; }
+  .cellule-total.a-saisir.active{ background:color-mix(in srgb, var(--couleur-mandarine) 30%, white); }
+  .cellule-total.correct{ background:color-mix(in srgb, var(--couleur-menthe) 45%, white); border-color:var(--couleur-menthe); }
+  .cellule-total.incorrect{ background:color-mix(in srgb, var(--couleur-corail) 35%, white); border-color:var(--couleur-corail); }
+
+  /* ---- Diagramme à CONSTRUIRE : on clique une case pour monter la barre ---- */
+  .diagramme-construction{ display:flex; align-items:flex-end; justify-content:center; gap:.5rem;
+    margin:.9rem 0; overflow-x:auto; padding:.2rem; }
+  .axe-diagramme{ display:flex; flex-direction:column-reverse; }
+  .axe-graduation{ height:26px; display:flex; align-items:center; justify-content:flex-end;
+    padding-right:.3rem; font-size:.72rem; font-weight:700; opacity:.55; }
+  .colonne-construction{ display:flex; flex-direction:column; align-items:center; }
+  /* Le quadrillage EST la grille des cases : bordures claires posées sur chaque
+     case, donc toujours alignées avec la graduation, sans calcul de position. */
+  .pile-construction{ display:flex; flex-direction:column-reverse;
+    border-left:1.5px solid color-mix(in srgb, var(--couleur-encre) 22%, white);
+    border-bottom:2.5px solid color-mix(in srgb, var(--couleur-encre) 35%, white); }
+  .case-construction{
+    width:2.1rem; height:26px; box-sizing:border-box; padding:0; touch-action:manipulation;
+    border:1px solid color-mix(in srgb, var(--couleur-encre) 10%, white);
+    background:color-mix(in srgb, var(--couleur-encre) 2%, white);
+  }
+  .case-construction.remplie{ background:var(--c, var(--couleur-mandarine));
+    border-color:color-mix(in srgb, var(--couleur-encre) 20%, transparent); }
+  .colonne-construction .etiquette-colonne{ font-size:1.5rem; margin-top:.2rem; }
   .diagramme{ display:flex; align-items:flex-end; justify-content:center; gap:1.1rem; margin:.9rem 0; min-height:9rem; flex-wrap:wrap; }
   .colonne-diagramme{ display:flex; flex-direction:column; align-items:center; gap:.35rem; }
   .pile-cases{ display:flex; flex-direction:column-reverse; gap:2px; min-height:2px; }
@@ -378,13 +411,13 @@
   "paliers": {
     "CP": {
       "miniJeux": [
-        { "id": "cp-recueil-diagramme", "titre": "Le sondage du jardin", "icone": "📊", "couleur": "mandarine", "description": "Compte les votes et construis le diagramme.", "type": "recueil-diagramme", "nbTours": 3, "nbEspeces": 3, "capParEspece": 8 },
+        { "id": "cp-recueil-diagramme", "titre": "Le sondage du jardin", "icone": "📊", "couleur": "mandarine", "description": "Compte les votes et construis le diagramme.", "type": "recueil-diagramme", "nbTours": 3, "nbEspeces": 3, "capParEspece": 8, "totalMax": 15 },
         { "id": "cp-tableau-double-entree", "titre": "Le grand tableau", "icone": "🗂️", "couleur": "menthe", "description": "Range chaque bête dans la bonne case.", "type": "tableau-double-entree", "nbTours": 3, "nbEspeces": 2, "nbCouleurs": 2, "capParCase": 4 }
       ]
     },
     "CE1": {
       "miniJeux": [
-        { "id": "ce1-recueil-diagramme", "titre": "Le grand sondage", "icone": "📊", "couleur": "mandarine", "description": "Le jardin s'est agrandi : compte bien tout le monde !", "type": "recueil-diagramme", "nbTours": 2, "nbEspeces": 4, "capParEspece": 16 },
+        { "id": "ce1-recueil-diagramme", "titre": "Le grand sondage", "icone": "📊", "couleur": "mandarine", "description": "Le jardin s'est agrandi : compte bien tout le monde !", "type": "recueil-diagramme", "nbTours": 2, "nbEspeces": 4, "capParEspece": 16, "totalMax": 24 },
         { "id": "ce1-lecture", "titre": "Lis le jardin", "icone": "🔍", "couleur": "soleil", "description": "Lis le diagramme et le tableau déjà construits.", "type": "lecture", "nbTours": 5, "nbEspeces": 4, "capParEspece": 16, "nbZones": 2 }
       ]
     },
@@ -667,6 +700,36 @@
     if (contexteAudio.state === 'suspended') contexteAudio.resume();
     return contexteAudio;
   }
+  /* ---------- Pavé numérique diégétique (composant de la charte) ----------
+     Reprise à l'identique du composant des autres modules : jamais de champ de
+     saisie brut pour un nombre, l'enfant compose sa réponse au pavé. */
+  function creerPave(onValider, maxChiffres) {
+    const conteneur = document.createElement('div');
+    conteneur.className = 'pave-numerique';
+    const ecran = document.createElement('div');
+    ecran.className = 'pave-ecran';
+    ecran.textContent = ' ';
+    const grille = document.createElement('div');
+    grille.className = 'pave-grille';
+    let val = '';
+    const maj = () => { ecran.textContent = val || ' '; };
+    ['7', '8', '9', '4', '5', '6', '1', '2', '3', 'C', '0', '✓'].forEach((t) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'touche-pave'; b.textContent = t;
+      if (t === '✓') b.classList.add('touche-valider');
+      if (t === 'C') b.classList.add('touche-effacer');
+      b.addEventListener('click', () => {
+        if (t === 'C') { val = ''; maj(); }
+        else if (t === '✓') { if (val !== '') onValider(parseInt(val, 10)); }
+        else if (val.length < maxChiffres) { val += t; maj(); }
+      });
+      grille.appendChild(b);
+    });
+    conteneur.appendChild(ecran);
+    conteneur.appendChild(grille);
+    return { el: conteneur, verrouiller: (v) => grille.querySelectorAll('button').forEach((b) => { b.disabled = v; }) };
+  }
+
   /* ---------- Composant sonore partagé (CHARTE §5) ----------
      Mêmes sons dans toute la série, générés à l'oscillateur : aucun fichier
      audio, donc aucune dépendance réseau. */
@@ -1292,19 +1355,111 @@
      Mini-jeu : Recueil + diagramme (CP et CE1, gabarit partagé)
      ================================================================ */
 
+  /* Diagramme à CONSTRUIRE case par case : l'enfant clique la case à la hauteur
+     voulue et la barre monte jusque-là (recliquer la case du sommet la fait
+     redescendre). Le quadrillage de fond n'est pas un décor : ce sont les
+     bordures des cases elles-mêmes, donc toujours alignées avec la graduation
+     de gauche — aucun risque de décalage entre le repère et ce qu'on clique.
+     Convention du module : 1 case = 1 individu. */
+  function construireDiagrammeConstructible(options) {
+    const { colonnes, valeurs, hauteurMax, onChangement } = options;
+    const wrap = document.createElement('div');
+    wrap.className = 'diagramme-construction';
+
+    const axe = document.createElement('div');
+    axe.className = 'axe-diagramme';
+    for (let n = 1; n <= hauteurMax; n++) {
+      const g = document.createElement('div');
+      g.className = 'axe-graduation';
+      g.textContent = String(n);
+      axe.appendChild(g);
+    }
+    wrap.appendChild(axe);
+
+    colonnes.forEach((col, i) => {
+      const colDiv = document.createElement('div');
+      colDiv.className = 'colonne-construction';
+      colDiv.style.setProperty('--c', COULEUR_PAR_INDICE[i % COULEUR_PAR_INDICE.length]);
+
+      const pile = document.createElement('div');
+      pile.className = 'pile-construction';
+      const cases = [];
+      for (let n = 1; n <= hauteurMax; n++) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'case-construction';
+        b.setAttribute('aria-label', col.label + ' : ' + n + (n > 1 ? ' cases' : ' case'));
+        b.addEventListener('click', () => {
+          if (etat.verrouille) return;
+          // Recliquer la case du sommet redescend la barre d'un cran.
+          valeurs[col.id] = (valeurs[col.id] === n) ? n - 1 : n;
+          rendre();
+          onChangement();
+        });
+        cases.push(b);
+        pile.appendChild(b);
+      }
+      function rendre() {
+        cases.forEach((b, k) => b.classList.toggle('remplie', k < (valeurs[col.id] || 0)));
+      }
+      rendre();
+
+      const etiquette = document.createElement('div');
+      etiquette.className = 'etiquette-colonne';
+      etiquette.textContent = col.emoji;
+      const legende = document.createElement('div');
+      legende.className = 'legende-colonne';
+      legende.textContent = col.label;
+
+      colDiv.appendChild(pile);
+      colDiv.appendChild(etiquette);
+      colDiv.appendChild(legende);
+      wrap.appendChild(colDiv);
+    });
+    return wrap;
+  }
+
+  /* ================================================================
+     Mini-jeu : Sondage du jardin — DEUX écrans d'un même exercice
+     Écran 1 : compter les réponses une à une (marques de décompte), PUIS
+       reporter soi-même chaque total au pavé numérique. Rien ne se remplit
+       tout seul : ni le total pendant le comptage, ni la colonne de droite.
+       C'est le report qui fait travailler le dénombrement, l'automatiser
+       reviendrait à faire l'exercice à la place de l'enfant.
+     Écran 2 : le tableau CORRECT est réaffiché comme référence (même si
+       l'enfant s'est trompé au report), et il construit le diagramme en
+       bâtons case par case.
+     La manche n'est comptée juste que si les deux écrans le sont.
+     ================================================================ */
+
   function genererRecueilDiagramme(zone, cfg) {
     const especes = especesListe(cfg.nbEspeces);
     const valeursVraies = {};
+    /* Plafond de population : au CP, dénombrer au-delà de 15 sort de la plage
+       raisonnable — et « une classe de 40 élèves » ne tiendrait pas debout. On
+       tire donc les effectifs puis on les rabote tant que le total dépasse. */
+    const totalMax = cfg.totalMax || 15;
     especes.forEach((e) => { valeursVraies[e.id] = nombreAleatoire(2, cfg.capParEspece); });
+    const total = () => especes.reduce((s, e) => s + valeursVraies[e.id], 0);
+    let garde = 0;
+    while (total() > totalMax && garde++ < 200) {
+      // On retire une unité à l'espèce la plus nombreuse, jamais en dessous de 1.
+      const plusGrande = especes.slice().sort((a, b) => valeursVraies[b.id] - valeursVraies[a.id])[0];
+      if (valeursVraies[plusGrande.id] <= 1) break;
+      valeursVraies[plusGrande.id]--;
+    }
+    const nbEleves = total();
 
     let population = [];
     especes.forEach((e) => { for (let i = 0; i < valeursVraies[e.id]; i++) population.push(e.id); });
     population = melanger(population);
 
-    const question = 'Quelle est ta petite bête préférée dans le jardin ?';
     zone.appendChild(creerBlocConsigne(
-      'Clique sur chaque bête du sondage « ' + question + ' » pour la compter.',
-      'Compte les votes du sondage, puis construis le diagramme.'
+      'Dans une classe de ' + nbEleves + ' élèves, les enfants ont chacun indiqué leur insecte préféré. '
+      + 'Voici les résultats. Clique sur les réponses afin de remplir le tableau. '
+      + 'Quand tu auras fini, indique les totaux dans la colonne de droite.',
+      'Clique sur chaque petite bête pour la compter dans le tableau. Quand tu as tout compté, '
+      + 'écris toi-même le total de chaque ligne avec le pavé numérique.'
     ));
 
     const zonePopulation = document.createElement('div');
@@ -1327,18 +1482,35 @@
       const tdMarques = document.createElement('td');
       tdMarques.className = 'tally-marques';
       const tdTotal = document.createElement('td');
-      tdTotal.textContent = '0';
+      tdTotal.className = 'cellule-total';
+      tdTotal.textContent = '';
       tr.appendChild(tdBete); tr.appendChild(tdMarques); tr.appendChild(tdTotal);
       tbodyTally.appendChild(tr);
       cellulesTally[e.id] = { marques: tdMarques, total: tdTotal };
     });
     tableauTally.appendChild(tbodyTally);
 
-    const boutonSuiteRecueil = document.createElement('button');
-    boutonSuiteRecueil.type = 'button';
-    boutonSuiteRecueil.className = 'bouton-principal';
-    boutonSuiteRecueil.textContent = 'Construire le diagramme →';
-    boutonSuiteRecueil.disabled = true;
+    /* Marques groupées par paquets de cinq (le cinquième barre le paquet) :
+       c'est le groupement qui rend le total dénombrable, sinon autant compter
+       les bêtes elles-mêmes une seconde fois. */
+    function redessinerMarques(especeId) {
+      const n = comptesActuels[especeId];
+      const cell = cellulesTally[especeId].marques;
+      cell.textContent = '';
+      for (let debut = 0; debut < n; debut += 5) {
+        const taille = Math.min(5, n - debut);
+        const paquet = document.createElement('span');
+        paquet.className = 'tally-paquet' + (taille === 5 ? ' complet' : '');
+        paquet.textContent = '|'.repeat(taille);
+        cell.appendChild(paquet);
+      }
+    }
+
+    const legendeEtape = document.createElement('p');
+    legendeEtape.className = 'legende';
+    legendeEtape.textContent = 'Étape 1 : clique sur chaque bête pour la compter.';
+
+    const zoneSaisie = document.createElement('div');
 
     population.forEach((especeId, i) => {
       const especeInfo = donnees.especes[especeId];
@@ -1348,59 +1520,147 @@
       btn.textContent = especeInfo.emoji;
       btn.setAttribute('aria-label', 'Compter ' + especeInfo.singulier + ' ' + (i + 1));
       btn.addEventListener('click', () => {
-        if (btn.classList.contains('comptee')) return;
+        if (btn.classList.contains('comptee') || etat.verrouille) return;
         btn.classList.add('comptee');
         comptesActuels[especeId]++;
         nbComptees++;
-        cellulesTally[especeId].marques.textContent += '|';
-        cellulesTally[especeId].total.textContent = String(comptesActuels[especeId]);
-        if (nbComptees === population.length) boutonSuiteRecueil.disabled = false;
+        redessinerMarques(especeId);
+        // Aucun total affiché ici : c'est justement ce que l'enfant doit trouver.
+        if (nbComptees === population.length) ouvrirReport();
       });
       zonePopulation.appendChild(btn);
     });
 
     zone.appendChild(zonePopulation);
     zone.appendChild(tableauTally);
-    zone.appendChild(boutonSuiteRecueil);
+    zone.appendChild(legendeEtape);
+    zone.appendChild(zoneSaisie);
 
-    boutonSuiteRecueil.addEventListener('click', () => {
+    /* ---- Étape B : report des totaux, un par un, au pavé numérique ---- */
+    const saisies = {};
+    let especeEnCours = null;
+
+    function ouvrirReport() {
+      legendeEtape.textContent = 'Étape 2 : compte les marques et écris le total de chaque ligne.';
+      especes.forEach((e) => {
+        const cell = cellulesTally[e.id].total;
+        cell.classList.add('a-saisir');
+        cell.textContent = '?';
+        cell.addEventListener('click', () => {
+          if (etat.verrouille || saisies[e.id] !== undefined) return;
+          choisirLigne(e);
+        });
+      });
+      choisirLigne(especes[0]);
+    }
+
+    function choisirLigne(espece) {
+      especeEnCours = espece;
+      especes.forEach((e) => cellulesTally[e.id].total.classList.toggle('active', e.id === espece.id));
+      zoneSaisie.innerHTML = '';
+      const invite = document.createElement('p');
+      invite.className = 'legende';
+      invite.textContent = 'Combien de ' + espece.pluriel + ' ' + espece.emoji + ' as-tu comptées ?';
+      zoneSaisie.appendChild(invite);
+      const pave = creerPave((valeur) => {
+        saisies[espece.id] = valeur;
+        const cell = cellulesTally[espece.id].total;
+        cell.textContent = String(valeur);
+        cell.classList.remove('a-saisir', 'active');
+        const restantes = especes.filter((e) => saisies[e.id] === undefined);
+        if (restantes.length) choisirLigne(restantes[0]);
+        else terminerEcran1();
+      }, 2);
+      zoneSaisie.appendChild(pave.el);
+    }
+
+    function terminerEcran1() {
+      zoneSaisie.innerHTML = '';
+      especeEnCours = null;
+      const reportJuste = especes.every((e) => saisies[e.id] === valeursVraies[e.id]);
+      // CHARTE §18 : chaque total saisi passe au vert ou au rouge, et la valeur
+      // attendue remplace la valeur fausse.
+      especes.forEach((e) => {
+        const cell = cellulesTally[e.id].total;
+        cell.classList.add(saisies[e.id] === valeursVraies[e.id] ? 'correct' : 'incorrect');
+      });
+      legendeEtape.textContent = reportJuste
+        ? 'Bravo, tes totaux sont justes !'
+        : 'Regarde bien : voici les bons totaux.';
+      if (!reportJuste) {
+        setTimeout(() => {
+          if (!tableauTally.isConnected) return;
+          especes.forEach((e) => {
+            const cell = cellulesTally[e.id].total;
+            cell.textContent = String(valeursVraies[e.id]);
+            cell.classList.remove('incorrect');
+            cell.classList.add('correct');
+          });
+        }, 900);
+      }
+      const suite = document.createElement('button');
+      suite.type = 'button';
+      suite.className = 'bouton-principal';
+      suite.textContent = 'Construire le diagramme →';
+      suite.addEventListener('click', () => ecranDiagramme(reportJuste));
+      zoneSaisie.appendChild(suite);
+    }
+
+    /* ---- Écran 2 : construction du diagramme à partir du tableau CORRECT ---- */
+    function ecranDiagramme(reportJuste) {
       zone.innerHTML = '';
       zone.appendChild(creerBlocConsigne(
-        'Construis le diagramme : une case pour chaque bête comptée.',
-        'Ajoute une case par bête comptée pour chaque colonne, puis valide.'
+        'Voici le tableau complet. Construis le diagramme : clique pour faire monter chaque barre à la bonne hauteur.',
+        'Clique dans une colonne pour faire monter la barre jusqu\'au total du tableau. Une case vaut une bête.'
       ));
+
+      // Le tableau de référence porte les VRAIS totaux : l'enfant doit pouvoir
+      // construire le diagramme même s'il s'est trompé au report.
+      const rappel = document.createElement('table');
+      rappel.className = 'tableau-tally';
+      rappel.innerHTML = '<thead><tr><th>Bête</th><th>Total</th></tr></thead>';
+      const corps = document.createElement('tbody');
+      especes.forEach((e) => {
+        const tr = document.createElement('tr');
+        const td1 = document.createElement('td');
+        td1.textContent = e.emoji + ' ' + e.pluriel;
+        const td2 = document.createElement('td');
+        td2.textContent = String(valeursVraies[e.id]);
+        tr.appendChild(td1); tr.appendChild(td2);
+        corps.appendChild(tr);
+      });
+      rappel.appendChild(corps);
+      zone.appendChild(rappel);
+
       const valeursDiagramme = {};
       especes.forEach((e) => { valeursDiagramme[e.id] = 0; });
-      const diagramme = construireDiagramme({
-        colonnes: especes.map((e) => ({ id: e.id, emoji: e.emoji, label: e.pluriel })),
-        valeurs: valeursDiagramme,
-        maxCases: cfg.capParEspece,
-        interactif: true,
-        afficherValeur: true,
-        onChangement: () => {}
-      });
-      zone.appendChild(diagramme);
-      zone.appendChild(Object.assign(document.createElement('p'), {
-        className: 'legende', textContent: 'Rappel : une case = une bête (mes décomptes ci-dessus t\'aident).'
-      }));
-
+      const hauteurMax = Math.max(...especes.map((e) => valeursVraies[e.id])) + 2;
       const boutonValider = document.createElement('button');
       boutonValider.type = 'button';
       boutonValider.className = 'bouton-principal';
       boutonValider.textContent = 'Valider mon diagramme';
+
+      zone.appendChild(construireDiagrammeConstructible({
+        colonnes: especes.map((e) => ({ id: e.id, emoji: e.emoji, label: e.pluriel })),
+        valeurs: valeursDiagramme,
+        hauteurMax,
+        onChangement: () => {}
+      }));
+      zone.appendChild(Object.assign(document.createElement('p'), {
+        className: 'legende', textContent: 'Rappel : une case = une bête.'
+      }));
+
       boutonValider.addEventListener('click', () => {
-        const correct = especes.every((e) => valeursDiagramme[e.id] === comptesActuels[e.id]);
-        if (!correct) {
-          // CHARTE §18 : on rappelle le décompte exact espèce par espèce.
-          const enTexte = (source) => especes.map((e) => e.emoji + ' ' + source[e.id]).join('  ');
-          validerTour(false, boutonValider,
-            { donnee: enTexte(valeursDiagramme), attendue: enTexte(comptesActuels) });
-        } else {
-          validerTour(true, boutonValider);
-        }
+        const diagrammeJuste = especes.every((e) => valeursDiagramme[e.id] === valeursVraies[e.id]);
+        const enTexte = (source) => especes.map((e) => e.emoji + ' ' + source[e.id]).join('  ');
+        // La manche n'est acquise que si le comptage ET le diagramme sont bons.
+        validerTour(reportJuste && diagrammeJuste, boutonValider,
+          diagrammeJuste
+            ? (reportJuste ? null : { donnee: null, attendue: 'les totaux du tableau : ' + enTexte(valeursVraies) })
+            : { donnee: enTexte(valeursDiagramme), attendue: enTexte(valeursVraies) });
       });
       zone.appendChild(boutonValider);
-    });
+    }
   }
 
   /* ================================================================
