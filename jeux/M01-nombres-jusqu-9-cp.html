@@ -1603,23 +1603,31 @@
         validerReponse(true);
         return;
       }
-      // Réponse incorrecte ou incomplète : on signale les éléments mal placés
-      // sans donner la solution, et on laisse l'enfant réessayer — pas de
-      // verrouillage ici, le bouton Valider reste actif pour de nouveaux essais.
+      /* Réponse fausse : on applique le standard de la série (CHARTE §18) —
+         chaque case passe au vert ou au rouge selon SON contenu, puis la
+         solution vient s'y ranger d'elle-même, tout en vert. La manche est
+         validée (donc comptée) et l'enfant passe à la suivante : le même
+         classement ne lui est plus reproposé à corriger sur place. */
+      Object.values(elements).forEach((e) => { e.style.pointerEvents = 'none'; });
+      boutonValider.disabled = true;
+      boutonValider.hidden = true;
       slots.forEach((s, i) => {
         const e = s.querySelector('.carte-parade');
-        const correctIci = !!e && Number(e.dataset.valeur) === ordreCorrect[i];
-        s.classList.toggle('rang-incorrect', !!e && !correctIci);
+        s.classList.add(e && Number(e.dataset.valeur) === ordreCorrect[i] ? 'rang-correct' : 'rang-incorrect');
       });
-      jouerSon('rate');
-      const zoneFeedback = document.getElementById('zone-feedback');
-      zoneFeedback.textContent = 'Regarde bien : certains ne sont pas à la bonne place !';
-      zoneFeedback.className = 'feedback feedback-erreur';
       setTimeout(() => {
-        slots.forEach((s) => s.classList.remove('rang-incorrect'));
-        zoneFeedback.textContent = '';
-        zoneFeedback.className = 'feedback';
-      }, 1400);
+        if (!slots[0].isConnected) return; // manche déjà quittée
+        ordreCorrect.forEach((valeur, i) => {
+          const carte = elements[valeur];
+          if (carte && carte.parentElement !== slots[i]) slots[i].appendChild(carte);
+          slots[i].classList.remove('rang-incorrect');
+          slots[i].classList.add('rang-correct');
+        });
+      }, 900);
+      validerReponse(false, {
+        donnee: ordreActuel.map((v) => (v === null ? '?' : v)).join(' – '),
+        attendue: ordreCorrect.join(' – ')
+      });
     });
     zone.appendChild(boutonValider);
   }
