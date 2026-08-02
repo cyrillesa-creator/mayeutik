@@ -558,34 +558,78 @@
     if (contexteAudio.state === 'suspended') contexteAudio.resume();
     return contexteAudio;
   }
-  function jouerSon(type) {
+  /* ---------- Composant sonore partagé (CHARTE §5) ----------
+     Mêmes sons dans toute la série, générés à l'oscillateur : aucun fichier
+     audio, donc aucune dépendance réseau. */
+
+  /* Une note pure, avec une attaque douce et une extinction exponentielle —
+     un créneau brutal « claquerait » sur les petits haut-parleurs. */
+  function jouerNote(ctx, freq, debut, duree, volume, forme) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = forme || 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, debut);
+    gain.gain.exponentialRampToValueAtTime(volume, debut + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, debut + duree);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(debut);
+    osc.stop(debut + duree + 0.02);
+  }
+
+  /* SON DE RÉFÉRENCE de la bonne réponse : arpège de do majeur, quatre notes
+     brèves qui montent (~0.45 s). Court et enjoué, il accompagne les confettis
+     sans les retarder. */
+  const NOTES_BONNE_REPONSE = [523.25, 659.25, 783.99, 1046.5]; // do5 mi5 sol5 do6
+
+  function sonBonneReponse() {
     let ctx;
     try { ctx = obtenirContexteAudio(); } catch (e) { return; }
-    const maintenant = ctx.currentTime;
-    if (type === 'tic') {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine'; osc.frequency.value = 880;
-      gain.gain.setValueAtTime(0.0001, maintenant);
-      gain.gain.exponentialRampToValueAtTime(0.12, maintenant + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, maintenant + 0.08);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start(maintenant); osc.stop(maintenant + 0.09);
-      return;
-    }
-    const notes = type === 'bravo' ? [523.25, 659.25, 783.99, 1046.5] : [392.0, 293.66];
-    const duree = type === 'bravo' ? 0.11 : 0.17;
-    notes.forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine'; osc.frequency.value = freq;
-      const debut = maintenant + i * duree;
-      gain.gain.setValueAtTime(0.0001, debut);
-      gain.gain.exponentialRampToValueAtTime(0.22, debut + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, debut + duree);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start(debut); osc.stop(debut + duree + 0.02);
-    });
+    const t0 = ctx.currentTime;
+    NOTES_BONNE_REPONSE.forEach((f, i) => jouerNote(ctx, f, t0 + i * 0.11, 0.11, 0.22));
+  }
+
+  /* FIN DE NIVEAU PARFAITE (3 étoiles) : même famille sonore, pour qu'on la
+     reconnaisse, mais nettement plus ample — l'arpège monte deux notes plus
+     haut, puis se pose sur un accord tenu (~1.4 s en tout). C'est la durée et
+     l'accord final, plus que la hauteur, qui le rendent perceptiblement plus
+     marquant que la bonne réponse ponctuelle. */
+  const NOTES_NIVEAU_PARFAIT = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
+  const ACCORD_NIVEAU_PARFAIT = [523.25, 659.25, 783.99, 1046.5]; // do majeur tenu
+
+  function sonNiveauParfait() {
+    let ctx;
+    try { ctx = obtenirContexteAudio(); } catch (e) { return; }
+    const t0 = ctx.currentTime;
+    const pas = 0.1;
+    NOTES_NIVEAU_PARFAIT.forEach((f, i) => jouerNote(ctx, f, t0 + i * pas, 0.12, 0.2));
+    // Accord final, plus doux que les notes de l'arpège pour ne pas saturer :
+    // quatre voix simultanées s'additionnent.
+    const tAccord = t0 + NOTES_NIVEAU_PARFAIT.length * pas + 0.04;
+    ACCORD_NIVEAU_PARFAIT.forEach((f) => jouerNote(ctx, f, tAccord, 0.75, 0.12, 'triangle'));
+  }
+
+  function sonErreur() {
+    let ctx;
+    try { ctx = obtenirContexteAudio(); } catch (e) { return; }
+    const t0 = ctx.currentTime;
+    [392.0, 293.66].forEach((f, i) => jouerNote(ctx, f, t0 + i * 0.17, 0.17, 0.22));
+  }
+
+  /* Clic discret de manipulation (pose d'un jeton, d'un lien...). */
+  function sonTic() {
+    let ctx;
+    try { ctx = obtenirContexteAudio(); } catch (e) { return; }
+    jouerNote(ctx, 880, ctx.currentTime, 0.08, 0.12);
+  }
+
+  /* Aiguillage historique conservé : les modules appellent jouerSon('bravo'),
+     ('rate'), ('tic') en de nombreux endroits. */
+  function jouerSon(type) {
+    if (type === 'bravo') return sonBonneReponse();
+    if (type === 'parfait') return sonNiveauParfait();
+    if (type === 'tic') return sonTic();
+    return sonErreur();
   }
 
   /* ---------- Consigne lue à voix haute (SpeechSynthesis, CP non-lecteurs) ---------- */
@@ -1008,6 +1052,9 @@
     enregistrerEtoiles(cfg.id, etoilesGagnees);
     const dureeSecondes = Math.max(0, Math.round((Date.now() - etat.demarreLe) / 1000));
     enregistrerSession(cfg.id, etat.score, cfg.nbQuestions, dureeSecondes);
+    // Résultat parfait : un son plus ample que celui d'une bonne réponse
+    // ponctuelle, pour souligner ce qui est rare (CHARTE §5).
+    if (etoilesGagnees === 3) sonNiveauParfait();
 
     const zone = document.getElementById('zone-jeu');
     zone.innerHTML = '';
