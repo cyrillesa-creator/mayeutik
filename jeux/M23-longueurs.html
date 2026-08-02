@@ -4252,7 +4252,7 @@
       : (perim(figureA) < perim(figureB) ? 'A' : 'B');
 
     zone.appendChild(creerBlocConsigne(
-      'Sans les mesurer, reporte chaque côté au compas pour comparer les deux clairières.',
+      'Touche les côtés des formes ci-dessous pour les reporter au compas et comparer les périmètres des deux clairières.',
       'Touche un côté d\'une clairière : le compas vient en prendre l\'écartement, puis le reporte sur la ligne du dessous. Quand tous les côtés des deux clairières sont reportés, compare les deux lignes obtenues.'
     ));
 
@@ -5220,7 +5220,7 @@
     const total = cotes.reduce((a, b) => a + b, 0);
 
     zone.appendChild(creerBlocConsigne(
-      'Fais le périmètre de la parcelle : additionne les ' + nbCotes + ' côtés.',
+      'Calcule le périmètre de la parcelle : additionne les ' + nbCotes + ' côtés.',
       'Cette parcelle a ' + nbCotes + ' côtés, et la longueur de chacun est écrite dessus. Additionne-les toutes : le résultat est le périmètre, en centimètres.'
     ));
     zone.appendChild(creerSceneArpentage(pts, cotes.map((c) => c + ' cm')));
