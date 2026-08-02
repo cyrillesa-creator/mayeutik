@@ -816,3 +816,65 @@ Reproposer le même écran entretient l'illusion qu'on peut tâtonner jusqu'à t
 jamais confronter l'enfant à la bonne réponse.
 
 **Pour tout nouveau mini-jeu :** cette règle fait partie du gabarit dès la conception, au même titre que la navigation (§17). Un mini-jeu qui signale l'erreur sans montrer la solution est considéré comme non conforme.
+
+---
+
+## 19. Protections tactiles : ni zoom parasite, ni sélection parasite (obligatoire)
+
+Deux comportements natifs du navigateur parasitent l'usage tactile d'un jeu, et doivent être
+neutralisés dans **la coquille comme dans chaque module** :
+
+- le **zoom au double-tap** — or deux appuis rapprochés sont un geste *normal* ici : remplir puis
+  vider une case, corriger une saisie, taper vite sur un pavé numérique ;
+- la **sélection native** — un tap un peu long ou un glissement involontaire déclenche une
+  surbrillance bleue, voire le menu « copier » / « enregistrer l'image » sur iOS.
+
+La protection se pose **à l'échelle de l'interface**, une bonne fois, jamais élément par élément :
+identifier les zones sensibles au cas par cas, c'est en oublier.
+
+### Les deux niveaux, complémentaires
+
+**1. La page** — meta viewport identique partout :
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+```
+
+**2. Les éléments** — bloc CSS en tête de la feuille de style de chaque fichier :
+
+```css
+/* `touch-action` ne s'hérite PAS : le sélecteur universel est le seul moyen de
+   couvrir toute l'interface. */
+* { touch-action: manipulation; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+/* `user-select` et `-webkit-touch-callout`, eux, s'héritent. */
+body {
+  -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+img, svg, canvas { -webkit-user-drag: none; }
+input, textarea, select, [contenteditable="true"] {
+  -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text;
+  -webkit-touch-callout: default;
+}
+```
+
+### Trois points à ne pas manquer
+
+- **`manipulation`, pas `none`.** `manipulation` supprime le zoom au double-tap **en laissant** le
+  défilement et le pincement. Les gestes à deux doigts pilotés en JS — la rotation de la règle
+  mobile de M23 — continuent donc de fonctionner ; ils déclarent en outre eux-mêmes
+  `touch-action: none`, plus spécifique que `*`, et un `element.style.touchAction` posé en JS l'est
+  plus encore. Poser `none` partout, au contraire, casserait le défilement de la page.
+- **Les champs de saisie sont ré-autorisés explicitement.** La série en compte deux (décomposition
+  m/dm/cm de M23, cellule manquante de M39) : les priver de sélection et de menu d'édition rendrait
+  la correction d'une valeur impossible. Tout nouveau champ en hérite par le sélecteur ci-dessus.
+- **Le bloc est recopié dans chaque fichier**, comme le pavé numérique, la règle graduée ou le
+  composant sonore : les jeux sont des fichiers **autonomes**, une feuille de style partagée les
+  rendrait dépendants d'un fichier tiers.
+
+`user-scalable=no` prive l'utilisateur du zoom de page, ce qui se discute en accessibilité. C'est un
+arbitrage assumé pour un public d'enfants de 6 à 8 ans, chez qui le zoom accidentel casse la partie
+bien plus souvent qu'il ne rend service — et l'interface est dimensionnée pour être lisible sans
+zoom (§1, cibles tactiles de 44 px minimum).
