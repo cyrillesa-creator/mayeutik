@@ -247,6 +247,8 @@
     touch-action:none; cursor:grab; user-select:none; border-radius:50%;
   }
   .bete-draggable.en-glisse{ cursor:grabbing; filter:drop-shadow(0 6px 6px rgba(43,43,43,.25)); }
+  /* Page figée le temps d'un glisser-déposer (cf. gelerDefilement). */
+  html.glisse-en-cours, html.glisse-en-cours body{ overflow:hidden; touch-action:none; overscroll-behavior:none; }
   .carte-parade{
     position:relative; width:4.2rem; height:4.2rem;
     touch-action:none; cursor:grab; user-select:none;
@@ -607,6 +609,73 @@
 
   /* ---------- Glisser-déposer tactile générique (constituer / ranger) ---------- */
 
+  /* Gel du défilement pendant un glisser-déposer.
+     Le geste de l'enfant est lent et hésitant : le navigateur finit souvent par
+     l'interpréter comme un défilement, ce qui fait DÉFILER la page sous ses
+     doigts et, pire, lui envoie un `pointercancel` qui abandonne le geste en
+     cours de route. On fige donc la page le temps du geste, et seulement ce
+     temps-là : hors glissement, le défilement reste entièrement normal (l'enfant
+     doit pouvoir faire défiler pour voir un élément hors champ avant de le
+     saisir).
+     Le compteur autorise plusieurs glissements simultanés (deux doigts) sans que
+     le premier relâché ne dégèle pour l'autre. */
+  let glissementsEnCours = 0;
+  let defilementGele = null;
+
+  function bloquerToucher(e) { e.preventDefault(); }
+
+  function gelerDefilement() {
+    glissementsEnCours++;
+    if (glissementsEnCours > 1) return;
+    defilementGele = { x: window.scrollX, y: window.scrollY };
+    document.documentElement.classList.add('glisse-en-cours');
+    // Filet supplémentaire : certains navigateurs entament le défilement avant
+    // d'avoir pris en compte `touch-action`. Écouteur NON passif, sans quoi
+    // preventDefault serait ignoré.
+    document.addEventListener('touchmove', bloquerToucher, { passive: false });
+  }
+
+  function degelerDefilement() {
+    glissementsEnCours = Math.max(0, glissementsEnCours - 1);
+    if (glissementsEnCours > 0) return;
+    document.documentElement.classList.remove('glisse-en-cours');
+    document.removeEventListener('touchmove', bloquerToucher, { passive: false });
+    // `overflow:hidden` peut avoir ramené la page en haut : on rétablit la
+    // position exacte qu'elle avait au début du geste.
+    if (defilementGele) {
+      window.scrollTo(defilementGele.x, defilementGele.y);
+      defilementGele = null;
+    }
+  }
+
+  /* Décide si un élément lâché « compte » comme déposé sur une cible.
+     Le pointeur seul ne suffit pas : l'enfant vise l'OBJET, pas son doigt, et
+     l'objet peut recouvrir largement le panier alors que le doigt est déjà
+     quelques pixels en dehors. On accepte donc le dépôt si le doigt est dans la
+     cible OU si l'objet la recouvre franchement. Renvoie un score (0 = pas
+     déposé) pour pouvoir départager plusieurs cibles voisines. */
+  const PART_RECOUVREMENT_MIN = 0.3;
+
+  function scoreDepot(rectLache, x, y, cible) {
+    const r = cible.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return Infinity;
+    if (!rectLache) return 0;
+    const largeur = Math.max(0, Math.min(rectLache.right, r.right) - Math.max(rectLache.left, r.left));
+    const hauteur = Math.max(0, Math.min(rectLache.bottom, r.bottom) - Math.max(rectLache.top, r.top));
+    const aire = largeur * hauteur;
+    const aireObjet = rectLache.width * rectLache.height;
+    return aireObjet > 0 && aire >= aireObjet * PART_RECOUVREMENT_MIN ? aire : 0;
+  }
+
+  function meilleureCible(rectLache, x, y, cibles) {
+    let gagnante = null, meilleur = 0;
+    cibles.forEach((cible) => {
+      const s = scoreDepot(rectLache, x, y, cible);
+      if (s > meilleur) { meilleur = s; gagnante = cible; }
+    });
+    return gagnante;
+  }
+
   function activerDrag(element, options) {
     element.style.touchAction = 'none';
     element.addEventListener('pointerdown', (e) => {
@@ -615,7 +684,10 @@
       const rectDepart = element.getBoundingClientRect();
       const decalX = e.clientX - rectDepart.left;
       const decalY = e.clientY - rectDepart.top;
+      let dernierX = e.clientX, dernierY = e.clientY;
+      let termine = false;
       try { element.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      gelerDefilement();
       element.classList.add('en-glisse');
       element.style.position = 'fixed';
       element.style.zIndex = '500';
@@ -624,22 +696,43 @@
       element.style.top = rectDepart.top + 'px';
 
       const bouger = (ev) => {
+        dernierX = ev.clientX; dernierY = ev.clientY;
         element.style.left = (ev.clientX - decalX) + 'px';
         element.style.top = (ev.clientY - decalY) + 'px';
       };
-      const relacher = (ev) => {
+      /* Fin du geste — quelle qu'en soit la cause. Un `pointercancel` (le
+         navigateur reprend la main) ou une capture perdue laissaient l'objet
+         EN L'AIR, en `position:fixed`, jamais déposé : c'est ce qui donnait
+         l'impression qu'il « refusait de se fixer » dans le panier. On termine
+         donc toujours de la même façon, et on dépose à la dernière position
+         connue du doigt. */
+      const terminer = (ev) => {
+        if (termine) return;
+        termine = true;
+        if (ev && typeof ev.clientX === 'number' && (ev.clientX || ev.clientY)) {
+          dernierX = ev.clientX; dernierY = ev.clientY;
+        }
         element.removeEventListener('pointermove', bouger);
-        element.removeEventListener('pointerup', relacher);
+        element.removeEventListener('pointerup', terminer);
+        element.removeEventListener('pointercancel', terminer);
+        element.removeEventListener('lostpointercapture', terminer);
+        // Position réellement occupée par l'objet au moment du lâcher : elle
+        // disparaît dès qu'on lui rend sa mise en page normale, il faut donc la
+        // relever AVANT.
+        const rectLache = element.getBoundingClientRect();
         element.classList.remove('en-glisse');
         element.style.position = '';
         element.style.zIndex = '';
         element.style.width = '';
         element.style.left = '';
         element.style.top = '';
-        options.onDepose(ev.clientX, ev.clientY, element);
+        degelerDefilement();
+        options.onDepose(dernierX, dernierY, element, rectLache);
       };
       element.addEventListener('pointermove', bouger);
-      element.addEventListener('pointerup', relacher);
+      element.addEventListener('pointerup', terminer);
+      element.addEventListener('pointercancel', terminer);
+      element.addEventListener('lostpointercapture', terminer);
     });
   }
 
