@@ -291,21 +291,54 @@
   .tableau-double{ width:100%; border-collapse:collapse; margin:.7rem 0; }
   .tableau-double th, .tableau-double td{ border:1.5px solid color-mix(in srgb, var(--couleur-encre) 15%, white); padding:.4rem; text-align:center; font-size:.9rem; }
   .tableau-double th{ background:color-mix(in srgb, var(--couleur-menthe) 14%, white); font-weight:700; }
-  .tableau-double td.cellule-cliquable{ cursor:pointer; background:#ffffff; }
-  .tableau-double td.cellule-cliquable:active{ background:color-mix(in srgb, var(--couleur-mandarine) 18%, white); }
-  .tableau-double td.cellule-selectionnable{ outline:3px solid var(--couleur-soleil); outline-offset:-3px; }
   .tableau-double td.cellule-manquante input{
     width:3rem; min-height:2.2rem; border-radius:8px; border:2px solid var(--couleur-mandarine); text-align:center; font-family:inherit; font-size:1rem;
   }
   .tableau-double td.cellule-manquante input.correct{ background:color-mix(in srgb, var(--couleur-menthe) 45%, white); border-color:var(--couleur-menthe); }
   .tableau-double td.cellule-manquante input.incorrect{ background:color-mix(in srgb, var(--couleur-corail) 35%, white); border-color:var(--couleur-corail); }
-  .pool-population{ display:flex; flex-wrap:wrap; gap:.4rem; justify-content:center; padding:.5rem; border-radius:14px;
-    background:color-mix(in srgb, var(--couleur-fond) 100%, white); border:2px dashed color-mix(in srgb, var(--couleur-encre) 20%, white); margin-bottom:.7rem; min-height:3rem; }
-  .bete-pool{
-    font-size:1.5rem; min-width:40px; min-height:40px; display:flex; align-items:center; justify-content:center;
-    background:#ffffff; border-radius:50%; border:2.5px solid color-mix(in srgb, var(--couleur-encre) 15%, white);
-  }
-  .bete-pool.selectionnee{ border-color:var(--couleur-mandarine); box-shadow:0 0 0 3px color-mix(in srgb, var(--couleur-mandarine) 30%, transparent); }
+
+  /* ---- « Le grand tableau » : rangement libre puis correction ----
+     Le tableau ne contient pas des nombres mais les OBJETS EUX-MÊMES : c'est
+     ce qui permet de voir d'un coup d'œil quel objet est mal rangé, et de
+     compter le contenu d'une case pour répondre à la question finale. */
+  .tableau-placement{ width:100%; border-collapse:collapse; margin:.55rem 0; table-layout:fixed; }
+  .tableau-placement th, .tableau-placement td{
+    border:2px solid color-mix(in srgb, var(--couleur-encre) 18%, white); padding:.22rem; text-align:center; }
+  .tableau-placement thead th{ background:color-mix(in srgb, var(--couleur-menthe) 14%, white); font-size:.8rem; }
+  .tableau-placement tbody th{ background:color-mix(in srgb, var(--couleur-menthe) 8%, white); font-size:.72rem; width:4.4rem; }
+  .entete-axe{ display:flex; flex-direction:column; align-items:center; gap:.1rem; line-height:1.15; }
+  .entete-axe .objet-dessin{ width:1.8rem; height:1.8rem; }
+  .nom-teinte{ font-weight:700; }
+  .cellule-placement{ background:#ffffff; cursor:pointer; height:3.3rem; vertical-align:middle; }
+  .cellule-placement:active{ background:color-mix(in srgb, var(--couleur-mandarine) 14%, white); }
+  .contenu-cellule{ display:flex; flex-wrap:wrap; gap:2px; align-items:center; justify-content:center; min-height:2.3rem; }
+
+  /* Le dessin porte lui-même la couleur (corps de l'oiseau, pétales de la
+     fleur, chapeau du champignon) : aucune pastille n'est apposée à côté. */
+  .objet-dessin{ display:block; width:1.9rem; height:1.9rem; }
+  .pool-objets{ display:flex; flex-wrap:wrap; gap:.35rem; justify-content:center; padding:.45rem; border-radius:14px;
+    border:2px dashed color-mix(in srgb, var(--couleur-encre) 20%, white); min-height:3.4rem; margin-bottom:.55rem;
+    align-items:center; }
+  .pool-objets.vide::after{ content:'Tout est rangé : vérifie ton tableau !'; font-size:.85rem; opacity:.6; }
+  .jeton-objet{
+    min-width:46px; min-height:46px; padding:.15rem; display:flex; align-items:center; justify-content:center;
+    background:#ffffff; border-radius:13px; border:2.5px solid color-mix(in srgb, var(--couleur-encre) 15%, white); }
+  .jeton-objet .objet-dessin{ width:2.1rem; height:2.1rem; }
+  .jeton-objet.selectionnee{ border-color:var(--couleur-mandarine); box-shadow:0 0 0 3px color-mix(in srgb, var(--couleur-mandarine) 30%, transparent); }
+  .objet-mini{ padding:1px; line-height:0; background:transparent; border:2px solid transparent; border-radius:8px; }
+  .objet-mini .objet-dessin{ width:1.45rem; height:1.45rem; }
+  /* CHARTE §18 : la case fautive en rouge, la case attendue en vert, et
+     l'objet mal rangé lui-même entouré de rouge pour qu'on sache LEQUEL bouger. */
+  .objet-mini.mal-place{ border-color:var(--couleur-corail); background:color-mix(in srgb, var(--couleur-corail) 26%, white); }
+  .cellule-placement.case-fausse{ background:color-mix(in srgb, var(--couleur-corail) 20%, white);
+    outline:3px solid var(--couleur-corail); outline-offset:-3px; }
+  .cellule-placement.case-attendue{ background:color-mix(in srgb, var(--couleur-menthe) 26%, white);
+    outline:3px solid var(--couleur-menthe); outline-offset:-3px; }
+  .cellule-placement.case-question{ outline:3px dashed var(--couleur-soleil); outline-offset:-3px; }
+  .tableau-placement.verrouille .cellule-placement{ cursor:default; }
+  .note-rangement{ text-align:center; font-size:.88rem; font-weight:600; margin:.3rem 0 .1rem; }
+  .note-rangement.erreur{ color:color-mix(in srgb, var(--couleur-corail) 70%, black 20%); }
+  .note-rangement.reussite{ color:color-mix(in srgb, var(--couleur-menthe) 70%, black 25%); }
 
   /* ---- Lecture (QCM) ---- */
   .grille-options{ display:grid; grid-template-columns:repeat(2,1fr); gap:.6rem; margin-top:.7rem; }
@@ -390,10 +423,24 @@
     "papillon": {"emoji":"🦋","singulier":"papillon","pluriel":"papillons"},
     "abeille": {"emoji":"🐝","singulier":"abeille","pluriel":"abeilles"}
   },
-  "couleurs": [
-    {"id":"rouge","nom":"rouge","emoji":"🔴"},
-    {"id":"jaune","nom":"jaune","emoji":"🟡"},
-    {"id":"bleu","nom":"bleu","emoji":"🔵"}
+  "objets": {
+    "oiseau":     {"forme":"oiseau","singulier":"oiseau","pluriel":"oiseaux","genre":"m"},
+    "souris":     {"forme":"souris","singulier":"souris","pluriel":"souris","genre":"f"},
+    "fleur":      {"forme":"fleur","singulier":"fleur","pluriel":"fleurs","genre":"f"},
+    "seau":       {"forme":"seau","singulier":"seau","pluriel":"seaux","genre":"m"},
+    "papillon":   {"forme":"papillon","singulier":"papillon","pluriel":"papillons","genre":"m"},
+    "champignon": {"forme":"champignon","singulier":"champignon","pluriel":"champignons","genre":"m"}
+  },
+  "pairesObjets": [
+    {"id":"basse-cour","objets":["oiseau","souris"],"orientation":"objets-en-lignes"},
+    {"id":"jardinage","objets":["fleur","seau"],"orientation":"couleurs-en-lignes"},
+    {"id":"sous-bois","objets":["papillon","champignon"],"orientation":"objets-en-lignes"}
+  ],
+  "teintes": [
+    {"id":"rouge","nom":"rouge","hex":"#E24B4B","mascSing":"rouge","femSing":"rouge","masc":"rouges","fem":"rouges"},
+    {"id":"bleu","nom":"bleu","hex":"#3F86D6","mascSing":"bleu","femSing":"bleue","masc":"bleus","fem":"bleues"},
+    {"id":"jaune","nom":"jaune","hex":"#F0BE2E","mascSing":"jaune","femSing":"jaune","masc":"jaunes","fem":"jaunes"},
+    {"id":"vert","nom":"vert","hex":"#46B06A","mascSing":"vert","femSing":"verte","masc":"verts","fem":"vertes"}
   ],
   "zones": [
     {"id":"nord","nom":"jardin nord"},
@@ -412,7 +459,11 @@
     "CP": {
       "miniJeux": [
         { "id": "cp-recueil-diagramme", "titre": "Le sondage du jardin", "icone": "📊", "couleur": "mandarine", "description": "Compte les votes et construis le diagramme.", "type": "recueil-diagramme", "nbTours": 3, "nbEspeces": 3, "capParEspece": 8, "totalMax": 15 },
-        { "id": "cp-tableau-double-entree", "titre": "Le grand tableau", "icone": "🗂️", "couleur": "menthe", "description": "Range chaque bête dans la bonne case.", "type": "tableau-double-entree", "nbTours": 3, "nbEspeces": 2, "nbCouleurs": 2, "capParCase": 4 }
+        { "id": "cp-tableau-double-entree", "titre": "Le grand tableau", "icone": "🗂️", "couleur": "menthe", "description": "Range chaque objet dans la bonne case du tableau.", "type": "tableau-double-entree", "nbTours": 3, "progression": [
+          { "nbCouleurs": 2, "nbObjets": 10, "maxParCase": 4 },
+          { "nbCouleurs": 3, "nbObjets": 15, "maxParCase": 4 },
+          { "nbCouleurs": 3, "nbObjets": 15, "maxParCase": 4 }
+        ] }
       ]
     },
     "CE1": {
@@ -463,6 +514,21 @@
   // Élision : "de " + mot devient "d'" + mot devant une voyelle (ex. "d'abeilles").
   function deElision(mot) {
     return /^[aeiouyàâéèêëîïôöùûü]/i.test(mot) ? 'd’' + mot : 'de ' + mot;
+  }
+
+  /* Répartit `total` unités sur `nbParts` cases, chacune entre `mini` et `maxi`.
+     Sert à remplir un tableau à double entrée dont l'effectif total est imposé
+     par la progression (10 objets sur 4 cases, 15 sur 6) sans jamais laisser
+     une case vide — une case vide rendrait la question finale triviale. */
+  function repartir(total, nbParts, mini, maxi) {
+    const parts = new Array(nbParts).fill(mini);
+    let reste = total - mini * nbParts;
+    let garde = 0;
+    while (reste > 0 && garde++ < 2000) {
+      const i = Math.floor(Math.random() * nbParts);
+      if (parts[i] < maxi) { parts[i]++; reste--; }
+    }
+    return parts;
   }
 
   /* ---------- Étoiles : stockage sûr (mémoire + localStorage best-effort) ---------- */
@@ -950,6 +1016,94 @@
 
   const COULEUR_PAR_INDICE = ['var(--couleur-mandarine)', 'var(--couleur-menthe)', 'var(--couleur-corail)', 'var(--couleur-soleil)'];
 
+  /* ---------- Objets dessinés, colorés dans le dessin ----------
+     Un tableau à double entrée « forme × couleur » ne tient debout que si la
+     couleur appartient VRAIMENT à l'objet. Une pastille posée à côté du dessin
+     ferait deux informations juxtaposées, et l'enfant croiserait un dessin avec
+     une pastille au lieu de croiser une forme avec une couleur. Ici la teinte
+     remplit le corps de l'oiseau, les pétales de la fleur, le chapeau du
+     champignon ; les nuances secondaires (aile, oreille, anse) en dérivent, si
+     bien que l'objet se lit comme un tout coloré. */
+
+  const SVGNS = 'http://www.w3.org/2000/svg';
+
+  function melangeHex(hex, vers, part) {
+    const lire = (h) => [1, 3, 5].map((i) => parseInt(h.substr(i, 2), 16));
+    const a = lire(hex);
+    const b = lire(vers);
+    return '#' + a.map((v, i) => Math.round(v + (b[i] - v) * part).toString(16).padStart(2, '0')).join('');
+  }
+  const assombrir = (hex, part) => melangeHex(hex, '#000000', part);
+  const eclaircir = (hex, part) => melangeHex(hex, '#ffffff', part);
+
+  function elSvg(nom, attrs) {
+    const el = document.createElementNS(SVGNS, nom);
+    Object.keys(attrs).forEach((k) => el.setAttribute(k, attrs[k]));
+    return el;
+  }
+
+  /* Teinte « non peinte » des en-têtes : l'en-tête désigne la SORTE d'objet,
+     pas une couleur ; le dessiner en gris évite de suggérer une case. */
+  const TEINTE_NEUTRE = '#B4ADA3';
+
+  function dessinerObjet(forme, hex) {
+    const svg = elSvg('svg', { viewBox: '0 0 40 40', class: 'objet-dessin', focusable: 'false' });
+    svg.setAttribute('aria-hidden', 'true');
+    const sombre = assombrir(hex, 0.28);
+    const clair = eclaircir(hex, 0.38);
+    const poser = (nom, attrs) => svg.appendChild(elSvg(nom, attrs));
+
+    if (forme === 'oiseau') {
+      poser('line', { x1: 18, y1: 31, x2: 16, y2: 37, stroke: '#C98A2E', 'stroke-width': 2, 'stroke-linecap': 'round' });
+      poser('line', { x1: 23, y1: 31, x2: 25, y2: 37, stroke: '#C98A2E', 'stroke-width': 2, 'stroke-linecap': 'round' });
+      poser('ellipse', { cx: 19, cy: 23, rx: 12, ry: 9, fill: hex });
+      poser('circle', { cx: 29, cy: 13, r: 7, fill: hex });
+      poser('ellipse', { cx: 17, cy: 23, rx: 7, ry: 4.5, fill: sombre, transform: 'rotate(-18 17 23)' });
+      poser('polygon', { points: '35,12 40,15 35,17', fill: '#F2A03D' });
+      poser('circle', { cx: 30, cy: 11, r: 1.7, fill: '#2B2B2B' });
+    } else if (forme === 'souris') {
+      poser('path', { d: 'M8 27 q-6 1 -4 8', stroke: sombre, 'stroke-width': 2.2, fill: 'none', 'stroke-linecap': 'round' });
+      poser('circle', { cx: 29, cy: 13, r: 6.5, fill: clair });
+      poser('circle', { cx: 29, cy: 13.5, r: 3.6, fill: eclaircir(hex, 0.68) });
+      poser('ellipse', { cx: 18, cy: 26, rx: 12, ry: 8.5, fill: hex });
+      poser('circle', { cx: 29, cy: 22, r: 7, fill: hex });
+      poser('circle', { cx: 32, cy: 20, r: 1.6, fill: '#2B2B2B' });
+      poser('circle', { cx: 36, cy: 23.5, r: 1.9, fill: '#E4849F' });
+    } else if (forme === 'fleur') {
+      poser('line', { x1: 20, y1: 18, x2: 20, y2: 37, stroke: '#4F9E4F', 'stroke-width': 2.6, 'stroke-linecap': 'round' });
+      poser('ellipse', { cx: 26, cy: 29, rx: 5.5, ry: 2.8, fill: '#4F9E4F', transform: 'rotate(-22 26 29)' });
+      for (let i = 0; i < 5; i++) {
+        const angle = (-90 + i * 72) * Math.PI / 180;
+        poser('circle', { cx: 20 + Math.cos(angle) * 7.4, cy: 16 + Math.sin(angle) * 7.4, r: 5.6, fill: hex });
+      }
+      poser('circle', { cx: 20, cy: 16, r: 4.4, fill: '#8A5A2B' });
+    } else if (forme === 'seau') {
+      // L'anse est tracée avant le seau (elle passe derrière le rebord) mais
+      // doit culminer nettement au-dessus, sinon elle disparaît sous celui-ci.
+      poser('path', { d: 'M11 15 Q20 -3 29 15', stroke: sombre, 'stroke-width': 3, fill: 'none', 'stroke-linecap': 'round' });
+      poser('polygon', { points: '11,17 29,17 26,36 14,36', fill: hex });
+      poser('rect', { x: 8.5, y: 13, width: 23, height: 5.4, rx: 2.4, fill: sombre });
+      poser('polygon', { points: '15.5,20 18.5,20 16.5,33 14.5,33', fill: eclaircir(hex, 0.5), opacity: 0.85 });
+    } else if (forme === 'papillon') {
+      poser('ellipse', { cx: 11, cy: 16, rx: 9, ry: 7.5, fill: hex, transform: 'rotate(-18 11 16)' });
+      poser('ellipse', { cx: 29, cy: 16, rx: 9, ry: 7.5, fill: hex, transform: 'rotate(18 29 16)' });
+      poser('ellipse', { cx: 13, cy: 28, rx: 7, ry: 6, fill: clair, transform: 'rotate(-12 13 28)' });
+      poser('ellipse', { cx: 27, cy: 28, rx: 7, ry: 6, fill: clair, transform: 'rotate(12 27 28)' });
+      poser('circle', { cx: 10, cy: 15, r: 2.4, fill: sombre });
+      poser('circle', { cx: 30, cy: 15, r: 2.4, fill: sombre });
+      poser('ellipse', { cx: 20, cy: 22, rx: 2.3, ry: 10, fill: '#4A3A2A' });
+      poser('path', { d: 'M20 13 q-3 -6 -8 -7', stroke: '#4A3A2A', 'stroke-width': 1.4, fill: 'none', 'stroke-linecap': 'round' });
+      poser('path', { d: 'M20 13 q3 -6 8 -7', stroke: '#4A3A2A', 'stroke-width': 1.4, fill: 'none', 'stroke-linecap': 'round' });
+    } else if (forme === 'champignon') {
+      poser('path', { d: 'M15 21 L15 32 Q20 36 25 32 L25 21 Z', fill: '#F5E7CC', stroke: '#D9C39C', 'stroke-width': 1 });
+      poser('path', { d: 'M4 23 A16 15 0 0 1 36 23 Z', fill: hex });
+      poser('circle', { cx: 13, cy: 17, r: 2.6, fill: '#FFFFFF', opacity: 0.92 });
+      poser('circle', { cx: 23, cy: 14, r: 2.2, fill: '#FFFFFF', opacity: 0.92 });
+      poser('circle', { cx: 29, cy: 19, r: 2, fill: '#FFFFFF', opacity: 0.92 });
+    }
+    return svg;
+  }
+
   /*
    * Diagramme en barres.
    * options:
@@ -1037,11 +1191,9 @@
    *  - lignes: [{id, emoji, label}], colonnes: [{id, label}]
    *  - valeurs: {ligneId: {colonneId: n}}
    *  - cellulesMasquees: Set('ligneId|colonneId') -> saisie numérique (mode complétion)
-   *  - modeSelection: true -> cellules cliquables pour y déposer l'élément sélectionné (mode construction)
-   *  - onCelluleClic(ligneId, colonneId)
    */
   function construireTableauDouble(options) {
-    const { lignes, colonnes, valeurs, cellulesMasquees, modeSelection, onCelluleClic } = options;
+    const { lignes, colonnes, valeurs, cellulesMasquees } = options;
     const table = document.createElement('table');
     table.className = 'tableau-double';
     const thead = document.createElement('thead');
@@ -1077,10 +1229,6 @@
           td.appendChild(input);
         } else {
           td.textContent = String(valeur);
-          if (modeSelection) {
-            td.className = 'cellule-cliquable';
-            td.addEventListener('click', () => onCelluleClic(ligne.id, col.id));
-          }
         }
         td.dataset.ligne = ligne.id;
         td.dataset.colonne = col.id;
@@ -1664,101 +1812,332 @@
   }
 
   /* ================================================================
-     Mini-jeu : Tableau à double entrée (CP)
+     Mini-jeu : Le grand tableau — tableau à double entrée (CP)
+
+     L'ERREUR EST AUTORISÉE. Une version antérieure refusait le geste tant que
+     la case visée n'était pas la bonne : l'enfant ne pouvait pas se tromper,
+     donc rien ne lui apprenait à croiser une ligne et une colonne — il lui
+     suffisait de taper les cases jusqu'à ce que l'une accepte. Ici tout objet
+     se pose où l'on veut ; c'est la VALIDATION qui trie, en marquant la case
+     fautive en rouge et la case attendue en vert (CHARTE §18), puis en rendant
+     au vivier les seuls objets mal rangés pour qu'ils soient replacés.
+
+     Deux étapes forment une même manche :
+       1. ranger les objets, valider, corriger si besoin ;
+       2. répondre à une question sur le tableau ainsi rempli.
+     La manche n'est acquise que si le rangement était juste DU PREMIER COUP
+     et la question bien répondue : la correction sert à comprendre, elle ne
+     rattrape pas le score.
      ================================================================ */
 
   function genererTableauDoubleEntree(zone, cfg) {
-    const especes = especesListe(cfg.nbEspeces);
-    const couleurs = melanger(donnees.couleurs).slice(0, cfg.nbCouleurs);
-    const valeursVraies = {};
-    especes.forEach((e) => {
-      valeursVraies[e.id] = {};
-      couleurs.forEach((c) => { valeursVraies[e.id][c.id] = nombreAleatoire(1, cfg.capParCase); });
+    /* Une paire d'objets par manche, tirée SANS REMISE : sur les trois manches
+       les trois paires sortent toutes, mais dans un ordre différent à chaque
+       partie — le thème ne trahit donc jamais la difficulté à venir. */
+    if (!etat.deckPaires || !etat.deckPaires.length) etat.deckPaires = melanger(donnees.pairesObjets);
+    const paire = etat.deckPaires.shift();
+    const objets = paire.objets.map((id) => Object.assign({ id }, donnees.objets[id]));
+
+    /* La PROGRESSION, elle, est fixe par position et indépendante de la paire :
+       manche 1 → 2 couleurs, 4 cases, 10 objets ; manches 2 et 3 → 3 couleurs,
+       6 cases, 15 objets. */
+    const etape = cfg.progression[Math.min(etat.index - 1, cfg.progression.length - 1)];
+    const teintes = melanger(donnees.teintes).slice(0, etape.nbCouleurs);
+
+    const cles = [];
+    objets.forEach((o) => teintes.forEach((t) => cles.push(o.id + '|' + t.id)));
+    const parts = repartir(etape.nbObjets, cles.length, 1, etape.maxParCase);
+    const attendus = {};
+    cles.forEach((cle, i) => { attendus[cle] = parts[i]; });
+
+    const objetPar = {};
+    objets.forEach((o) => { objetPar[o.id] = o; });
+    const teintePar = {};
+    teintes.forEach((t) => { teintePar[t.id] = t; });
+
+    /* Étiquette vocale d'un objet : la couleur s'accorde avec son genre
+       (« une souris verte », « un seau vert »). C'est le seul texte que
+       rencontre un lecteur d'écran, le dessin n'en portant aucun. */
+    function nommer(jeton) {
+      const objet = objetPar[jeton.objetId];
+      const teinte = teintePar[jeton.teinteId];
+      return objet.singulier + ' ' + (objet.genre === 'f' ? teinte.femSing : teinte.mascSing);
+    }
+
+    // Le vivier de départ : un jeton par objet à ranger.
+    let compteur = 0;
+    const jetons = [];
+    cles.forEach((cle) => {
+      const [objetId, teinteId] = cle.split('|');
+      for (let i = 0; i < attendus[cle]; i++) jetons.push({ ref: compteur++, objetId, teinteId, cle });
     });
 
-    let pool = [];
-    especes.forEach((e) => couleurs.forEach((c) => {
-      for (let i = 0; i < valeursVraies[e.id][c.id]; i++) pool.push({ especeId: e.id, couleurId: c.id });
-    }));
-    pool = melanger(pool);
+    const enCellule = {};
+    cles.forEach((cle) => { enCellule[cle] = []; });
+    let vivier = melanger(jetons);
+    let selection = null;
+    let premierEssaiJuste = true;
+    let phase = 'rangement';
 
+    // Consigne courte à l'écran (un CP ne lit pas six lignes), détail complet
+    // dans la version lue à voix haute.
     zone.appendChild(creerBlocConsigne(
-      'Clique sur une bête, puis clique sur sa case dans le tableau.',
-      'Choisis une bête dans le jardin, puis pose-la dans la bonne case du tableau : ligne de son espèce, colonne de sa couleur.'
+      'Range chaque objet dans sa case : sa sorte et sa couleur.',
+      'Choisis un objet, puis pose-le dans sa case du tableau, en croisant sa sorte et sa couleur. '
+      + 'Si tu changes d’avis, clique sur l’objet pour le reprendre. Quand tout est rangé, valide ton tableau.'
     ));
 
-    const valeursActuelles = {};
-    especes.forEach((e) => { valeursActuelles[e.id] = {}; couleurs.forEach((c) => { valeursActuelles[e.id][c.id] = 0; }); });
+    /* ---- Vivier ---- */
+    const zoneVivier = document.createElement('div');
+    zoneVivier.className = 'pool-objets';
 
-    const zonePool = document.createElement('div');
-    zonePool.className = 'pool-population';
-
-    let selection = null;
-
-    const table = construireTableauDouble({
-      lignes: especes.map((e) => ({ id: e.id, emoji: e.emoji, label: e.pluriel })),
-      colonnes: couleurs.map((c) => ({ id: c.id, label: c.emoji + ' ' + c.nom })),
-      valeurs: valeursActuelles,
-      modeSelection: true,
-      onCelluleClic: (ligneId, colonneId) => {
-        if (!selection) return;
-        if (selection.especeId !== ligneId || selection.couleurId !== colonneId) return; // seule la bonne case accepte la bête
-        valeursActuelles[ligneId][colonneId]++;
-        const cellule = table.querySelector('td[data-ligne="' + ligneId + '"][data-colonne="' + colonneId + '"]');
-        if (cellule) cellule.textContent = String(valeursActuelles[ligneId][colonneId]);
-        selection.el.remove();
-        pool = pool.filter((p) => p !== selection.item);
-        selection = null;
-        Array.from(zonePool.children).forEach((c) => c.classList.remove('selectionnee'));
-        if (pool.length === 0) boutonValider.disabled = false;
-      }
-    });
-
-    function rendrePool() {
-      zonePool.innerHTML = '';
-      pool.forEach((item) => {
-        const especeInfo = donnees.especes[item.especeId];
-        const couleurInfo = couleurs.find((c) => c.id === item.couleurId);
+    function rendreVivier() {
+      zoneVivier.innerHTML = '';
+      zoneVivier.classList.toggle('vide', vivier.length === 0);
+      vivier.forEach((jeton) => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'bete-pool';
-        btn.textContent = especeInfo.emoji;
-        btn.style.boxShadow = 'inset 0 -4px 0 ' + (couleurInfo.id === 'rouge' ? '#FF6B6B' : couleurInfo.id === 'jaune' ? '#FFD93D' : '#4ECDC4');
-        btn.setAttribute('aria-label', especeInfo.singulier + ' ' + couleurInfo.nom);
+        btn.className = 'jeton-objet' + (selection && selection.ref === jeton.ref ? ' selectionnee' : '');
+        btn.appendChild(dessinerObjet(objetPar[jeton.objetId].forme, teintePar[jeton.teinteId].hex));
+        btn.setAttribute('aria-label', nommer(jeton));
         btn.addEventListener('click', () => {
-          Array.from(zonePool.children).forEach((c) => c.classList.remove('selectionnee'));
-          btn.classList.add('selectionnee');
-          selection = { especeId: item.especeId, couleurId: item.couleurId, el: btn, item };
+          if (phase !== 'rangement') return;
+          selection = (selection && selection.ref === jeton.ref) ? null : jeton;
+          rendreVivier();
         });
-        zonePool.appendChild(btn);
+        zoneVivier.appendChild(btn);
+      });
+      boutonValider.disabled = vivier.length > 0 || phase !== 'rangement';
+    }
+
+    /* ---- Tableau : axes croisés, orientation propre à la paire ---- */
+    const objetsEnLignes = paire.orientation === 'objets-en-lignes';
+    const axeLignes = objetsEnLignes ? objets : teintes;
+    const axeColonnes = objetsEnLignes ? teintes : objets;
+    const cleDe = (ligneId, colonneId) => (objetsEnLignes ? ligneId + '|' + colonneId : colonneId + '|' + ligneId);
+
+    // En-tête d'axe : le dessin non peint pour une sorte, le nom écrit dans sa
+    // teinte pour une couleur — jamais de pastille posée à côté d'un objet.
+    function enteteAxe(item) {
+      const bloc = document.createElement('div');
+      bloc.className = 'entete-axe';
+      if (item.forme) {
+        bloc.appendChild(dessinerObjet(item.forme, TEINTE_NEUTRE));
+        const nom = document.createElement('span');
+        nom.textContent = item.pluriel;
+        bloc.appendChild(nom);
+      } else {
+        const nom = document.createElement('span');
+        nom.className = 'nom-teinte';
+        nom.textContent = item.nom;
+        nom.style.color = assombrir(item.hex, 0.3);
+        bloc.appendChild(nom);
+      }
+      return bloc;
+    }
+
+    const table = document.createElement('table');
+    table.className = 'tableau-placement';
+    const thead = document.createElement('thead');
+    const trHead = document.createElement('tr');
+    trHead.appendChild(document.createElement('th'));
+    axeColonnes.forEach((col) => {
+      const th = document.createElement('th');
+      th.appendChild(enteteAxe(col));
+      trHead.appendChild(th);
+    });
+    thead.appendChild(trHead);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    const cellules = {};
+    axeLignes.forEach((ligne) => {
+      const tr = document.createElement('tr');
+      const th = document.createElement('th');
+      th.appendChild(enteteAxe(ligne));
+      tr.appendChild(th);
+      axeColonnes.forEach((col) => {
+        const cle = cleDe(ligne.id, col.id);
+        const td = document.createElement('td');
+        td.className = 'cellule-placement';
+        td.dataset.cle = cle;
+        const contenu = document.createElement('div');
+        contenu.className = 'contenu-cellule';
+        td.appendChild(contenu);
+        td.addEventListener('click', () => deposer(cle));
+        cellules[cle] = { td, contenu };
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+
+    function rendreCellule(cle) {
+      const { contenu } = cellules[cle];
+      contenu.innerHTML = '';
+      enCellule[cle].forEach((jeton) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'objet-mini';
+        btn.appendChild(dessinerObjet(objetPar[jeton.objetId].forme, teintePar[jeton.teinteId].hex));
+        btn.setAttribute('aria-label', 'Reprendre ' + nommer(jeton));
+        btn.addEventListener('click', (ev) => {
+          ev.stopPropagation(); // sinon la cellule traiterait le clic une seconde fois
+          if (phase !== 'rangement') return;
+          /* Une case déjà occupée finit par être entièrement recouverte par ses
+             objets : sans cette bascule, viser une case pleine reviendrait à
+             vider l'un de ses objets au lieu d'en ajouter un. Un objet
+             sélectionné dans le vivier lève l'ambiguïté — le geste vise à
+             POSER ; sans sélection, il vise à reprendre. */
+          if (selection) { deposer(cle); return; }
+          enCellule[cle] = enCellule[cle].filter((j) => j !== jeton);
+          vivier.push(jeton);
+          effacerMarques();
+          rendreCellule(cle);
+          rendreVivier();
+          jouerSon('tic');
+        });
+        contenu.appendChild(btn);
       });
     }
-    rendrePool();
 
-    zone.appendChild(zonePool);
-    zone.appendChild(table);
+    /* Dépose LIBRE : n'importe quelle case accepte n'importe quel objet. */
+    function deposer(cle) {
+      if (phase !== 'rangement' || !selection) return;
+      const jeton = selection;
+      selection = null;
+      vivier = vivier.filter((j) => j !== jeton);
+      enCellule[cle].push(jeton);
+      effacerMarques();
+      rendreCellule(cle);
+      rendreVivier();
+      jouerSon('tic');
+    }
+
+    /* Toute manipulation efface la correction affichée — et remet le bouton
+       dans son rôle de validation : l'enfant qui a déjà repris lui-même ses
+       objets ne doit pas pouvoir déclencher une reprise devenue caduque. */
+    function effacerMarques() {
+      note.textContent = '';
+      note.className = 'note-rangement';
+      malRanges = [];
+      roleBouton = 'valider';
+      boutonValider.textContent = 'Valider mon tableau';
+      cles.forEach((cle) => {
+        cellules[cle].td.classList.remove('case-fausse', 'case-attendue');
+        cellules[cle].contenu.querySelectorAll('.mal-place').forEach((el) => el.classList.remove('mal-place'));
+      });
+    }
+
+    const note = document.createElement('p');
+    note.className = 'note-rangement';
 
     const boutonValider = document.createElement('button');
     boutonValider.type = 'button';
     boutonValider.className = 'bouton-principal';
     boutonValider.textContent = 'Valider mon tableau';
     boutonValider.disabled = true;
-    boutonValider.addEventListener('click', () => {
-      const correct = especes.every((e) => couleurs.every((c) => valeursActuelles[e.id][c.id] === valeursVraies[e.id][c.id]));
-      if (!correct) {
-        // CHARTE §18 : on n'énumère que les cases fausses, avec leur bonne valeur.
-        const fautives = [];
-        especes.forEach((e) => couleurs.forEach((c) => {
-          if (valeursActuelles[e.id][c.id] !== valeursVraies[e.id][c.id]) {
-            fautives.push(e.emoji + ' ' + c.nom + ' : ' + valeursVraies[e.id][c.id]);
-          }
-        }));
-        validerTour(false, boutonValider, { donnee: null, attendue: fautives.join('  ·  ') });
-      } else {
-        validerTour(true, boutonValider);
-      }
-    });
+
+    const zoneQuestion = document.createElement('div');
+
+    zone.appendChild(zoneVivier);
+    zone.appendChild(table);
+    zone.appendChild(note);
     zone.appendChild(boutonValider);
+    zone.appendChild(zoneQuestion);
+    rendreVivier();
+
+    /* Le bouton porte deux rôles successifs — valider, puis reprendre les
+       objets mal rangés. Un seul écouteur qui aiguille sur `roleBouton` : deux
+       écouteurs concurrents se déclencheraient tous les deux au même clic. */
+    let roleBouton = 'valider';
+    let malRanges = [];
+
+    boutonValider.addEventListener('click', () => {
+      if (phase !== 'rangement') return;
+      if (roleBouton === 'replacer') { reprendreMalRanges(); return; }
+      if (vivier.length) return;
+
+      // Tous les objets étant posés et chacun n'ayant qu'une case légitime,
+      // « aucun intrus » équivaut à « tous les effectifs sont justes ».
+      const intrus = [];
+      cles.forEach((cle) => {
+        enCellule[cle].forEach((jeton, i) => {
+          if (jeton.cle !== cle) intrus.push({ jeton, depuis: cle, rang: i });
+        });
+      });
+
+      if (intrus.length === 0) {
+        phase = 'question';
+        table.classList.add('verrouille');
+        boutonValider.hidden = true;
+        note.textContent = 'Ton tableau est juste !';
+        note.className = 'note-rangement reussite';
+        jouerSon('tic');
+        poserQuestionFinale();
+        return;
+      }
+
+      // CHARTE §18 : la case fautive en rouge, la case attendue en vert, et
+      // l'objet fautif lui-même entouré — sinon on saurait qu'une case est
+      // fausse sans savoir lequel de ses objets l'est.
+      premierEssaiJuste = false;
+      jouerSon('rate');
+      intrus.forEach(({ jeton, depuis, rang }) => {
+        cellules[depuis].td.classList.add('case-fausse');
+        cellules[jeton.cle].td.classList.add('case-attendue');
+        const mini = cellules[depuis].contenu.children[rang];
+        if (mini) mini.classList.add('mal-place');
+      });
+      note.textContent = intrus.length === 1
+        ? 'Cet objet n’est pas dans la bonne case : la case verte l’attend.'
+        : 'Ces ' + intrus.length + ' objets ne sont pas dans la bonne case : les cases vertes les attendent.';
+      note.className = 'note-rangement erreur';
+
+      // On rend la main sur un geste explicite plutôt qu'au bout d'un délai :
+      // l'enfant garde le rouge et le vert sous les yeux le temps qu'il veut.
+      malRanges = intrus;
+      roleBouton = 'replacer';
+      boutonValider.disabled = false;
+      boutonValider.textContent = 'Je replace mes objets';
+    });
+
+    function reprendreMalRanges() {
+      malRanges.forEach(({ jeton, depuis }) => {
+        enCellule[depuis] = enCellule[depuis].filter((j) => j !== jeton);
+        vivier.push(jeton);
+      });
+      vivier = melanger(vivier);
+      effacerMarques(); // remet aussi le bouton dans son rôle de validation
+      cles.forEach(rendreCellule);
+      rendreVivier();
+    }
+
+    /* ---- Étape 2 : une question sur le tableau qui vient d'être rempli ---- */
+    function poserQuestionFinale() {
+      const cle = choisir(cles);
+      const [objetId, teinteId] = cle.split('|');
+      const objet = objetPar[objetId];
+      const teinte = teintePar[teinteId];
+      const groupe = objet.genre === 'f' ? teinte.fem : teinte.masc;
+      const enonce = 'Combien ' + deElision(objet.pluriel) + ' ' + groupe + ' y a-t-il dans le tableau ?';
+
+      zoneQuestion.appendChild(creerBlocConsigne(enonce, enonce));
+      cellules[cle].td.classList.add('case-question');
+
+      const pave = creerPave((valeur) => {
+        pave.verrouiller(true);
+        phase = 'termine';
+        cellules[cle].td.classList.remove('case-question');
+        cellules[cle].td.classList.add('case-attendue');
+        const juste = valeur === attendus[cle];
+        // Le rangement corrigé ne rattrape pas le score : l'erreur a déjà été
+        // signalée et expliquée sur le tableau au moment où elle a eu lieu.
+        validerTour(juste && premierEssaiJuste, null,
+          juste ? null : { donnee: String(valeur), attendue: String(attendus[cle]) });
+      }, 2);
+      zoneQuestion.appendChild(pave.el);
+    }
   }
 
   /* ================================================================
