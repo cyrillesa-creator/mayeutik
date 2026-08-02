@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="color-scheme" content="light only">
 <title>Boss des tables – Mayeutik</title>
 <!-- ============================================================
@@ -17,6 +17,47 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  /* ================================================================
+     Protections tactiles obligatoires (CHARTE §19)
+     Deux comportements natifs du navigateur parasitent l'usage tactile d'un
+     jeu : le zoom au double-tap (deux appuis rapprochés sont un geste NORMAL
+     ici — remplir puis vider une case, corriger une saisie) et la sélection
+     native (surbrillance bleue, menu « copier / enregistrer l'image » au
+     maintien du doigt). On les neutralise à l'échelle de l'interface, une
+     bonne fois, plutôt qu'élément par élément.
+     ================================================================ */
+
+  /* `touch-action` ne s'hérite PAS : le sélecteur universel est le seul moyen
+     de couvrir toute l'interface. `manipulation` supprime le zoom au
+     double-tap tout en laissant le défilement et le pincement — les gestes à
+     deux doigts pilotés en JS (rotation de la règle mobile de M23) restent
+     donc intacts, d'autant qu'ils déclarent eux-mêmes `touch-action:none`,
+     plus spécifique que `*`. */
+  * { touch-action: manipulation; }
+
+  /* Empêche iOS de grossir les textes en paysage, ce qui casserait les
+     mises en page calculées au pixel (règles graduées, figures SVG). */
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+  /* `user-select` et `-webkit-touch-callout`, eux, s'héritent : les poser sur
+     body suffit à couvrir consignes, boutons, illustrations et éléments
+     glissables. */
+  body {
+    -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Pas de « fantôme » d'image traîné à la souris par-dessus un glisser-déposer. */
+  img, svg, canvas { -webkit-user-drag: none; }
+
+  /* Les champs de saisie gardent sélection, curseur et menu d'édition : les
+     en priver rendrait la correction d'une valeur impossible. La série en
+     compte deux (décomposition m/dm/cm de M23, cellule manquante de M39). */
+  input, textarea, select, [contenteditable="true"] {
+    -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text;
+    -webkit-touch-callout: default;
+  }
+
   :root {
     --couleur-fond: #FFF8EF;
     --couleur-encre: #2B2B2B;
