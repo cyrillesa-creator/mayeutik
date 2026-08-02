@@ -1059,6 +1059,16 @@
   function pxParUniteRegle(longueurUnites) {
     return Math.max(9, Math.min(30, Math.floor(280 / longueurUnites)));
   }
+
+  /* Marge intérieure AVANT la première graduation. Les étiquettes sont
+     centrées sur leur trait (`translateX(-50%)`) : posée à gauche = 0, la
+     moitié du « 0 » sortait de la règle, que `overflow:hidden` rognait net.
+     La marge décale toute la graduation vers la droite — la première étiquette
+     tient alors entière, sans rien changer à l'échelle ni aux distances entre
+     graduations. Dimensionnée pour la plus large des premières étiquettes
+     possibles (fenêtre d'encadrement démarrant à deux chiffres, en grande
+     taille), et partagée par la règle fixe ET le double décimètre mobile. */
+  const MARGE_REGLE_ZERO_PX = 16;
   function construireRegle(options) {
     const { longueurUnites, objetLongueur, unite, zonesCliquables, onZoneClic, zoneSelectionnee, uniteDebut, pxUnite } = options;
     const debut = uniteDebut || 0;
@@ -1067,12 +1077,12 @@
     wrap.className = 'regle-scroll';
     const regle = document.createElement('div');
     regle.className = 'regle-graduee' + (pxUnite ? ' regle-graduee-grande' : '');
-    regle.style.width = (longueurUnites * px + 24) + 'px';
+    regle.style.width = (longueurUnites * px + 24 + MARGE_REGLE_ZERO_PX) + 'px';
 
     if (objetLongueur != null) {
       const barre = document.createElement('div');
       barre.className = 'regle-barre';
-      barre.style.left = (-debut * px) + 'px';
+      barre.style.left = (MARGE_REGLE_ZERO_PX - debut * px) + 'px';
       barre.style.width = Math.max(2, objetLongueur * px) + 'px';
       regle.appendChild(barre);
     }
@@ -1082,12 +1092,12 @@
       const valeurAbsolue = debut + i;
       const tick = document.createElement('div');
       tick.className = 'regle-tick' + (i % espacementLabel === 0 ? ' regle-tick-forte' : '');
-      tick.style.left = (i * px) + 'px';
+      tick.style.left = (MARGE_REGLE_ZERO_PX + i * px) + 'px';
       regle.appendChild(tick);
       if (i % espacementLabel === 0) {
         const lab = document.createElement('div');
         lab.className = 'regle-label';
-        lab.style.left = (i * px) + 'px';
+        lab.style.left = (MARGE_REGLE_ZERO_PX + i * px) + 'px';
         lab.textContent = String(valeurAbsolue);
         regle.appendChild(lab);
       }
@@ -1095,7 +1105,7 @@
     const uniteLab = document.createElement('div');
     uniteLab.className = 'regle-unite';
     uniteLab.textContent = unite || 'cm';
-    uniteLab.style.left = (longueurUnites * px + 6) + 'px';
+    uniteLab.style.left = (MARGE_REGLE_ZERO_PX + longueurUnites * px + 6) + 'px';
     regle.appendChild(uniteLab);
 
     if (zonesCliquables) {
@@ -1104,7 +1114,7 @@
         const zone = document.createElement('button');
         zone.type = 'button';
         zone.className = 'regle-zone' + (zoneSelectionnee === valeurAbsolue ? ' selectionnee' : '');
-        zone.style.left = (i * px) + 'px';
+        zone.style.left = (MARGE_REGLE_ZERO_PX + i * px) + 'px';
         zone.style.width = px + 'px';
         zone.setAttribute('aria-label', 'Entre ' + valeurAbsolue + ' et ' + (valeurAbsolue + 1) + ' ' + (unite || 'cm'));
         zone.addEventListener('click', () => onZoneClic(valeurAbsolue));
@@ -2256,7 +2266,7 @@
     const cap = cfg.capCm || 16;
     const longueur = nombreAleatoire(3, cap - 2);
     const PX = 16;
-    const largeurRegle = cap * PX + 24;
+    const largeurRegle = cap * PX + 24 + MARGE_REGLE_ZERO_PX;
     const largeurPiste = largeurRegle + 90;
 
     zone.appendChild(creerBlocConsigne(
@@ -2268,7 +2278,7 @@
     piste.className = 'piste-alignement';
     piste.style.width = largeurPiste + 'px';
 
-    const positionPlanche = nombreAleatoire(20, largeurPiste - largeurRegle - 20);
+    const positionPlanche = nombreAleatoire(20 + MARGE_REGLE_ZERO_PX, largeurPiste - largeurRegle - 20 + MARGE_REGLE_ZERO_PX);
     const planche = document.createElement('div');
     planche.className = 'planche-fixe';
     planche.style.left = positionPlanche + 'px';
@@ -2281,12 +2291,12 @@
     for (let i = 0; i <= cap; i++) {
       const tick = document.createElement('div');
       tick.className = 'regle-tick' + (i % 2 === 0 ? ' regle-tick-forte' : '');
-      tick.style.left = (i * PX) + 'px';
+      tick.style.left = (MARGE_REGLE_ZERO_PX + i * PX) + 'px';
       regle.appendChild(tick);
       if (i % 2 === 0) {
         const lab = document.createElement('div');
         lab.className = 'regle-label';
-        lab.style.left = (i * PX) + 'px';
+        lab.style.left = (MARGE_REGLE_ZERO_PX + i * PX) + 'px';
         lab.textContent = String(i);
         regle.appendChild(lab);
       }
@@ -2310,7 +2320,12 @@
     zone.appendChild(zoneReponse);
 
     const TOLERANCE_PX = 8;
-    function estAlignee() { return Math.abs(positionRegle - positionPlanche) <= TOLERANCE_PX; }
+    // Le zéro n'est plus au bord de la règle mais MARGE_REGLE_ZERO_PX plus
+    // loin (place réservée à l'étiquette « 0 ») : c'est lui, et non le bord de
+    // l'élément, qu'il faut aligner sur le début de la planche.
+    function estAlignee() {
+      return Math.abs(positionRegle + MARGE_REGLE_ZERO_PX - positionPlanche) <= TOLERANCE_PX;
+    }
 
     function afficherOptionsMesure() {
       zoneReponse.hidden = false;
@@ -2894,7 +2909,9 @@
   const LARGEUR_FENETRE_ENCADREMENT_MAX = 6;
   const LARGEUR_FENETRE_ENCADREMENT_MIN = 3;
   const PX_UNITE_ENCADREMENT = 48;
-  const MARGE_REGLE_PX = 24; // cf. construireRegle : largeur totale = unités × px + 24
+  // cf. construireRegle : largeur totale = unités × px + 24 + la marge réservée
+  // à l'étiquette « 0 ».
+  const MARGE_REGLE_PX = 24 + MARGE_REGLE_ZERO_PX;
 
   function genererEncadrer(zone, cfg) {
     const cap = cfg.capCm || 20;
@@ -3931,15 +3948,17 @@
       const wrapRegle = construireRegle({ longueurUnites: cap, unite: 'cm', pxUnite: PX });
       const regle = wrapRegle.firstElementChild;
       regle.classList.add('regle-graduee-semi-transparente', 'cartographie-regle-posee');
-      // Position finale : zéro de la règle aligné avec le début du segment
-      // (le tick 0 est à 2.5px du bord de l'élément, sa bordure), et le
-      // segment traversant le HAUT de la règle — à la place qu'occupe la
-      // barre rouge dans les autres lectures de règle de la série.
-      const cibleX = Math.max(0, base[0][0] + ox - 2.5);
+      // Position finale : zéro de la règle aligné avec le début du segment.
+      // Le tick 0 est à 2.5px de bordure PLUS la marge réservée à l'étiquette
+      // « 0 » — c'est de cette distance qu'il faut reculer l'élément pour que
+      // son zéro, et non son bord, tombe sur le début du segment. Le segment
+      // traverse le HAUT de la règle, à la place qu'occupe la barre rouge dans
+      // les autres lectures de règle de la série.
+      const cibleX = Math.max(0, base[0][0] + ox - 2.5 - MARGE_REGLE_ZERO_PX);
       const cibleY = base[0][1] + oy - 18;
       regle.style.left = cibleX + 'px';
       regle.style.top = cibleY + 'px';
-      interne.style.width = Math.max(largeur, cibleX + cap * PX + 24) + 'px';
+      interne.style.width = Math.max(largeur, cibleX + cap * PX + 24 + MARGE_REGLE_ZERO_PX) + 'px';
       interne.style.height = (cibleY + 100) + 'px';
       if (preferesMouvementReduit) {
         interne.appendChild(regle);
@@ -4443,7 +4462,7 @@
     const PX = 16;
     const regle = document.createElement('div');
     regle.className = 'regle-graduee regle-mobile';
-    regle.style.width = (cap * PX + 24) + 'px';
+    regle.style.width = (cap * PX + 24 + MARGE_REGLE_ZERO_PX) + 'px';
     // Double décimètre : une graduation sur CHACUN des deux bords longs,
     // comme une vraie règle d'écolier. L'enfant lit sur le bord qui touche
     // le côté mesuré, sans avoir à retourner la règle — utile ici puisqu'elle
@@ -4456,19 +4475,19 @@
       ['', ' regle-tick-haut'].forEach((bord) => {
         const tick = document.createElement('div');
         tick.className = 'regle-tick' + (forte ? ' regle-tick-forte' : '') + bord;
-        tick.style.left = (i * PX) + 'px';
+        tick.style.left = (MARGE_REGLE_ZERO_PX + i * PX) + 'px';
         regle.appendChild(tick);
       });
       if (forte) {
         const lab = document.createElement('div');
         lab.className = 'regle-label';
-        lab.style.left = (i * PX) + 'px';
+        lab.style.left = (MARGE_REGLE_ZERO_PX + i * PX) + 'px';
         lab.textContent = String(i);
         regle.appendChild(lab);
 
         const labHaut = document.createElement('div');
         labHaut.className = 'regle-label-haut';
-        labHaut.style.left = (i * PX) + 'px';
+        labHaut.style.left = (MARGE_REGLE_ZERO_PX + i * PX) + 'px';
         labHaut.textContent = String(cap - i); // numérotation inversée
         regle.appendChild(labHaut);
       }
