@@ -748,11 +748,12 @@ Points d'attention :
 - le rouge ne doit **jamais** désigner la bonne réponse : quand la solution vient remplacer la
   proposition de l'enfant dans les mêmes cases, ces cases doivent repasser au vert.
 
-### Exception admise
+### Pas d'essai-erreur sur place
 
-Un mini-jeu conçu en **essai-erreur libre**, où une tentative fausse n'est pas validée (pas de
-point perdu, l'enfant réessaie jusqu'à réussir), signale les éléments mal placés sans donner la
-solution : c'est le principe même de l'exercice. C'est le cas de « La parade des escargots »
-(M01). Dès qu'une réponse fausse est *validée* — et donc comptée —, la règle §18 s'applique.
+La règle vaut pour **tous** les mini-jeux, y compris ceux dont la mécanique se prêterait à
+laisser l'enfant recommencer : une réponse validée est validée. On ne repropose pas le même
+exercice à corriger sur place — on montre la solution, puis on passe à la manche suivante.
+Reproposer le même écran entretient l'illusion qu'on peut tâtonner jusqu'à tomber juste, sans
+jamais confronter l'enfant à la bonne réponse.
 
 **Pour tout nouveau mini-jeu :** cette règle fait partie du gabarit dès la conception, au même titre que la navigation (§17). Un mini-jeu qui signale l'erreur sans montrer la solution est considéré comme non conforme.
