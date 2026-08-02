@@ -183,6 +183,20 @@
   .colonne-etiquetage{ flex:1; display:flex; flex-direction:column; gap:.6rem; }
   .traits-connexion{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
   .trait-connexion{ stroke-width:4; stroke-linecap:round; }
+  /* Trait en cours de tracé : légèrement transparent et pointillé, pour se
+     distinguer d'un lien déjà établi tant que le doigt n'a pas relâché. */
+  .trait-en-cours{ stroke-width:4; stroke-linecap:round; opacity:.75; stroke-dasharray:7 5; }
+  /* Étiquette survolée pendant un tracé : l'enfant voit où son trait va se
+     poser avant de relâcher. */
+  .etiquette-nombre.cible-survolee{ transform:scale(1.06); border-color:var(--couleur-mandarine);
+    box-shadow:0 0 0 3px color-mix(in srgb, var(--couleur-mandarine) 35%, transparent); }
+  /* `touch-action:none` sur les seules cartes de gauche : c'est de là que part
+     le tracé au doigt, et le navigateur ne doit pas le confondre avec un
+     défilement (cf. gelerDefilement). Les étiquettes de droite, elles, restent
+     un point de départ de défilement normal. */
+  .carte-etiquetage{ touch-action:none; }
+  /* Carte d'où part le tracé en cours. */
+  .carte-etiquetage.trace-depart{ border-color:var(--couleur-mandarine); }
   .carte-etiquetage, .etiquette-nombre{
     min-height:3.6rem; border-radius:16px; border:2.5px solid var(--couleur-encre); background:#ffffff;
     display:flex; align-items:center; justify-content:center; padding:.4rem;
@@ -1118,6 +1132,12 @@
       const d = droites[droiteId];
       if (g.droiteId !== null && g.droiteId !== droiteId) deconnecter(gaucheId);
       if (d.gaucheId !== null && d.gaucheId !== gaucheId) deconnecter(d.gaucheId);
+      // Refaire le MÊME lien ne passe par aucune des deux déconnexions
+      // ci-dessus : sans ce nettoyage, l'ancien trait resterait orphelin dans le
+      // SVG et un second se dessinerait par-dessus. C'est le cas dès qu'on
+      // relie deux fois la même paire, et à chaque révélation de la solution
+      // (CHARTE §18), qui rappelle connecter() sur les paires déjà justes.
+      if (g.ligne) { g.ligne.remove(); g.ligne = null; }
       g.droiteId = droiteId;
       d.gaucheId = gaucheId;
       g.btn.classList.add('liee');
@@ -1129,18 +1149,114 @@
       majBoutonValider();
     }
 
+    /* Deux façons de relier, toutes deux actives :
+         - le TAP SÉQUENTIEL (toucher un bocal, puis son étiquette) ;
+         - le TRACÉ CONTINU (partir d'un bocal et glisser sans relâcher jusqu'à
+           l'étiquette), avec un trait qui suit le doigt en temps réel.
+       Le geste se décide au relâchement : en dessous de SEUIL_TRACE_PX, c'est un
+       appui simple et on retombe sur la sélection ; au-delà, c'est un tracé. */
+    const SEUIL_TRACE_PX = 8;
+    let trace = null; // { gaucheId, ligne, cible }
+
+    function pointDansZone(clientX, clientY) {
+      const r = zoneMatch.getBoundingClientRect();
+      return { x: clientX - r.left, y: clientY - r.top };
+    }
+
+    function etiquetteSous(clientX, clientY) {
+      const el = document.elementFromPoint(clientX, clientY);
+      const btn = el && el.closest ? el.closest('.etiquette-nombre') : null;
+      return btn && !btn.disabled ? btn : null;
+    }
+
+    function survoler(btn) {
+      if (trace && trace.cible === btn) return;
+      if (trace && trace.cible) trace.cible.classList.remove('cible-survolee');
+      if (trace) trace.cible = btn;
+      if (btn) btn.classList.add('cible-survolee');
+    }
+
+    function terminerTrace() {
+      if (!trace) return;
+      if (trace.cible) trace.cible.classList.remove('cible-survolee');
+      if (trace.ligne) trace.ligne.remove();
+      gauches[trace.gaucheId].btn.classList.remove('trace-depart');
+      trace = null;
+      degelerDefilement();
+    }
+
     gaucheAffiche.forEach((carte) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'carte-etiquetage';
       btn.appendChild(carte.type === 'de' ? creerDe(carte.n) : creerMiniCollection(carte.especeId, carte.n));
       gauches[carte.id] = { n: carte.n, couleur: carte.couleur, btn, droiteId: null, ligne: null };
-      btn.addEventListener('click', () => {
+
+      function selectionner() {
         if (btn.disabled) return;
         if (selectionGaucheId !== null) gauches[selectionGaucheId].btn.classList.remove('selectionnee');
         selectionGaucheId = carte.id;
         btn.classList.add('selectionnee');
+      }
+      // `click` ne sert plus qu'au clavier (detail === 0) : au doigt, c'est
+      // `pointerup` qui tranche entre appui simple et tracé, sinon un tracé
+      // terminé ailleurs déclencherait aussi une sélection parasite.
+      btn.addEventListener('click', (e) => { if (e.detail === 0) selectionner(); });
+
+      let departX = 0, departY = 0;
+      btn.addEventListener('pointerdown', (e) => {
+        if (btn.disabled || etat.verrouille) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        if (trace) return; // un tracé est déjà en cours : on ignore ce doigt
+        e.preventDefault();
+        departX = e.clientX; departY = e.clientY;
+        try { btn.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+        gelerDefilement();
+        const depart = pointDansZone(
+          btn.getBoundingClientRect().right,
+          btn.getBoundingClientRect().top + btn.getBoundingClientRect().height / 2
+        );
+        const ligne = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        ligne.setAttribute('x1', String(depart.x));
+        ligne.setAttribute('y1', String(depart.y));
+        ligne.setAttribute('x2', String(depart.x));
+        ligne.setAttribute('y2', String(depart.y));
+        ligne.setAttribute('class', 'trait-en-cours');
+        ligne.setAttribute('stroke', carte.couleur);
+        svg.appendChild(ligne);
+        btn.classList.add('trace-depart');
+        trace = { gaucheId: carte.id, ligne, cible: null };
       });
+
+      btn.addEventListener('pointermove', (e) => {
+        if (!trace || trace.gaucheId !== carte.id) return;
+        e.preventDefault();
+        const p = pointDansZone(e.clientX, e.clientY);
+        trace.ligne.setAttribute('x2', String(p.x));
+        trace.ligne.setAttribute('y2', String(p.y));
+        survoler(etiquetteSous(e.clientX, e.clientY));
+      });
+
+      function relacher(e) {
+        if (!trace || trace.gaucheId !== carte.id) return;
+        const distance = Math.hypot(e.clientX - departX, e.clientY - departY);
+        const cible = distance >= SEUIL_TRACE_PX ? etiquetteSous(e.clientX, e.clientY) : null;
+        const idCible = cible ? Number(cible.dataset.droiteId) : null;
+        terminerTrace();
+        if (distance < SEUIL_TRACE_PX) { selectionner(); return; } // appui simple
+        // Relâché en dehors d'une étiquette : le tracé est simplement abandonné,
+        // sans liaison ni sélection en suspens.
+        if (idCible === null || Number.isNaN(idCible)) return;
+        if (selectionGaucheId !== null) {
+          gauches[selectionGaucheId].btn.classList.remove('selectionnee');
+          selectionGaucheId = null;
+        }
+        connecter(carte.id, idCible);
+      }
+      btn.addEventListener('pointerup', relacher);
+      btn.addEventListener('pointercancel', () => terminerTrace());
+      btn.addEventListener('lostpointercapture', () => { if (trace) terminerTrace(); });
+
       colGauche.appendChild(btn);
     });
 
@@ -1149,6 +1265,7 @@
       btn.type = 'button';
       btn.className = 'etiquette-nombre';
       btn.textContent = String(etq.n);
+      btn.dataset.droiteId = String(etq.id); // retrouvé par le tracé au doigt
       droites[etq.id] = { n: etq.n, btn, gaucheId: null };
       btn.addEventListener('click', () => {
         if (btn.disabled || selectionGaucheId === null) return;
