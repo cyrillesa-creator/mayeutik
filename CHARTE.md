@@ -128,6 +128,42 @@ function jouerSon(type) {
 - L'`AudioContext` doit être créé/relancé suite à une interaction utilisateur (contrainte des navigateurs mobiles), jamais au chargement de la page.
 - Le son reste un **plus**, jamais un pré-requis : le jeu doit rester compréhensible sans le son (feedback visuel toujours présent en parallèle).
 
+### Consigne lue à voix haute : choisir la voix, ne pas la subir
+
+Les jeux qui s'adressent à des non-lecteurs lisent leur consigne via `SpeechSynthesis`. Sans voix
+explicitement demandée, le navigateur prend la voix **par défaut** de la langue — presque toujours
+la plus basique, au rendu très mécanique. Or la plupart des appareils embarquent aussi des voix de
+bien meilleure facture, gratuites et déjà installées.
+
+`lireAVoixHaute` **choisit** donc sa voix, selon un score :
+
+| Critère | Poids | Pourquoi |
+|---|---|---|
+| Nom contenant `Enhanced`, `Premium`, `Neural`, `Natural`, `Siri`, `WaveNet`, `Studio` | +8 | Voix haut de gamme annoncée comme telle par la plateforme |
+| Voix française réputée (Amélie, Thomas, Audrey, Aurélie, Céline, Marie) | +3 | À défaut de marqueur explicite |
+| `lang` exactement `fr-FR` | +2 | Accent de France pour une école française |
+| `localService` | +1 | Voix embarquée : fonctionne hors ligne |
+| Voix par défaut de la plateforme | +0.5 | Départage |
+
+Trois points à ne pas perdre de vue :
+
+- **La liste des voix arrive de façon asynchrone.** Un premier `getVoices()` peut renvoyer une
+  liste vide : on recalcule à chaque lecture et on s'abonne à `voiceschanged`, en gardant la
+  meilleure voix déjà trouvée entre-temps.
+- **Aucune voix française disponible reste un cas normal** : on s'en remet alors au navigateur via
+  `lang`, exactement comme avant. La consigne est lue, sans erreur.
+- **Certaines des plus belles voix sont servies en ligne** (« … Online (Natural) » sous Windows) :
+  excellentes avec du réseau, muettes sans. En cas d'échec, on relit **une fois** avec la meilleure
+  voix embarquée — les erreurs d'interruption (`canceled`, `interrupted`), qui signalent seulement
+  qu'une lecture a été coupée par la suivante, sont ignorées.
+
+Le **débit** est légèrement ralenti (`0.92`) : la consigne s'adresse à un enfant qui ne lit pas
+encore, et un débit posé fait plus pour le naturel perçu que n'importe quel autre réglage. La
+**hauteur** reste à sa valeur naturelle (`1`) : la déplacer est appliqué comme une transformation
+par-dessus la voix, et c'est le réglage qui risque le plus de réintroduire le côté métallique qu'on
+cherche justement à supprimer. Les deux valeurs sont des constantes nommées (`DEBIT_VOIX`,
+`HAUTEUR_VOIX`), à ajuster d'un seul endroit.
+
 ---
 
 ## 6. Contenu pédagogique séparé de la logique

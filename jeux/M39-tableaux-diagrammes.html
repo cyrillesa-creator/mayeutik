@@ -629,13 +629,120 @@
 
   /* ---------- Consigne lue à voix haute (SpeechSynthesis, utile aussi en CE1/CE2) ---------- */
 
+  /* Choix de la voix. Sans voix explicitement demandée, le navigateur prend la
+     voix PAR DÉFAUT de la langue — presque toujours la plus basique, au rendu
+     très mécanique. Or la plupart des appareils embarquent aussi des voix de
+     bien meilleure facture, gratuites et DÉJÀ INSTALLÉES : « Enhanced » et
+     « Premium » sur iOS/macOS, « Neural »/« Natural » sur Windows et Android.
+     On les repère à leur nom et on les préfère. Tout reste local : rien n'est
+     téléchargé, aucun service distant n'est appelé (cf. autonomie des jeux). */
+  const VOIX_QUALITE = /(enhanced|premium|neural|natural|siri|wavenet|studio)/i;
+  // Voix françaises réputées les plus agréables selon les plateformes, quand
+  // aucun marqueur de qualité n'apparaît dans le nom.
+  const VOIX_FR_SOIGNEES = /(am[ée]lie|thomas|audrey|aur[ée]lie|c[ée]line|marie)/i;
+
+  /* Débit légèrement ralenti : la consigne s'adresse à un enfant qui ne lit pas
+     encore, et un débit posé fait plus pour le naturel perçu que n'importe quel
+     autre réglage. La HAUTEUR reste à sa valeur naturelle (1) : la déplacer est
+     appliqué comme une transformation par-dessus la voix, et c'est le réglage
+     qui risque le plus de réintroduire le côté métallique qu'on cherche
+     justement à supprimer. Les deux valeurs sont ici pour être ajustées d'un
+     seul endroit si l'oreille en décide autrement. */
+  const DEBIT_VOIX = 0.92;
+  const HAUTEUR_VOIX = 1;
+
+  let voixRetenue = null;
+
+  function scoreVoix(voix) {
+    const nom = voix.name || '';
+    let score = 0;
+    if (VOIX_QUALITE.test(nom)) score += 8;       // voix haut de gamme annoncée
+    if (VOIX_FR_SOIGNEES.test(nom)) score += 3;   // voix française réputée
+    if (/^fr[-_]fr$/i.test(voix.lang || '')) score += 2; // accent de France
+    if (voix.localService) score += 1;            // embarquée : marche hors ligne
+    if (voix.default) score += 0.5;               // départage
+    return score;
+  }
+
+  /* La liste des voix se remplit de façon ASYNCHRONE sur plusieurs navigateurs :
+     un premier appel peut renvoyer une liste vide. On recalcule donc à chaque
+     lecture (et à chaque `voiceschanged`), en conservant la meilleure voix déjà
+     trouvée tant que la liste est momentanément vide. */
+  function voixFrancaises() {
+    if (!window.speechSynthesis || !window.speechSynthesis.getVoices) return [];
+    const toutes = window.speechSynthesis.getVoices() || [];
+    return toutes.filter((v) => /^fr([-_]|$)/i.test(v.lang || ''));
+  }
+
+  function voixPreferee() {
+    try {
+      const francaises = voixFrancaises();
+      if (!francaises.length) return voixRetenue; // liste pas encore chargée
+      const meilleure = francaises.slice().sort((a, b) => scoreVoix(b) - scoreVoix(a))[0];
+      if (meilleure) voixRetenue = meilleure;
+      return voixRetenue;
+    } catch (e) {
+      return voixRetenue; // aucune voix exploitable : on laissera le navigateur choisir
+    }
+  }
+
+  /* Meilleure voix EMBARQUÉE (sans réseau). Certaines des plus belles voix sont
+     servies en ligne (« … Online (Natural) » sous Windows) : excellentes quand
+     la connexion est là, muettes sans elle. On garde donc sous la main de quoi
+     relire hors ligne — les jeux doivent rester utilisables sans réseau. */
+  function voixLocale() {
+    try {
+      const locales = voixFrancaises().filter((v) => v.localService);
+      if (!locales.length) return null;
+      return locales.slice().sort((a, b) => scoreVoix(b) - scoreVoix(a))[0];
+    } catch (e) {
+      return null;
+    }
+  }
+
+  try {
+    if (window.speechSynthesis) {
+      voixPreferee(); // amorce le chargement là où getVoices() le déclenche
+      if ('onvoiceschanged' in window.speechSynthesis) {
+        window.speechSynthesis.addEventListener('voiceschanged', voixPreferee);
+      }
+    }
+  } catch (e) { /* synthèse vocale indisponible : rien à préparer */ }
+
   function lireAVoixHaute(texte) {
     try {
       if (!window.speechSynthesis) return;
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(texte);
       u.lang = 'fr-FR';
-      u.rate = 0.95;
+      // Aucune voix française trouvée : on s'en remet au navigateur via `lang`,
+      // exactement comme avant — la consigne reste lue, sans erreur.
+      const voix = voixPreferee();
+      if (voix) {
+        u.voice = voix;
+        if (voix.lang) u.lang = voix.lang;
+      }
+      u.rate = DEBIT_VOIX;
+      u.pitch = HAUTEUR_VOIX;
+      // Voix distante injoignable (hors ligne) : on relit UNE fois avec la
+      // meilleure voix embarquée. On ignore les erreurs d'interruption, qui
+      // signalent seulement qu'une lecture a été coupée par la suivante.
+      if (voix && voix.localService === false) {
+        u.onerror = (ev) => {
+          const cause = ev && ev.error;
+          if (cause === 'canceled' || cause === 'interrupted') return;
+          const secours = voixLocale();
+          if (!secours) return;
+          try {
+            const u2 = new SpeechSynthesisUtterance(texte);
+            u2.voice = secours;
+            u2.lang = secours.lang || 'fr-FR';
+            u2.rate = DEBIT_VOIX;
+            u2.pitch = HAUTEUR_VOIX;
+            window.speechSynthesis.speak(u2);
+          } catch (e2) { /* on renonce : la consigne reste lisible à l'écran */ }
+        };
+      }
       window.speechSynthesis.speak(u);
     } catch (e) {
       // synthèse vocale indisponible : la consigne reste lisible à l'écran.
