@@ -230,6 +230,12 @@
   .grille-options-bonus{ margin-top:.5rem; }
 
   /* ---- Règle graduée virtuelle (composant réutilisé par plusieurs mini-jeux) ---- */
+  /* Encadrement de feedback (CHARTE §18) posé en `outline` autour des vignettes
+     illustrées : son épaisseur et son écart sont déclarés ici une seule fois,
+     et la place à lui réserver dans les conteneurs défilants en découle. */
+  :root{ --encadrement-trait:3px; --encadrement-ecart:2px;
+    --encadrement-place:calc(var(--encadrement-trait) + var(--encadrement-ecart) + 1px); }
+
   .regle-scroll{ overflow-x:auto; margin:.9rem 0; padding-bottom:.3rem; }
   .regle-graduee{
     position:relative; height:64px; overflow:hidden;
@@ -261,7 +267,8 @@
   .regle-graduee-grande .regle-zone.selectionnee{ border-radius:8px; }
 
   /* ---- Comparaison directe (corde/chemin alignés) ---- */
-  .comparaison-objets{ display:flex; flex-direction:column; gap:.9rem; margin:.9rem 0; overflow-x:auto; }
+  .comparaison-objets{ display:flex; flex-direction:column; gap:.9rem; margin:.9rem 0; overflow-x:auto;
+    padding:var(--encadrement-place); }
   .rangee-brindille{ display:flex; }
   .brindille-btn{ border:none; background:transparent; padding:.3rem; display:flex; align-items:center; min-height:44px; }
 
@@ -285,9 +292,9 @@
      À L'INTÉRIEUR du cadre blanc plutôt que de déborder par-dessus. */
   .comparaison-report{ display:flex; justify-content:center; align-items:flex-end;
     gap:clamp(.5rem, 3vw, 1.8rem); margin:1rem 0; min-height:9.5rem;
-    overflow-x:auto; padding:0 .1rem; }
-  .arbre-col.correct, .brindille-btn.correct, .clairiere-btn.correct{ outline:3px solid var(--couleur-menthe); outline-offset:2px; border-radius:12px; background:color-mix(in srgb, var(--couleur-menthe) 25%, transparent); }
-  .arbre-col.incorrect, .brindille-btn.incorrect, .clairiere-btn.incorrect{ outline:3px solid var(--couleur-corail); outline-offset:2px; border-radius:12px; background:color-mix(in srgb, var(--couleur-corail) 22%, transparent); }
+    overflow-x:auto; padding:var(--encadrement-place) calc(.1rem + var(--encadrement-place)); }
+  .arbre-col.correct, .brindille-btn.correct, .clairiere-btn.correct{ outline:var(--encadrement-trait) solid var(--couleur-menthe); outline-offset:var(--encadrement-ecart); border-radius:12px; background:color-mix(in srgb, var(--couleur-menthe) 25%, transparent); }
+  .arbre-col.incorrect, .brindille-btn.incorrect, .clairiere-btn.incorrect{ outline:var(--encadrement-trait) solid var(--couleur-corail); outline-offset:var(--encadrement-ecart); border-radius:12px; background:color-mix(in srgb, var(--couleur-corail) 22%, transparent); }
   .arbre-col{ border:none; background:transparent; display:flex; flex-direction:column; align-items:center; gap:.15rem;
     min-width:52px; flex:0 0 auto; min-height:44px; }
   .balade-arbre{ display:flex; flex-direction:column; align-items:center; }
@@ -300,7 +307,16 @@
      Les repères (.clairiere-btn) sont positionnés en % de la piste, plafonnés
      via calc()/min() dans le JS pour ne jamais s'approcher du bord droit ;
      overflow-x:auto reste un filet de sécurité supplémentaire. */
-  .sentier{ position:relative; margin:1.1rem .5rem 1.8rem; height:3rem; overflow-x:auto; }
+  /* Les clairières débordent volontairement sous la piste (bottom négatif) :
+     la réserve basse doit couvrir ce débordement ET l'encadrement de feedback,
+     sinon le contour du bas est rogné.
+     `box-sizing:content-box` est indispensable ici : sous le `border-box`
+     global, la marge intérieure serait prise SUR les 3rem de la piste au lieu
+     de s'y ajouter — les repères, plus hauts qu'elle, déborderaient alors par
+     le haut. Avec content-box, `height` reste la hauteur de la piste et la
+     réserve vient autour. */
+  .sentier{ position:relative; box-sizing:content-box; margin:1.1rem .5rem 1.8rem; height:3rem; overflow-x:auto;
+    padding:var(--encadrement-place) var(--encadrement-place) calc(.15rem + var(--encadrement-place)); }
   .sentier-depart{ position:absolute; left:0; top:-.1rem; display:flex; flex-direction:column; align-items:center; }
   .sentier-depart-nom{ font-size:.65rem; font-weight:700; opacity:.75; }
   .sentier-piste{ position:relative; margin-left:2.4rem; height:100%; border-bottom:3px dashed color-mix(in srgb, var(--couleur-encre) 25%, white); }
