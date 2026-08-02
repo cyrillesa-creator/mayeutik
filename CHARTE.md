@@ -128,6 +128,29 @@ function jouerSon(type) {
 - L'`AudioContext` doit être créé/relancé suite à une interaction utilisateur (contrainte des navigateurs mobiles), jamais au chargement de la page.
 - Le son reste un **plus**, jamais un pré-requis : le jeu doit rester compréhensible sans le son (feedback visuel toujours présent en parallèle).
 
+### Les deux sons de référence de la série
+
+Tous les modules partagent le **même** vocabulaire sonore : un enfant qui passe d'un jeu à l'autre
+doit reconnaître les mêmes signaux. Chaque module embarque donc ces fonctions à l'identique, plutôt
+que d'inventer sa variante.
+
+| Fonction | Quand | Motif | Durée |
+|---|---|---|---|
+| `sonBonneReponse()` | À chaque bonne réponse, avec les confettis | Arpège de do majeur, 4 notes qui montent (do5 mi5 sol5 do6), monodique | ~0,45 s |
+| `sonNiveauParfait()` | Fin de mini-jeu avec **3 étoiles** uniquement | Même arpège prolongé de deux notes (mi6 sol6), puis accord de do majeur tenu à 4 voix | ~1,4 s |
+| `sonErreur()` | Réponse fausse | Deux notes descendantes, sans dramatisation | ~0,35 s |
+| `sonTic()` | Manipulation (pose d'un jeton, d'un lien…) | Clic bref | ~0,08 s |
+
+Le son des 3 étoiles appartient délibérément à la **même famille** que celui de la bonne réponse —
+on doit l'identifier comme « la même chose, en mieux » — mais s'en distingue par sa **durée** (trois
+fois plus long) et par son **accord final**, deux traits bien plus audibles qu'un simple changement
+de hauteur. Il ne se déclenche qu'au résultat parfait : c'est sa rareté qui lui donne sa valeur.
+
+`jouerSon('bravo' | 'rate' | 'tic' | 'parfait')` reste disponible comme aiguillage, les modules
+l'appelant en de nombreux endroits.
+
+Tout est synthétisé à l'oscillateur : **aucun fichier audio**, donc aucune dépendance réseau.
+
 ### Consigne lue à voix haute : choisir la voix, ne pas la subir
 
 Les jeux qui s'adressent à des non-lecteurs lisent leur consigne via `SpeechSynthesis`. Sans voix
