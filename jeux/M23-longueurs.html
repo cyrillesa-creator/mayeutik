@@ -1411,7 +1411,9 @@
      partie (etat.uniteVues, comme genererEstimation). */
   const OBJETS_UNITES_CE1 = [
     { texte: "La hauteur du chêne s'exprime en…", icone: '🌳', unite: 'm' },
-    { texte: "La hauteur du sapin s'exprime en…", icone: '🌲', unite: 'm' },
+    // La précision lève l'ambiguïté avec la taille du pictogramme affiché juste
+    // à côté, qui ne respecte évidemment aucune échelle.
+    { texte: "La hauteur du sapin (en vrai, pas sur le dessin) s'exprime en…", icone: '🌲', unite: 'm' },
     { texte: "La largeur du pont de bois s'exprime en…", icone: '🌉', unite: 'm' },
     { texte: "La longueur de la chaussure de marche s'exprime en…", icone: '🥾', unite: 'cm' },
     { texte: "La longueur du lapin s'exprime en…", icone: '🐇', unite: 'cm' },
