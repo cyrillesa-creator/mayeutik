@@ -4061,9 +4061,18 @@
       for (let t = 0.1; t < 1; t += 0.1) etendre(appliquerRotation(e.depart, e.pivot, e.delta * t));
     });
     const MARGE = 8;
-    const largeur = Math.ceil(maxX - minX + MARGE * 2);
+    /* Marge GAUCHE élargie : le zéro d'une règle n'est pas son bord gauche, il
+       est en retrait de la bordure plus la marge réservée à l'étiquette « 0 ».
+       Poser la règle sur le segment demande donc au moins ce retrait de place
+       À GAUCHE de l'origine du segment. Avec les 8 px de marge commune, la
+       règle aurait dû se placer à un `left` négatif — elle était alors calée à
+       0 et son zéro tombait 11 px après le début du trait, soit un demi-
+       centimètre de fausse mesure à 22 px/cm. On réserve la place ici, une
+       fois pour toutes, plutôt que de rattraper au moment de poser la règle. */
+    const MARGE_GAUCHE = Math.max(MARGE, 3 + MARGE_REGLE_ZERO_PX + 2);
+    const largeur = Math.ceil(maxX - minX + MARGE_GAUCHE + MARGE);
     const hauteur = Math.ceil(maxY - minY + MARGE * 2);
-    const ox = MARGE - minX, oy = MARGE - minY;
+    const ox = MARGE_GAUCHE - minX, oy = MARGE - minY;
 
     const SVGNS = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(SVGNS, 'svg');
@@ -4159,20 +4168,39 @@
       const wrapRegle = construireRegle({ longueurUnites: cap, unite: 'cm', pxUnite: PX });
       const regle = wrapRegle.firstElementChild;
       regle.classList.add('regle-graduee-semi-transparente', 'cartographie-regle-posee');
-      // Position finale : zéro de la règle aligné avec le début du segment.
-      // Le tick 0 est à 2.5px de bordure PLUS la marge réservée à l'étiquette
-      // « 0 » — c'est de cette distance qu'il faut reculer l'élément pour que
-      // son zéro, et non son bord, tombe sur le début du segment. Le segment
-      // traverse le HAUT de la règle, à la place qu'occupe la barre rouge dans
-      // les autres lectures de règle de la série.
-      const cibleX = Math.max(0, base[0][0] + ox - 2.5 - MARGE_REGLE_ZERO_PX);
+
+      /* ORIGINE DU SEGMENT DÉPLIÉ. Le dépliage ne fait pivoter que la portion
+         de chaîne située APRÈS la charnière : le point 0 ne bouge donc jamais,
+         et le trait déplié part exactement de `base[0]`. On le repère dans les
+         mêmes coordonnées et à la même échelle que le dessin (le SVG a la même
+         largeur que son viewBox, une unité vaut donc un pixel), sans aucune
+         valeur approchée. */
+      const origineX = base[0][0] + ox;
       const cibleY = base[0][1] + oy - 18;
-      regle.style.left = cibleX + 'px';
+
+      // Retrait du zéro dans la règle : bordure + marge de l'étiquette « 0 ».
+      const retraitZero = 3 + MARGE_REGLE_ZERO_PX;
+      regle.style.left = (origineX - retraitZero) + 'px';
       regle.style.top = cibleY + 'px';
-      interne.style.width = Math.max(largeur, cibleX + cap * PX + 24 + MARGE_REGLE_ZERO_PX) + 'px';
+      interne.style.width = Math.max(largeur, origineX - retraitZero + cap * PX + 24 + MARGE_REGLE_ZERO_PX) + 'px';
       interne.style.height = (cibleY + 100) + 'px';
+      interne.appendChild(regle);
+
+      /* CALAGE EXACT PAR MESURE. Le calcul ci-dessus suppose une épaisseur de
+         bordure ; la mesure, elle, ne suppose rien. On compare la position
+         réelle à l'écran du trait « 0 » et celle de l'origine du segment, puis
+         on corrige l'écart résiduel — la coïncidence est alors exacte au pixel
+         quelle que soit la variante de règle utilisée. À faire AVANT la
+         translation d'entrée, qui fausserait les rectangles mesurés. */
+      const tickZero = regle.querySelector('.regle-tick');
+      if (tickZero) {
+        const xZero = tickZero.getBoundingClientRect().left;
+        const xOrigine = svg.getBoundingClientRect().left + origineX;
+        const residu = xOrigine - xZero;
+        if (Math.abs(residu) > 0.01) regle.style.left = (origineX - retraitZero + residu) + 'px';
+      }
+
       if (preferesMouvementReduit) {
-        interne.appendChild(regle);
         if (onFini) onFini();
         return;
       }
@@ -4180,7 +4208,6 @@
       // puis glissement (transform seul) jusqu'à la position de mesure.
       regle.style.transform = 'translate(80px, 46px)';
       regle.style.opacity = '0';
-      interne.appendChild(regle);
       void regle.offsetWidth;
       regle.style.transition = 'transform .8s ease, opacity .35s ease';
       regle.style.transform = 'translate(0px, 0px)';
