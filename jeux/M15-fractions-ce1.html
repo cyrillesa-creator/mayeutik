@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="color-scheme" content="light only">
+<title>Fractions CE1 – Mayeutik</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ================================================================
+     Protections tactiles obligatoires (CHARTE §19)
+     Deux comportements natifs du navigateur parasitent l'usage tactile d'un
+     jeu : le zoom au double-tap (deux appuis rapprochés sont un geste NORMAL
+     ici — colorier puis décolorier une part, verser puis reprendre un verre)
+     et la sélection native (surbrillance bleue, menu « copier / enregistrer
+     l'image » au maintien du doigt). On les neutralise à l'échelle de
+     l'interface, une bonne fois, plutôt qu'élément par élément.
+     ================================================================ */
+
+  /* `touch-action` ne s'hérite PAS : le sélecteur universel est le seul moyen
+     de couvrir toute l'interface. `manipulation` supprime le zoom au
+     double-tap tout en laissant le défilement et le pincement. */
+  * { touch-action: manipulation; }
+
+  /* Empêche iOS de grossir les textes en paysage, ce qui casserait les
+     mises en page calculées au pixel (figures SVG). */
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+  /* `user-select` et `-webkit-touch-callout`, eux, s'héritent : les poser sur
+     body suffit à couvrir consignes, boutons, illustrations. */
+  body {
+    -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Pas de « fantôme » d'image traîné à la souris. */
+  img, svg, canvas { -webkit-user-drag: none; }
+
+  /* Les champs de saisie gardent sélection, curseur et menu d'édition. */
+  input, textarea, select, [contenteditable="true"] {
+    -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text;
+    -webkit-touch-callout: default;
+  }
+
+  :root {
+    --couleur-fond: #FFF8EF;
+    --couleur-encre: #2B2B2B;
+    --couleur-mandarine: #FF8C42;
+    --couleur-menthe: #4ECDC4;
+    --couleur-corail: #FF6B6B;
+    --couleur-soleil: #FFD93D;
+    /* Teintes propres à l'univers du pique-nique */
+    --choco-fonce: #6C3E21;
+    --choco-clair: #8A5432;
+    --choco-bord: #8A5A2B;
+    --emballage: #F7EAD8;
+    --croute: #E8B963;
+    --croute-bord: #C08A3E;
+    --limonade: #F5D34D;
+    color-scheme: light only;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    html { background-color: var(--couleur-fond); }
+    body { background-color: var(--couleur-fond); color: var(--couleur-encre); }
+    input, select, textarea, button { background-color: #FFFFFF; color: var(--couleur-encre); }
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { margin: 0; padding: 0; background: var(--couleur-fond); color: var(--couleur-encre); overflow-x: hidden; }
+  body { font-family: 'Fredoka', system-ui, sans-serif; min-height: 100vh; padding-bottom: 2rem; }
+  button { font-family: inherit; cursor: pointer; }
+  h1, h2, h3 { font-weight: 700; margin: 0 0 0.4rem; }
+
+  /* ---------- Écran d'accueil ---------- */
+
+  #ecran-accueil { max-width: 640px; margin: 0 auto; padding: 1.2rem 1rem 2rem; }
+  .entete-accueil { text-align: center; margin-bottom: 1.2rem; }
+  .entete-accueil h1 { font-size: 1.7rem; color: var(--couleur-mandarine); }
+  .entete-accueil p { margin: 0; font-size: 1rem; font-weight: 500; opacity: 0.85; }
+
+  .grille-jeux { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.9rem; }
+  @media (max-width: 360px) { .grille-jeux { grid-template-columns: 1fr; } }
+
+  .carte-jeu {
+    --c: var(--couleur-mandarine);
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+    text-align: center; gap: 0.3rem;
+    background: color-mix(in srgb, var(--c) 16%, white);
+    border: 3px solid var(--c); border-radius: 20px; padding: 0.8rem 0.6rem;
+    max-height: 34vh; min-height: 9.5rem;
+    box-shadow: 0 4px 0 color-mix(in srgb, var(--c) 55%, black 6%);
+  }
+  .carte-jeu:active { transform: translateY(2px); box-shadow: 0 2px 0 color-mix(in srgb, var(--c) 55%, black 6%); }
+  .carte-jeu.carte-menthe { --c: var(--couleur-menthe); }
+  .carte-jeu.carte-corail { --c: var(--couleur-corail); }
+  .carte-jeu.carte-soleil { --c: var(--couleur-soleil); }
+  .carte-jeu .icone { font-size: 1.9rem; line-height: 1; }
+  .carte-jeu h2 { font-size: 1.02rem; }
+  .carte-jeu p { font-size: 0.78rem; font-weight: 400; margin: 0; opacity: 0.85; }
+
+  .etoiles { display: inline-flex; gap: 2px; font-size: 1.1rem; letter-spacing: -1px; }
+  .etoile { color: rgba(43,43,43,0.2); }
+  .etoile.pleine { color: var(--couleur-soleil); text-shadow: 0 0 1px rgba(43,43,43,0.35); }
+
+  /* ---------- Écran de jeu ---------- */
+
+  #ecran-jeu { max-width: 640px; margin: 0 auto; padding: 0.8rem 1rem 2.5rem; }
+  .entete-jeu { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.8rem; }
+  .bouton-retour {
+    flex: 0 0 auto; min-height: 44px; min-width: 44px; border-radius: 14px; border: none;
+    background: var(--couleur-encre); color: var(--couleur-fond);
+    font-size: 1.2rem; font-weight: 600; padding: 0 0.9rem;
+  }
+  .entete-jeu-titres { flex: 1; min-width: 0; }
+  .entete-jeu-titres h2 { font-size: 1.15rem; color: var(--couleur-mandarine); }
+  .entete-jeu-titres .progression { font-size: 0.85rem; font-weight: 500; opacity: 0.75; }
+
+  #zone-jeu {
+    background: #ffffff; border-radius: 20px;
+    border: 3px solid color-mix(in srgb, var(--couleur-encre) 12%, white);
+    padding: 1.1rem 0.9rem; min-height: 40vh;
+  }
+
+  /* Consigne + lecture à voix haute (composant partagé de la série) */
+  .bloc-consigne { text-align: center; margin: 0 0 0.9rem; }
+  .consigne { text-align: center; font-size: 1.05rem; font-weight: 600; margin: 0 0 0.4rem; }
+  .bouton-son {
+    min-width: 44px; min-height: 44px; border-radius: 50%;
+    border: 2.5px solid var(--couleur-mandarine); background: #ffffff; font-size: 1.15rem;
+  }
+  .bouton-son:active { transform: translateY(1px); }
+
+  .legende, .legende-petite { text-align: center; font-size: 0.9rem; font-weight: 400; opacity: 0.85; margin-top: 0.9rem; }
+  .legende-petite { font-size: 0.8rem; margin-bottom: 0.4rem; }
+  .legende-forte { text-align: center; font-size: 0.95rem; font-weight: 700; margin-top: 0.7rem; }
+
+  /* ---------- Formes du pique-nique ---------- */
+
+  .rangee-forme { display: flex; justify-content: center; margin: 0 0 0.6rem; }
+
+  /* Barre de chocolat : carrés sécables dans leur emballage. Les carreaux
+     PRIS sont en chocolat, les autres montrent l'emballage clair — la part
+     prise est toujours la part saturée, sur toutes les formes du jeu. */
+  .bande-choco {
+    display: flex; width: 100%; max-width: 20rem; height: 2.6rem;
+    border-radius: 10px; overflow: hidden;
+    border: 2.5px solid var(--choco-bord); background: var(--emballage); margin: 0 auto;
+  }
+  .carre-choco { flex: 1; border-right: 2px solid var(--choco-bord); background: var(--emballage); position: relative; padding: 0; }
+  .carre-choco:last-child { border-right: none; }
+  .carre-choco.rempli { background: linear-gradient(135deg, var(--choco-clair), var(--choco-fonce)); }
+  /* Reflet du carré de chocolat — c'est lui qui « fait vrai ». */
+  .carre-choco.rempli::after {
+    content: ''; position: absolute; left: 14%; top: 14%; width: 36%; height: 22%;
+    border-radius: 40%; background: rgba(255,255,255,0.26);
+  }
+  /* Teintes de duel et de calcul : deux contributions distinctes. */
+  .carre-choco.rempli.teinte-a { background: var(--couleur-mandarine); }
+  .carre-choco.rempli.teinte-b { background: var(--couleur-menthe); }
+  button.carre-choco { cursor: pointer; }
+
+  /* Tarte SVG : croûte dorée, parts garnies. */
+  .tarte-svg { display: block; margin: 0 auto; width: 8.2rem; height: 8.2rem; }
+  .croute { fill: var(--croute); stroke: var(--croute-bord); stroke-width: 2.5; }
+  .part-tarte { fill: #FFF9F0; stroke: var(--couleur-encre); stroke-width: 2; }
+  .part-tarte.rempli { fill: var(--couleur-mandarine); }
+  .part-tarte.mangee { fill: color-mix(in srgb, var(--couleur-mandarine) 22%, white); }
+  .baie { fill: #C0392B; pointer-events: none; }
+  .part-tarte.cliquable { cursor: pointer; }
+
+  /* Plateau de brownies : quadrillage. */
+  .plateau-brownie {
+    display: grid; gap: 3px; width: 9.5rem; margin: 0 auto;
+    border: 2.5px solid var(--choco-bord); background: var(--emballage); padding: 4px; border-radius: 10px;
+  }
+  .part-brownie { background: var(--emballage); border: 1.5px solid #B98A55; border-radius: 4px; min-height: 1.7rem; padding: 0; }
+  .part-brownie.rempli { background: var(--choco-clair); }
+
+  /* Bande neutre (calculs et superpositions), reprise de M17. */
+  .forme-bande {
+    display: flex; width: 100%; max-width: 20rem; height: 2.4rem;
+    border-radius: 10px; overflow: hidden; border: 2px solid var(--couleur-encre); margin: 0 auto;
+  }
+  .segment-bande { flex: 1; border-right: 2px solid var(--couleur-encre); background: #ffffff; }
+  .segment-bande:last-child { border-right: none; }
+  .segment-bande.rempli { background: var(--couleur-mandarine); }
+  .segment-bande.rempli.part-b { background: var(--couleur-menthe); }
+  .bande-correction { margin: 0.5rem auto 0; max-width: 20rem; }
+  .bande-correction .forme-bande { border-color: var(--couleur-menthe); }
+  .bande-correction .segment-bande.rempli { background: var(--couleur-menthe); }
+  .bande-correction .legende-petite { margin: 0 0 0.25rem; font-weight: 700; }
+
+  /* Fraction affichée n/d */
+  .fraction-affichage { display: inline-flex; flex-direction: column; align-items: center; font-weight: 600; line-height: 1.1; font-size: 1.15rem; }
+  .fraction-affichage .fr-barre { width: 1.5em; height: 2px; background: currentColor; margin: 2px 0; }
+  .fraction-affichage.grande { font-size: 1.6rem; }
+
+  /* ---------- Saisie de fraction (pavé + cases numérateur/dénominateur) ---------- */
+
+  .saisie-fraction { display: flex; align-items: center; justify-content: center; gap: 1rem; margin: 0.6rem 0 0.2rem; flex-wrap: wrap; }
+  .fraction-slots { display: inline-flex; flex-direction: column; align-items: center; }
+  .slot-frac {
+    min-width: 3.1rem; min-height: 2.6rem; border: 2.5px solid color-mix(in srgb, var(--couleur-encre) 30%, white);
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    font-size: 1.45rem; font-weight: 700; background: #ffffff; padding: 0 0.4rem;
+  }
+  .slot-frac.actif { border-color: var(--couleur-mandarine); border-style: dashed; background: color-mix(in srgb, var(--couleur-mandarine) 10%, white); }
+  .slot-frac.fixe { border-color: transparent; background: transparent; }
+  .slot-frac.correct { border-color: var(--couleur-menthe); border-style: solid; background: color-mix(in srgb, var(--couleur-menthe) 35%, white); }
+  .slot-frac.incorrect { border-color: var(--couleur-corail); border-style: solid; background: color-mix(in srgb, var(--couleur-corail) 30%, white); }
+  .barre-frac { width: 3.4rem; height: 3px; background: var(--couleur-encre); margin: 5px 0; border-radius: 2px; }
+  /* Vocabulaire officiel à côté des cases : le mot en face de la case qu'il nomme. */
+  .vocab-cotes { display: flex; flex-direction: column; justify-content: space-between; align-self: stretch; text-align: left; padding: 0.2rem 0; }
+  .vocab-cotes span { font-size: 0.72rem; font-weight: 600; opacity: 0.8; max-width: 9.5rem; }
+
+  /* Pavé numérique diégétique — composant partagé de la série. */
+  .pave-numerique { max-width: 250px; margin: 0.7rem auto 0; }
+  .pave-grille { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; margin-top: 8px; }
+  .touche-pave {
+    min-height: 48px; border: none; border-radius: 12px; font-size: 1.25rem; font-weight: 700;
+    background: color-mix(in srgb, var(--couleur-soleil) 22%, white); color: var(--couleur-encre);
+    box-shadow: 0 3px 0 color-mix(in srgb, var(--couleur-encre) 20%, white); touch-action: manipulation;
+  }
+  .touche-pave:active { transform: translateY(2px); box-shadow: 0 1px 0 color-mix(in srgb, var(--couleur-encre) 20%, white); }
+  .touche-pave:disabled { opacity: 0.6; }
+  .touche-valider { background: var(--couleur-menthe); color: #ffffff; box-shadow: 0 3px 0 color-mix(in srgb, var(--couleur-menthe) 60%, black 10%); }
+  .touche-effacer { background: var(--couleur-corail); color: #ffffff; box-shadow: 0 3px 0 color-mix(in srgb, var(--couleur-corail) 60%, black 10%); }
+
+  /* Options QCM */
+  .grille-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem; margin-top: 0.5rem; }
+  .bouton-option {
+    min-height: 3.4rem; border-radius: 16px; border: 2.5px solid var(--couleur-encre); background: #ffffff;
+    display: flex; align-items: center; justify-content: center; padding: 0.4rem; font-size: 0.98rem; font-weight: 600;
+  }
+  .bouton-option:disabled { opacity: 0.6; }
+  .bouton-option.correct { background: color-mix(in srgb, var(--couleur-menthe) 45%, white); border-color: var(--couleur-menthe); }
+  .bouton-option.incorrect { background: color-mix(in srgb, var(--couleur-corail) 35%, white); border-color: var(--couleur-corail); }
+
+  /* ---------- Jeu 1 : Le bon partage ---------- */
+
+  .grille-partages { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-top: 0.4rem; }
+  @media (max-width: 420px) { .grille-partages { grid-template-columns: 1fr; } }
+  .carte-partage {
+    border: 2.5px solid color-mix(in srgb, var(--couleur-encre) 20%, white); border-radius: 14px;
+    background: #ffffff; padding: 0.7rem 0.35rem; display: flex; align-items: center; justify-content: center;
+    min-height: 6.2rem;
+  }
+  .carte-partage:disabled { opacity: 0.75; }
+  .carte-partage.correct { border-color: var(--couleur-menthe); background: color-mix(in srgb, var(--couleur-menthe) 22%, white); }
+  .carte-partage.incorrect { border-color: var(--couleur-corail); background: color-mix(in srgb, var(--couleur-corail) 18%, white); }
+  .carte-partage .bande-choco { max-width: 100%; height: 2rem; }
+  .carte-partage .tarte-svg { width: 5.4rem; height: 5.4rem; }
+
+  /* ---------- Jeu 3 : La bouteille de limonade ---------- */
+
+  .scene-limonade { display: flex; gap: 1.1rem; align-items: flex-end; justify-content: center; margin: 0.4rem 0 0.6rem; flex-wrap: wrap; }
+  .bouteille-wrap { transition: transform 0.35s ease; transform-origin: 20% 92%; }
+  .bouteille-wrap.verse { transform: rotate(-9deg); }
+  @media (prefers-reduced-motion: reduce) { .bouteille-wrap { transition: none; } }
+  .bouteille-svg { display: block; width: 6rem; height: auto; }
+  .verre-goutte { fill: var(--couleur-encre); opacity: 0.35; }
+  .rangee-verres { display: flex; flex-wrap: wrap; gap: 0.45rem; justify-content: center; max-width: 14.5rem; align-items: flex-end; }
+  .verre-btn { background: none; border: none; padding: 2px; border-radius: 8px; }
+  .verre-btn:disabled { cursor: default; }
+  .verre-svg { display: block; width: 3rem; height: auto; }
+  .verre-liquide {
+    transform-origin: 50% 100%; transform: scaleY(0); opacity: 0;
+    transition: transform 0.4s ease, opacity 0.3s ease; transform-box: fill-box;
+    fill: var(--limonade);
+  }
+  .verre-btn.plein .verre-liquide { transform: scaleY(1); opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .verre-liquide { transition: none; } }
+
+  /* ---------- Jeu 4 : Les portraits de la fraction ---------- */
+
+  .grille-portraits { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-top: 0.4rem; }
+  @media (max-width: 420px) { .grille-portraits { grid-template-columns: repeat(2, 1fr); } }
+  .carte-portrait {
+    border: 2.5px solid color-mix(in srgb, var(--couleur-encre) 20%, white); border-radius: 14px;
+    background: #ffffff; padding: 0.55rem 0.3rem; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 0.3rem; min-height: 6.4rem;
+  }
+  .carte-portrait.choisie { border-color: var(--couleur-mandarine); box-shadow: 0 0 0 3px color-mix(in srgb, var(--couleur-mandarine) 30%, transparent); }
+  .carte-portrait.correct { border-color: var(--couleur-menthe); background: color-mix(in srgb, var(--couleur-menthe) 20%, white); }
+  .carte-portrait.incorrect { border-color: var(--couleur-corail); background: color-mix(in srgb, var(--couleur-corail) 16%, white); }
+  .carte-portrait.oubliee { border-color: var(--couleur-menthe); border-style: dashed; }
+  .carte-portrait:disabled { opacity: 0.85; }
+  .badge-portrait { font-size: 0.66rem; font-weight: 700; line-height: 1.15; text-align: center; }
+  .carte-portrait.incorrect .badge-portrait { color: color-mix(in srgb, var(--couleur-corail) 70%, black 20%); }
+  .carte-portrait.correct .badge-portrait, .carte-portrait.oubliee .badge-portrait { color: color-mix(in srgb, var(--couleur-menthe) 70%, black 25%); }
+  .carte-portrait .bande-choco { height: 1.45rem; max-width: 100%; }
+  .carte-portrait .tarte-svg { width: 4.5rem; height: 4.5rem; }
+  .carte-portrait .plateau-brownie { width: 5.6rem; padding: 3px; gap: 2px; }
+  .carte-portrait .part-brownie { min-height: 0.85rem; border-radius: 3px; }
+
+  /* ---------- Jeu 5 : La plus grande part ---------- */
+
+  .duel { display: flex; gap: 0.7rem; justify-content: center; align-items: stretch; margin-top: 0.3rem; }
+  .carte-perso {
+    flex: 1; max-width: 15rem; border: 2.5px solid color-mix(in srgb, var(--couleur-encre) 20%, white);
+    border-radius: 16px; padding: 0.6rem 0.4rem; background: #ffffff;
+    display: flex; flex-direction: column; gap: 0.45rem; align-items: center;
+  }
+  .carte-perso .perso-nom { font-weight: 700; font-size: 0.95rem; }
+  .carte-perso .perso-emoji { font-size: 1.7rem; line-height: 1; }
+  .carte-perso .bande-choco { height: 1.9rem; }
+  .reponses-duel { display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.8rem; flex-wrap: wrap; }
+  .reponses-duel .bouton-option { min-width: 6.2rem; }
+  /* Superposition des deux parts : preuves alignées à gauche, même unité. */
+  .zone-superposition { max-width: 20rem; margin: 0.9rem auto 0; }
+  .barre-superposee {
+    height: 1.5rem; border-radius: 8px; border: 2px solid var(--couleur-encre);
+    width: 0%; transition: width 0.7s ease; margin: 0.3rem 0; position: relative;
+  }
+  @media (prefers-reduced-motion: reduce) { .barre-superposee { transition: none; } }
+  .barre-superposee.part-a { background: var(--couleur-mandarine); }
+  .barre-superposee.part-b { background: var(--couleur-menthe); }
+  .etiquette-superposee { position: absolute; left: calc(100% + 6px); top: 50%; transform: translateY(-50%); font-size: 0.8rem; font-weight: 700; white-space: nowrap; }
+
+  /* ---------- Jeu 6 : Les comptes du goûter ---------- */
+
+  .enonce-calcul { text-align: center; font-size: 1rem; font-weight: 600; margin: 0 0 0.7rem; }
+  .apercu-calcul { display: flex; justify-content: center; margin-bottom: 0.6rem; }
+  .rappel-calcul { display: flex; align-items: center; justify-content: center; gap: 0.55rem; margin: 0.5rem 0 0.2rem; flex-wrap: wrap; }
+  .symbole-calcul { font-size: 1.3rem; font-weight: 700; color: var(--couleur-mandarine); }
+
+  /* Correction affichée après une MAUVAISE réponse (CHARTE §18). */
+  .bloc-correction { text-align: center; font-weight: 700; font-size: 0.98rem; margin: 0.7rem 0 0.2rem; }
+  .correction-donnee { color: color-mix(in srgb, var(--couleur-corail) 70%, black 20%); }
+  .correction-attendue { color: color-mix(in srgb, var(--couleur-menthe) 70%, black 20%); }
+
+  /* Feedback + navigation */
+  .feedback { text-align: center; font-weight: 600; font-size: 1.05rem; min-height: 1.6rem; margin: 0.8rem 0 0.2rem; }
+  .feedback-succes { color: color-mix(in srgb, var(--couleur-menthe) 70%, black 20%); }
+  .feedback-erreur { color: color-mix(in srgb, var(--couleur-corail) 70%, black 20%); }
+  .bouton-suivant {
+    display: block; margin: 0.6rem auto 0; min-height: 44px; border-radius: 14px; border: none;
+    background: var(--couleur-mandarine); color: #ffffff; font-weight: 600; font-size: 1rem; padding: 0 1.4rem;
+  }
+  .bouton-principal {
+    display: block; margin: 0.9rem auto 0; min-height: 44px; border-radius: 14px; border: none;
+    background: var(--couleur-mandarine); color: #ffffff; font-weight: 600; font-size: 1rem; padding: 0 1.2rem;
+  }
+  .bouton-principal:disabled { opacity: 0.45; }
+  .bouton-secondaire {
+    display: block; margin: 0 auto; min-height: 44px; border-radius: 14px;
+    border: 2.5px solid var(--couleur-encre); background: #ffffff; padding: 0 1.1rem; font-weight: 500;
+  }
+
+  /* Résultats */
+  .bloc-resultats { text-align: center; }
+  .bloc-resultats .etoiles { font-size: 2.6rem; margin: 0.6rem 0; }
+  .bloc-resultats .score-texte { font-size: 1.1rem; font-weight: 500; margin-bottom: 1rem; }
+  .boutons-resultats { display: flex; justify-content: center; gap: 0.7rem; flex-wrap: wrap; margin-top: 0.6rem; }
+  .boutons-resultats .bouton-principal, .boutons-resultats .bouton-secondaire { margin: 0; }
+
+  /* Retour à la coquille (CHARTE §7) : bouton discret + confirmation */
+  .barre-accueil { display: flex; margin-bottom: 0.6rem; }
+  .bouton-menu {
+    min-height: 44px; border-radius: 14px; padding: 0 0.9rem;
+    border: 2px solid color-mix(in srgb, var(--couleur-encre) 25%, white);
+    background: #ffffff; color: var(--couleur-encre); font-weight: 600; font-size: 0.95rem;
+    display: inline-flex; align-items: center; gap: 0.35rem;
+  }
+  .bouton-menu:active { transform: translateY(2px); }
+  .modale-fond {
+    position: fixed; inset: 0; z-index: 1000; padding: 1.2rem;
+    background: color-mix(in srgb, var(--couleur-encre) 55%, transparent);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modale-boite {
+    background: #ffffff; border-radius: 20px; padding: 1.4rem 1.2rem; max-width: 20rem; width: 100%;
+    text-align: center; box-shadow: 0 12px 34px rgba(43,43,43,0.28);
+  }
+  .modale-boite p { font-size: 1.05rem; font-weight: 600; margin: 0 0 1.1rem; }
+  .modale-boutons { display: flex; gap: 0.7rem; justify-content: center; flex-wrap: wrap; }
+  .modale-boutons .bouton-principal, .modale-boutons .bouton-secondaire { margin: 0; }
+
+  /* Confettis */
+  #confettis-conteneur { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 999; }
+  .confetti {
+    position: absolute; top: -12px; width: 9px; height: 14px; border-radius: 2px;
+    animation-name: chute-confetti; animation-timing-function: ease-in; animation-fill-mode: forwards;
+  }
+  @keyframes chute-confetti { to { transform: translateY(105vh) rotate(340deg); opacity: 0.75; } }
+  @media (prefers-reduced-motion: reduce) { .confetti { display: none; animation: none; } }
+
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="confettis-conteneur" aria-hidden="true"></div>
+
+<!-- ---------- Écran d'accueil ---------- -->
+<main id="ecran-accueil">
+  <div class="barre-accueil">
+    <button type="button" class="bouton-menu" id="bouton-menu">← Menu</button>
+  </div>
+  <div class="entete-accueil">
+    <h1>Fractions CE1 🧺</h1>
+    <p id="sous-titre-accueil"></p>
+  </div>
+  <div class="grille-jeux" id="grille-jeux"></div>
+</main>
+
+<!-- ---------- Écran de jeu ---------- -->
+<main id="ecran-jeu" hidden>
+  <div class="entete-jeu">
+    <button class="bouton-retour" id="bouton-retour" aria-label="Retour à l'accueil">←</button>
+    <div class="entete-jeu-titres">
+      <h2 id="titre-jeu-courant"></h2>
+      <div class="progression" id="progression-jeu"></div>
+    </div>
+  </div>
+  <div id="zone-jeu"></div>
+  <div class="feedback" id="zone-feedback" aria-live="polite"></div>
+  <button class="bouton-suivant" id="bouton-suivant" hidden>Suivant →</button>
+</main>
+
+<div class="modale-fond" id="modale-menu" hidden>
+  <div class="modale-boite" role="dialog" aria-modal="true" aria-labelledby="modale-menu-texte">
+    <p id="modale-menu-texte">Revenir au menu principal ? Ta partie en cours sera perdue.</p>
+    <div class="modale-boutons">
+      <button type="button" class="bouton-secondaire" id="modale-menu-rester">Rester</button>
+      <button type="button" class="bouton-principal" id="modale-menu-revenir">Revenir au menu</button>
+    </div>
+  </div>
+</div>
+
+<!-- ---------- Contenu pédagogique (séparé de la logique) ---------- -->
+<script type="application/json" id="donnees-jeu">
+{
+  "titre": "Fractions CE1",
+  "sousTitre": "Le grand pique-nique des fractions !",
+  "denominateursAutorises": [2, 3, 4, 5, 6, 8, 10],
+  "objets": {
+    "bande": { "nom": "la barre de chocolat", "de": "de la barre de chocolat" },
+    "tarte": { "nom": "la tarte", "de": "de la tarte" },
+    "brownie": { "nom": "le plateau de brownies", "de": "du plateau de brownies" },
+    "bouteille": { "nom": "la bouteille de limonade", "de": "de la bouteille" }
+  },
+  "personnages": [
+    { "prenom": "Tom", "emoji": "👦" },
+    { "prenom": "Léa", "emoji": "👧" },
+    { "prenom": "Noé", "emoji": "🧒" },
+    { "prenom": "Zoé", "emoji": "👩‍🦱" }
+  ],
+  "nomsOrdinaux": {
+    "2": ["demi", "demis"],
+    "3": ["tiers", "tiers"],
+    "4": ["quart", "quarts"],
+    "5": ["cinquième", "cinquièmes"],
+    "6": ["sixième", "sixièmes"],
+    "8": ["huitième", "huitièmes"],
+    "10": ["dixième", "dixièmes"]
+  },
+  "nomsCourants": {
+    "1/2": "la moitié",
+    "1/3": "un tiers",
+    "2/3": "deux tiers",
+    "1/4": "un quart",
+    "2/4": "deux quarts",
+    "3/4": "trois quarts",
+    "1/5": "un cinquième",
+    "1/6": "un sixième",
+    "1/8": "un huitième",
+    "1/10": "un dixième"
+  },
+  "messagesFeedback": {
+    "bravo": ["Bravo !", "Super !", "Génial !", "Exact, bien joué !", "C'est ça !", "Parfait !", "Trop fort !"],
+    "rate": ["Pas tout à fait...", "Essaie encore la prochaine fois !", "Pas cette fois, courage !", "Regarde bien la correction."]
+  },
+  "jeux": [
+    { "id": "partage-egal", "titre": "Le bon partage", "icone": "🍰", "couleur": "mandarine", "description": "Trouve le partage en parts égales et compte les parts.", "nbQuestions": 5 },
+    { "id": "lire-ecrire", "titre": "La part du pique-nique", "icone": "✏️", "couleur": "menthe", "description": "Colorie, lis et écris des fractions.", "nbQuestions": 5 }
+  ]
+}
+</script>
+
+<script>
+(function () {
+  'use strict';
+
+  const donnees = JSON.parse(document.getElementById('donnees-jeu').textContent);
+  const D = donnees.denominateursAutorises;
+  const configJeux = donnees.jeux;
+  const CLE_STOCKAGE = 'mayeutik-m15-fractions-ce1-etoiles';
+
+  /* ---------- Utilitaires génériques ---------- */
+
+  function nombreAleatoire(min, max) {
+    return min + Math.floor(Math.random() * (max - min + 1));
+  }
+  function choisir(tableau) {
+    return tableau[Math.floor(Math.random() * tableau.length)];
+  }
+  function melanger(tableau) {
+    const copie = [...tableau];
+    for (let i = copie.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copie[i], copie[j]] = [copie[j], copie[i]];
+    }
+    return copie;
+  }
+  function melangerOptions(options, indexCorrect) {
+    const enveloppes = options.map((valeur, i) => ({ valeur, estCorrecte: i === indexCorrect }));
+    const melangees = melanger(enveloppes);
+    return {
+      options: melangees.map((e) => e.valeur),
+      indexCorrect: melangees.findIndex((e) => e.estCorrecte)
+    };
+  }
+
+  const preferesMouvementReduit = () =>
+    window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* Animation générique au rAF : les attributs SVG (niveau de la bouteille)
+     ne se transitionnent pas partout en CSS, on pilote donc à la main. */
+  function animer(duree, onFrame, onFini) {
+    if (preferesMouvementReduit() || duree <= 0) {
+      onFrame(1);
+      if (onFini) onFini();
+      return;
+    }
+    const debut = performance.now();
+    function frame(t) {
+      const p = Math.min(1, (t - debut) / duree);
+      onFrame(p * (2 - p));
+      if (p < 1) { requestAnimationFrame(frame); return; }
+      if (onFini) onFini();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------- Fractions en mots (consignes lues à voix haute) ---------- */
+
+  const NOMBRES_EN_LETTRES = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix'];
+
+  function fractionEnMots(n, d) {
+    const courant = donnees.nomsCourants[n + '/' + d];
+    if (courant) return courant;
+    const ord = donnees.nomsOrdinaux[String(d)];
+    if (!ord) return n + ' sur ' + d;
+    return NOMBRES_EN_LETTRES[n] + ' ' + (n > 1 ? ord[1] : ord[0]);
+  }
+
+  /* ---------- Étoiles : stockage sûr (mémoire + localStorage best-effort) ---------- */
+
+  let memoireEtoiles = null;
+
+  function lireEtoiles() {
+    if (memoireEtoiles === null) {
+      memoireEtoiles = {};
+      try {
+        const brut = window.localStorage.getItem(CLE_STOCKAGE);
+        if (brut) memoireEtoiles = JSON.parse(brut);
+      } catch (e) {
+        memoireEtoiles = {};
+      }
+    }
+    return memoireEtoiles;
+  }
+  function enregistrerEtoiles(jeuId, valeur) {
+    const tout = lireEtoiles();
+    tout[jeuId] = Math.max(tout[jeuId] || 0, valeur);
+    memoireEtoiles = tout;
+    try {
+      window.localStorage.setItem(CLE_STOCKAGE, JSON.stringify(tout));
+    } catch (e) {
+      // localStorage indisponible : les étoiles restent valables pour la session en cours.
+    }
+  }
+  function creerEtoiles(valeur, max) {
+    max = max || 3;
+    const cont = document.createElement('span');
+    cont.className = 'etoiles';
+    for (let i = 1; i <= max; i++) {
+      const s = document.createElement('span');
+      s.className = 'etoile' + (i <= valeur ? ' pleine' : '');
+      s.textContent = '★';
+      cont.appendChild(s);
+    }
+    return cont;
+  }
+  function calculerEtoiles(score, total) {
+    const pct = score / total;
+    if (pct >= 1) return 3;
+    if (pct >= 0.66) return 2;
+    if (pct >= 0.33) return 1;
+    return 0;
+  }
+
+  /* ---------- Sessions : contrat de données v1 (CHARTE.md, section 11) ---------- */
+
+  const CLE_SESSIONS = 'mayeutik-sessions';
+  const CLE_PROFIL_ACTIF = 'mayeutik-profil-actif';
+  const MODULE_ID = 'M15';
+  const MAX_SESSIONS_PAR_PROFIL = 500;
+
+  let memoireProfilActif = null;
+  let memoireSessions = null;
+
+  function lireProfilActif() {
+    if (memoireProfilActif === null) {
+      memoireProfilActif = 'p1';
+      try {
+        const brut = window.localStorage.getItem(CLE_PROFIL_ACTIF);
+        if (brut) memoireProfilActif = brut;
+      } catch (e) {
+        memoireProfilActif = 'p1';
+      }
+    }
+    return memoireProfilActif;
+  }
+
+  function lireSessions() {
+    if (memoireSessions === null) {
+      memoireSessions = [];
+      try {
+        const brut = window.localStorage.getItem(CLE_SESSIONS);
+        if (brut) memoireSessions = JSON.parse(brut);
+      } catch (e) {
+        memoireSessions = [];
+      }
+    }
+    return memoireSessions;
+  }
+
+  function enregistrerSession(competence, score, total, duree) {
+    const profilId = lireProfilActif();
+    const toutes = lireSessions();
+    toutes.push({ profilId, module: MODULE_ID, competence, score, total, date: new Date().toISOString(), duree });
+    let compteur = 0;
+    for (let i = toutes.length - 1; i >= 0; i--) {
+      if (toutes[i].profilId === profilId) {
+        compteur++;
+        if (compteur > MAX_SESSIONS_PAR_PROFIL) toutes.splice(i, 1);
+      }
+    }
+    memoireSessions = toutes;
+    try {
+      window.localStorage.setItem(CLE_SESSIONS, JSON.stringify(toutes));
+    } catch (e) {
+      // localStorage indisponible : la session reste valable pour la session en cours.
+    }
+  }
+
+  /* ---------- Confettis ---------- */
+
+  function lancerConfettis() {
+    if (preferesMouvementReduit()) return;
+    const conteneur = document.getElementById('confettis-conteneur');
+    const couleurs = ['var(--couleur-mandarine)', 'var(--couleur-menthe)', 'var(--couleur-corail)', 'var(--couleur-soleil)'];
+    for (let i = 0; i < 36; i++) {
+      const p = document.createElement('div');
+      p.className = 'confetti';
+      p.style.left = Math.random() * 100 + 'vw';
+      p.style.backgroundColor = couleurs[Math.floor(Math.random() * couleurs.length)];
+      p.style.animationDuration = (0.9 + Math.random() * 0.9) + 's';
+      p.style.animationDelay = (Math.random() * 0.15) + 's';
+      p.style.transform = 'rotate(' + Math.floor(Math.random() * 360) + 'deg)';
+      conteneur.appendChild(p);
+      p.addEventListener('animationend', () => p.remove());
+      setTimeout(() => p.remove(), 2500);
+    }
+  }
+
+  /* ---------- Composant sonore partagé (CHARTE §5) ----------
+     Mêmes sons dans toute la série, générés à l'oscillateur : aucun fichier
+     audio, donc aucune dépendance réseau. */
+
+  let contexteAudio = null;
+  function obtenirContexteAudio() {
+    if (!contexteAudio) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      contexteAudio = new Ctx();
+    }
+    if (contexteAudio.state === 'suspended') contexteAudio.resume();
+    return contexteAudio;
+  }
+
+  function jouerNote(ctx, freq, debut, duree, volume, forme) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = forme || 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, debut);
+    gain.gain.exponentialRampToValueAtTime(volume, debut + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, debut + duree);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(debut);
+    osc.stop(debut + duree + 0.02);
+  }
+
+  const NOTES_BONNE_REPONSE = [523.25, 659.25, 783.99, 1046.5]; // do5 mi5 sol5 do6
+
+  function sonBonneReponse() {
+    let ctx;
+    try { ctx = obtenirContexteAudio(); } catch (e) { return; }
+    const t0 = ctx.currentTime;
+    NOTES_BONNE_REPONSE.forEach((f, i) => jouerNote(ctx, f, t0 + i * 0.11, 0.11, 0.22));
+  }
+
+  const NOTES_NIVEAU_PARFAIT = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
+  const ACCORD_NIVEAU_PARFAIT = [523.25, 659.25, 783.99, 1046.5]; // do majeur tenu
+
+  function sonNiveauParfait() {
+    let ctx;
+    try { ctx = obtenirContexteAudio(); } catch (e) { return; }
+    const t0 = ctx.currentTime;
+    const pas = 0.1;
+    NOTES_NIVEAU_PARFAIT.forEach((f, i) => jouerNote(ctx, f, t0 + i * pas, 0.12, 0.2));
+    const tAccord = t0 + NOTES_NIVEAU_PARFAIT.length * pas + 0.04;
+    ACCORD_NIVEAU_PARFAIT.forEach((f) => jouerNote(ctx, f, tAccord, 0.75, 0.12, 'triangle'));
+  }
+
+  function sonErreur() {
+    let ctx;
+    try { ctx = obtenirContexteAudio(); } catch (e) { return; }
+    const t0 = ctx.currentTime;
+    [392.0, 293.66].forEach((f, i) => jouerNote(ctx, f, t0 + i * 0.17, 0.17, 0.22));
+  }
+
+  function sonTic() {
+    let ctx;
+    try { ctx = obtenirContexteAudio(); } catch (e) { return; }
+    jouerNote(ctx, 880, ctx.currentTime, 0.08, 0.12);
+  }
+
+  function jouerSon(type) {
+    if (type === 'bravo') return sonBonneReponse();
+    if (type === 'parfait') return sonNiveauParfait();
+    if (type === 'tic') return sonTic();
+    return sonErreur();
+  }
+
+  /* ---------- Consigne lue à voix haute (SpeechSynthesis) ---------- */
+
+  /* Choix de la voix : on préfère les voix de qualité déjà installées
+     (« Enhanced », « Premium », « Neural »...) à la voix par défaut, très
+     mécanique. Tout reste local, aucun service distant n'est appelé. */
+  const VOIX_QUALITE = /(enhanced|premium|neural|natural|siri|wavenet|studio)/i;
+  const VOIX_FR_SOIGNEES = /(am[ée]lie|thomas|audrey|aur[ée]lie|c[ée]line|marie)/i;
+  const DEBIT_VOIX = 0.92;
+  const HAUTEUR_VOIX = 1;
+
+  let voixRetenue = null;
+
+  function scoreVoix(voix) {
+    const nom = voix.name || '';
+    let score = 0;
+    if (VOIX_QUALITE.test(nom)) score += 8;
+    if (VOIX_FR_SOIGNEES.test(nom)) score += 3;
+    if (/^fr[-_]fr$/i.test(voix.lang || '')) score += 2;
+    if (voix.localService) score += 1;
+    if (voix.default) score += 0.5;
+    return score;
+  }
+
+  function voixFrancaises() {
+    if (!window.speechSynthesis || !window.speechSynthesis.getVoices) return [];
+    const toutes = window.speechSynthesis.getVoices() || [];
+    return toutes.filter((v) => /^fr([-_]|$)/i.test(v.lang || ''));
+  }
+
+  function voixPreferee() {
+    try {
+      const francaises = voixFrancaises();
+      if (!francaises.length) return voixRetenue;
+      const meilleure = francaises.slice().sort((a, b) => scoreVoix(b) - scoreVoix(a))[0];
+      if (meilleure) voixRetenue = meilleure;
+      return voixRetenue;
+    } catch (e) {
+      return voixRetenue;
+    }
+  }
+
+  function voixLocale() {
+    try {
+      const locales = voixFrancaises().filter((v) => v.localService);
+      if (!locales.length) return null;
+      return locales.slice().sort((a, b) => scoreVoix(b) - scoreVoix(a))[0];
+    } catch (e) {
+      return null;
+    }
+  }
+
+  try {
+    if (window.speechSynthesis) {
+      voixPreferee();
+      if ('onvoiceschanged' in window.speechSynthesis) {
+        window.speechSynthesis.addEventListener('voiceschanged', voixPreferee);
+      }
+    }
+  } catch (e) { /* synthèse vocale indisponible : rien à préparer */ }
+
+  function lireAVoixHaute(texte) {
+    try {
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(texte);
+      u.lang = 'fr-FR';
+      const voix = voixPreferee();
+      if (voix) {
+        u.voice = voix;
+        if (voix.lang) u.lang = voix.lang;
+      }
+      u.rate = DEBIT_VOIX;
+      u.pitch = HAUTEUR_VOIX;
+      if (voix && voix.localService === false) {
+        u.onerror = (ev) => {
+          const cause = ev && ev.error;
+          if (cause === 'canceled' || cause === 'interrupted') return;
+          const secours = voixLocale();
+          if (!secours) return;
+          try {
+            const u2 = new SpeechSynthesisUtterance(texte);
+            u2.voice = secours;
+            u2.lang = secours.lang || 'fr-FR';
+            u2.rate = DEBIT_VOIX;
+            u2.pitch = HAUTEUR_VOIX;
+            window.speechSynthesis.speak(u2);
+          } catch (e2) { /* on renonce : la consigne reste lisible à l'écran */ }
+        };
+      }
+      window.speechSynthesis.speak(u);
+    } catch (e) {
+      // synthèse vocale indisponible : la consigne reste lisible à l'écran.
+    }
+  }
+
+  function creerBlocConsigne(texte, texteVoix) {
+    const cont = document.createElement('div');
+    cont.className = 'bloc-consigne';
+    const p = document.createElement('p');
+    p.className = 'consigne';
+    p.textContent = texte;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'bouton-son';
+    btn.setAttribute('aria-label', 'Écouter la consigne');
+    btn.textContent = '🔊';
+    const texteALire = texteVoix || texte;
+    btn.addEventListener('click', () => lireAVoixHaute(texteALire));
+    cont.appendChild(p);
+    cont.appendChild(btn);
+    lireAVoixHaute(texteALire);
+    return cont;
+  }
+
+  /* ---------- Navigation (CHARTE §17) et correction (CHARTE §18) ---------- */
+
+  function remonterEnHaut() {
+    try {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    } catch (e) {
+      window.scrollTo(0, 0);
+    }
+  }
+
+  function afficherCorrection(zone, donnee, attendue) {
+    const bloc = document.createElement('p');
+    bloc.className = 'bloc-correction';
+    if (donnee !== null && donnee !== undefined && donnee !== '') {
+      const d = document.createElement('span');
+      d.className = 'correction-donnee';
+      d.textContent = 'Ta réponse : ' + donnee;
+      bloc.appendChild(d);
+      bloc.appendChild(document.createTextNode(' — '));
+    }
+    const a = document.createElement('span');
+    a.className = 'correction-attendue';
+    a.textContent = 'La bonne réponse : ' + attendue;
+    bloc.appendChild(a);
+    zone.appendChild(bloc);
+    return bloc;
+  }
+
+  /* ================================================================
+     Formes du pique-nique — composants visuels partagés
+     ================================================================ */
+
+  const SVGNS = 'http://www.w3.org/2000/svg';
+
+  function elSvg(nom, attrs) {
+    const el = document.createElementNS(SVGNS, nom);
+    Object.keys(attrs || {}).forEach((k) => el.setAttribute(k, attrs[k]));
+    return el;
+  }
+
+  /*
+   * Barre de chocolat. `options` :
+   *  - inegal : tableau de largeurs relatives (parts INÉGALES, jeu du partage) ;
+   *  - interactive : les carrés sont des boutons (colorier/décolorier) ;
+   *  - teinte : 'a' | 'b' — carrés pris colorés mandarine/menthe (duels, calculs).
+   * Rend { el, remplies(), setRemplies(k), verrouiller() }.
+   */
+  function creerBandeChocolat(denom, numRempli, options) {
+    const opts = options || {};
+    const cont = document.createElement('div');
+    cont.className = 'bande-choco';
+    const cases = [];
+    let verrouille = false;
+    for (let i = 0; i < denom; i++) {
+      const el = document.createElement(opts.interactive ? 'button' : 'div');
+      if (opts.interactive) el.type = 'button';
+      el.className = 'carre-choco';
+      if (opts.inegal) el.style.flexGrow = String(opts.inegal[i]);
+      if (i < numRempli) el.classList.add('rempli');
+      if (opts.teinte) el.classList.add('teinte-' + opts.teinte);
+      if (opts.interactive) {
+        el.setAttribute('aria-label', 'Part ' + (i + 1));
+        el.addEventListener('click', () => {
+          if (verrouille) return;
+          el.classList.toggle('rempli');
+          if (opts.teinte) el.classList.toggle('teinte-' + opts.teinte, el.classList.contains('rempli'));
+          jouerSon('tic');
+        });
+      }
+      cases.push(el);
+      cont.appendChild(el);
+    }
+    return {
+      el: cont,
+      remplies: () => cases.filter((c) => c.classList.contains('rempli')).length,
+      setRemplies: (k) => cases.forEach((c, i) => {
+        c.classList.toggle('rempli', i < k);
+        if (opts.teinte) c.classList.toggle('teinte-' + opts.teinte, i < k);
+      }),
+      verrouiller: () => { verrouille = true; cases.forEach((c) => { if (c.disabled !== undefined) c.disabled = true; }); }
+    };
+  }
+
+  /*
+   * Tarte SVG : croûte dorée + parts en quartiers. `options` :
+   *  - angles : liste d'angles en degrés (parts INÉGALES ; somme = 360) ;
+   *  - rotation : angle de départ (représentation « tournée », toujours valide) ;
+   *  - interactive : parts cliquables ;
+   *  - mangees : indices de parts grisées (soustractions).
+   * Rend { el, remplies(), setRemplies(k), verrouiller() }.
+   */
+  function creerTarte(denom, numRempli, options) {
+    const opts = options || {};
+    const svg = elSvg('svg', { viewBox: '0 0 120 120', class: 'tarte-svg' });
+    svg.setAttribute('aria-hidden', 'true');
+    svg.appendChild(elSvg('circle', { cx: 60, cy: 60, r: 56, class: 'croute' }));
+
+    const angles = opts.angles || new Array(denom).fill(360 / denom);
+    const depart = opts.rotation || 0;
+    const R = 48;
+    const parts = [];
+    const baies = [];
+    let verrouille = false;
+    let a0 = depart - 90;
+    for (let i = 0; i < denom; i++) {
+      const a1 = a0 + angles[i];
+      const rad0 = a0 * Math.PI / 180;
+      const rad1 = a1 * Math.PI / 180;
+      const x0 = 60 + R * Math.cos(rad0), y0 = 60 + R * Math.sin(rad0);
+      const x1 = 60 + R * Math.cos(rad1), y1 = 60 + R * Math.sin(rad1);
+      const grand = angles[i] > 180 ? 1 : 0;
+      const path = elSvg('path', {
+        d: 'M60 60 L' + x0.toFixed(2) + ' ' + y0.toFixed(2)
+          + ' A' + R + ' ' + R + ' 0 ' + grand + ' 1 ' + x1.toFixed(2) + ' ' + y1.toFixed(2) + ' Z',
+        class: 'part-tarte'
+      });
+      if (i < numRempli) path.classList.add('rempli');
+      if (opts.mangees && opts.mangees.indexOf(i) !== -1) { path.classList.remove('rempli'); path.classList.add('mangee'); }
+      if (opts.interactive) {
+        path.classList.add('cliquable');
+        path.addEventListener('click', () => {
+          if (verrouille) return;
+          path.classList.toggle('rempli');
+          majBaies();
+          jouerSon('tic');
+        });
+      }
+      // La baie au centre de la part garnie : c'est la garniture qui dit
+      // « cette part est prise », en plus de la couleur.
+      const aMid = (a0 + a1) / 2 * Math.PI / 180;
+      const baie = elSvg('circle', {
+        cx: (60 + 0.55 * R * Math.cos(aMid)).toFixed(2),
+        cy: (60 + 0.55 * R * Math.sin(aMid)).toFixed(2),
+        r: 5, class: 'baie'
+      });
+      parts.push(path);
+      baies.push(baie);
+      svg.appendChild(path);
+      svg.appendChild(baie);
+      a0 = a1;
+    }
+    function majBaies() {
+      parts.forEach((p, i) => { baies[i].style.display = p.classList.contains('rempli') ? '' : 'none'; });
+    }
+    majBaies();
+    return {
+      el: svg,
+      remplies: () => parts.filter((p) => p.classList.contains('rempli')).length,
+      setRemplies: (k) => { parts.forEach((p, i) => p.classList.toggle('rempli', i < k)); majBaies(); },
+      verrouiller: () => { verrouille = true; }
+    };
+  }
+
+  /* Plateau de brownies : la grille la plus carrée possible pour `denom`. */
+  function creerBrownie(denom, numRempli, options) {
+    const opts = options || {};
+    const colonnes = Math.ceil(Math.sqrt(denom));
+    const lignes = Math.ceil(denom / colonnes);
+    const cont = document.createElement('div');
+    cont.className = 'plateau-brownie';
+    cont.style.gridTemplateColumns = 'repeat(' + colonnes + ',1fr)';
+    cont.style.gridTemplateRows = 'repeat(' + lignes + ',1fr)';
+    const cases = [];
+    let verrouille = false;
+    for (let i = 0; i < denom; i++) {
+      const el = document.createElement(opts.interactive ? 'button' : 'div');
+      if (opts.interactive) el.type = 'button';
+      el.className = 'part-brownie' + (i < numRempli ? ' rempli' : '');
+      if (opts.interactive) {
+        el.setAttribute('aria-label', 'Part ' + (i + 1));
+        el.addEventListener('click', () => {
+          if (verrouille) return;
+          el.classList.toggle('rempli');
+          jouerSon('tic');
+        });
+      }
+      cases.push(el);
+      cont.appendChild(el);
+    }
+    return {
+      el: cont,
+      remplies: () => cases.filter((c) => c.classList.contains('rempli')).length,
+      setRemplies: (k) => cases.forEach((c, i) => c.classList.toggle('rempli', i < k)),
+      verrouiller: () => { verrouille = true; cases.forEach((c) => { if (c.disabled !== undefined) c.disabled = true; }); }
+    };
+  }
+
+  function creerForme(type, denom, numRempli, options) {
+    if (type === 'tarte') return creerTarte(denom, numRempli, options);
+    if (type === 'brownie') return creerBrownie(denom, numRempli, options);
+    return creerBandeChocolat(denom, numRempli, options);
+  }
+
+  /* Bande neutre (calculs, corrections) — même gabarit que M17. */
+  function creerBandeNeutre(denom, numRempli, numB) {
+    const cont = document.createElement('div');
+    cont.className = 'forme-bande';
+    for (let i = 0; i < denom; i++) {
+      const seg = document.createElement('div');
+      seg.className = 'segment-bande';
+      if (i < numRempli) seg.classList.add('rempli');
+      else if (numB && i < numRempli + numB) seg.classList.add('rempli', 'part-b');
+      cont.appendChild(seg);
+    }
+    return cont;
+  }
+
+  function creerFractionLabel(n, d, grande) {
+    const el = document.createElement('span');
+    el.className = 'fraction-affichage' + (grande ? ' grande' : '');
+    const num = document.createElement('span');
+    num.textContent = n;
+    const barre = document.createElement('span');
+    barre.className = 'fr-barre';
+    const den = document.createElement('span');
+    den.textContent = d;
+    el.appendChild(num);
+    el.appendChild(barre);
+    el.appendChild(den);
+    return el;
+  }
+
+  /* ================================================================
+     Saisie au pavé : nombre seul, ou fraction en deux cases
+     ================================================================ */
+
+  /* Les 12 touches du pavé diégétique partagé (l'« écran » varie selon
+     l'usage : case de comptage, cases numérateur/dénominateur). */
+  function creerTouchesPave(onTouche) {
+    const conteneur = document.createElement('div');
+    conteneur.className = 'pave-numerique';
+    const grille = document.createElement('div');
+    grille.className = 'pave-grille';
+    ['7', '8', '9', '4', '5', '6', '1', '2', '3', 'C', '0', '✓'].forEach((t) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'touche-pave';
+      b.textContent = t;
+      if (t === '✓') b.classList.add('touche-valider');
+      if (t === 'C') b.classList.add('touche-effacer');
+      b.addEventListener('click', () => onTouche(t));
+      grille.appendChild(b);
+    });
+    conteneur.appendChild(grille);
+    return { el: conteneur, verrouiller: (v) => grille.querySelectorAll('button').forEach((b) => { b.disabled = v; }) };
+  }
+
+  /*
+   * Saisie d'une fraction : deux cases (numérateur, dénominateur) et le pavé.
+   * `options` :
+   *  - denominateurFixe : le dénominateur est affiché, seule la case du haut se remplit ;
+   *  - legendes : affiche le vocabulaire officiel en face de chaque case ;
+   *  - onValider(n, d) : appelé quand les deux cases sont remplies et ✓ touché.
+   * Rend { el, verrouiller(), marquer(nJuste, dJuste) }.
+   */
+  function creerSaisieFraction(options) {
+    const opts = options || {};
+    const cont = document.createElement('div');
+
+    const ligne = document.createElement('div');
+    ligne.className = 'saisie-fraction';
+
+    const slots = document.createElement('div');
+    slots.className = 'fraction-slots';
+    const slotN = document.createElement('div');
+    slotN.className = 'slot-frac actif';
+    slotN.textContent = '?';
+    const barre = document.createElement('div');
+    barre.className = 'barre-frac';
+    const slotD = document.createElement('div');
+    slotD.className = 'slot-frac';
+    slotD.textContent = '?';
+    if (opts.denominateurFixe) {
+      slotD.className = 'slot-frac fixe';
+      slotD.textContent = String(opts.denominateurFixe);
+    }
+    slots.appendChild(slotN);
+    slots.appendChild(barre);
+    slots.appendChild(slotD);
+    ligne.appendChild(slots);
+
+    if (opts.legendes) {
+      const vocab = document.createElement('div');
+      vocab.className = 'vocab-cotes';
+      const l1 = document.createElement('span');
+      l1.textContent = 'numérateur : les parts prises';
+      const l2 = document.createElement('span');
+      l2.textContent = 'dénominateur : toutes les parts';
+      vocab.appendChild(l1);
+      vocab.appendChild(l2);
+      ligne.appendChild(vocab);
+    }
+    cont.appendChild(ligne);
+
+    const valeurs = { n: '', d: opts.denominateurFixe ? String(opts.denominateurFixe) : '' };
+    let actif = 'n';
+
+    function slotDe(cle) { return cle === 'n' ? slotN : slotD; }
+    function rafraichir() {
+      slotN.textContent = valeurs.n === '' ? '?' : valeurs.n;
+      if (!opts.denominateurFixe) slotD.textContent = valeurs.d === '' ? '?' : valeurs.d;
+      slotN.classList.toggle('actif', actif === 'n');
+      if (!opts.denominateurFixe) slotD.classList.toggle('actif', actif === 'd');
+    }
+
+    // Toucher une case la rend active : on peut corriger le numérateur après
+    // avoir commencé le dénominateur.
+    slotN.addEventListener('click', () => { if (!fige) { actif = 'n'; rafraichir(); } });
+    if (!opts.denominateurFixe) slotD.addEventListener('click', () => { if (!fige) { actif = 'd'; rafraichir(); } });
+
+    let fige = false;
+    const pave = creerTouchesPave((t) => {
+      if (fige) return;
+      if (t === 'C') { valeurs[actif] = ''; rafraichir(); jouerSon('tic'); return; }
+      if (t === '✓') {
+        if (actif === 'n' && valeurs.n !== '' && !opts.denominateurFixe && valeurs.d === '') {
+          actif = 'd';
+          rafraichir();
+          jouerSon('tic');
+          return;
+        }
+        if (valeurs.n !== '' && valeurs.d !== '') {
+          opts.onValider(parseInt(valeurs.n, 10), parseInt(valeurs.d, 10));
+        }
+        return;
+      }
+      if (valeurs[actif].length < 2) { valeurs[actif] += t; rafraichir(); jouerSon('tic'); }
+      // La case du haut remplie, on passe naturellement à celle du bas.
+      if (actif === 'n' && !opts.denominateurFixe && valeurs.n.length >= 2) { actif = 'd'; rafraichir(); }
+    });
+    cont.appendChild(pave.el);
+
+    return {
+      el: cont,
+      verrouiller: () => { fige = true; pave.verrouiller(true); slotN.classList.remove('actif'); slotD.classList.remove('actif'); },
+      marquer: (nJuste, dJuste) => {
+        slotN.classList.add(nJuste ? 'correct' : 'incorrect');
+        if (!opts.denominateurFixe) slotD.classList.add(dJuste ? 'correct' : 'incorrect');
+      }
+    };
+  }
+
+  /* Saisie d'un nombre seul (compter des parts). */
+  function creerSaisieNombre(onValider) {
+    const cont = document.createElement('div');
+    const ligne = document.createElement('div');
+    ligne.className = 'saisie-fraction';
+    const slot = document.createElement('div');
+    slot.className = 'slot-frac actif';
+    slot.textContent = '?';
+    ligne.appendChild(slot);
+    cont.appendChild(ligne);
+    let valeur = '';
+    let fige = false;
+    const pave = creerTouchesPave((t) => {
+      if (fige) return;
+      if (t === 'C') { valeur = ''; slot.textContent = '?'; jouerSon('tic'); return; }
+      if (t === '✓') { if (valeur !== '') onValider(parseInt(valeur, 10)); return; }
+      if (valeur.length < 2) { valeur += t; slot.textContent = valeur; jouerSon('tic'); }
+    });
+    cont.appendChild(pave.el);
+    return {
+      el: cont,
+      verrouiller: () => { fige = true; pave.verrouiller(true); slot.classList.remove('actif'); },
+      marquer: (juste) => slot.classList.add(juste ? 'correct' : 'incorrect')
+    };
+  }
+
+  /* ================================================================
+     Accueil et contrôleur de jeu
+     ================================================================ */
+
+  let etat = null;
+
+  function construireAccueil() {
+    document.getElementById('sous-titre-accueil').textContent = donnees.sousTitre;
+    const grille = document.getElementById('grille-jeux');
+    grille.innerHTML = '';
+    configJeux.forEach((cfg) => {
+      const carte = document.createElement('button');
+      carte.className = 'carte-jeu carte-' + cfg.couleur;
+      carte.dataset.jeu = cfg.id;
+      const icone = document.createElement('div');
+      icone.className = 'icone';
+      icone.textContent = cfg.icone;
+      const titre = document.createElement('h2');
+      titre.textContent = cfg.titre;
+      const desc = document.createElement('p');
+      desc.textContent = cfg.description;
+      const tout = lireEtoiles();
+      const etoiles = creerEtoiles(tout[cfg.id] || 0);
+      carte.appendChild(icone);
+      carte.appendChild(titre);
+      carte.appendChild(desc);
+      carte.appendChild(etoiles);
+      carte.addEventListener('click', () => demarrerJeu(cfg.id));
+      grille.appendChild(carte);
+    });
+  }
+
+  function retourAccueil() {
+    if (window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch (e) { /* ignore */ } }
+    document.getElementById('ecran-jeu').hidden = true;
+    document.getElementById('ecran-accueil').hidden = false;
+    construireAccueil();
+    remonterEnHaut();
+  }
+
+  function trouverConfig(jeuId) {
+    return configJeux.find((j) => j.id === jeuId);
+  }
+
+  function demarrerJeu(jeuId) {
+    etat = { jeuId, index: 0, score: 0, verrouille: false, demarreLe: Date.now(), memoire: {} };
+    document.getElementById('ecran-accueil').hidden = true;
+    document.getElementById('ecran-jeu').hidden = false;
+    document.getElementById('titre-jeu-courant').textContent = trouverConfig(jeuId).titre;
+    mancheSuivante();
+    remonterEnHaut();
+  }
+
+  function majProgression() {
+    const cfg = trouverConfig(etat.jeuId);
+    document.getElementById('progression-jeu').textContent = 'Manche ' + etat.index + ' / ' + cfg.nbQuestions;
+  }
+
+  function mancheSuivante() {
+    const cfg = trouverConfig(etat.jeuId);
+    if (etat.index >= cfg.nbQuestions) {
+      afficherResultats(cfg);
+      return;
+    }
+    etat.index++;
+    etat.verrouille = false;
+    majProgression();
+    const zone = document.getElementById('zone-jeu');
+    zone.innerHTML = '';
+    document.getElementById('zone-feedback').textContent = '';
+    document.getElementById('zone-feedback').className = 'feedback';
+    document.getElementById('bouton-suivant').hidden = true;
+    if (cfg.id === 'partage-egal') genererPartage(zone, cfg);
+    else if (cfg.id === 'lire-ecrire') genererLireEcrire(zone, cfg);
+    remonterEnHaut();
+  }
+
+  /* `correction` (facultatif) = { donnee, attendue } : affiché uniquement en
+     cas d'erreur, sous le message de feedback (CHARTE §18). */
+  function validerReponse(estCorrecte, correction) {
+    if (etat.verrouille) return;
+    etat.verrouille = true;
+    const zoneFeedback = document.getElementById('zone-feedback');
+    if (estCorrecte) {
+      etat.score++;
+      zoneFeedback.textContent = choisir(donnees.messagesFeedback.bravo);
+      zoneFeedback.className = 'feedback feedback-succes';
+      lancerConfettis();
+      jouerSon('bravo');
+    } else {
+      zoneFeedback.textContent = choisir(donnees.messagesFeedback.rate);
+      zoneFeedback.className = 'feedback feedback-erreur';
+      jouerSon('rate');
+      if (correction) afficherCorrection(zoneFeedback, correction.donnee, correction.attendue);
+    }
+    document.getElementById('bouton-suivant').hidden = false;
+  }
+
+  function afficherResultats(cfg) {
+    document.getElementById('progression-jeu').textContent = 'Résultats';
+    document.getElementById('bouton-suivant').hidden = true;
+    document.getElementById('zone-feedback').textContent = '';
+    const etoilesGagnees = calculerEtoiles(etat.score, cfg.nbQuestions);
+    enregistrerEtoiles(cfg.id, etoilesGagnees);
+    const dureeSecondes = Math.max(0, Math.round((Date.now() - etat.demarreLe) / 1000));
+    enregistrerSession(cfg.id, etat.score, cfg.nbQuestions, dureeSecondes);
+    if (etoilesGagnees === 3) sonNiveauParfait();
+
+    const zone = document.getElementById('zone-jeu');
+    zone.innerHTML = '';
+    const bloc = document.createElement('div');
+    bloc.className = 'bloc-resultats';
+    const titre = document.createElement('h3');
+    titre.textContent = 'Fin du jeu !';
+    const score = document.createElement('p');
+    score.className = 'score-texte';
+    score.textContent = etat.score + ' / ' + cfg.nbQuestions + ' manches réussies';
+    const etoiles = creerEtoiles(etoilesGagnees);
+    const boutons = document.createElement('div');
+    boutons.className = 'boutons-resultats';
+    const rejouer = document.createElement('button');
+    rejouer.className = 'bouton-principal';
+    rejouer.textContent = 'Rejouer';
+    rejouer.addEventListener('click', () => demarrerJeu(cfg.id));
+    const accueilBtn = document.createElement('button');
+    accueilBtn.className = 'bouton-secondaire';
+    accueilBtn.textContent = "Retour à l'accueil";
+    accueilBtn.addEventListener('click', retourAccueil);
+    boutons.appendChild(rejouer);
+    boutons.appendChild(accueilBtn);
+    bloc.appendChild(titre);
+    bloc.appendChild(etoiles);
+    bloc.appendChild(score);
+    bloc.appendChild(boutons);
+    zone.appendChild(bloc);
+    if (etoilesGagnees === 3) lancerConfettis();
+    remonterEnHaut();
+  }
+
+  /* ================================================================
+     Mini-jeu 1 : Le bon partage — parts égales, puis dénominateur
+     ================================================================ */
+
+  /* Une découpe INÉGALE de d parts : largeurs (bande) ou angles (tarte)
+     visiblement différents — l'écart minimal entre la plus petite et la plus
+     grande part est imposé, sinon l'inégalité ne se voit pas à l'œil. */
+  function decoupeInegale(d, total) {
+    for (let essai = 0; essai < 60; essai++) {
+      let poids = [];
+      let somme = 0;
+      for (let i = 0; i < d; i++) {
+        const p = 0.5 + Math.random() * 1.6;
+        poids.push(p);
+        somme += p;
+      }
+      poids = poids.map((p) => p / somme * total);
+      const mini = Math.min(...poids);
+      const maxi = Math.max(...poids);
+      if (maxi / mini >= 1.9 && mini >= total * 0.06) return poids;
+    }
+    // Repli déterministe, toujours visiblement inégal.
+    const poids = new Array(d).fill(total / d);
+    poids[0] = total / d * 0.5;
+    poids[d - 1] = total / d * 1.5;
+    return poids;
+  }
+
+  function genererPartage(zone, cfg) {
+    // Progression fixe par position : petits dénominateurs d'abord.
+    const d = etat.index <= 2 ? choisir([2, 3, 4]) : choisir([5, 6, 8]);
+    const type = choisir(['bande', 'tarte']);
+    // Nombre de parts du second piège : proche de d mais différent.
+    let dAutre = d + choisir([-1, 1, 2]);
+    if (dAutre < 2) dAutre = d + 1;
+
+    zone.appendChild(creerBlocConsigne(
+      'Touche le partage en parts égales.',
+      'Regarde les trois partages. Touche celui où toutes les parts sont égales, exactement pareilles.'
+    ));
+
+    // Une bonne découpe, deux découpes inégales (dont une avec un autre nombre
+    // de parts) : la bonne réponse est UNIQUE par construction.
+    function formePartage(nbParts, inegal) {
+      if (type === 'tarte') {
+        return creerTarte(nbParts, 0, inegal ? { angles: decoupeInegale(nbParts, 360) } : {}).el;
+      }
+      return creerBandeChocolat(nbParts, 0, inegal ? { inegal: decoupeInegale(nbParts, nbParts) } : {}).el;
+    }
+    const cartes = melanger([
+      { correcte: true, el: formePartage(d, false) },
+      { correcte: false, el: formePartage(d, true) },
+      { correcte: false, el: formePartage(dAutre, true) }
+    ]);
+
+    const grille = document.createElement('div');
+    grille.className = 'grille-partages';
+    let phase1Juste = null;
+
+    cartes.forEach((carte) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'carte-partage';
+      btn.appendChild(carte.el);
+      btn.addEventListener('click', () => {
+        if (phase1Juste !== null || etat.verrouille) return;
+        phase1Juste = carte.correcte;
+        cartes.forEach((c) => {
+          const b = c.btnRef;
+          b.disabled = true;
+          if (c.correcte) b.classList.add('correct');
+          else if (c === carte) b.classList.add('incorrect');
+        });
+        if (carte.correcte) {
+          jouerSon('tic');
+          ouvrirComptage();
+        } else {
+          // CHARTE §18 : la découpe fautive en rouge, la bonne en vert, et
+          // l'explication de ce qui cloche. On enchaîne quand même sur le
+          // comptage, à faire sur la BONNE découpe.
+          jouerSon('rate');
+          explication.textContent = 'Regarde : dans ce partage, les parts ne sont pas toutes pareilles. Le partage vert, lui, est équitable.';
+          ouvrirComptage();
+        }
+      });
+      carte.btnRef = btn;
+      grille.appendChild(btn);
+    });
+    zone.appendChild(grille);
+
+    const explication = document.createElement('p');
+    explication.className = 'legende';
+    zone.appendChild(explication);
+
+    const zoneComptage = document.createElement('div');
+    zone.appendChild(zoneComptage);
+
+    function ouvrirComptage() {
+      const invite = document.createElement('p');
+      invite.className = 'legende-forte';
+      invite.textContent = 'Combien de parts égales dans le partage vert ?';
+      zoneComptage.appendChild(invite);
+      const saisie = creerSaisieNombre((valeur) => {
+        saisie.verrouiller();
+        const phase2Juste = valeur === d;
+        saisie.marquer(phase2Juste);
+        if (phase2Juste) {
+          const vocab = document.createElement('p');
+          vocab.className = 'legende';
+          vocab.textContent = 'Ce nombre de parts, c’est le DÉNOMINATEUR de la fraction !';
+          zoneComptage.appendChild(vocab);
+        }
+        validerReponse(phase1Juste && phase2Juste,
+          (phase1Juste && phase2Juste) ? null : {
+            donnee: phase2Juste ? null : String(valeur),
+            attendue: d + ' parts égales'
+          });
+      });
+      zoneComptage.appendChild(saisie.el);
+      lireAVoixHaute('Maintenant, compte : combien de parts égales dans le bon partage ?');
+    }
+  }
+
+  /* ================================================================
+     Mini-jeu 2 : La part du pique-nique — lire, écrire, colorier
+     ================================================================ */
+
+  function genererLireEcrire(zone, cfg) {
+    // Progression fixe par position (CHARTE §13 : la difficulté ne dépend pas
+    // du tirage) : unitaires d'abord, puis non unitaires, grands dénominateurs
+    // en fin de partie. Le TYPE d'activité alterne : écrire, mot, colorier.
+    const ordreTypes = ['ecrire', 'mot', 'colorier', 'ecrire', 'colorier'];
+    const typeActivite = ordreTypes[etat.index - 1];
+    const forme = choisir(['bande', 'tarte', 'brownie']);
+    const objet = donnees.objets[forme];
+
+    let d, n;
+    if (etat.index === 1) { d = choisir([2, 3, 4, 5]); n = 1; }
+    else if (etat.index === 2) { d = null; n = null; } // choisi dans la banque des noms courants
+    else if (etat.index <= 4) { d = choisir([3, 4, 5, 6]); n = nombreAleatoire(2, d - 1); }
+    else { d = choisir([6, 8, 10]); n = nombreAleatoire(2, d - 1); }
+
+    if (typeActivite === 'colorier') {
+      zone.appendChild(creerBlocConsigne(
+        'Colorie ' + n + '/' + d + ' ' + objet.de + '.',
+        'Colorie ' + fractionEnMots(n, d) + ' ' + objet.de + ' : touche les parts pour les prendre.'
+      ));
+      const rangee = document.createElement('div');
+      rangee.className = 'rangee-forme';
+      rangee.appendChild(creerFractionLabel(n, d, true));
+      zone.appendChild(rangee);
+
+      const formeJeu = creerForme(forme, d, 0, { interactive: true });
+      const rangeeJeu = document.createElement('div');
+      rangeeJeu.className = 'rangee-forme';
+      rangeeJeu.appendChild(formeJeu.el);
+      zone.appendChild(rangeeJeu);
+
+      const bouton = document.createElement('button');
+      bouton.type = 'button';
+      bouton.className = 'bouton-principal';
+      bouton.textContent = 'Valider';
+      bouton.addEventListener('click', () => {
+        if (etat.verrouille) return;
+        formeJeu.verrouiller();
+        bouton.disabled = true;
+        const remplies = formeJeu.remplies();
+        const juste = remplies === n;
+        if (!juste) {
+          // CHARTE §18 : la bonne réponse MONTRÉE — la forme passe au bon
+          // coloriage, et la correction chiffrée est rappelée dessous.
+          formeJeu.setRemplies(n);
+          validerReponse(false, { donnee: remplies + '/' + d, attendue: n + '/' + d });
+        } else {
+          validerReponse(true);
+        }
+      });
+      zone.appendChild(bouton);
+      return;
+    }
+
+    if (typeActivite === 'mot') {
+      // La fraction se dit avec des mots : la moitié, un quart, trois quarts...
+      const cles = Object.keys(donnees.nomsCourants);
+      const cle = choisir(cles);
+      const morceaux = cle.split('/');
+      const nMot = parseInt(morceaux[0], 10);
+      const dMot = parseInt(morceaux[1], 10);
+      zone.appendChild(creerBlocConsigne(
+        'Quelle part ' + objet.de + ' est coloriée ?',
+        'Regarde la part coloriée. Comment la dit-on avec des mots ?'
+      ));
+      const rangee = document.createElement('div');
+      rangee.className = 'rangee-forme';
+      zone.appendChild(rangee);
+      rangee.appendChild(creerForme(forme, dMot, nMot).el);
+
+      // Distracteurs : d'autres noms de la banque, tous distincts.
+      const autres = melanger(cles.filter((c) => c !== cle)).slice(0, 3);
+      const brutes = [donnees.nomsCourants[cle]].concat(autres.map((c) => donnees.nomsCourants[c]));
+      const { options, indexCorrect } = melangerOptions(brutes, 0);
+      const grille = document.createElement('div');
+      grille.className = 'grille-options';
+      options.forEach((texte, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'bouton-option';
+        btn.textContent = texte;
+        btn.addEventListener('click', () => {
+          if (etat.verrouille) return;
+          grille.querySelectorAll('button').forEach((b, k) => {
+            b.disabled = true;
+            if (k === indexCorrect) b.classList.add('correct');
+            else if (b === btn) b.classList.add('incorrect');
+          });
+          validerReponse(i === indexCorrect,
+            i === indexCorrect ? null : { donnee: texte, attendue: options[indexCorrect] + ' (' + cle + ')' });
+        });
+        grille.appendChild(btn);
+      });
+      zone.appendChild(grille);
+      return;
+    }
+
+    // typeActivite === 'ecrire'
+    zone.appendChild(creerBlocConsigne(
+      'Écris la fraction ' + objet.de + ' qui est coloriée.',
+      'Compte les parts prises et toutes les parts, puis écris la fraction avec le pavé : d’abord le numérateur, en haut, puis le dénominateur, en bas.'
+    ));
+    const rangee = document.createElement('div');
+    rangee.className = 'rangee-forme';
+    rangee.appendChild(creerForme(forme, d, n).el);
+    zone.appendChild(rangee);
+
+    const saisie = creerSaisieFraction({
+      legendes: true,
+      onValider: (nSaisi, dSaisi) => {
+        if (etat.verrouille) return;
+        saisie.verrouiller();
+        const juste = nSaisi === n && dSaisi === d;
+        saisie.marquer(nSaisi === n, dSaisi === d);
+        validerReponse(juste, juste ? null : { donnee: nSaisi + '/' + dSaisi, attendue: n + '/' + d });
+      }
+    });
+    zone.appendChild(saisie.el);
+  }
+
+  /* ---------- Initialisation ---------- */
+
+  document.getElementById('bouton-retour').addEventListener('click', retourAccueil);
+  document.getElementById('bouton-suivant').addEventListener('click', mancheSuivante);
+
+  construireAccueil();
+})();
+</script>
+<script>
+  /* Bouton « ← Menu » : retour à la coquille avec confirmation (CHARTE §7).
+     Script isolé du moteur de jeu : il n'agit que sur les éléments statiques
+     de la page. */
+  (function () {
+    var bouton = document.getElementById('bouton-menu');
+    var modale = document.getElementById('modale-menu');
+    if (!bouton || !modale) return;
+    function fermer() { modale.hidden = true; }
+    bouton.addEventListener('click', function () { modale.hidden = false; });
+    document.getElementById('modale-menu-rester').addEventListener('click', fermer);
+    document.getElementById('modale-menu-revenir').addEventListener('click', function () {
+      window.location.href = '../index.html';
+    });
+    modale.addEventListener('click', function (e) { if (e.target === modale) fermer(); });
+  })();
+</script>
+</body>
+</html>
