@@ -479,7 +479,9 @@
     { "id": "partage-egal", "titre": "Le bon partage", "icone": "🍰", "couleur": "mandarine", "description": "Trouve le partage en parts égales et compte les parts.", "nbQuestions": 5 },
     { "id": "lire-ecrire", "titre": "La part du pique-nique", "icone": "✏️", "couleur": "menthe", "description": "Colorie, lis et écris des fractions.", "nbQuestions": 5 },
     { "id": "contenances", "titre": "La bouteille de limonade", "icone": "🍋", "couleur": "soleil", "description": "Verse des fractions de bouteille dans les verres.", "nbQuestions": 5 },
-    { "id": "representations", "titre": "Les portraits de la fraction", "icone": "🖼️", "couleur": "corail", "description": "Retrouve toutes les images d'une même fraction.", "nbQuestions": 5 }
+    { "id": "representations", "titre": "Les portraits de la fraction", "icone": "🖼️", "couleur": "corail", "description": "Retrouve toutes les images d'une même fraction.", "nbQuestions": 5 },
+    { "id": "comparer-ce1", "titre": "La plus grande part", "icone": "⚖️", "couleur": "menthe", "description": "Compare les parts : qui en a le plus ?", "nbQuestions": 5 },
+    { "id": "calculer-ce1", "titre": "Les comptes du goûter", "icone": "➕", "couleur": "mandarine", "description": "Ajoute et enlève des parts, complète jusqu'à 1.", "nbQuestions": 5 }
   ]
 }
 </script>
@@ -1391,6 +1393,8 @@
     else if (cfg.id === 'lire-ecrire') genererLireEcrire(zone, cfg);
     else if (cfg.id === 'contenances') genererContenances(zone, cfg);
     else if (cfg.id === 'representations') genererRepresentations(zone, cfg);
+    else if (cfg.id === 'comparer-ce1') genererComparer(zone, cfg);
+    else if (cfg.id === 'calculer-ce1') genererCalculer(zone, cfg);
     remonterEnHaut();
   }
 
@@ -1996,6 +2000,284 @@
       });
     });
     zone.appendChild(bouton);
+  }
+
+  /* ================================================================
+     Mini-jeu 5 : La plus grande part — comparer (M16, CE1)
+     ================================================================ */
+
+  function genererComparer(zone, cfg) {
+    /* Manches 1-3 : même dénominateur (on compare les numérateurs).
+       Manches 4-5 : fractions UNITAIRES (plus le dénominateur est grand, plus
+       la part est petite — le cas contre-intuitif visé par le programme).
+       Une manche d'ÉGALITÉ est garantie par partie : son numéro est tiré au
+       début et mémorisé dans l'état du jeu. */
+    if (!etat.memoire.mancheEgalite) etat.memoire.mancheEgalite = nombreAleatoire(1, cfg.nbQuestions);
+    const egalite = etat.index === etat.memoire.mancheEgalite;
+    const unitaire = etat.index >= 4;
+
+    let fa, fb;
+    if (unitaire) {
+      if (egalite) {
+        const d = choisir([3, 4, 5, 6]);
+        fa = { n: 1, d };
+        fb = { n: 1, d };
+      } else {
+        const paire = melanger(D.filter((x) => x <= 8));
+        fa = { n: 1, d: paire[0] };
+        fb = { n: 1, d: paire[1] };
+      }
+    } else {
+      const d = choisir([4, 5, 6, 8]);
+      if (egalite) {
+        const n = nombreAleatoire(1, d - 1);
+        fa = { n, d };
+        fb = { n, d };
+      } else {
+        let n1 = nombreAleatoire(1, d - 1);
+        let n2 = nombreAleatoire(1, d - 1);
+        while (n2 === n1) n2 = nombreAleatoire(1, d - 1);
+        fa = { n: n1, d };
+        fb = { n: n2, d };
+      }
+    }
+
+    const persos = melanger(donnees.personnages).slice(0, 2);
+    zone.appendChild(creerBlocConsigne(
+      'Qui a la plus grande part de chocolat ?',
+      persos[0].prenom + ' a ' + fractionEnMots(fa.n, fa.d) + ' de sa barre. '
+      + persos[1].prenom + ' a ' + fractionEnMots(fb.n, fb.d) + ' de la sienne. '
+      + 'Les deux barres sont pareilles. Qui a la plus grande part ? Si les parts sont pareilles, touche « pareil ».'
+    ));
+
+    const duel = document.createElement('div');
+    duel.className = 'duel';
+    [{ perso: persos[0], f: fa, teinte: 'a' }, { perso: persos[1], f: fb, teinte: 'b' }].forEach((cote) => {
+      const carte = document.createElement('div');
+      carte.className = 'carte-perso';
+      const emoji = document.createElement('span');
+      emoji.className = 'perso-emoji';
+      emoji.textContent = cote.perso.emoji;
+      const nom = document.createElement('span');
+      nom.className = 'perso-nom';
+      nom.textContent = cote.perso.prenom;
+      carte.appendChild(emoji);
+      carte.appendChild(nom);
+      carte.appendChild(creerBandeChocolat(cote.f.d, cote.f.n, { teinte: cote.teinte }).el);
+      carte.appendChild(creerFractionLabel(cote.f.n, cote.f.d));
+      duel.appendChild(carte);
+    });
+    zone.appendChild(duel);
+
+    const valA = fa.n / fa.d;
+    const valB = fb.n / fb.d;
+    const bonne = valA > valB ? 'a' : (valB > valA ? 'b' : 'egal');
+
+    const reponses = document.createElement('div');
+    reponses.className = 'reponses-duel';
+    [
+      { cle: 'a', texte: persos[0].prenom },
+      { cle: 'egal', texte: 'Parts égales !' },
+      { cle: 'b', texte: persos[1].prenom }
+    ].forEach((rep) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'bouton-option';
+      btn.textContent = rep.texte;
+      btn.addEventListener('click', () => {
+        if (etat.verrouille) return;
+        reponses.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+        const juste = rep.cle === bonne;
+        btn.classList.add(juste ? 'correct' : 'incorrect');
+        if (!juste) {
+          const bonBtn = Array.from(reponses.querySelectorAll('button'))[['a', 'egal', 'b'].indexOf(bonne)];
+          bonBtn.classList.add('correct');
+        }
+        montrerSuperposition();
+        const attendueTexte = bonne === 'egal'
+          ? 'les parts sont égales'
+          : (bonne === 'a' ? persos[0].prenom : persos[1].prenom) + ' a la plus grande part';
+        validerReponse(juste, juste ? null : { donnee: rep.texte, attendue: attendueTexte });
+      });
+      reponses.appendChild(btn);
+    });
+    zone.appendChild(reponses);
+
+    /* LA PREUVE PAR SUPERPOSITION (note du backlog : « parts superposables »).
+       Les deux parts se posent l'une au-dessus de l'autre, alignées à gauche,
+       à la même échelle : on VOIT laquelle dépasse — ou qu'aucune ne dépasse. */
+    function montrerSuperposition() {
+      const bloc = document.createElement('div');
+      bloc.className = 'zone-superposition';
+      const titre = document.createElement('p');
+      titre.className = 'legende-petite';
+      titre.textContent = 'On pose les deux parts l’une sur l’autre :';
+      bloc.appendChild(titre);
+      [{ f: fa, cls: 'part-a', prenom: persos[0].prenom }, { f: fb, cls: 'part-b', prenom: persos[1].prenom }].forEach((cote) => {
+        const barre = document.createElement('div');
+        barre.className = 'barre-superposee ' + cote.cls;
+        const etiquette = document.createElement('span');
+        etiquette.className = 'etiquette-superposee';
+        etiquette.textContent = cote.prenom + ' : ' + cote.f.n + '/' + cote.f.d;
+        barre.appendChild(etiquette);
+        bloc.appendChild(barre);
+        // Largeur finale après insertion : la transition CSS fait le trajet.
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { barre.style.width = (cote.f.n / cote.f.d * 80) + '%'; });
+        });
+      });
+      const conclusion = document.createElement('p');
+      conclusion.className = 'legende-petite';
+      conclusion.textContent = bonne === 'egal'
+        ? 'Les deux parts sont exactement pareilles.'
+        : 'La part de ' + (bonne === 'a' ? persos[0].prenom : persos[1].prenom) + ' est plus grande.';
+      bloc.appendChild(conclusion);
+      zone.appendChild(bloc);
+    }
+  }
+
+  /* ================================================================
+     Mini-jeu 6 : Les comptes du goûter — +, −, compléments à 1 (M16, CE1)
+     ================================================================ */
+
+  function genererCalculer(zone, cfg) {
+    /* Les types de manche sont tirés UNE fois par partie puis consommés dans
+       l'ordre : deux additions, une soustraction, deux compléments — mélangés
+       (CHARTE §13), donc jamais le même déroulé deux parties de suite. */
+    if (!etat.memoire.typesCalcul) {
+      etat.memoire.typesCalcul = melanger(['addition', 'soustraction', 'complement', 'addition', 'complement']);
+    }
+    const typeCalcul = etat.memoire.typesCalcul[etat.index - 1];
+    const persos = melanger(donnees.personnages).slice(0, 2);
+
+    if (typeCalcul === 'addition') {
+      const d = choisir([4, 5, 6, 8]);
+      const a = nombreAleatoire(1, d - 2);
+      const b = nombreAleatoire(1, d - a); // a + b ≤ d : le résultat ne dépasse jamais 1
+      const total = a + b;
+
+      const enonce = persos[0].prenom + ' mange ' + a + '/' + d + ' de la barre de chocolat. '
+        + persos[1].prenom + ' en mange ' + b + '/' + d + '. Quelle fraction de la barre a été mangée en tout ?';
+      zone.appendChild(creerBlocConsigne(enonce,
+        persos[0].prenom + ' mange ' + fractionEnMots(a, d) + ' de la barre. '
+        + persos[1].prenom + ' en mange ' + fractionEnMots(b, d) + '. '
+        + 'Quelle fraction de la barre a été mangée en tout ?'));
+
+      const apercu = document.createElement('div');
+      apercu.className = 'apercu-calcul';
+      apercu.appendChild(creerBandeNeutre(d, a, b));
+      zone.appendChild(apercu);
+      const rappel = document.createElement('div');
+      rappel.className = 'rappel-calcul';
+      rappel.appendChild(creerFractionLabel(a, d));
+      const plus = document.createElement('span');
+      plus.className = 'symbole-calcul';
+      plus.textContent = '+';
+      rappel.appendChild(plus);
+      rappel.appendChild(creerFractionLabel(b, d));
+      const egal = document.createElement('span');
+      egal.className = 'symbole-calcul';
+      egal.textContent = '=';
+      rappel.appendChild(egal);
+      rappel.appendChild(document.createTextNode('?'));
+      zone.appendChild(rappel);
+
+      const saisie = creerSaisieFraction({
+        denominateurFixe: d,
+        onValider: (nSaisi) => {
+          if (etat.verrouille) return;
+          saisie.verrouiller();
+          const juste = nSaisi === total;
+          saisie.marquer(juste, true);
+          if (juste && total === d) {
+            const morale = document.createElement('p');
+            morale.className = 'legende-forte';
+            morale.textContent = d + '/' + d + ' = 1 : toute la barre a été mangée !';
+            zone.appendChild(morale);
+          }
+          validerReponse(juste, juste ? null : { donnee: nSaisi + '/' + d, attendue: total + '/' + d });
+        }
+      });
+      zone.appendChild(saisie.el);
+      return;
+    }
+
+    if (typeCalcul === 'soustraction') {
+      const d = choisir([4, 5, 6, 8]);
+      const a = nombreAleatoire(2, d - 1);
+      const b = nombreAleatoire(1, a - 1);
+      const reste = a - b;
+
+      const enonce = 'Il restait ' + a + '/' + d + ' de la tarte. On mange ' + b + '/' + d + '. Quelle fraction de la tarte reste-t-il ?';
+      zone.appendChild(creerBlocConsigne(enonce,
+        'Il restait ' + fractionEnMots(a, d) + ' de la tarte. On mange ' + fractionEnMots(b, d) + '. Quelle fraction reste-t-il ?'));
+
+      // Les parts mangées se distinguent des parts restantes : la tarte montre
+      // a parts garnies dont b déjà croquées (estompées).
+      const rangee = document.createElement('div');
+      rangee.className = 'rangee-forme';
+      const mangees = [];
+      for (let i = reste; i < a; i++) mangees.push(i);
+      rangee.appendChild(creerTarte(d, a, { mangees }).el);
+      zone.appendChild(rangee);
+      const legende = document.createElement('p');
+      legende.className = 'legende-petite';
+      legende.textContent = 'Les parts pâles viennent d’être mangées.';
+      zone.appendChild(legende);
+
+      const saisie = creerSaisieFraction({
+        denominateurFixe: d,
+        onValider: (nSaisi) => {
+          if (etat.verrouille) return;
+          saisie.verrouiller();
+          const juste = nSaisi === reste;
+          saisie.marquer(juste, true);
+          validerReponse(juste, juste ? null : { donnee: nSaisi + '/' + d, attendue: reste + '/' + d });
+        }
+      });
+      zone.appendChild(saisie.el);
+      return;
+    }
+
+    // Complément à 1 : la bouteille remplie à a/d — que manque-t-il ?
+    const d = choisir([3, 4, 5, 6, 8]);
+    const a = nombreAleatoire(1, d - 1);
+    const manque = d - a;
+
+    const enonce = 'La bouteille est remplie à ' + a + '/' + d + '. Quelle fraction manque pour la remplir en entier ?';
+    zone.appendChild(creerBlocConsigne(enonce,
+      'La bouteille est remplie à ' + fractionEnMots(a, d) + '. Quelle fraction de limonade manque-t-il pour la remplir en entier ?'));
+
+    const scene = document.createElement('div');
+    scene.className = 'scene-limonade';
+    scene.appendChild(creerBouteille(d, a).el);
+    zone.appendChild(scene);
+    const rappel = document.createElement('div');
+    rappel.className = 'rappel-calcul';
+    rappel.appendChild(creerFractionLabel(a, d));
+    const plus = document.createElement('span');
+    plus.className = 'symbole-calcul';
+    plus.textContent = '+';
+    rappel.appendChild(plus);
+    rappel.appendChild(document.createTextNode('?'));
+    const egal = document.createElement('span');
+    egal.className = 'symbole-calcul';
+    egal.textContent = '=';
+    rappel.appendChild(egal);
+    rappel.appendChild(document.createTextNode('1'));
+    zone.appendChild(rappel);
+
+    const saisie = creerSaisieFraction({
+      denominateurFixe: d,
+      onValider: (nSaisi) => {
+        if (etat.verrouille) return;
+        saisie.verrouiller();
+        const juste = nSaisi === manque;
+        saisie.marquer(juste, true);
+        validerReponse(juste, juste ? null : { donnee: nSaisi + '/' + d, attendue: manque + '/' + d + ' (car ' + a + '/' + d + ' + ' + manque + '/' + d + ' = ' + d + '/' + d + ' = 1)' });
+      }
+    });
+    zone.appendChild(saisie.el);
   }
 
   /* ---------- Initialisation ---------- */

@@ -234,10 +234,10 @@
     "competence": "Fractions unitaires 1/2..1/10 puis non unitaires ≤1 (dén. 2,3,4,5,6,8,10) ; numérateur/dénominateur ; 3/8 = 3 parts sur 8 égales ; 5/5=1 ; représentations multiples d'une même fraction",
     "mecanique": "Drag & drop visuel",
     "priorite": "Haute",
-    "statut": "À faire",
+    "statut": "Terminé",
     "effortEstime": 7,
-    "effortReel": null,
-    "notes": "Partages de bandes, disques, quadrillages."
+    "effortReel": 7,
+    "notes": "✔ FAIT (jeux/M15-fractions-ce1.html, univers « Le grand pique-nique »). Six mini-jeux : Le bon partage (parts égales → dénominateur), La part du pique-nique (colorier/lire/écrire, noms courants la moitié/le quart...), La bouteille de limonade (contenances, versement verre à verre, n/n = 1), Les portraits de la fraction (représentations multiples, piège parts inégales), La plus grande part (comparaisons M16 CE1, preuve par superposition, bouton parts égales), Les comptes du goûter (+/− même dénominateur, compléments à 1). Le fichier couvre AUSSI la partie CE1 de M16 ; sessions par compétence sous module M15."
   },
   {
     "id": "M16",
@@ -250,10 +250,10 @@
     "competence": "CE1 : comparer même dénominateur, comparer 1/n ; +/- même dénominateur ; compléments à 1. CE2 : égalités (6/8=3/4), comparaison dén. multiples, +/- dén. multiples (dén. ≤12)",
     "mecanique": "Drag & drop + saisie",
     "priorite": "Haute",
-    "statut": "À faire",
+    "statut": "Terminé",
     "effortEstime": 6,
-    "effortReel": null,
-    "notes": "Manipulation visuelle systématique (parts superposables)."
+    "effortReel": 2,
+    "notes": "✔ COUVERT sans fichier propre : la partie CE1 (comparer même dénominateur et fractions unitaires, +/− même dénominateur, compléments à 1) vit dans jeux/M15-fractions-ce1.html (mini-jeux comparer-ce1 et calculer-ce1) ; la partie CE2 (égalités, comparaison, +/− dén. ≤ 12) vit dans jeux/M17-fractions-ce2.html (mini-jeux egales, comparer, calculer-facile/difficile)."
   },
   {
     "id": "M17",

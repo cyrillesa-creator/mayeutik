@@ -1,8 +1,19 @@
 {
   "version": 1,
   "programmeParDefaut": "BO-2024",
-  "niveaux": ["CP", "CE1", "CE2", "CM1", "CM2"],
-  "domaines": ["Nombres et calcul", "Grandeurs et mesures", "Espace et géométrie", "Organisation et gestion de données"],
+  "niveaux": [
+    "CP",
+    "CE1",
+    "CE2",
+    "CM1",
+    "CM2"
+  ],
+  "domaines": [
+    "Nombres et calcul",
+    "Grandeurs et mesures",
+    "Espace et géométrie",
+    "Organisation et gestion de données"
+  ],
   "modules": [
     {
       "id": "M01",
@@ -17,12 +28,69 @@
       "type": "entrainement",
       "fichier": "jeux/M01-nombres-jusqu-9-cp.html",
       "competences": [
-        { "id": "denombrer", "libelle": "Dénombrer une collection jusqu'à 9" },
-        { "id": "etiqueter", "libelle": "Associer une collection à son écriture chiffrée" },
-        { "id": "comparer", "libelle": "Comparer des quantités (plus, moins, autant)" },
-        { "id": "constituer", "libelle": "Constituer une collection d'un nombre donné" },
-        { "id": "autant-que", "libelle": "Réaliser autant, un de plus, un de moins" },
-        { "id": "ranger", "libelle": "Ranger nombres et quantités dans l'ordre" }
+        {
+          "id": "denombrer",
+          "libelle": "Dénombrer une collection jusqu'à 9"
+        },
+        {
+          "id": "etiqueter",
+          "libelle": "Associer une collection à son écriture chiffrée"
+        },
+        {
+          "id": "comparer",
+          "libelle": "Comparer des quantités (plus, moins, autant)"
+        },
+        {
+          "id": "constituer",
+          "libelle": "Constituer une collection d'un nombre donné"
+        },
+        {
+          "id": "autant-que",
+          "libelle": "Réaliser autant, un de plus, un de moins"
+        },
+        {
+          "id": "ranger",
+          "libelle": "Ranger nombres et quantités dans l'ordre"
+        }
+      ]
+    },
+    {
+      "id": "M15",
+      "titre": "Fractions CE1",
+      "description": "Découvre les fractions en partageant le grand pique-nique : parts égales, écriture, bouteille de limonade, comparaisons et petits calculs.",
+      "icone": "🧺",
+      "niveau": "CE1",
+      "domaine": "Nombres et calcul",
+      "domaineProgramme": "Nombres, calcul et résolution de problèmes",
+      "theme": "Fractions",
+      "programme": "BO-2024",
+      "type": "entrainement",
+      "fichier": "jeux/M15-fractions-ce1.html",
+      "competences": [
+        {
+          "id": "partage-egal",
+          "libelle": "Reconnaître un partage en parts égales et compter les parts (dénominateur)"
+        },
+        {
+          "id": "lire-ecrire",
+          "libelle": "Lire, écrire et représenter une fraction du tout (numérateur/dénominateur)"
+        },
+        {
+          "id": "contenances",
+          "libelle": "Fractions d'une contenance ; comprendre que n/n = 1"
+        },
+        {
+          "id": "representations",
+          "libelle": "Reconnaître plusieurs représentations d'une même fraction"
+        },
+        {
+          "id": "comparer-ce1",
+          "libelle": "Comparer des fractions de même dénominateur et des fractions unitaires"
+        },
+        {
+          "id": "calculer-ce1",
+          "libelle": "Additionner et soustraire des fractions de même dénominateur ; compléments à 1"
+        }
       ]
     },
     {
@@ -38,12 +106,31 @@
       "type": "entrainement",
       "fichier": "jeux/M17-fractions-ce2.html",
       "competences": [
-        { "id": "decouverte", "libelle": "Lire une fraction représentée" },
-        { "id": "droite", "libelle": "Placer et lire des fractions sur une droite graduée" },
-        { "id": "egales", "libelle": "Reconnaître des fractions égales" },
-        { "id": "comparer", "libelle": "Comparer et ranger des fractions" },
-        { "id": "calculer-facile", "libelle": "Additionner et soustraire des fractions simples", "varianteDifficile": "calculer-difficile" },
-        { "id": "calculer-difficile", "libelle": "Additionner et soustraire des fractions (difficile)" }
+        {
+          "id": "decouverte",
+          "libelle": "Lire une fraction représentée"
+        },
+        {
+          "id": "droite",
+          "libelle": "Placer et lire des fractions sur une droite graduée"
+        },
+        {
+          "id": "egales",
+          "libelle": "Reconnaître des fractions égales"
+        },
+        {
+          "id": "comparer",
+          "libelle": "Comparer et ranger des fractions"
+        },
+        {
+          "id": "calculer-facile",
+          "libelle": "Additionner et soustraire des fractions simples",
+          "varianteDifficile": "calculer-difficile"
+        },
+        {
+          "id": "calculer-difficile",
+          "libelle": "Additionner et soustraire des fractions (difficile)"
+        }
       ]
     },
     {
@@ -59,12 +146,30 @@
       "type": "entrainement",
       "fichier": "jeux/M36-solides.html",
       "competences": [
-        { "id": "nomme", "libelle": "Nommer les solides usuels" },
-        { "id": "polyedre", "libelle": "Distinguer polyèdres et non-polyèdres" },
-        { "id": "compte", "libelle": "Dénombrer faces, sommets et arêtes" },
-        { "id": "explore", "libelle": "Explorer les propriétés des solides" },
-        { "id": "devinette", "libelle": "Reconnaître un solide d'après ses propriétés" },
-        { "id": "patrons", "libelle": "Associer un solide à son patron" }
+        {
+          "id": "nomme",
+          "libelle": "Nommer les solides usuels"
+        },
+        {
+          "id": "polyedre",
+          "libelle": "Distinguer polyèdres et non-polyèdres"
+        },
+        {
+          "id": "compte",
+          "libelle": "Dénombrer faces, sommets et arêtes"
+        },
+        {
+          "id": "explore",
+          "libelle": "Explorer les propriétés des solides"
+        },
+        {
+          "id": "devinette",
+          "libelle": "Reconnaître un solide d'après ses propriétés"
+        },
+        {
+          "id": "patrons",
+          "libelle": "Associer un solide à son patron"
+        }
       ]
     },
     {
@@ -83,7 +188,10 @@
       "type": "entrainement",
       "fichier": "jeux/M99-boss-des-tables.html",
       "competences": [
-        { "id": "tables-multiplication", "libelle": "Multiplier avec les tables (de 2 à 10)" }
+        {
+          "id": "tables-multiplication",
+          "libelle": "Multiplier avec les tables (de 2 à 10)"
+        }
       ]
     },
     {
@@ -92,7 +200,11 @@
       "description": "Mène l'enquête dans le jardin : recueille des données, construis et lis des tableaux et des diagrammes.",
       "icone": "📊",
       "niveau": "CP",
-      "niveaux": ["CP", "CE1", "CE2"],
+      "niveaux": [
+        "CP",
+        "CE1",
+        "CE2"
+      ],
       "adaptatifParNiveau": true,
       "domaine": "Organisation et gestion de données",
       "domaineProgramme": "Organisation et gestion de données",
@@ -101,11 +213,41 @@
       "type": "entrainement",
       "fichier": "jeux/M39-tableaux-diagrammes.html",
       "competences": [
-        { "id": "cp-recueil-diagramme", "libelle": "Recueillir des données et construire un diagramme en barres (1 case = 1 individu)", "niveau": "CP" },
-        { "id": "cp-tableau-double-entree", "libelle": "Construire et compléter un tableau à double entrée", "niveau": "CP" },
-        { "id": "ce1-recueil-diagramme", "libelle": "Recueillir des données et construire un diagramme en barres sur une grande population (moins de 100)", "niveau": "CE1" },
-        { "id": "ce1-lecture", "libelle": "Lire et extraire une information d'un diagramme en barres et d'un tableau à double entrée déjà construits", "niveau": "CE1" },
-        { "id": "ce2-probleme-combine", "libelle": "Résoudre un problème en combinant un tableau à double entrée et un diagramme en barres à échelle adaptée", "niveau": "CE2" }
+        {
+          "id": "cp-recueil-diagramme",
+          "libelle": "Recueillir des données et construire un diagramme en barres (1 case = 1 individu)",
+          "niveau": "CP"
+        },
+        {
+          "id": "cp-tableau-double-entree",
+          "libelle": "Construire et compléter un tableau à double entrée",
+          "niveau": "CP"
+        },
+        {
+          "id": "ce1-recueil-diagramme",
+          "libelle": "Recueillir des données et construire un diagramme en barres sur une grande population (moins de 100)",
+          "niveau": "CE1"
+        },
+        {
+          "id": "ce1-lecture",
+          "libelle": "Lire et extraire une information d'un diagramme en barres et d'un tableau à double entrée déjà construits",
+          "niveau": "CE1"
+        },
+        {
+          "id": "ce2-probleme-combine",
+          "libelle": "Résoudre un problème en combinant un tableau à double entrée et un diagramme en barres à échelle adaptée",
+          "niveau": "CE2"
+        },
+        {
+          "id": "diagramme-completer-ce2",
+          "libelle": "Compléter un diagramme en barres dont une barre se déduit par soustraction",
+          "niveau": "CE2"
+        },
+        {
+          "id": "tableau-double-entree-deduction-ce2",
+          "libelle": "Compléter un tableau à double entrée par déductions successives à partir des totaux",
+          "niveau": "CE2"
+        }
       ]
     },
     {
@@ -119,7 +261,11 @@
       },
       "icone": "🌳",
       "niveau": "CP",
-      "niveaux": ["CP", "CE1", "CE2"],
+      "niveaux": [
+        "CP",
+        "CE1",
+        "CE2"
+      ],
       "adaptatifParNiveau": true,
       "domaine": "Grandeurs et mesures",
       "domaineProgramme": "Grandeurs et mesures",
@@ -128,15 +274,51 @@
       "type": "entrainement",
       "fichier": "jeux/M23-longueurs.html",
       "competences": [
-        { "id": "vocabulaire-longueurs-cp", "libelle": "Utiliser le vocabulaire long/court/près/loin pour qualifier une longueur ou une distance", "niveau": "CP" },
-        { "id": "comparer-longueurs-cp", "libelle": "Comparer des longueurs et des distances par superposition ou report, puis ordonner 5 objets", "niveau": "CP" },
-        { "id": "mesurer-longueurs-cp", "libelle": "Estimer un ordre de grandeur et mesurer en centimètres avec une règle graduée (fixe ou à déplacer)", "niveau": "CP" },
-        { "id": "unites-conversion-ce1", "libelle": "Choisir l'unité adaptée (m/cm/km) et convertir par relations simples (1m=100cm, 1km=1000m)", "niveau": "CE1" },
-        { "id": "comparer-ranger-ce1", "libelle": "Comparer, ranger et encadrer des longueurs en m/cm/km (dont encadrement entre deux entiers de cm)", "niveau": "CE1" },
-        { "id": "unites-decouverte-ce2", "libelle": "Classer les unités de longueur (mm/cm/dm/m/km) et estimer l'ordre de grandeur d'un objet ou d'une distance", "niveau": "CE2" },
-        { "id": "calculs-mesure-ce2", "libelle": "Convertir des longueurs par relations explicites (mm/cm/dm/m/km) et mesurer en cm et en mm avec une règle graduée", "niveau": "CE2" },
-        { "id": "perimetre-ce2", "libelle": "Comparer le périmètre de plusieurs polygones sans règle graduée en reportant les côtés au compas, puis déterminer un périmètre à la règle graduée (contour déplié, côtés successifs d'un rectangle)", "niveau": "CE2" },
-        { "id": "perimetre-calcul-ce2", "libelle": "Calculer le périmètre d'un polygone irrégulier en additionnant ses côtés (4 à 8 côtés), en déduisant une longueur non indiquée, et résoudre un problème de clôture (contour non fermé)", "niveau": "CE2" }
+        {
+          "id": "vocabulaire-longueurs-cp",
+          "libelle": "Utiliser le vocabulaire long/court/près/loin pour qualifier une longueur ou une distance",
+          "niveau": "CP"
+        },
+        {
+          "id": "comparer-longueurs-cp",
+          "libelle": "Comparer des longueurs et des distances par superposition ou report, puis ordonner 5 objets",
+          "niveau": "CP"
+        },
+        {
+          "id": "mesurer-longueurs-cp",
+          "libelle": "Estimer un ordre de grandeur et mesurer en centimètres avec une règle graduée (fixe ou à déplacer)",
+          "niveau": "CP"
+        },
+        {
+          "id": "unites-conversion-ce1",
+          "libelle": "Choisir l'unité adaptée (m/cm/km) et convertir par relations simples (1m=100cm, 1km=1000m)",
+          "niveau": "CE1"
+        },
+        {
+          "id": "comparer-ranger-ce1",
+          "libelle": "Comparer, ranger et encadrer des longueurs en m/cm/km (dont encadrement entre deux entiers de cm)",
+          "niveau": "CE1"
+        },
+        {
+          "id": "unites-decouverte-ce2",
+          "libelle": "Classer les unités de longueur (mm/cm/dm/m/km) et estimer l'ordre de grandeur d'un objet ou d'une distance",
+          "niveau": "CE2"
+        },
+        {
+          "id": "calculs-mesure-ce2",
+          "libelle": "Convertir des longueurs par relations explicites (mm/cm/dm/m/km) et mesurer en cm et en mm avec une règle graduée",
+          "niveau": "CE2"
+        },
+        {
+          "id": "perimetre-ce2",
+          "libelle": "Comparer le périmètre de plusieurs polygones sans règle graduée en reportant les côtés au compas, puis déterminer un périmètre à la règle graduée (contour déplié, côtés successifs d'un rectangle)",
+          "niveau": "CE2"
+        },
+        {
+          "id": "perimetre-calcul-ce2",
+          "libelle": "Calculer le périmètre d'un polygone irrégulier en additionnant ses côtés (4 à 8 côtés), en déduisant une longueur non indiquée, et résoudre un problème de clôture (contour non fermé)",
+          "niveau": "CE2"
+        }
       ]
     },
     {
@@ -153,9 +335,18 @@
       "type": "entrainement",
       "statut": "À faire",
       "competences": [
-        { "id": "division-inverse", "libelle": "Comprendre la division comme opération inverse de la multiplication" },
-        { "id": "symbole-division", "libelle": "Lire et écrire une division avec le symbole ÷" },
-        { "id": "problemes-division", "libelle": "Résoudre des problèmes relevant du sens de la division" }
+        {
+          "id": "division-inverse",
+          "libelle": "Comprendre la division comme opération inverse de la multiplication"
+        },
+        {
+          "id": "symbole-division",
+          "libelle": "Lire et écrire une division avec le symbole ÷"
+        },
+        {
+          "id": "problemes-division",
+          "libelle": "Résoudre des problèmes relevant du sens de la division"
+        }
       ]
     },
     {
@@ -171,8 +362,14 @@
       "type": "entrainement",
       "statut": "À faire",
       "competences": [
-        { "id": "axes-symetrie", "libelle": "Reconnaître si une figure a un ou plusieurs axes de symétrie (pliage, papier calque)" },
-        { "id": "completer-symetrique", "libelle": "Compléter une figure sur quadrillage ou papier pointé pour la rendre symétrique par rapport à un axe donné (horizontal ou vertical)" }
+        {
+          "id": "axes-symetrie",
+          "libelle": "Reconnaître si une figure a un ou plusieurs axes de symétrie (pliage, papier calque)"
+        },
+        {
+          "id": "completer-symetrique",
+          "libelle": "Compléter une figure sur quadrillage ou papier pointé pour la rendre symétrique par rapport à un axe donné (horizontal ou vertical)"
+        }
       ]
     }
   ]
