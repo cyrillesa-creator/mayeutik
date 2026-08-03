@@ -285,20 +285,24 @@
      même hauteur : une graduation tombe toujours en face de sa case, quelles
      que soient la longueur des noms de catégories ou leur retour à la ligne. */
   :root{ --pied-diagramme:3.6rem; }
-  .diagramme-construction{ display:flex; align-items:flex-start; justify-content:center; gap:.5rem;
+  .diagramme-construction{ display:flex; align-items:flex-start; justify-content:center;
     margin:.9rem 0; overflow-x:auto; padding:.2rem; }
   .colonne-axe, .colonne-construction{ display:flex; flex-direction:column; align-items:center; }
-  .axe-diagramme{ display:flex; flex-direction:column-reverse; }
+  .axe-diagramme{ display:flex; flex-direction:column-reverse;
+    /* Axe des ORDONNÉES : le bord droit de la colonne des graduations, donc
+       exactement à la gauche de la zone de tracé et de sa hauteur. */
+    border-right:1.5px solid color-mix(in srgb, var(--couleur-encre) 45%, white); }
   .axe-graduation{ height:26px; display:flex; align-items:center; justify-content:flex-end;
     padding-right:.3rem; font-size:.72rem; font-weight:700; opacity:.55; }
   /* Le quadrillage EST la grille des cases : bordures claires posées sur chaque
      case, donc toujours alignées avec la graduation, sans calcul de position.
-     La ligne de sol est une ombre portée et non une bordure : une bordure
-     ajouterait sa propre épaisseur à la hauteur de la pile et décalerait de
-     nouveau les cases par rapport aux graduations. */
-  .pile-construction{ display:flex; flex-direction:column-reverse;
-    border-left:1.5px solid color-mix(in srgb, var(--couleur-encre) 22%, white);
-    box-shadow:0 2.5px 0 color-mix(in srgb, var(--couleur-encre) 35%, white); }
+     L'axe des ABSCISSES est porté par le bord HAUT du pied, et non par le bas
+     de la pile : le pied a une hauteur fixe, sa bordure ne change donc rien à
+     la hauteur de la zone de tracé — une bordure sur la pile, elle, ajouterait
+     son épaisseur et décalerait à nouveau les cases sous les graduations.
+     L'écart entre colonnes est une marge de la PILE, pas un `gap` du
+     conteneur : les pieds se touchent et leurs bords forment un trait continu. */
+  .pile-construction{ display:flex; flex-direction:column-reverse; margin:0 .25rem; }
   .case-construction{
     width:2.1rem; height:26px; box-sizing:border-box; padding:0; touch-action:manipulation;
     border:1px solid color-mix(in srgb, var(--couleur-encre) 10%, white);
@@ -306,15 +310,38 @@
   }
   .case-construction.remplie{ background:var(--c, var(--couleur-mandarine));
     border-color:color-mix(in srgb, var(--couleur-encre) 20%, transparent); }
-  .pied-colonne{ height:var(--pied-diagramme); flex:0 0 var(--pied-diagramme);
-    display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
-    padding-top:.3rem; overflow:hidden; }
+  /* Le padding est INTÉRIEUR au pied : les légendes de deux colonnes voisines
+     ne se touchent pas, alors que la bordure haute — le trait d'abscisse —
+     court bien, elle, sur toute la largeur de la colonne. */
+  .pied-colonne{ height:var(--pied-diagramme); flex:0 0 var(--pied-diagramme); width:100%;
+    box-sizing:border-box; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+    padding:.3rem 3px 0; overflow:hidden;
+    border-top:1.5px solid color-mix(in srgb, var(--couleur-encre) 45%, white); }
+  /* L'abscisse part de l'origine : elle ne court pas sous la colonne des
+     graduations, qui est à gauche de l'axe des ordonnées. Dans le diagramme de
+     LECTURE, c'est la zone de tracé (de hauteur fixée en pixels) qui porte
+     l'abscisse — le pied n'en remet pas une seconde. */
+  .colonne-axe .pied-colonne, .colonne-diagramme .pied-colonne{ border-top:none; }
   .colonne-construction .etiquette-colonne{ font-size:1.5rem; line-height:1.1; }
-  .diagramme{ display:flex; align-items:flex-end; justify-content:center; gap:1.1rem; margin:.9rem 0; min-height:9rem; flex-wrap:wrap; }
-  .colonne-diagramme{ display:flex; flex-direction:column; align-items:center; gap:.35rem; }
+  /* ---- Diagramme de LECTURE : mêmes axes que le diagramme à construire ----
+     Zone de tracé de hauteur fixe (posée en JS) + pied fixe pour les légendes.
+     L'écart entre colonnes est un padding INTÉRIEUR et non un `gap` : les zones
+     de tracé se touchent, et leurs bordures basses forment un axe des abscisses
+     d'un seul tenant, exactement au pied des barres. */
+  .diagramme{ display:flex; justify-content:center; margin:.9rem 0; overflow-x:auto; padding:.2rem 0; }
+  .diagramme-corps{ display:flex; align-items:flex-start; }
+  .colonne-diagramme{ display:flex; flex-direction:column; align-items:center; }
+  /* `width:100%` est ce qui rend le trait continu : la colonne est parfois plus
+     large que la barre (une légende un peu longue l'élargit), et une zone de
+     tracé au gabarit de la seule barre laisserait autant de trous dans l'axe. */
+  .zone-trace-lecture{
+    width:100%; display:flex; align-items:flex-end; justify-content:center; box-sizing:border-box;
+    padding:0 .55rem; border-bottom:1.5px solid color-mix(in srgb, var(--couleur-encre) 45%, white);
+  }
+  .zone-trace-lecture.porte-ordonnees{ border-left:1.5px solid color-mix(in srgb, var(--couleur-encre) 45%, white); }
   .pile-cases{ display:flex; flex-direction:column-reverse; gap:2px; min-height:2px; }
   .case-diagramme{
-    width:1.7rem; height:.85rem; border-radius:3px; border:1.5px solid color-mix(in srgb, var(--couleur-encre) 20%, white);
+    width:1.7rem; height:14px; border-radius:3px; border:1.5px solid color-mix(in srgb, var(--couleur-encre) 20%, white);
     background:#ffffff;
   }
   .case-diagramme.remplie{ background:var(--c, var(--couleur-mandarine)); border-color:var(--c, var(--couleur-mandarine)); }
@@ -325,7 +352,8 @@
   }
   .bouton-case:disabled{ opacity:.35; }
   .etiquette-colonne{ font-size:1.4rem; }
-  .legende-colonne{ font-size:.68rem; opacity:.75; text-align:center; max-width:4rem; }
+  .legende-colonne{ font-size:.68rem; opacity:.75; text-align:center; max-width:100%;
+    line-height:1.05; overflow-wrap:anywhere; }
 
   /* ---- Tableau à double entrée ---- */
   .tableau-double{ width:100%; border-collapse:collapse; margin:.7rem 0; }
@@ -374,7 +402,18 @@
     outline:3px solid var(--couleur-corail); outline-offset:-3px; }
   .cellule-placement.case-attendue{ background:color-mix(in srgb, var(--couleur-menthe) 26%, white);
     outline:3px solid var(--couleur-menthe); outline-offset:-3px; }
-  .cellule-placement.case-question{ outline:3px dashed var(--couleur-soleil); outline-offset:-3px; }
+  /* Glisser-déposer : le jeton d'origine s'estompe, un fantôme suit le doigt
+     (hors flux et transparent aux événements, sinon il se désignerait lui-même
+     comme cible), et la case survolée s'annonce avant le relâchement. */
+  .jeton-objet, .objet-mini{ touch-action:none; }
+  .jeton-objet.en-glisse, .objet-mini.en-glisse{ opacity:.3; }
+  .jeton-fantome{
+    position:fixed; z-index:1200; pointer-events:none; transform:translate(-50%,-50%);
+    filter:drop-shadow(0 4px 5px rgba(0,0,0,.35));
+  }
+  .jeton-fantome .objet-dessin{ width:2.7rem; height:2.7rem; }
+  .cellule-placement.cible-survolee{ background:color-mix(in srgb, var(--couleur-mandarine) 20%, white);
+    outline:3px dashed var(--couleur-mandarine); outline-offset:-3px; }
   .tableau-placement.verrouille .cellule-placement{ cursor:default; }
   .note-rangement{ text-align:center; font-size:.88rem; font-weight:600; margin:.3rem 0 .1rem; }
   .note-rangement.erreur{ color:color-mix(in srgb, var(--couleur-corail) 70%, black 20%); }
@@ -486,11 +525,6 @@
     {"id":"nord","nom":"jardin nord"},
     {"id":"sud","nom":"jardin sud"}
   ],
-  "tranchesAge": [
-    {"id":"jeune","nom":"1-2 jours"},
-    {"id":"moyen","nom":"3-5 jours"},
-    {"id":"vieux","nom":"6 jours ou plus"}
-  ],
   "messagesFeedback": {
     "bravo": ["Bravo !", "Super !", "Génial !", "Bien joué !", "C'est ça !", "Trop fort !"],
     "rate": ["Presque !", "Regarde bien le tableau.", "Pas cette fois, courage !", "On y retourne."]
@@ -509,12 +543,12 @@
     "CE1": {
       "miniJeux": [
         { "id": "ce1-recueil-diagramme", "titre": "Le grand sondage", "icone": "📊", "couleur": "mandarine", "description": "Le jardin s'est agrandi : compte bien tout le monde !", "type": "recueil-diagramme", "nbTours": 2, "nbEspeces": 4, "capParEspece": 16, "totalMax": 24 },
-        { "id": "ce1-lecture", "titre": "Lis le jardin", "icone": "🔍", "couleur": "soleil", "description": "Lis le diagramme et le tableau déjà construits.", "type": "lecture", "nbTours": 5, "nbEspeces": 4, "capParEspece": 16, "nbZones": 2 }
+        { "id": "ce1-lecture", "titre": "Lis et interprète", "icone": "🔍", "couleur": "soleil", "description": "Lis le diagramme et le tableau déjà construits.", "type": "lecture", "nbTours": 5, "nbEspeces": 4, "capParEspece": 16, "nbZones": 2 }
       ]
     },
     "CE2": {
       "miniJeux": [
-        { "id": "ce2-probleme-combine", "titre": "L'enquête complète", "icone": "🧮", "couleur": "corail", "description": "Complète le tableau grâce au diagramme.", "type": "probleme-combine", "nbTours": 4, "nbEspeces": 3, "capParTranche": 9 }
+        { "id": "ce2-probleme-combine", "titre": "L'enquête", "icone": "🧮", "couleur": "corail", "description": "Complète le tableau grâce au diagramme.", "type": "probleme-combine", "nbTours": 4, "nbEspeces": 3, "nbCouleurs": 3, "capParCouleur": 9 }
       ]
     }
   }
@@ -1162,11 +1196,28 @@
    *  - onChangement(id, nouvelleValeur): appelé en mode interactif
    *  - afficherValeur: true -> affiche le nombre au-dessus de chaque colonne (lecture)
    */
+  /* Gabarit d'une case du diagramme de LECTURE, en pixels. La hauteur de la
+     zone de tracé s'en déduit : elle doit être connue en JS pour y poser
+     l'axe des abscisses, et rester identique à ce que la CSS dessine. */
+  const CASE_LECTURE_H = 14;
+  const CASE_LECTURE_GAP = 2;
+
   function construireDiagramme(options) {
     const { colonnes, valeurs, maxCases, uniteParCase, interactif, onChangement, afficherValeur } = options;
     const unite = uniteParCase || 1;
     const conteneur = document.createElement('div');
     conteneur.className = 'diagramme';
+
+    /* Zone de tracé de HAUTEUR FIXE, commune à toutes les colonnes : c'est ce
+       qui aligne le pied des barres entre elles et permet de poser un axe des
+       abscisses continu. Sans cela, chaque colonne mesurait « barre + légende »
+       et les bases des barres ne tombaient pas au même niveau. */
+    const nbCasesMax = Math.max(1, ...colonnes.map((c) => Math.round((valeurs[c.id] || 0) / unite)));
+    const hauteurTrace = nbCasesMax * (CASE_LECTURE_H + CASE_LECTURE_GAP) + CASE_LECTURE_GAP;
+
+    const corps = document.createElement('div');
+    corps.className = 'diagramme-corps';
+
     colonnes.forEach((col, i) => {
       const colDiv = document.createElement('div');
       colDiv.className = 'colonne-diagramme';
@@ -1176,6 +1227,10 @@
       valeurTexte.className = 'valeur-colonne';
       const valeurActuelle = valeurs[col.id] || 0;
       valeurTexte.textContent = afficherValeur ? String(valeurActuelle) : '';
+
+      const zoneTrace = document.createElement('div');
+      zoneTrace.className = 'zone-trace-lecture';
+      zoneTrace.style.height = hauteurTrace + 'px';
 
       const pile = document.createElement('div');
       pile.className = 'pile-cases';
@@ -1191,7 +1246,10 @@
         vide.style.visibility = 'hidden';
         pile.appendChild(vide);
       }
+      zoneTrace.appendChild(pile);
 
+      const pied = document.createElement('div');
+      pied.className = 'pied-colonne';
       const etiquette = document.createElement('div');
       etiquette.className = 'etiquette-colonne';
       etiquette.textContent = col.emoji;
@@ -1200,10 +1258,12 @@
       legende.className = 'legende-colonne';
       legende.textContent = col.label;
 
+      pied.appendChild(etiquette);
+      pied.appendChild(legende);
+
       colDiv.appendChild(valeurTexte);
-      colDiv.appendChild(pile);
-      colDiv.appendChild(etiquette);
-      colDiv.appendChild(legende);
+      colDiv.appendChild(zoneTrace);
+      colDiv.appendChild(pied);
 
       if (interactif) {
         const controles = document.createElement('div');
@@ -1227,8 +1287,18 @@
         colDiv.appendChild(controles);
       }
 
-      conteneur.appendChild(colDiv);
+      /* Les deux axes sont des BORDURES de la zone de tracé, pas des traits
+         posés par-dessus : l'abscisse est le bord bas de chaque zone, et comme
+         les colonnes se touchent (l'écart est un padding intérieur, pas un
+         gap), ces bords se rejoignent en une ligne continue à la hauteur exacte
+         du pied des barres. L'ordonnée est le bord gauche de la première zone.
+         Aucun calcul de position, donc aucun désalignement possible. */
+      if (i === 0) zoneTrace.classList.add('porte-ordonnees');
+
+      corps.appendChild(colDiv);
     });
+
+    conteneur.appendChild(corps);
     return conteneur;
   }
 
@@ -1249,6 +1319,9 @@
     colonnes.forEach((col) => {
       const th = document.createElement('th');
       th.textContent = col.label;
+      // Une colonne de couleur s'annonce dans sa teinte, assombrie pour rester
+      // lisible sur blanc — même convention que « Le grand tableau ».
+      if (col.teinte) th.style.color = assombrir(col.teinte, 0.3);
       trHead.appendChild(th);
     });
     thead.appendChild(trHead);
@@ -1667,11 +1740,15 @@
     especes.forEach((e) => { for (let i = 0; i < valeursVraies[e.id]; i++) population.push(e.id); });
     population = melanger(population);
 
+    /* Consigne SÉQUENCÉE : à l'écran, l'énoncé se limite au contexte, et la
+       tâche du moment est portée par la légende d'étape, qui change quand
+       l'étape change. Six lignes de texte d'un coup ne se lisent pas au CP —
+       et surtout, la moitié concernait une étape pas encore commencée. La
+       version lue à voix haute, elle, garde l'explication complète. */
     zone.appendChild(creerBlocConsigne(
-      'Dans une classe de ' + nbEleves + ' élèves, les enfants ont chacun indiqué leur insecte préféré. '
-      + 'Voici les résultats. Clique sur les réponses afin de remplir le tableau. '
-      + 'Quand tu auras fini, indique les totaux dans la colonne de droite.',
-      'Clique sur chaque petite bête pour la compter dans le tableau. Quand tu as tout compté, '
+      'Dans une classe de ' + nbEleves + ' élèves, chacun a choisi son insecte préféré.',
+      'Dans une classe de ' + nbEleves + ' élèves, chacun a choisi son insecte préféré. '
+      + 'Clique sur chaque petite bête pour la compter dans le tableau. Quand tu as tout compté, '
       + 'écris toi-même le total de chaque ligne avec le pavé numérique.'
     ));
 
@@ -1831,6 +1908,15 @@
       legendeEtape.textContent = reportJuste
         ? 'Bravo, tes totaux sont justes !'
         : 'Regarde bien : voici les bons totaux.';
+      /* La manche n'est acquise qu'au bout des deux écrans, mais compter juste
+         mérite d'être fêté ici même : sans cela, le seul retour d'une étape
+         entièrement réussie serait une ligne de texte. */
+      if (reportJuste) {
+        lancerConfettis();
+        jouerSon('bravo');
+      } else {
+        jouerSon('rate');
+      }
       if (!reportJuste) {
         setTimeout(() => {
           if (!tableauTally.isConnected) return;
@@ -1971,9 +2057,30 @@
     const enCellule = {};
     cles.forEach((cle) => { enCellule[cle] = []; });
     let vivier = melanger(jetons);
-    let selection = null;
     let premierEssaiJuste = true;
     let phase = 'rangement';
+    /* Un objet est sélectionné d'office, dès le départ puis après chaque pose :
+       le rangement devient une suite de clics DANS LE TABLEAU, sans aller-retour
+       vers le vivier à chaque objet. */
+    let selection = vivier[0] || null;
+
+    /* Un glisser-déposer venant de se terminer produit un `click` de fin de
+       geste : sans ce garde-fou, il rejouerait une sélection ou une reprise
+       par-dessus la dépose qu'il vient d'effectuer. On neutralise UN clic, celui
+       -là, et pas une fenêtre de temps : une fenêtre finirait par avaler le clic
+       délibéré d'un enfant rapide, et il n'y a aucune durée qui distingue les
+       deux de façon fiable. Le délai n'est qu'un filet, si aucun clic ne suit
+       (l'élément traîné ayant été redessiné entre-temps). */
+    let clicASupprimer = false;
+    function noterFinDeGlisse() {
+      clicASupprimer = true;
+      setTimeout(() => { clicASupprimer = false; }, 120);
+    }
+    function sortDunGlisse() {
+      if (!clicASupprimer) return false;
+      clicASupprimer = false;
+      return true;
+    }
 
     // Consigne courte à l'écran (un CP ne lit pas six lignes), détail complet
     // dans la version lue à voix haute.
@@ -1982,6 +2089,83 @@
       'Choisis un objet, puis pose-le dans sa case du tableau, en croisant sa sorte et sa couleur. '
       + 'Si tu changes d’avis, clique sur l’objet pour le reprendre. Quand tout est rangé, valide ton tableau.'
     ));
+
+    /* ---- Glisser-déposer, EN PLUS du clic ----
+       Les deux gestes cohabitent sans se gêner : tant que le doigt n'a pas
+       parcouru le seuil, rien ne se passe et le `click` suit son cours normal
+       (choisir un objet, ou le reprendre) ; au-delà du seuil, le geste devient
+       un déplacement et c'est le relâchement au-dessus d'une case qui pose
+       l'objet. Un enfant qui ne glisse jamais ne voit aucune différence. */
+    const SEUIL_GLISSE_PX = 8;
+
+    function celluleSous(x, y) {
+      const el = document.elementFromPoint(x, y);
+      return el ? el.closest('.cellule-placement') : null;
+    }
+
+    function activerGlisser(el, jeton) {
+      let depart = null;
+      let fantome = null;
+      let survolee = null;
+      let glisse = false;
+
+      const nettoyer = () => {
+        if (fantome) { fantome.remove(); fantome = null; }
+        if (survolee) { survolee.classList.remove('cible-survolee'); survolee = null; }
+        el.classList.remove('en-glisse');
+        depart = null;
+      };
+
+      el.addEventListener('pointerdown', (ev) => {
+        if (phase !== 'rangement' || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
+        depart = { x: ev.clientX, y: ev.clientY };
+        glisse = false;
+        try { el.setPointerCapture(ev.pointerId); } catch (e) { /* capture indisponible */ }
+      });
+
+      el.addEventListener('pointermove', (ev) => {
+        if (!depart) return;
+        if (!glisse) {
+          if (Math.hypot(ev.clientX - depart.x, ev.clientY - depart.y) < SEUIL_GLISSE_PX) return;
+          glisse = true;
+          el.classList.add('en-glisse');
+          fantome = document.createElement('div');
+          fantome.className = 'jeton-fantome';
+          // `pointer-events:none` en CSS : sans quoi le fantôme se désignerait
+          // lui-même comme cible sous le doigt.
+          fantome.appendChild(dessinerObjet(objetPar[jeton.objetId].forme, teintePar[jeton.teinteId].hex));
+          document.body.appendChild(fantome);
+        }
+        fantome.style.left = ev.clientX + 'px';
+        fantome.style.top = ev.clientY + 'px';
+        const sous = celluleSous(ev.clientX, ev.clientY);
+        if (sous !== survolee) {
+          if (survolee) survolee.classList.remove('cible-survolee');
+          survolee = sous;
+          if (survolee) survolee.classList.add('cible-survolee');
+        }
+      });
+
+      el.addEventListener('pointerup', (ev) => {
+        if (!depart) return;
+        const aGlisse = glisse;
+        const cible = aGlisse ? celluleSous(ev.clientX, ev.clientY) : null;
+        glisse = false;
+        nettoyer();
+        if (!aGlisse) return;         // simple tap : on laisse le `click` agir
+        noterFinDeGlisse();
+        if (cible) deposer(cible.dataset.cle, jeton);
+      });
+
+      // Doigt relevé hors zone, geste interrompu par le système, capture
+      // perdue : on remet tout d'aplomb sans rien déposer.
+      ['pointercancel', 'lostpointercapture'].forEach((type) => {
+        el.addEventListener(type, () => {
+          if (glisse) noterFinDeGlisse();
+          nettoyer();
+        });
+      });
+    }
 
     /* ---- Vivier ---- */
     const zoneVivier = document.createElement('div');
@@ -1997,10 +2181,17 @@
         btn.appendChild(dessinerObjet(objetPar[jeton.objetId].forme, teintePar[jeton.teinteId].hex));
         btn.setAttribute('aria-label', nommer(jeton));
         btn.addEventListener('click', () => {
-          if (phase !== 'rangement') return;
-          selection = (selection && selection.ref === jeton.ref) ? null : jeton;
+          if (phase !== 'rangement' || sortDunGlisse()) return;
+          /* Toucher un objet le SÉLECTIONNE, toujours — jamais de bascule qui
+             le désélectionnerait. Depuis qu'un objet est choisi d'office, une
+             bascule piégeait le geste habituel « je touche l'objet puis la
+             case » : le premier appui annulait la sélection, et l'appui sur la
+             case ne faisait plus rien. Choisir un autre objet suffit à changer
+             d'avis. */
+          selection = jeton;
           rendreVivier();
         });
+        activerGlisser(btn, jeton);
         zoneVivier.appendChild(btn);
       });
       boutonValider.disabled = vivier.length > 0 || phase !== 'rangement';
@@ -2060,7 +2251,7 @@
         const contenu = document.createElement('div');
         contenu.className = 'contenu-cellule';
         td.appendChild(contenu);
-        td.addEventListener('click', () => deposer(cle));
+        td.addEventListener('click', () => { if (!sortDunGlisse()) deposer(cle); });
         cellules[cle] = { td, contenu };
         tr.appendChild(td);
       });
@@ -2079,7 +2270,7 @@
         btn.setAttribute('aria-label', 'Reprendre ' + nommer(jeton));
         btn.addEventListener('click', (ev) => {
           ev.stopPropagation(); // sinon la cellule traiterait le clic une seconde fois
-          if (phase !== 'rangement') return;
+          if (phase !== 'rangement' || sortDunGlisse()) return;
           /* Une case déjà occupée finit par être entièrement recouverte par ses
              objets : sans cette bascule, viser une case pleine reviendrait à
              vider l'un de ses objets au lieu d'en ajouter un. Un objet
@@ -2088,24 +2279,42 @@
           if (selection) { deposer(cle); return; }
           enCellule[cle] = enCellule[cle].filter((j) => j !== jeton);
           vivier.push(jeton);
+          // L'objet repris reste « en main » : corriger un objet mal rangé se
+          // fait alors en deux gestes, le prendre puis toucher la bonne case.
+          selection = jeton;
           effacerMarques();
           rendreCellule(cle);
           rendreVivier();
           jouerSon('tic');
         });
+        activerGlisser(btn, jeton);
         contenu.appendChild(btn);
       });
     }
 
-    /* Dépose LIBRE : n'importe quelle case accepte n'importe quel objet. */
-    function deposer(cle) {
-      if (phase !== 'rangement' || !selection) return;
-      const jeton = selection;
+    /* Dépose LIBRE : n'importe quelle case accepte n'importe quel objet.
+       `jetonForce` sert au glisser-déposer, qui désigne son propre objet sans
+       passer par la sélection. */
+    function deposer(cle, jetonForce) {
+      if (phase !== 'rangement') return;
+      const jeton = jetonForce || selection;
+      if (!jeton) return;
       selection = null;
       vivier = vivier.filter((j) => j !== jeton);
+      // Un objet venant d'une autre case (correction au glisser) la quitte.
+      cles.forEach((k) => {
+        if (enCellule[k].indexOf(jeton) !== -1) {
+          enCellule[k] = enCellule[k].filter((j) => j !== jeton);
+          if (k !== cle) rendreCellule(k);
+        }
+      });
       enCellule[cle].push(jeton);
       effacerMarques();
       rendreCellule(cle);
+      /* On enchaîne : l'objet suivant du vivier est sélectionné d'office, si
+         bien qu'un rangement se fait en une seule série de clics dans le
+         tableau, sans revenir chercher chaque objet. */
+      selection = vivier[0] || null;
       rendreVivier();
       jouerSon('tic');
     }
@@ -2219,12 +2428,14 @@
       const enonce = 'Combien ' + deElision(objet.pluriel) + ' ' + groupe + ' y a-t-il dans le tableau ?';
 
       zoneQuestion.appendChild(creerBlocConsigne(enonce, enonce));
-      cellules[cle].td.classList.add('case-question');
+      /* La case visée n'est PAS signalée pendant la question : la désigner
+         reviendrait à répondre à la moitié de la question, qui est justement
+         de trouver l'intersection de la ligne et de la colonne. Elle n'est
+         révélée qu'une fois la réponse validée (CHARTE §18). */
 
       const pave = creerPave((valeur) => {
         pave.verrouiller(true);
         phase = 'termine';
-        cellules[cle].td.classList.remove('case-question');
         cellules[cle].td.classList.add('case-attendue');
         const juste = valeur === attendus[cle];
         // Le rangement corrigé ne rattrape pas le score : l'erreur a déjà été
@@ -2365,7 +2576,11 @@
 
   function genererProblemeCombine(zone, cfg) {
     const especes = especesListe(cfg.nbEspeces);
-    const tranches = donnees.tranchesAge;
+    /* Le second critère du tableau est la COULEUR de la bête, comme dans « Le
+       grand tableau » : un critère qui se voit sur le dessin, là où des
+       tranches d'âge (« 3-5 jours ») ne se lisent nulle part et n'étaient
+       qu'une étiquette à recopier. */
+    const teintes = melanger(donnees.teintes).slice(0, cfg.nbCouleurs);
     const uniteParCase = choisir([2, 3]); // échelle d'axe adaptée : pas toujours de 1 en 1 (CHARTE, énoncé M39)
 
     const valeursVraies = {};
@@ -2373,8 +2588,8 @@
     especes.forEach((e) => {
       valeursVraies[e.id] = {};
       let total = 0;
-      tranches.forEach((t) => {
-        const v = nombreAleatoire(1, cfg.capParTranche);
+      teintes.forEach((t) => {
+        const v = nombreAleatoire(1, cfg.capParCouleur);
         valeursVraies[e.id][t.id] = v;
         total += v;
       });
@@ -2383,8 +2598,8 @@
 
     // Une seule case manquante, dans une ligne (espèce) tirée au hasard.
     const especeCachee = choisir(especes);
-    const trancheCachee = choisir(tranches);
-    const cleCachee = especeCachee.id + '|' + trancheCachee.id;
+    const teinteCachee = choisir(teintes);
+    const cleCachee = especeCachee.id + '|' + teinteCachee.id;
 
     zone.appendChild(creerBlocConsigne(
       'Le diagramme donne le total par bête. Trouve le nombre manquant dans le tableau.',
@@ -2405,7 +2620,7 @@
 
     const table = construireTableauDouble({
       lignes: especes.map((e) => ({ id: e.id, emoji: e.emoji, label: e.pluriel })),
-      colonnes: tranches.map((t) => ({ id: t.id, label: t.nom })),
+      colonnes: teintes.map((t) => ({ id: t.id, label: t.nom, teinte: t.hex })),
       valeurs: valeursVraies,
       cellulesMasquees: new Set([cleCachee])
     });
@@ -2417,7 +2632,7 @@
     boutonValider.className = 'bouton-principal';
     boutonValider.textContent = 'Valider';
     boutonValider.addEventListener('click', () => {
-      const attendu = valeursVraies[especeCachee.id][trancheCachee.id];
+      const attendu = valeursVraies[especeCachee.id][teinteCachee.id];
       const saisie = parseInt(input.value, 10);
       const correct = saisie === attendu;
       // CHARTE §18 : la case saisie passe au vert ou au rouge et la valeur
