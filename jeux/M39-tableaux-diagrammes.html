@@ -320,15 +320,21 @@
      même hauteur : une graduation tombe toujours en face de sa case, quelles
      que soient la longueur des noms de catégories ou leur retour à la ligne. */
   :root{ --pied-diagramme:3.6rem; }
+  /* La marge haute laisse la place au nombre le plus élevé, dont la moitié
+     dépasse au-dessus de la zone de tracé depuis qu'il est posé sur son trait. */
   .diagramme-construction{ display:flex; align-items:flex-start; justify-content:center;
-    margin:.9rem 0; overflow-x:auto; padding:.2rem; }
+    margin:.9rem 0; overflow-x:auto; padding:.85rem .2rem .2rem; }
   .colonne-axe, .colonne-construction{ display:flex; flex-direction:column; align-items:center; }
   .axe-diagramme{ display:flex; flex-direction:column-reverse;
     /* Axe des ORDONNÉES : le bord droit de la colonne des graduations, donc
        exactement à la gauche de la zone de tracé et de sa hauteur. */
     border-right:1.5px solid color-mix(in srgb, var(--couleur-encre) 45%, white); }
-  .axe-graduation{ height:26px; display:flex; align-items:center; justify-content:flex-end;
-    padding-right:.3rem; font-size:.72rem; font-weight:700; opacity:.55; }
+  /* La bande garde la hauteur d'une case — c'est elle qui assure le rythme de
+     l'échelle — mais le nombre est calé sur son bord HAUT, donc sur le trait
+     de la graduation. */
+  .axe-graduation{ position:relative; height:26px; }
+  .valeur-graduation{ position:absolute; right:.3rem; top:0; transform:translateY(-50%);
+    font-size:.72rem; font-weight:700; opacity:.55; line-height:1; white-space:nowrap; }
   /* Le quadrillage EST la grille des cases : bordures claires posées sur chaque
      case, donc toujours alignées avec la graduation, sans calcul de position.
      L'axe des ABSCISSES est porté par le bord HAUT du pied, et non par le bas
@@ -1727,10 +1733,18 @@
 
     const axe = document.createElement('div');
     axe.className = 'axe-diagramme';
+    /* Le nombre est posé sur le TRAIT qui borne le haut de sa case, et non au
+       milieu de la case : « 3 » désigne la hauteur atteinte quand la barre
+       arrive à ce trait. Centré dans sa bande, il se lisait à mi-hauteur, donc
+       entre deux traits — on ne savait plus quel repère il annonçait. Le texte
+       est donc sorti du flux et son centre calé sur le haut de la bande. */
     for (let n = 1; n <= hauteurMax; n++) {
       const g = document.createElement('div');
       g.className = 'axe-graduation';
-      g.textContent = String(n);
+      const valeur = document.createElement('span');
+      valeur.className = 'valeur-graduation';
+      valeur.textContent = String(n);
+      g.appendChild(valeur);
       axe.appendChild(g);
     }
     const colAxe = document.createElement('div');
