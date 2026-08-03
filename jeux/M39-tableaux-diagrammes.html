@@ -252,6 +252,20 @@
   .cellule-total.saisi{ background:color-mix(in srgb, var(--couleur-menthe) 18%, white);
     border:2px solid var(--couleur-menthe); font-weight:700; cursor:pointer; }
 
+  /* Barre déjà renseignée par l'énoncé : lisible, mais pas manipulable. La
+     colonne à construire, elle, s'annonce par un fond légèrement teinté et un
+     liseré — c'est le seul endroit du diagramme où l'on attend un geste. */
+  .colonne-construction.colonne-donnee .case-construction{ opacity:1; }
+  .colonne-construction.colonne-donnee .case-construction:not(.remplie){ background:color-mix(in srgb, var(--couleur-encre) 4%, white); }
+  .diagramme-avec-donnees .colonne-construction:not(.colonne-donnee) .case-construction:not(.remplie){
+    background:color-mix(in srgb, var(--couleur-mandarine) 12%, white);
+    border-color:color-mix(in srgb, var(--couleur-mandarine) 30%, white);
+  }
+  /* L'axe garde son épaisseur uniforme : un segment plus épais sous une seule
+     colonne donnerait une ligne d'abscisses qui semble cassée. */
+  .diagramme-avec-donnees .colonne-construction:not(.colonne-donnee) .etiquette-colonne{
+    filter:drop-shadow(0 0 3px color-mix(in srgb, var(--couleur-mandarine) 60%, transparent)); }
+
   /* Pavé numérique diégétique — composant partagé de la série, repris à
      l'identique de jeux/M23-longueurs.html et jeux/M99-boss-des-tables.html.
      L'écran a une HAUTEUR FIXE et des chiffres à chasse constante : la saisie
@@ -525,6 +539,26 @@
     {"id":"nord","nom":"jardin nord"},
     {"id":"sud","nom":"jardin sud"}
   ],
+  "coinsJardin": [
+    { "id": "eau", "intro": "quatre coins différents", "lieux": [
+      {"id":"mare","nom":"la mare","court":"mare","emoji":"💧"},
+      {"id":"haie","nom":"la haie","court":"haie","emoji":"🌿"},
+      {"id":"potager","nom":"le potager","court":"potager","emoji":"🥕"},
+      {"id":"verger","nom":"le verger","court":"verger","emoji":"🍎"}
+    ]},
+    { "id": "abris", "intro": "quatre abris différents", "lieux": [
+      {"id":"compost","nom":"le tas de compost","court":"compost","emoji":"🍂"},
+      {"id":"pierres","nom":"le muret de pierres","court":"muret","emoji":"🪨"},
+      {"id":"souche","nom":"la vieille souche","court":"souche","emoji":"🪵"},
+      {"id":"serre","nom":"la serre","court":"serre","emoji":"🏡"}
+    ]},
+    { "id": "fleurs", "intro": "quatre parterres différents", "lieux": [
+      {"id":"roses","nom":"le rosier","court":"rosier","emoji":"🌹"},
+      {"id":"tournesols","nom":"les tournesols","court":"tournesols","emoji":"🌻"},
+      {"id":"lavande","nom":"la lavande","court":"lavande","emoji":"💜"},
+      {"id":"trefles","nom":"le carré de trèfles","court":"trèfles","emoji":"🍀"}
+    ]}
+  ],
   "messagesFeedback": {
     "bravo": ["Bravo !", "Super !", "Génial !", "Bien joué !", "C'est ça !", "Trop fort !"],
     "rate": ["Presque !", "Regarde bien le tableau.", "Pas cette fois, courage !", "On y retourne."]
@@ -548,7 +582,10 @@
     },
     "CE2": {
       "miniJeux": [
-        { "id": "ce2-probleme-combine", "titre": "L'enquête", "icone": "🧮", "couleur": "corail", "description": "Complète le tableau grâce au diagramme.", "type": "probleme-combine", "nbTours": 4, "nbEspeces": 3, "nbCouleurs": 3, "capParCouleur": 9 }
+        { "id": "ce2-probleme-combine", "titre": "L'enquête", "icone": "🧮", "couleur": "corail", "description": "Complète le tableau grâce au diagramme.", "type": "probleme-combine", "nbTours": 4, "nbEspeces": 3, "nbCouleurs": 3, "capParCouleur": 9 },
+        { "id": "ce2-enquete-avancee", "titre": "L'enquête avancée", "icone": "🔎", "couleur": "menthe", "description": "Retrouve la barre qui manque, puis complète un tableau de proche en proche.", "type": "enquete-avancee", "nbTours": 2, "phases": [
+          { "type": "diagramme-completer", "nbTours": 2, "competence": "diagramme-completer-ce2", "miniEffectif": 3, "maxiEffectif": 9 }
+        ] }
       ]
     }
   }
@@ -1514,7 +1551,10 @@
   function demarrerJeu(miniJeuId) {
     const trouve = trouverMiniJeu(miniJeuId);
     if (!trouve) return;
-    etat = { miniJeuId, cfg: trouve.cfg, palier: trouve.palier, index: 0, score: 0, verrouille: false, demarreLe: Date.now(), donneesTour: null };
+    etat = { miniJeuId, cfg: trouve.cfg, palier: trouve.palier, index: 0, score: 0, verrouille: false, demarreLe: Date.now(), donneesTour: null,
+      // Un mini-jeu en PHASES enchaîne deux gabarits d'exercice sous un même
+      // titre : chaque phase a son propre score et sa propre compétence.
+      scoreParPhase: (trouve.cfg.phases || []).map(() => 0) };
     document.getElementById('ecran-accueil').hidden = true;
     document.getElementById('ecran-jeu').hidden = false;
     document.getElementById('titre-jeu-courant').textContent = trouve.cfg.titre;
@@ -1541,7 +1581,23 @@
     else if (type === 'tableau-double-entree') genererTableauDoubleEntree(zone, etat.cfg);
     else if (type === 'lecture') genererLecture(zone, etat.cfg);
     else if (type === 'probleme-combine') genererProblemeCombine(zone, etat.cfg);
+    else if (type === 'enquete-avancee') {
+      const p = phaseCourante();
+      genererDiagrammeACompleter(zone, p.phase);
+    }
     remonterEnHaut();
+  }
+
+  /* Phase en cours d'un mini-jeu à phases, d'après le numéro de manche : les
+     manches se répartissent dans l'ordre déclaré (ici 2 + 2). */
+  function phaseCourante() {
+    const phases = etat.cfg.phases || [];
+    let restant = etat.index; // 1-based
+    for (let i = 0; i < phases.length; i++) {
+      if (restant <= phases[i].nbTours) return { phase: phases[i], indice: i, rang: restant };
+      restant -= phases[i].nbTours;
+    }
+    return { phase: phases[phases.length - 1], indice: phases.length - 1, rang: restant };
   }
 
   /* `correction` (facultatif) = { donnee, attendue } : affiché uniquement en cas
@@ -1553,6 +1609,7 @@
     const zoneFeedback = document.getElementById('zone-feedback');
     if (estCorrecte) {
       etat.score++;
+      if (etat.cfg.phases) etat.scoreParPhase[phaseCourante().indice]++;
       zoneFeedback.textContent = choisir(donnees.messagesFeedback.bravo);
       zoneFeedback.className = 'feedback feedback-succes';
       lancerConfettis();
@@ -1574,7 +1631,18 @@
     const etoilesGagnees = calculerEtoiles(etat.score, cfg.nbTours);
     enregistrerEtoiles(cfg.id, etoilesGagnees);
     const dureeSecondes = Math.max(0, Math.round((Date.now() - etat.demarreLe) / 1000));
-    enregistrerSession(cfg.id, etat.score, cfg.nbTours, dureeSecondes);
+    /* Un mini-jeu à phases travaille deux compétences distinctes sous un même
+       titre : on enregistre une session PAR compétence, sans quoi le suivi
+       mêlerait « lire un diagramme » et « déduire dans un tableau » sous une
+       seule note, dont on ne saurait plus rien conclure. */
+    if (cfg.phases) {
+      cfg.phases.forEach((p, i) => {
+        enregistrerSession(p.competence, etat.scoreParPhase[i], p.nbTours,
+          Math.round(dureeSecondes / cfg.phases.length));
+      });
+    } else {
+      enregistrerSession(cfg.id, etat.score, cfg.nbTours, dureeSecondes);
+    }
     // Résultat parfait : un son plus ample que celui d'une bonne réponse
     // ponctuelle, pour souligner ce qui est rare (CHARTE §5).
     if (etoilesGagnees === 3) sonNiveauParfait();
@@ -1641,9 +1709,20 @@
      hauteur, la coïncidence est structurelle et ne dépend plus du contenu des
      légendes (nom long, retour à la ligne, icône plus haute). */
   function construireDiagrammeConstructible(options) {
-    const { colonnes, valeurs, hauteurMax, onChangement } = options;
+    const { colonnes, valeurs, hauteurMax, onChangement, verrouillees } = options;
+    // Colonnes déjà renseignées (données de l'énoncé) : elles se lisent mais ne
+    // se modifient pas, seule la barre manquante est à construire.
+    const estVerrouillee = (id) => !!(verrouillees && verrouillees.has(id));
     const wrap = document.createElement('div');
     wrap.className = 'diagramme-construction';
+    /* Quand une partie des barres est donnée par l'énoncé, la barre à
+       construire doit se distinguer : sans cela, quatre colonnes d'apparence
+       identique n'indiquent pas où l'on attend un geste. */
+    if (verrouillees && verrouillees.size) wrap.classList.add('diagramme-avec-donnees');
+    // Permet de redessiner les barres après coup — utile pour révéler la bonne
+    // hauteur au moment de la correction.
+    const rafraichisseurs = [];
+    wrap.rafraichir = () => rafraichisseurs.forEach((f) => f());
 
     const axe = document.createElement('div');
     axe.className = 'axe-diagramme';
@@ -1664,6 +1743,9 @@
       colDiv.className = 'colonne-construction';
       colDiv.style.setProperty('--c', COULEUR_PAR_INDICE[i % COULEUR_PAR_INDICE.length]);
 
+      const verrou = estVerrouillee(col.id);
+      if (verrou) colDiv.classList.add('colonne-donnee');
+
       const pile = document.createElement('div');
       pile.className = 'pile-construction';
       const cases = [];
@@ -1671,14 +1753,17 @@
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'case-construction';
-        b.setAttribute('aria-label', col.label + ' : ' + n + (n > 1 ? ' cases' : ' case'));
-        b.addEventListener('click', () => {
-          if (etat.verrouille) return;
-          // Recliquer la case du sommet redescend la barre d'un cran.
-          valeurs[col.id] = (valeurs[col.id] === n) ? n - 1 : n;
-          rendre();
-          onChangement();
-        });
+        b.disabled = verrou;
+        b.setAttribute('aria-label', (verrou ? 'Donnée : ' : '') + col.label + ' : ' + n + (n > 1 ? ' cases' : ' case'));
+        if (!verrou) {
+          b.addEventListener('click', () => {
+            if (etat.verrouille) return;
+            // Recliquer la case du sommet redescend la barre d'un cran.
+            valeurs[col.id] = (valeurs[col.id] === n) ? n - 1 : n;
+            rendre();
+            onChangement();
+          });
+        }
         cases.push(b);
         pile.appendChild(b);
       }
@@ -1686,6 +1771,7 @@
         cases.forEach((b, k) => b.classList.toggle('remplie', k < (valeurs[col.id] || 0)));
       }
       rendre();
+      rafraichisseurs.push(rendre);
 
       const pied = document.createElement('div');
       pied.className = 'pied-colonne';
@@ -2445,6 +2531,80 @@
       }, 2);
       zoneQuestion.appendChild(pave.el);
     }
+  }
+
+  /* ================================================================
+     Mini-jeu : L'enquête avancée (CE2) — deux gabarits en deux phases
+     ================================================================ */
+
+  /* ---- Phase 1 : le diagramme dont une barre manque ----
+     Trois effectifs sont donnés en toutes lettres par le dessin, le total par
+     l'énoncé : la quatrième barre s'obtient par SOUSTRACTION, pas par lecture.
+     C'est le seul endroit du module où l'on construit une barre sans en
+     connaître directement la valeur. */
+  function genererDiagrammeACompleter(zone, phase) {
+    const coin = choisir(donnees.coinsJardin);
+    const lieux = melanger(coin.lieux);
+    const effectifs = {};
+    lieux.forEach((l) => { effectifs[l.id] = nombreAleatoire(phase.miniEffectif, phase.maxiEffectif); });
+    const cible = choisir(lieux);
+    const total = lieux.reduce((s, l) => s + effectifs[l.id], 0);
+    const attendu = effectifs[cible.id];
+
+    const enonce = total + ' petites bêtes du jardin vivent dans ' + coin.intro + ' : '
+      + lieux.map((l) => l.nom).join(', ').replace(/,([^,]*)$/, ' et$1') + '. '
+      + 'Complète le diagramme avec la barre correspondant à l’effectif ' + deArticle(cible.nom) + '.';
+
+    zone.appendChild(creerBlocConsigne(enonce,
+      enonce + ' Compte les bêtes déjà placées, puis cherche combien il en manque pour arriver à '
+      + total + '.'));
+
+    const valeurs = {};
+    lieux.forEach((l) => { valeurs[l.id] = effectifs[l.id]; });
+    valeurs[cible.id] = 0; // la barre à trouver part de zéro
+    const verrouillees = new Set(lieux.filter((l) => l.id !== cible.id).map((l) => l.id));
+    const hauteurMax = Math.max(...lieux.map((l) => effectifs[l.id])) + 2;
+
+    const boutonValider = document.createElement('button');
+    boutonValider.type = 'button';
+    boutonValider.className = 'bouton-principal';
+    boutonValider.textContent = 'Valider mon diagramme';
+
+    const diagramme = construireDiagrammeConstructible({
+      colonnes: lieux.map((l) => ({ id: l.id, emoji: l.emoji, label: l.court })),
+      valeurs,
+      hauteurMax,
+      verrouillees,
+      onChangement: () => {}
+    });
+    zone.appendChild(diagramme);
+    zone.appendChild(Object.assign(document.createElement('p'), {
+      className: 'legende',
+      textContent: 'Une case = une petite bête. Seule la barre ' + deArticle(cible.nom) + ' est à construire.'
+    }));
+
+    boutonValider.addEventListener('click', () => {
+      const juste = valeurs[cible.id] === attendu;
+      if (!juste) {
+        // CHARTE §18 : la bonne barre est montrée, pas seulement énoncée.
+        valeurs[cible.id] = attendu;
+        diagramme.rafraichir();
+      }
+      validerTour(juste, boutonValider, juste ? null : {
+        donnee: String(valeurs[cible.id] === attendu ? '' : valeurs[cible.id]),
+        attendue: attendu + ' (' + total + ' − ' + lieux.filter((l) => l.id !== cible.id)
+          .map((l) => effectifs[l.id]).join(' − ') + ')'
+      });
+    });
+    zone.appendChild(boutonValider);
+  }
+
+  /* « de » + article défini : « du potager », « de la mare », « des tournesols ». */
+  function deArticle(nom) {
+    if (/^le /.test(nom)) return 'du ' + nom.slice(3);
+    if (/^les /.test(nom)) return 'des ' + nom.slice(4);
+    if (/^l’/.test(nom) || /^l'/.test(nom)) return 'de ' + nom;
+    return 'de ' + nom;
   }
 
   /* ================================================================
