@@ -477,7 +477,9 @@
   },
   "jeux": [
     { "id": "partage-egal", "titre": "Le bon partage", "icone": "🍰", "couleur": "mandarine", "description": "Trouve le partage en parts égales et compte les parts.", "nbQuestions": 5 },
-    { "id": "lire-ecrire", "titre": "La part du pique-nique", "icone": "✏️", "couleur": "menthe", "description": "Colorie, lis et écris des fractions.", "nbQuestions": 5 }
+    { "id": "lire-ecrire", "titre": "La part du pique-nique", "icone": "✏️", "couleur": "menthe", "description": "Colorie, lis et écris des fractions.", "nbQuestions": 5 },
+    { "id": "contenances", "titre": "La bouteille de limonade", "icone": "🍋", "couleur": "soleil", "description": "Verse des fractions de bouteille dans les verres.", "nbQuestions": 5 },
+    { "id": "representations", "titre": "Les portraits de la fraction", "icone": "🖼️", "couleur": "corail", "description": "Retrouve toutes les images d'une même fraction.", "nbQuestions": 5 }
   ]
 }
 </script>
@@ -1076,6 +1078,98 @@
   }
 
   /* ================================================================
+     La bouteille de limonade (SVG) — contenances du programme
+     ================================================================ */
+
+  /* Géométrie du corps : la zone graduée va de ZONE_HAUT à ZONE_BAS ; le
+     niveau k/d remplit k parts de cette hauteur. Les épaules et le goulot ne
+     comptent pas — la « bouteille » du jeu, c'est son corps gradué. */
+  const BTL_HAUT = 82;
+  const BTL_BAS = 238;
+  const BTL_X = 33;
+  const BTL_LARG = 54;
+
+  /*
+   * Rend { el (wrapper animable), svg, niveau(), setNiveau(k, anime, onFini) }.
+   * `denom` fixe les graduations ; niveau initial en nombre de parts.
+   */
+  function creerBouteille(denom, niveauInitial) {
+    const wrap = document.createElement('div');
+    wrap.className = 'bouteille-wrap';
+    const svg = elSvg('svg', { viewBox: '0 0 120 250', class: 'bouteille-svg' });
+    svg.setAttribute('aria-hidden', 'true');
+
+    // Liquide d'abord (sous le verre de la bouteille, translucide par-dessus).
+    const zoneH = BTL_BAS - BTL_HAUT;
+    let niveau = (niveauInitial === undefined) ? denom : niveauInitial;
+    const liquide = elSvg('rect', { x: BTL_X, y: 0, width: BTL_LARG, height: 0, fill: 'var(--limonade)' });
+    const vague = elSvg('ellipse', { cx: 60, cy: 0, rx: BTL_LARG / 2, ry: 4, fill: 'color-mix(in srgb, var(--limonade) 70%, white)' });
+    svg.appendChild(liquide);
+    svg.appendChild(vague);
+
+    // Graduations : d-1 traits discrets — les repères du partage.
+    for (let i = 1; i < denom; i++) {
+      const y = BTL_BAS - (i / denom) * zoneH;
+      svg.appendChild(elSvg('line', {
+        x1: BTL_X, y1: y, x2: BTL_X + BTL_LARG, y2: y,
+        stroke: 'var(--couleur-encre)', 'stroke-width': 1.4, 'stroke-dasharray': '4 4', opacity: 0.35
+      }));
+    }
+
+    // Le corps en verre, par-dessus le liquide.
+    svg.appendChild(elSvg('path', {
+      d: 'M48 22 L48 55 C48 63 30 68 30 80 L30 230 Q30 242 42 242 L78 242 Q90 242 90 230 L90 80 C90 68 72 63 72 55 L72 22 Z',
+      fill: 'rgba(255,255,255,0.28)',
+      stroke: 'color-mix(in srgb, var(--couleur-encre) 45%, white)', 'stroke-width': 3
+    }));
+    // Le bouchon.
+    svg.appendChild(elSvg('rect', { x: 45, y: 8, width: 30, height: 15, rx: 4, fill: 'color-mix(in srgb, var(--couleur-encre) 70%, white)' }));
+
+    function poserNiveau(valeur) {
+      const h = Math.max(0, valeur / denom) * zoneH;
+      liquide.setAttribute('y', (BTL_BAS - h).toFixed(1));
+      liquide.setAttribute('height', h.toFixed(1));
+      vague.setAttribute('cy', (BTL_BAS - h).toFixed(1));
+      vague.style.display = valeur > 0 ? '' : 'none';
+    }
+    poserNiveau(niveau);
+
+    function setNiveau(k, anime, onFini) {
+      const depart = niveau;
+      niveau = k;
+      if (!anime) { poserNiveau(k); if (onFini) onFini(); return; }
+      animer(420, (p) => poserNiveau(depart + (k - depart) * p), onFini);
+    }
+
+    wrap.appendChild(svg);
+    return { el: wrap, svg, niveau: () => niveau, setNiveau };
+  }
+
+  /* Un verre : plein ou vide, la transition est en CSS. */
+  function creerVerre(onClic) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'verre-btn';
+    btn.setAttribute('aria-label', 'Verre');
+    const svg = elSvg('svg', { viewBox: '0 0 60 70', class: 'verre-svg' });
+    svg.setAttribute('aria-hidden', 'true');
+    const liquide = elSvg('path', { d: 'M13 30 L47 30 L43.5 62 L16.5 62 Z', class: 'verre-liquide' });
+    svg.appendChild(liquide);
+    svg.appendChild(elSvg('path', {
+      d: 'M8 6 L52 6 L46 64 L14 64 Z',
+      fill: 'rgba(255,255,255,0.4)', stroke: 'color-mix(in srgb, var(--couleur-encre) 45%, white)', 'stroke-width': 3,
+      'stroke-linejoin': 'round'
+    }));
+    btn.appendChild(svg);
+    if (onClic) btn.addEventListener('click', onClic);
+    return {
+      el: btn,
+      estPlein: () => btn.classList.contains('plein'),
+      setPlein: (plein) => btn.classList.toggle('plein', !!plein)
+    };
+  }
+
+  /* ================================================================
      Saisie au pavé : nombre seul, ou fraction en deux cases
      ================================================================ */
 
@@ -1295,6 +1389,8 @@
     document.getElementById('bouton-suivant').hidden = true;
     if (cfg.id === 'partage-egal') genererPartage(zone, cfg);
     else if (cfg.id === 'lire-ecrire') genererLireEcrire(zone, cfg);
+    else if (cfg.id === 'contenances') genererContenances(zone, cfg);
+    else if (cfg.id === 'representations') genererRepresentations(zone, cfg);
     remonterEnHaut();
   }
 
@@ -1605,6 +1701,301 @@
       }
     });
     zone.appendChild(saisie.el);
+  }
+
+  /* ================================================================
+     Mini-jeu 3 : La bouteille de limonade — contenances, n/n = 1
+     ================================================================ */
+
+  function genererContenances(zone, cfg) {
+    /* Types de manche par position : verser (guidé puis libre), lire la
+       fraction versée, lire la fraction restante, et la manche finale qui
+       installe n/n = 1 en versant toute la bouteille. */
+    const manche = etat.index;
+    let d, cible;
+    if (manche === 1) { d = 2; cible = 1; }
+    else if (manche === 2) { d = choisir([3, 4]); cible = nombreAleatoire(1, d - 1); }
+    else if (manche === 3) { d = choisir([3, 4]); cible = nombreAleatoire(1, d - 1); }
+    else if (manche === 4) { d = choisir([3, 4, 6]); cible = nombreAleatoire(1, d - 1); }
+    else { d = choisir([3, 4]); cible = d; }
+
+    const modeVerser = manche === 1 || manche === 2 || manche === 5;
+    const dejaVerse = modeVerser ? 0 : cible;
+
+    if (manche === 1) {
+      zone.appendChild(creerBlocConsigne(
+        'Verse la moitié (1/2) de la bouteille dans les verres.',
+        'La bouteille est partagée en deux parts égales. Touche un verre pour verser. Verse la moitié de la bouteille, puis valide.'
+      ));
+    } else if (manche === 2) {
+      zone.appendChild(creerBlocConsigne(
+        'Verse ' + cible + '/' + d + ' de la bouteille.',
+        'La bouteille est partagée en ' + NOMBRES_EN_LETTRES[d] + ' parts égales. Verse ' + fractionEnMots(cible, d) + ' de la bouteille, puis valide.'
+      ));
+    } else if (manche === 3) {
+      zone.appendChild(creerBlocConsigne(
+        'Quelle fraction de la bouteille a-t-on versée ?',
+        'Regarde les verres pleins et les graduations de la bouteille, puis écris la fraction versée avec le pavé.'
+      ));
+    } else if (manche === 4) {
+      zone.appendChild(creerBlocConsigne(
+        'Quelle fraction de limonade reste-t-il dans la bouteille ?',
+        'On a déjà versé des verres. Regarde ce qui reste dans la bouteille, puis écris la fraction restante.'
+      ));
+    } else {
+      zone.appendChild(creerBlocConsigne(
+        'Verse TOUTE la bouteille dans les verres !',
+        'Verse toute la bouteille, verre après verre. Que se passe-t-il quand toutes les parts sont versées ?'
+      ));
+    }
+
+    const scene = document.createElement('div');
+    scene.className = 'scene-limonade';
+    const bouteille = creerBouteille(d, d - dejaVerse);
+    scene.appendChild(bouteille.el);
+
+    const rangee = document.createElement('div');
+    rangee.className = 'rangee-verres';
+    const verres = [];
+    let animationEnCours = false;
+    let questionPosee = false;
+
+    function nbPleins() { return verres.filter((v) => v.estPlein()).length; }
+
+    for (let i = 0; i < d; i++) {
+      const verre = creerVerre(() => {
+        if (etat.verrouille || animationEnCours || !modeVerser) return;
+        if (verre.estPlein()) {
+          // Reprendre un verre : la limonade retourne dans la bouteille — le
+          // geste d'annulation le plus naturel qui soit pour un enfant.
+          animationEnCours = true;
+          verre.setPlein(false);
+          bouteille.setNiveau(bouteille.niveau() + 1, true, () => { animationEnCours = false; });
+          jouerSon('tic');
+        } else {
+          if (bouteille.niveau() <= 0) return;
+          animationEnCours = true;
+          bouteille.el.classList.add('verse');
+          verre.setPlein(true);
+          bouteille.setNiveau(bouteille.niveau() - 1, true, () => {
+            bouteille.el.classList.remove('verse');
+            animationEnCours = false;
+            jouerSon('tic');
+            if (manche === 5 && nbPleins() === d && !questionPosee) {
+              // La bouteille est vide : les verres se figent, la question
+              // n/n = 1 se pose UNE fois.
+              questionPosee = true;
+              verres.forEach((v) => { v.el.disabled = true; });
+              questionFinale();
+            }
+          });
+        }
+      });
+      if (i < dejaVerse) verre.setPlein(true);
+      if (!modeVerser) verre.el.disabled = true;
+      verres.push(verre);
+      rangee.appendChild(verre.el);
+    }
+    scene.appendChild(rangee);
+    zone.appendChild(scene);
+
+    const zoneReponse = document.createElement('div');
+    zone.appendChild(zoneReponse);
+
+    if (modeVerser && manche !== 5) {
+      const bouton = document.createElement('button');
+      bouton.type = 'button';
+      bouton.className = 'bouton-principal';
+      bouton.textContent = 'C’est versé !';
+      bouton.addEventListener('click', () => {
+        if (etat.verrouille || animationEnCours) return;
+        const verse = nbPleins();
+        const juste = verse === cible;
+        bouton.disabled = true;
+        if (!juste) {
+          // CHARTE §18 : on MONTRE le bon état — les verres et la bouteille
+          // rejoignent d'eux-mêmes la bonne réponse.
+          verres.forEach((v, i) => v.setPlein(i < cible));
+          bouteille.setNiveau(d - cible, true);
+          validerReponse(false, { donnee: verse + '/' + d, attendue: cible + '/' + d });
+        } else {
+          validerReponse(true);
+        }
+      });
+      zoneReponse.appendChild(bouton);
+      return;
+    }
+
+    if (manche === 3 || manche === 4) {
+      const attenduN = manche === 3 ? cible : d - cible;
+      const saisie = creerSaisieFraction({
+        onValider: (nSaisi, dSaisi) => {
+          if (etat.verrouille) return;
+          saisie.verrouiller();
+          const juste = nSaisi === attenduN && dSaisi === d;
+          saisie.marquer(nSaisi === attenduN, dSaisi === d);
+          validerReponse(juste, juste ? null : { donnee: nSaisi + '/' + dSaisi, attendue: attenduN + '/' + d });
+        }
+      });
+      zoneReponse.appendChild(saisie.el);
+      if (manche === 4) {
+        const indice = document.createElement('p');
+        indice.className = 'legende';
+        indice.textContent = 'Fraction versée + fraction restante = la bouteille entière.';
+        zoneReponse.appendChild(indice);
+      }
+      return;
+    }
+
+    // Manche 5 : une fois tout versé, la question qui installe n/n = 1.
+    function questionFinale() {
+      const invite = document.createElement('p');
+      invite.className = 'legende-forte';
+      invite.textContent = 'Tu as versé ' + d + '/' + d + ' de la bouteille. C’est…';
+      zoneReponse.appendChild(invite);
+      lireAVoixHaute('Tu as versé ' + NOMBRES_EN_LETTRES[d] + ' ' + (donnees.nomsOrdinaux[String(d)] || ['parts', 'parts'])[1] + ' sur ' + NOMBRES_EN_LETTRES[d] + '. Qu’est-ce que cela fait ?');
+      const brutes = ['1 bouteille entière', 'une seule part', d + ' bouteilles'];
+      const { options, indexCorrect } = melangerOptions(brutes, 0);
+      const grille = document.createElement('div');
+      grille.className = 'grille-options';
+      options.forEach((texte, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'bouton-option';
+        btn.textContent = texte;
+        btn.addEventListener('click', () => {
+          if (etat.verrouille) return;
+          grille.querySelectorAll('button').forEach((b, k) => {
+            b.disabled = true;
+            if (k === indexCorrect) b.classList.add('correct');
+            else if (b === btn) b.classList.add('incorrect');
+          });
+          if (i === indexCorrect) {
+            const morale = document.createElement('p');
+            morale.className = 'legende-forte';
+            morale.textContent = d + '/' + d + ' = 1 : toutes les parts, c’est le tout entier !';
+            zoneReponse.appendChild(morale);
+          }
+          validerReponse(i === indexCorrect,
+            i === indexCorrect ? null : { donnee: texte, attendue: '1 bouteille entière (' + d + '/' + d + ' = 1)' });
+        });
+        grille.appendChild(btn);
+      });
+      zoneReponse.appendChild(grille);
+    }
+  }
+
+  /* ================================================================
+     Mini-jeu 4 : Les portraits de la fraction — représentations multiples
+     ================================================================ */
+
+  function genererRepresentations(zone, cfg) {
+    const d = etat.index <= 2 ? choisir([3, 4]) : choisir([4, 5, 6, 8]);
+    const n = nombreAleatoire(1, d - 1);
+
+    zone.appendChild(creerBlocConsigne(
+      'Touche TOUTES les images qui montrent ' + n + '/' + d + '.',
+      'La fraction cherchée est ' + fractionEnMots(n, d) + '. Touche toutes les images qui la montrent, puis valide. Attention : les parts doivent être égales !'
+    ));
+    const rangee = document.createElement('div');
+    rangee.className = 'rangee-forme';
+    rangee.appendChild(creerFractionLabel(n, d, true));
+    zone.appendChild(rangee);
+
+    /* Construction des 6 cartes : 2 ou 3 bonnes (formes variées, dont parfois
+       une tarte TOURNÉE — toujours valide, la fraction ne dépend pas de
+       l'orientation), 1 piège « parts inégales » (n parts prises sur d parts
+       inégales : ce n'est PAS n/d), et des fractions différentes pour remplir. */
+    const nbBonnes = choisir([2, 3]);
+    const formesBonnes = melanger(['bande', 'tarte', 'brownie', 'tarte-tournee']).slice(0, nbBonnes);
+    const cartes = [];
+
+    formesBonnes.forEach((f) => {
+      if (f === 'tarte-tournee') {
+        cartes.push({ correcte: true, raison: '', el: creerTarte(d, n, { rotation: nombreAleatoire(25, 335) }).el });
+      } else {
+        cartes.push({ correcte: true, raison: '', el: creerForme(f, d, n).el });
+      }
+    });
+
+    // Le piège des parts inégales — le concept du jeu 1 revient en embuscade.
+    const formePiege = choisir(['bande', 'tarte']);
+    cartes.push({
+      correcte: false,
+      raison: 'parts inégales !',
+      el: formePiege === 'tarte'
+        ? creerTarte(d, n, { angles: decoupeInegale(d, 360) }).el
+        : creerBandeChocolat(d, n, { inegal: decoupeInegale(d, d) }).el
+    });
+
+    // Fractions différentes — jamais ÉGALES EN VALEUR à la cible (2/4 pour
+    // 1/2 serait une équivalence, notion de CE2, donc un piège déloyal ici).
+    const dejaVues = new Set([n + '/' + d]);
+    while (cartes.length < 6) {
+      const d2 = choisir(D.filter((x) => x <= 8));
+      const n2 = nombreAleatoire(1, d2 - 1);
+      if (dejaVues.has(n2 + '/' + d2)) continue;
+      if (n2 * d === n * d2) continue; // même valeur : exclue
+      dejaVues.add(n2 + '/' + d2);
+      cartes.push({
+        correcte: false,
+        raison: 'c’est ' + n2 + '/' + d2,
+        el: creerForme(choisir(['bande', 'tarte', 'brownie']), d2, n2).el
+      });
+    }
+
+    const grille = document.createElement('div');
+    grille.className = 'grille-portraits';
+    const melangees = melanger(cartes);
+    melangees.forEach((carte) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'carte-portrait';
+      btn.appendChild(carte.el);
+      const badge = document.createElement('span');
+      badge.className = 'badge-portrait';
+      btn.appendChild(badge);
+      btn.addEventListener('click', () => {
+        if (etat.verrouille) return;
+        btn.classList.toggle('choisie');
+        jouerSon('tic');
+      });
+      carte.btnRef = btn;
+      carte.badgeRef = badge;
+      grille.appendChild(btn);
+    });
+    zone.appendChild(grille);
+
+    const bouton = document.createElement('button');
+    bouton.type = 'button';
+    bouton.className = 'bouton-principal';
+    bouton.textContent = 'Valider';
+    bouton.addEventListener('click', () => {
+      if (etat.verrouille) return;
+      bouton.disabled = true;
+      let juste = true;
+      melangees.forEach((carte) => {
+        const choisie = carte.btnRef.classList.contains('choisie');
+        carte.btnRef.disabled = true;
+        carte.btnRef.classList.remove('choisie');
+        if (carte.correcte && choisie) {
+          carte.btnRef.classList.add('correct');
+        } else if (carte.correcte && !choisie) {
+          juste = false;
+          carte.btnRef.classList.add('oubliee');
+          carte.badgeRef.textContent = 'à prendre aussi';
+        } else if (!carte.correcte && choisie) {
+          juste = false;
+          carte.btnRef.classList.add('incorrect');
+          carte.badgeRef.textContent = carte.raison;
+        }
+      });
+      validerReponse(juste, juste ? null : {
+        donnee: null,
+        attendue: 'les images vertes — et seulement elles'
+      });
+    });
+    zone.appendChild(bouton);
   }
 
   /* ---------- Initialisation ---------- */
