@@ -249,19 +249,56 @@
   .cellule-total.a-saisir.active{ background:color-mix(in srgb, var(--couleur-mandarine) 30%, white); }
   .cellule-total.correct{ background:color-mix(in srgb, var(--couleur-menthe) 45%, white); border-color:var(--couleur-menthe); }
   .cellule-total.incorrect{ background:color-mix(in srgb, var(--couleur-corail) 35%, white); border-color:var(--couleur-corail); }
+  .cellule-total.saisi{ background:color-mix(in srgb, var(--couleur-menthe) 18%, white);
+    border:2px solid var(--couleur-menthe); font-weight:700; cursor:pointer; }
 
-  /* ---- Diagramme à CONSTRUIRE : on clique une case pour monter la barre ---- */
-  .diagramme-construction{ display:flex; align-items:flex-end; justify-content:center; gap:.5rem;
+  /* Pavé numérique diégétique — composant partagé de la série, repris à
+     l'identique de jeux/M23-longueurs.html et jeux/M99-boss-des-tables.html.
+     L'écran a une HAUTEUR FIXE et des chiffres à chasse constante : la saisie
+     ne fait donc jamais bouger la mise en page sous les doigts de l'enfant.
+     Les touches font 48 px de haut, au-dessus de la cible tactile minimale. */
+  .pave-numerique{ max-width:250px; margin:.9rem auto 0; }
+  .pave-ecran{
+    background:color-mix(in srgb, var(--couleur-encre) 88%, black 8%);
+    color:color-mix(in srgb, var(--couleur-menthe) 70%, white 20%);
+    border-radius:12px; font-size:1.7rem; font-weight:700;
+    display:flex; align-items:center; justify-content:flex-end;
+    height:2.9rem; padding:0 .9rem; letter-spacing:2px;
+    font-variant-numeric:tabular-nums; box-shadow:inset 0 2px 6px rgba(0,0,0,.35);
+  }
+  .pave-grille{ display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-top:8px; }
+  .touche-pave{
+    min-height:48px; border:none; border-radius:12px; font-size:1.25rem; font-weight:700;
+    background:color-mix(in srgb, var(--couleur-soleil) 22%, white); color:var(--couleur-encre);
+    box-shadow:0 3px 0 color-mix(in srgb, var(--couleur-encre) 20%, white); touch-action:manipulation;
+  }
+  .touche-pave:active{ transform:translateY(2px); box-shadow:0 1px 0 color-mix(in srgb, var(--couleur-encre) 20%, white); }
+  .touche-pave:disabled{ opacity:.6; }
+  .touche-valider{ background:var(--couleur-menthe); color:#ffffff; box-shadow:0 3px 0 color-mix(in srgb, var(--couleur-menthe) 60%, black 10%); }
+  .touche-effacer{ background:var(--couleur-corail); color:#ffffff; box-shadow:0 3px 0 color-mix(in srgb, var(--couleur-corail) 60%, black 10%); }
+
+  /* ---- Diagramme à CONSTRUIRE : on clique une case pour monter la barre ----
+     Deux zones distinctes et empilées, pour l'axe comme pour chaque colonne :
+     la ZONE DE TRACÉ (graduations / cases, hauteur dictée par le nombre de
+     cases) puis un PIED de hauteur FIXE qui accueille les légendes des
+     abscisses. Les deux zones de tracé s'alignent alors par le haut et font la
+     même hauteur : une graduation tombe toujours en face de sa case, quelles
+     que soient la longueur des noms de catégories ou leur retour à la ligne. */
+  :root{ --pied-diagramme:3.6rem; }
+  .diagramme-construction{ display:flex; align-items:flex-start; justify-content:center; gap:.5rem;
     margin:.9rem 0; overflow-x:auto; padding:.2rem; }
+  .colonne-axe, .colonne-construction{ display:flex; flex-direction:column; align-items:center; }
   .axe-diagramme{ display:flex; flex-direction:column-reverse; }
   .axe-graduation{ height:26px; display:flex; align-items:center; justify-content:flex-end;
     padding-right:.3rem; font-size:.72rem; font-weight:700; opacity:.55; }
-  .colonne-construction{ display:flex; flex-direction:column; align-items:center; }
   /* Le quadrillage EST la grille des cases : bordures claires posées sur chaque
-     case, donc toujours alignées avec la graduation, sans calcul de position. */
+     case, donc toujours alignées avec la graduation, sans calcul de position.
+     La ligne de sol est une ombre portée et non une bordure : une bordure
+     ajouterait sa propre épaisseur à la hauteur de la pile et décalerait de
+     nouveau les cases par rapport aux graduations. */
   .pile-construction{ display:flex; flex-direction:column-reverse;
     border-left:1.5px solid color-mix(in srgb, var(--couleur-encre) 22%, white);
-    border-bottom:2.5px solid color-mix(in srgb, var(--couleur-encre) 35%, white); }
+    box-shadow:0 2.5px 0 color-mix(in srgb, var(--couleur-encre) 35%, white); }
   .case-construction{
     width:2.1rem; height:26px; box-sizing:border-box; padding:0; touch-action:manipulation;
     border:1px solid color-mix(in srgb, var(--couleur-encre) 10%, white);
@@ -269,7 +306,10 @@
   }
   .case-construction.remplie{ background:var(--c, var(--couleur-mandarine));
     border-color:color-mix(in srgb, var(--couleur-encre) 20%, transparent); }
-  .colonne-construction .etiquette-colonne{ font-size:1.5rem; margin-top:.2rem; }
+  .pied-colonne{ height:var(--pied-diagramme); flex:0 0 var(--pied-diagramme);
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+    padding-top:.3rem; overflow:hidden; }
+  .colonne-construction .etiquette-colonne{ font-size:1.5rem; line-height:1.1; }
   .diagramme{ display:flex; align-items:flex-end; justify-content:center; gap:1.1rem; margin:.9rem 0; min-height:9rem; flex-wrap:wrap; }
   .colonne-diagramme{ display:flex; flex-direction:column; align-items:center; gap:.35rem; }
   .pile-cases{ display:flex; flex-direction:column-reverse; gap:2px; min-height:2px; }
@@ -768,8 +808,11 @@
   }
   /* ---------- Pavé numérique diégétique (composant de la charte) ----------
      Reprise à l'identique du composant des autres modules : jamais de champ de
-     saisie brut pour un nombre, l'enfant compose sa réponse au pavé. */
+     saisie brut pour un nombre, l'enfant compose sa réponse au pavé. Chaque
+     appui sonne, comme dans M99, pour que le geste soit confirmé même quand la
+     valeur saisie ne change pas de largeur à l'écran. */
   function creerPave(onValider, maxChiffres) {
+    const cap = maxChiffres || 2;
     const conteneur = document.createElement('div');
     conteneur.className = 'pave-numerique';
     const ecran = document.createElement('div');
@@ -785,15 +828,19 @@
       if (t === '✓') b.classList.add('touche-valider');
       if (t === 'C') b.classList.add('touche-effacer');
       b.addEventListener('click', () => {
-        if (t === 'C') { val = ''; maj(); }
+        if (t === 'C') { val = ''; maj(); jouerSon('tic'); }
         else if (t === '✓') { if (val !== '') onValider(parseInt(val, 10)); }
-        else if (val.length < maxChiffres) { val += t; maj(); }
+        else if (val.length < cap) { val += t; maj(); jouerSon('tic'); }
       });
       grille.appendChild(b);
     });
     conteneur.appendChild(ecran);
     conteneur.appendChild(grille);
-    return { el: conteneur, verrouiller: (v) => grille.querySelectorAll('button').forEach((b) => { b.disabled = v; }) };
+    return {
+      el: conteneur,
+      vider: () => { val = ''; maj(); },
+      verrouiller: (v) => grille.querySelectorAll('button').forEach((b) => { b.disabled = v; })
+    };
   }
 
   /* ---------- Composant sonore partagé (CHARTE §5) ----------
@@ -1508,7 +1555,18 @@
      redescendre). Le quadrillage de fond n'est pas un décor : ce sont les
      bordures des cases elles-mêmes, donc toujours alignées avec la graduation
      de gauche — aucun risque de décalage entre le repère et ce qu'on clique.
-     Convention du module : 1 case = 1 individu. */
+     Convention du module : 1 case = 1 individu.
+
+     ZONE DE TRACÉ ET PIED SÉPARÉS. Les légendes des abscisses (icône + nom de
+     la catégorie) vivent dans un PIED de hauteur fixe, hors de la zone de
+     tracé. Sans cette séparation, la colonne mesure « cases + légende » là où
+     l'axe ne mesure que « graduations » : les deux étant alignés par le bas,
+     l'axe se retrouvait poussé vers le bas de toute la hauteur des légendes
+     (46 px mesurés), et les chiffres ne désignaient plus les bonnes cases.
+     L'axe porte donc lui aussi un pied de même hauteur, et l'ensemble s'aligne
+     par le HAUT : les deux zones de tracé partent du même y et font la même
+     hauteur, la coïncidence est structurelle et ne dépend plus du contenu des
+     légendes (nom long, retour à la ligne, icône plus haute). */
   function construireDiagrammeConstructible(options) {
     const { colonnes, valeurs, hauteurMax, onChangement } = options;
     const wrap = document.createElement('div');
@@ -1522,7 +1580,11 @@
       g.textContent = String(n);
       axe.appendChild(g);
     }
-    wrap.appendChild(axe);
+    const colAxe = document.createElement('div');
+    colAxe.className = 'colonne-axe';
+    colAxe.appendChild(axe);
+    colAxe.appendChild(Object.assign(document.createElement('div'), { className: 'pied-colonne' }));
+    wrap.appendChild(colAxe);
 
     colonnes.forEach((col, i) => {
       const colDiv = document.createElement('div');
@@ -1552,16 +1614,19 @@
       }
       rendre();
 
+      const pied = document.createElement('div');
+      pied.className = 'pied-colonne';
       const etiquette = document.createElement('div');
       etiquette.className = 'etiquette-colonne';
       etiquette.textContent = col.emoji;
       const legende = document.createElement('div');
       legende.className = 'legende-colonne';
       legende.textContent = col.label;
+      pied.appendChild(etiquette);
+      pied.appendChild(legende);
 
       colDiv.appendChild(pile);
-      colDiv.appendChild(etiquette);
-      colDiv.appendChild(legende);
+      colDiv.appendChild(pied);
       wrap.appendChild(colDiv);
     });
     return wrap;
@@ -1684,9 +1749,29 @@
     zone.appendChild(legendeEtape);
     zone.appendChild(zoneSaisie);
 
-    /* ---- Étape B : report des totaux, un par un, au pavé numérique ---- */
+    /* ---- Étape B : report des totaux, puis UNE SEULE validation ----
+       Le pavé n'évalue rien : sa touche ✓ écrit la valeur dans la ligne active,
+       point. Tant que le bouton « Valider mes totaux » n'a pas été touché,
+       l'enfant peut revenir sur n'importe quelle case pour la corriger — une
+       vérification ligne par ligne lui livrerait la réponse des lignes suivantes
+       et transformerait le report en suite de mini-questions. */
     const saisies = {};
     let especeEnCours = null;
+
+    // Espace réservé d'emblée : le pavé et le bouton apparaissent à hauteur
+    // constante, sans décaler le tableau sous les doigts.
+    const invite = document.createElement('p');
+    invite.className = 'legende';
+    const pave = creerPave((valeur) => { if (especeEnCours) inscrire(especeEnCours, valeur); }, 2);
+    const boutonTotaux = document.createElement('button');
+    boutonTotaux.type = 'button';
+    boutonTotaux.className = 'bouton-principal';
+    boutonTotaux.textContent = 'Valider mes totaux';
+    boutonTotaux.disabled = true;
+    boutonTotaux.addEventListener('click', () => {
+      if (especes.some((e) => saisies[e.id] === undefined)) return;
+      terminerEcran1();
+    });
 
     function ouvrirReport() {
       legendeEtape.textContent = 'Étape 2 : compte les marques et écris le total de chaque ligne.';
@@ -1694,37 +1779,48 @@
         const cell = cellulesTally[e.id].total;
         cell.classList.add('a-saisir');
         cell.textContent = '?';
+        // Une case déjà remplie reste cliquable : c'est ce qui permet de se
+        // corriger avant la validation unique.
         cell.addEventListener('click', () => {
-          if (etat.verrouille || saisies[e.id] !== undefined) return;
+          if (etat.verrouille) return;
           choisirLigne(e);
         });
       });
+      zoneSaisie.appendChild(invite);
+      zoneSaisie.appendChild(pave.el);
+      zoneSaisie.appendChild(boutonTotaux);
       choisirLigne(especes[0]);
     }
 
     function choisirLigne(espece) {
       especeEnCours = espece;
       especes.forEach((e) => cellulesTally[e.id].total.classList.toggle('active', e.id === espece.id));
-      zoneSaisie.innerHTML = '';
-      const invite = document.createElement('p');
-      invite.className = 'legende';
       invite.textContent = 'Combien de ' + espece.pluriel + ' ' + espece.emoji + ' as-tu comptées ?';
-      zoneSaisie.appendChild(invite);
-      const pave = creerPave((valeur) => {
-        saisies[espece.id] = valeur;
-        const cell = cellulesTally[espece.id].total;
-        cell.textContent = String(valeur);
-        cell.classList.remove('a-saisir', 'active');
-        const restantes = especes.filter((e) => saisies[e.id] === undefined);
-        if (restantes.length) choisirLigne(restantes[0]);
-        else terminerEcran1();
-      }, 2);
-      zoneSaisie.appendChild(pave.el);
+      pave.vider();
+    }
+
+    function inscrire(espece, valeur) {
+      saisies[espece.id] = valeur;
+      const cell = cellulesTally[espece.id].total;
+      cell.textContent = String(valeur);
+      cell.classList.remove('a-saisir');
+      cell.classList.add('saisi');
+      // On enchaîne sur la première ligne encore vide ; s'il n'en reste aucune,
+      // on garde la ligne courante active pour qu'elle reste corrigeable.
+      const restantes = especes.filter((e) => saisies[e.id] === undefined);
+      if (restantes.length) {
+        choisirLigne(restantes[0]);
+      } else {
+        pave.vider();
+        invite.textContent = 'Relis tes ' + especes.length + ' totaux, puis valide. Tu peux encore les corriger.';
+      }
+      boutonTotaux.disabled = restantes.length > 0;
     }
 
     function terminerEcran1() {
       zoneSaisie.innerHTML = '';
       especeEnCours = null;
+      especes.forEach((e) => cellulesTally[e.id].total.classList.remove('active', 'saisi'));
       const reportJuste = especes.every((e) => saisies[e.id] === valeursVraies[e.id]);
       // CHARTE §18 : chaque total saisi passe au vert ou au rouge, et la valeur
       // attendue remplace la valeur fausse.
