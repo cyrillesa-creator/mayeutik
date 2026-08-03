@@ -609,10 +609,8 @@
     "CE2": {
       "miniJeux": [
         { "id": "ce2-probleme-combine", "titre": "L'enquête", "icone": "🧮", "couleur": "corail", "description": "Complète le tableau grâce au diagramme.", "type": "probleme-combine", "nbTours": 4, "nbEspeces": 3, "nbCouleurs": 3, "capParCouleur": 9 },
-        { "id": "ce2-enquete-avancee", "titre": "L'enquête avancée", "icone": "🔎", "couleur": "menthe", "description": "Retrouve la barre qui manque, puis complète un tableau de proche en proche.", "type": "enquete-avancee", "nbTours": 4, "phases": [
-          { "type": "diagramme-completer", "nbTours": 2, "competence": "diagramme-completer-ce2", "miniEffectif": 3, "maxiEffectif": 9 },
-          { "type": "tableau-deduction", "nbTours": 2, "competence": "tableau-double-entree-deduction-ce2", "nbLignes": 4, "miniValeur": 2, "maxiValeur": 14, "nbCachees": 7 }
-        ] }
+        { "id": "diagramme-completer-ce2", "titre": "Les effectifs du jardin", "icone": "📶", "couleur": "menthe", "description": "Une barre manque au diagramme : retrouve-la.", "type": "diagramme-completer", "nbTours": 4, "miniEffectif": 3, "maxiEffectif": 9 },
+        { "id": "tableau-double-entree-deduction-ce2", "titre": "Le carnet à trous du jardinier", "icone": "📓", "couleur": "soleil", "description": "Retrouve les nombres effacés, de proche en proche.", "type": "tableau-deduction", "nbTours": 3, "nbLignes": 4, "miniValeur": 2, "maxiValeur": 14, "nbCachees": 7 }
       ]
     }
   }
@@ -1578,10 +1576,7 @@
   function demarrerJeu(miniJeuId) {
     const trouve = trouverMiniJeu(miniJeuId);
     if (!trouve) return;
-    etat = { miniJeuId, cfg: trouve.cfg, palier: trouve.palier, index: 0, score: 0, verrouille: false, demarreLe: Date.now(), donneesTour: null,
-      // Un mini-jeu en PHASES enchaîne deux gabarits d'exercice sous un même
-      // titre : chaque phase a son propre score et sa propre compétence.
-      scoreParPhase: (trouve.cfg.phases || []).map(() => 0) };
+    etat = { miniJeuId, cfg: trouve.cfg, palier: trouve.palier, index: 0, score: 0, verrouille: false, demarreLe: Date.now(), donneesTour: null };
     document.getElementById('ecran-accueil').hidden = true;
     document.getElementById('ecran-jeu').hidden = false;
     document.getElementById('titre-jeu-courant').textContent = trouve.cfg.titre;
@@ -1608,24 +1603,9 @@
     else if (type === 'tableau-double-entree') genererTableauDoubleEntree(zone, etat.cfg);
     else if (type === 'lecture') genererLecture(zone, etat.cfg);
     else if (type === 'probleme-combine') genererProblemeCombine(zone, etat.cfg);
-    else if (type === 'enquete-avancee') {
-      const p = phaseCourante();
-      if (p.phase.type === 'diagramme-completer') genererDiagrammeACompleter(zone, p.phase);
-      else genererTableauDeduction(zone, p.phase);
-    }
+    else if (type === 'diagramme-completer') genererDiagrammeACompleter(zone, etat.cfg);
+    else if (type === 'tableau-deduction') genererTableauDeduction(zone, etat.cfg);
     remonterEnHaut();
-  }
-
-  /* Phase en cours d'un mini-jeu à phases, d'après le numéro de manche : les
-     manches se répartissent dans l'ordre déclaré (ici 2 + 2). */
-  function phaseCourante() {
-    const phases = etat.cfg.phases || [];
-    let restant = etat.index; // 1-based
-    for (let i = 0; i < phases.length; i++) {
-      if (restant <= phases[i].nbTours) return { phase: phases[i], indice: i, rang: restant };
-      restant -= phases[i].nbTours;
-    }
-    return { phase: phases[phases.length - 1], indice: phases.length - 1, rang: restant };
   }
 
   /* `correction` (facultatif) = { donnee, attendue } : affiché uniquement en cas
@@ -1637,7 +1617,6 @@
     const zoneFeedback = document.getElementById('zone-feedback');
     if (estCorrecte) {
       etat.score++;
-      if (etat.cfg.phases) etat.scoreParPhase[phaseCourante().indice]++;
       zoneFeedback.textContent = choisir(donnees.messagesFeedback.bravo);
       zoneFeedback.className = 'feedback feedback-succes';
       lancerConfettis();
@@ -1659,18 +1638,12 @@
     const etoilesGagnees = calculerEtoiles(etat.score, cfg.nbTours);
     enregistrerEtoiles(cfg.id, etoilesGagnees);
     const dureeSecondes = Math.max(0, Math.round((Date.now() - etat.demarreLe) / 1000));
-    /* Un mini-jeu à phases travaille deux compétences distinctes sous un même
-       titre : on enregistre une session PAR compétence, sans quoi le suivi
-       mêlerait « lire un diagramme » et « déduire dans un tableau » sous une
-       seule note, dont on ne saurait plus rien conclure. */
-    if (cfg.phases) {
-      cfg.phases.forEach((p, i) => {
-        enregistrerSession(p.competence, etat.scoreParPhase[i], p.nbTours,
-          Math.round(dureeSecondes / cfg.phases.length));
-      });
-    } else {
-      enregistrerSession(cfg.id, etat.score, cfg.nbTours, dureeSecondes);
-    }
+    /* L'identifiant du mini-jeu EST sa compétence dans ce module : deux
+       exercices aussi différents que « compléter un diagramme » et « déduire
+       dans un tableau » sont donc deux mini-jeux, et non deux phases d'un
+       même, faute de quoi le suivi les mêlerait sous une note unique dont on
+       ne saurait plus rien conclure. */
+    enregistrerSession(cfg.id, etat.score, cfg.nbTours, dureeSecondes);
     // Résultat parfait : un son plus ample que celui d'une bonne réponse
     // ponctuelle, pour souligner ce qui est rare (CHARTE §5).
     if (etoilesGagnees === 3) sonNiveauParfait();
@@ -2562,19 +2535,19 @@
   }
 
   /* ================================================================
-     Mini-jeu : L'enquête avancée (CE2) — deux gabarits en deux phases
+     Mini-jeu : Les effectifs du jardin (CE2) — le diagramme incomplet
      ================================================================ */
 
-  /* ---- Phase 1 : le diagramme dont une barre manque ----
+  /* ---- Le diagramme dont une barre manque ----
      Trois effectifs sont donnés en toutes lettres par le dessin, le total par
      l'énoncé : la quatrième barre s'obtient par SOUSTRACTION, pas par lecture.
      C'est le seul endroit du module où l'on construit une barre sans en
      connaître directement la valeur. */
-  function genererDiagrammeACompleter(zone, phase) {
+  function genererDiagrammeACompleter(zone, cfg) {
     const coin = choisir(donnees.coinsJardin);
     const lieux = melanger(coin.lieux);
     const effectifs = {};
-    lieux.forEach((l) => { effectifs[l.id] = nombreAleatoire(phase.miniEffectif, phase.maxiEffectif); });
+    lieux.forEach((l) => { effectifs[l.id] = nombreAleatoire(cfg.miniEffectif, cfg.maxiEffectif); });
     const cible = choisir(lieux);
     const total = lieux.reduce((s, l) => s + effectifs[l.id], 0);
     const attendu = effectifs[cible.id];
@@ -2635,8 +2608,10 @@
     return 'de ' + nom;
   }
 
-  /* ---- Phase 2 : le tableau à double entrée qui se déduit de proche en proche
-     ----------------------------------------------------------------------
+  /* ================================================================
+     Mini-jeu : Le carnet à trous du jardinier (CE2)
+     ================================================================
+     Le tableau à double entrée qui se déduit de proche en proche.
      Quinze nombres : 8 données (4 lignes × 2 colonnes), 4 totaux de ligne,
      2 totaux de colonne, 1 total général. Sept sont masqués.
 
@@ -2701,8 +2676,8 @@
     return su;
   }
 
-  function fabriquerTableauDeduction(phase) {
-    const nbLignes = phase.nbLignes;
+  function fabriquerTableauDeduction(cfg) {
+    const nbLignes = cfg.nbLignes;
     const contraintes = contraintesTableau(nbLignes);
     const toutesCles = [];
     for (let i = 0; i < nbLignes; i++) {
@@ -2719,7 +2694,7 @@
       for (let i = 0; i < nbLignes; i++) {
         const ligne = [];
         for (let j = 0; j < NB_COLONNES_DEDUCTION; j++) {
-          const v = nombreAleatoire(phase.miniValeur, phase.maxiValeur);
+          const v = nombreAleatoire(cfg.miniValeur, cfg.maxiValeur);
           ligne.push(v);
           valeurs['d:' + i + ':' + j] = v;
         }
@@ -2737,7 +2712,7 @@
       // 2. Masquage un à un, chaque fois validé par le solveur.
       const cachees = new Set();
       melanger(toutesCles).forEach((cle) => {
-        if (cachees.size >= phase.nbCachees) return;
+        if (cachees.size >= cfg.nbCachees) return;
         const essaiCachees = new Set(cachees);
         essaiCachees.add(cle);
         const connues = toutesCles.filter((k) => !essaiCachees.has(k));
@@ -2746,7 +2721,7 @@
           cachees.add(cle);
         }
       });
-      if (cachees.size !== phase.nbCachees) continue;
+      if (cachees.size !== cfg.nbCachees) continue;
 
       /* Un tableau où l'on ne masquerait que des totaux se réduirait à « fais
          les additions » ; un tableau où l'on ne masquerait que des données se
@@ -2766,8 +2741,8 @@
     return null;
   }
 
-  function genererTableauDeduction(zone, phase) {
-    const modele = fabriquerTableauDeduction(phase);
+  function genererTableauDeduction(zone, cfg) {
+    const modele = fabriquerTableauDeduction(cfg);
     if (!modele) { // garde-fou : on ne présente jamais un tableau non vérifié
       zone.appendChild(creerBlocConsigne('Le jardin se réorganise, passe à la manche suivante.', ''));
       validerTour(true, null);
