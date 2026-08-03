@@ -252,6 +252,27 @@
   .cellule-total.saisi{ background:color-mix(in srgb, var(--couleur-menthe) 18%, white);
     border:2px solid var(--couleur-menthe); font-weight:700; cursor:pointer; }
 
+  /* ---- L'enquête avancée : le carnet du jardinier à recompléter ----
+     Les totaux se distinguent des données par un fond légèrement teinté : c'est
+     sur eux que s'appuient toutes les déductions, il faut les repérer d'un coup
+     d'œil. Les cases à trouver sont en pointillés, comme la colonne Total du
+     sondage — même vocabulaire visuel dans tout le module. */
+  .tableau-deduction{ width:100%; border-collapse:collapse; margin:.7rem 0; font-size:.92rem; }
+  .tableau-deduction th, .tableau-deduction td{
+    border:1.5px solid color-mix(in srgb, var(--couleur-encre) 18%, white); padding:.4rem .3rem; text-align:center; }
+  .tableau-deduction thead th{ background:color-mix(in srgb, var(--couleur-menthe) 14%, white); font-size:.8rem; }
+  .tableau-deduction tbody th{ background:color-mix(in srgb, var(--couleur-menthe) 8%, white); font-size:.78rem; text-align:left; }
+  .tableau-deduction .colonne-total, .tableau-deduction .ligne-total td{
+    background:color-mix(in srgb, var(--couleur-soleil) 16%, white); font-weight:700; }
+  .tableau-deduction .ligne-total th{ background:color-mix(in srgb, var(--couleur-soleil) 22%, white); font-weight:700; }
+  .cellule-deduction{ min-width:2.6rem; }
+  .cellule-deduction.a-trouver{ cursor:pointer; border:2px dashed var(--couleur-mandarine);
+    background:color-mix(in srgb, var(--couleur-mandarine) 12%, white); font-weight:700; }
+  .cellule-deduction.active{ background:color-mix(in srgb, var(--couleur-mandarine) 32%, white); }
+  .cellule-deduction.saisi{ background:color-mix(in srgb, var(--couleur-menthe) 18%, white);
+    border:2px solid var(--couleur-menthe); font-weight:700; cursor:pointer; }
+  .cellule-deduction.correct{ background:color-mix(in srgb, var(--couleur-menthe) 45%, white); border-color:var(--couleur-menthe); }
+  .cellule-deduction.incorrect{ background:color-mix(in srgb, var(--couleur-corail) 35%, white); border-color:var(--couleur-corail); }
   /* Barre déjà renseignée par l'énoncé : lisible, mais pas manipulable. La
      colonne à construire, elle, s'annonce par un fond légèrement teinté et un
      liseré — c'est le seul endroit du diagramme où l'on attend un geste. */
@@ -559,6 +580,11 @@
       {"id":"trefles","nom":"le carré de trèfles","court":"trèfles","emoji":"🍀"}
     ]}
   ],
+  "periodesJardin": [
+    { "id": "saisons", "colonnes": [{"id":"printemps","nom":"printemps"},{"id":"ete","nom":"été"}] },
+    { "id": "moments", "colonnes": [{"id":"matin","nom":"le matin"},{"id":"soir","nom":"le soir"}] },
+    { "id": "cotes",   "colonnes": [{"id":"ouest","nom":"côté ouest"},{"id":"est","nom":"côté est"}] }
+  ],
   "messagesFeedback": {
     "bravo": ["Bravo !", "Super !", "Génial !", "Bien joué !", "C'est ça !", "Trop fort !"],
     "rate": ["Presque !", "Regarde bien le tableau.", "Pas cette fois, courage !", "On y retourne."]
@@ -583,8 +609,9 @@
     "CE2": {
       "miniJeux": [
         { "id": "ce2-probleme-combine", "titre": "L'enquête", "icone": "🧮", "couleur": "corail", "description": "Complète le tableau grâce au diagramme.", "type": "probleme-combine", "nbTours": 4, "nbEspeces": 3, "nbCouleurs": 3, "capParCouleur": 9 },
-        { "id": "ce2-enquete-avancee", "titre": "L'enquête avancée", "icone": "🔎", "couleur": "menthe", "description": "Retrouve la barre qui manque, puis complète un tableau de proche en proche.", "type": "enquete-avancee", "nbTours": 2, "phases": [
-          { "type": "diagramme-completer", "nbTours": 2, "competence": "diagramme-completer-ce2", "miniEffectif": 3, "maxiEffectif": 9 }
+        { "id": "ce2-enquete-avancee", "titre": "L'enquête avancée", "icone": "🔎", "couleur": "menthe", "description": "Retrouve la barre qui manque, puis complète un tableau de proche en proche.", "type": "enquete-avancee", "nbTours": 4, "phases": [
+          { "type": "diagramme-completer", "nbTours": 2, "competence": "diagramme-completer-ce2", "miniEffectif": 3, "maxiEffectif": 9 },
+          { "type": "tableau-deduction", "nbTours": 2, "competence": "tableau-double-entree-deduction-ce2", "nbLignes": 4, "miniValeur": 2, "maxiValeur": 14, "nbCachees": 7 }
         ] }
       ]
     }
@@ -1583,7 +1610,8 @@
     else if (type === 'probleme-combine') genererProblemeCombine(zone, etat.cfg);
     else if (type === 'enquete-avancee') {
       const p = phaseCourante();
-      genererDiagrammeACompleter(zone, p.phase);
+      if (p.phase.type === 'diagramme-completer') genererDiagrammeACompleter(zone, p.phase);
+      else genererTableauDeduction(zone, p.phase);
     }
     remonterEnHaut();
   }
@@ -2605,6 +2633,301 @@
     if (/^les /.test(nom)) return 'des ' + nom.slice(4);
     if (/^l’/.test(nom) || /^l'/.test(nom)) return 'de ' + nom;
     return 'de ' + nom;
+  }
+
+  /* ---- Phase 2 : le tableau à double entrée qui se déduit de proche en proche
+     ----------------------------------------------------------------------
+     Quinze nombres : 8 données (4 lignes × 2 colonnes), 4 totaux de ligne,
+     2 totaux de colonne, 1 total général. Sept sont masqués.
+
+     LE POINT DÉLICAT est le choix de ces sept cases. Retirer sept cases au
+     hasard produit très souvent un tableau que l'on ne peut plus finir sans
+     poser un système à deux inconnues — hors de portée au CE2 — ou, pire, un
+     tableau à plusieurs solutions. On procède donc en trois temps :
+       1. fabriquer un tableau complet et cohérent ;
+       2. masquer les cases UNE À UNE, en ne conservant un masquage que si le
+          tableau reste entièrement retrouvable ;
+       3. la vérification du point 2 est faite par un solveur qui n'applique
+          qu'une seule règle, celle qu'un enfant emploie : « dans une ligne ou
+          une colonne où il ne manque qu'un seul nombre, ce nombre se calcule ».
+          Si le solveur ne retrouve pas TOUT, le masquage est annulé.
+     Un tableau accepté est donc, par construction, résoluble par déductions
+     successives — et sa solution est unique, chaque déduction ne laissant
+     qu'une valeur possible. */
+
+  const NB_COLONNES_DEDUCTION = 2;
+
+  /* Les contraintes du tableau, sous forme de groupes de cases dont la dernière
+     se déduit des autres. Une case est repérée par une clé textuelle :
+       'd:i:j' donnée, 'L:i' total de ligne, 'C:j' total de colonne, 'T' général. */
+  function contraintesTableau(nbLignes) {
+    const c = [];
+    for (let i = 0; i < nbLignes; i++) {
+      const ligne = [];
+      for (let j = 0; j < NB_COLONNES_DEDUCTION; j++) ligne.push('d:' + i + ':' + j);
+      ligne.push('L:' + i);
+      c.push(ligne);
+    }
+    for (let j = 0; j < NB_COLONNES_DEDUCTION; j++) {
+      const col = [];
+      for (let i = 0; i < nbLignes; i++) col.push('d:' + i + ':' + j);
+      col.push('C:' + j);
+      c.push(col);
+    }
+    const totauxLignes = [];
+    for (let i = 0; i < nbLignes; i++) totauxLignes.push('L:' + i);
+    c.push(totauxLignes.concat(['T']));
+    const totauxColonnes = [];
+    for (let j = 0; j < NB_COLONNES_DEDUCTION; j++) totauxColonnes.push('C:' + j);
+    c.push(totauxColonnes.concat(['T']));
+    return c;
+  }
+
+  /* Solveur « à la main » : tant qu'une contrainte n'a qu'une seule case
+     inconnue, cette case devient connue. Aucune résolution de système, aucun
+     essai-erreur — exactement le raisonnement attendu de l'enfant. */
+  function casesRetrouvables(connues, contraintes) {
+    const su = new Set(connues);
+    const ordre = []; // ordre dans lequel les cases deviennent déductibles
+    let progres = true;
+    while (progres) {
+      progres = false;
+      contraintes.forEach((groupe) => {
+        const inconnues = groupe.filter((k) => !su.has(k));
+        if (inconnues.length === 1) { su.add(inconnues[0]); ordre.push(inconnues[0]); progres = true; }
+      });
+    }
+    su.ordre = ordre;
+    return su;
+  }
+
+  function fabriquerTableauDeduction(phase) {
+    const nbLignes = phase.nbLignes;
+    const contraintes = contraintesTableau(nbLignes);
+    const toutesCles = [];
+    for (let i = 0; i < nbLignes; i++) {
+      for (let j = 0; j < NB_COLONNES_DEDUCTION; j++) toutesCles.push('d:' + i + ':' + j);
+      toutesCles.push('L:' + i);
+    }
+    for (let j = 0; j < NB_COLONNES_DEDUCTION; j++) toutesCles.push('C:' + j);
+    toutesCles.push('T');
+
+    for (let essai = 0; essai < 60; essai++) {
+      // 1. Un tableau complet et cohérent, toutes valeurs entre 1 et 99.
+      const valeurs = {};
+      const donneesBrutes = [];
+      for (let i = 0; i < nbLignes; i++) {
+        const ligne = [];
+        for (let j = 0; j < NB_COLONNES_DEDUCTION; j++) {
+          const v = nombreAleatoire(phase.miniValeur, phase.maxiValeur);
+          ligne.push(v);
+          valeurs['d:' + i + ':' + j] = v;
+        }
+        donneesBrutes.push(ligne);
+        valeurs['L:' + i] = ligne.reduce((a, b) => a + b, 0);
+      }
+      for (let j = 0; j < NB_COLONNES_DEDUCTION; j++) {
+        let s = 0;
+        for (let i = 0; i < nbLignes; i++) s += donneesBrutes[i][j];
+        valeurs['C:' + j] = s;
+      }
+      valeurs.T = donneesBrutes.reduce((s, l) => s + l.reduce((a, b) => a + b, 0), 0);
+      if (Object.keys(valeurs).some((k) => valeurs[k] < 1 || valeurs[k] > 99)) continue;
+
+      // 2. Masquage un à un, chaque fois validé par le solveur.
+      const cachees = new Set();
+      melanger(toutesCles).forEach((cle) => {
+        if (cachees.size >= phase.nbCachees) return;
+        const essaiCachees = new Set(cachees);
+        essaiCachees.add(cle);
+        const connues = toutesCles.filter((k) => !essaiCachees.has(k));
+        // 3. Le tableau doit rester ENTIÈREMENT retrouvable.
+        if (casesRetrouvables(connues, contraintes).size === toutesCles.length) {
+          cachees.add(cle);
+        }
+      });
+      if (cachees.size !== phase.nbCachees) continue;
+
+      /* Un tableau où l'on ne masquerait que des totaux se réduirait à « fais
+         les additions » ; un tableau où l'on ne masquerait que des données se
+         priverait du raisonnement sur le total général. On exige les deux. */
+      const cacheesDonnees = [...cachees].filter((k) => k.charAt(0) === 'd').length;
+      const cacheesTotaux = cachees.size - cacheesDonnees;
+      if (cacheesDonnees < 2 || cacheesTotaux < 2) continue;
+
+      /* Ordre dans lequel les cases deviennent déductibles : c'est celui qu'on
+         proposera à l'enfant. Ouvrir sur une case encore indéductible le
+         mettrait en échec d'entrée, alors que rien ne l'empêche par ailleurs de
+         choisir lui-même la case qu'il veut. */
+      const ordre = casesRetrouvables(toutesCles.filter((k) => !cachees.has(k)), contraintes).ordre;
+
+      return { valeurs, cachees, contraintes, toutesCles, nbLignes, ordre };
+    }
+    return null;
+  }
+
+  function genererTableauDeduction(zone, phase) {
+    const modele = fabriquerTableauDeduction(phase);
+    if (!modele) { // garde-fou : on ne présente jamais un tableau non vérifié
+      zone.appendChild(creerBlocConsigne('Le jardin se réorganise, passe à la manche suivante.', ''));
+      validerTour(true, null);
+      return;
+    }
+    const { valeurs, cachees, nbLignes, ordre } = modele;
+
+    const especes = especesListe(nbLignes);
+    const periode = choisir(donnees.periodesJardin);
+    const colonnes = periode.colonnes;
+
+    zone.appendChild(creerBlocConsigne(
+      'Le carnet du jardinier est abîmé : ' + cachees.size + ' nombres ont disparu. '
+      + 'Retrouve-les un par un grâce aux totaux.',
+      'Retrouve les nombres effacés du carnet. Sers-toi des lignes et des colonnes où il ne manque '
+      + 'qu’un seul nombre : celui-là, tu peux le calculer.'
+    ));
+
+    const table = document.createElement('table');
+    table.className = 'tableau-deduction';
+    const thead = document.createElement('thead');
+    const trHead = document.createElement('tr');
+    trHead.appendChild(document.createElement('th'));
+    colonnes.forEach((c) => {
+      const th = document.createElement('th');
+      th.textContent = c.nom;
+      trHead.appendChild(th);
+    });
+    const thTotal = document.createElement('th');
+    thTotal.textContent = 'Total';
+    trHead.appendChild(thTotal);
+    thead.appendChild(trHead);
+    table.appendChild(thead);
+
+    const saisies = {};
+    const cellules = {};
+
+    function creerCellule(cle, libelle) {
+      const td = document.createElement('td');
+      td.dataset.cle = cle;
+      if (cachees.has(cle)) {
+        td.className = 'cellule-deduction a-trouver';
+        td.textContent = '?';
+        td.setAttribute('role', 'button');
+        td.setAttribute('aria-label', 'Case à trouver : ' + libelle);
+        td.dataset.libelle = libelle;
+        td.addEventListener('click', () => { if (!etat.verrouille) choisirCase(cle); });
+      } else {
+        td.className = 'cellule-deduction donnee';
+        td.textContent = String(valeurs[cle]);
+      }
+      cellules[cle] = td;
+      return td;
+    }
+
+    const tbody = document.createElement('tbody');
+    for (let i = 0; i < nbLignes; i++) {
+      const tr = document.createElement('tr');
+      const th = document.createElement('th');
+      th.textContent = especes[i].emoji + ' ' + especes[i].pluriel;
+      tr.appendChild(th);
+      for (let j = 0; j < NB_COLONNES_DEDUCTION; j++) {
+        tr.appendChild(creerCellule('d:' + i + ':' + j, 'les ' + especes[i].pluriel + ', ' + colonnes[j].nom));
+      }
+      const tdTotal = creerCellule('L:' + i, 'le total des ' + especes[i].pluriel);
+      tdTotal.classList.add('colonne-total');
+      tr.appendChild(tdTotal);
+      tbody.appendChild(tr);
+    }
+    const trTotaux = document.createElement('tr');
+    trTotaux.className = 'ligne-total';
+    const thTot = document.createElement('th');
+    thTot.textContent = 'Total';
+    trTotaux.appendChild(thTot);
+    for (let j = 0; j < NB_COLONNES_DEDUCTION; j++) {
+      trTotaux.appendChild(creerCellule('C:' + j, 'le total pour ' + colonnes[j].nom));
+    }
+    const tdGeneral = creerCellule('T', 'le total général');
+    tdGeneral.classList.add('colonne-total');
+    trTotaux.appendChild(tdGeneral);
+    tbody.appendChild(trTotaux);
+    table.appendChild(tbody);
+    zone.appendChild(table);
+
+    const invite = document.createElement('p');
+    invite.className = 'legende';
+    zone.appendChild(invite);
+
+    const zoneSaisie = document.createElement('div');
+    zone.appendChild(zoneSaisie);
+
+    let cleEnCours = null;
+    const pave = creerPave((valeur) => { if (cleEnCours) inscrire(cleEnCours, valeur); }, 2);
+
+    const boutonValider = document.createElement('button');
+    boutonValider.type = 'button';
+    boutonValider.className = 'bouton-principal';
+    boutonValider.textContent = 'Valider mon carnet';
+    boutonValider.disabled = true;
+    boutonValider.addEventListener('click', () => {
+      if ([...cachees].some((k) => saisies[k] === undefined)) return;
+      terminer();
+    });
+
+    zoneSaisie.appendChild(pave.el);
+    zoneSaisie.appendChild(boutonValider);
+
+    function choisirCase(cle) {
+      cleEnCours = cle;
+      Object.keys(cellules).forEach((k) => cellules[k].classList.toggle('active', k === cle));
+      invite.textContent = 'Case à trouver : ' + cellules[cle].dataset.libelle + '.';
+      pave.vider();
+    }
+
+    function inscrire(cle, valeur) {
+      saisies[cle] = valeur;
+      cellules[cle].textContent = String(valeur);
+      cellules[cle].classList.remove('a-trouver');
+      cellules[cle].classList.add('saisi');
+      const restantes = ordre.filter((k) => cachees.has(k) && saisies[k] === undefined);
+      if (restantes.length) choisirCase(restantes[0]);
+      else {
+        cellules[cle].classList.remove('active');
+        cleEnCours = null;
+        pave.vider();
+        invite.textContent = 'Relis ton carnet, puis valide. Tu peux encore corriger un nombre.';
+      }
+      boutonValider.disabled = restantes.length > 0;
+    }
+
+    function terminer() {
+      pave.verrouiller(true);
+      const fautives = [...cachees].filter((k) => saisies[k] !== valeurs[k]);
+      // CHARTE §18 : chaque case saisie passe au vert ou au rouge, et les
+      // valeurs fausses cèdent la place aux bonnes après un temps de lecture.
+      cachees.forEach((k) => {
+        cellules[k].classList.remove('active', 'saisi');
+        cellules[k].classList.add(saisies[k] === valeurs[k] ? 'correct' : 'incorrect');
+      });
+      if (fautives.length) {
+        setTimeout(() => {
+          if (!table.isConnected) return;
+          fautives.forEach((k) => {
+            cellules[k].textContent = String(valeurs[k]);
+            cellules[k].classList.remove('incorrect');
+            cellules[k].classList.add('correct');
+          });
+        }, 1200);
+      }
+      invite.textContent = fautives.length
+        ? 'Regarde bien : voici les bons nombres.'
+        : 'Carnet complété sans une erreur !';
+      validerTour(fautives.length === 0, boutonValider, fautives.length ? {
+        donnee: fautives.length + (fautives.length > 1 ? ' nombres faux' : ' nombre faux'),
+        attendue: fautives.map((k) => valeurs[k]).join('  ·  ')
+      } : null);
+    }
+
+    // On ouvre sur la première case DÉDUCTIBLE, pas sur la première venue.
+    choisirCase(ordre.find((k) => cachees.has(k)) || [...cachees][0]);
   }
 
   /* ================================================================
