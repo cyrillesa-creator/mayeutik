@@ -1105,8 +1105,14 @@
     const zoneH = BTL_BAS - BTL_HAUT;
     let niveau = (niveauInitial === undefined) ? denom : niveauInitial;
     const liquide = elSvg('rect', { x: BTL_X, y: 0, width: BTL_LARG, height: 0, fill: 'var(--limonade)' });
+    // Le COMPLÉMENT (mini-jeu « Les comptes du goûter ») : une seconde teinte,
+    // posée par-dessus le niveau initial, qui monte jusqu'au bouchon pour
+    // montrer que a/d + manque/d = d/d = 1 — la bouteille se voit se remplir
+    // entièrement, dans une couleur qui n'est pas celle du niveau de départ.
+    const complement = elSvg('rect', { x: BTL_X, y: BTL_BAS, width: BTL_LARG, height: 0, fill: 'var(--couleur-mandarine)', opacity: 0.85 });
     const vague = elSvg('ellipse', { cx: 60, cy: 0, rx: BTL_LARG / 2, ry: 4, fill: 'color-mix(in srgb, var(--limonade) 70%, white)' });
     svg.appendChild(liquide);
+    svg.appendChild(complement);
     svg.appendChild(vague);
 
     // Graduations : d-1 traits discrets — les repères du partage.
@@ -1143,8 +1149,22 @@
       animer(420, (p) => poserNiveau(depart + (k - depart) * p), onFini);
     }
 
+    function poserComplement(bas, haut) {
+      const yHaut = BTL_BAS - (Math.max(0, haut) / denom) * zoneH;
+      const yBas = BTL_BAS - (Math.max(0, bas) / denom) * zoneH;
+      complement.setAttribute('y', yHaut.toFixed(1));
+      complement.setAttribute('height', Math.max(0, yBas - yHaut).toFixed(1));
+    }
+    poserComplement(0, 0);
+
+    // Fait monter le complément de `bas` (le niveau déjà là) à `haut` parts —
+    // typiquement jusqu'au bouchon (denom), pour la manche du complément à 1.
+    function animerComplement(bas, haut, onFini) {
+      animer(550, (p) => poserComplement(bas, bas + (haut - bas) * p), onFini);
+    }
+
     wrap.appendChild(svg);
-    return { el: wrap, svg, niveau: () => niveau, setNiveau };
+    return { el: wrap, svg, niveau: () => niveau, setNiveau, animerComplement };
   }
 
   /* Un verre : plein ou vide, la transition est en CSS. */
@@ -1264,20 +1284,23 @@
       if (fige) return;
       if (t === 'C') { valeurs[actif] = ''; rafraichir(); jouerSon('tic'); return; }
       if (t === '✓') {
-        if (actif === 'n' && valeurs.n !== '' && !opts.denominateurFixe && valeurs.d === '') {
-          actif = 'd';
-          rafraichir();
-          jouerSon('tic');
-          return;
-        }
         if (valeurs.n !== '' && valeurs.d !== '') {
           opts.onValider(parseInt(valeurs.n, 10), parseInt(valeurs.d, 10));
         }
         return;
       }
-      if (valeurs[actif].length < 2) { valeurs[actif] += t; rafraichir(); jouerSon('tic'); }
-      // La case du haut remplie, on passe naturellement à celle du bas.
-      if (actif === 'n' && !opts.denominateurFixe && valeurs.n.length >= 2) { actif = 'd'; rafraichir(); }
+      // Un chiffre REMPLACE toujours celui déjà saisi dans la case active :
+      // jamais de nombre à deux chiffres au pavé (toutes les valeurs du
+      // module tiennent en un seul chiffre, 0 à 9).
+      valeurs[actif] = t;
+      rafraichir();
+      jouerSon('tic');
+      // Sélection automatique du dénominateur une fois le numérateur rempli —
+      // seulement la première fois (d encore vide), pour ne pas gêner une
+      // correction ultérieure du numérateur. Toucher l'une ou l'autre case
+      // reste possible à tout moment pour la corriger (cf. écouteurs de clic
+      // sur slotN/slotD ci-dessus).
+      if (actif === 'n' && !opts.denominateurFixe && valeurs.d === '') { actif = 'd'; rafraichir(); }
     });
     cont.appendChild(pave.el);
 
@@ -1307,7 +1330,10 @@
       if (fige) return;
       if (t === 'C') { valeur = ''; slot.textContent = '?'; jouerSon('tic'); return; }
       if (t === '✓') { if (valeur !== '') onValider(parseInt(valeur, 10)); return; }
-      if (valeur.length < 2) { valeur += t; slot.textContent = valeur; jouerSon('tic'); }
+      // Un chiffre REMPLACE le précédent (pas de nombre à deux chiffres).
+      valeur = t;
+      slot.textContent = valeur;
+      jouerSon('tic');
     });
     cont.appendChild(pave.el);
     return {
@@ -1399,21 +1425,29 @@
   }
 
   /* `correction` (facultatif) = { donnee, attendue } : affiché uniquement en
-     cas d'erreur, sous le message de feedback (CHARTE §18). */
-  function validerReponse(estCorrecte, correction) {
+     cas d'erreur, sous le message de feedback (CHARTE §18).
+     `options` (facultatif) = { message, silencieux } :
+       - message : remplace le message tiré au hasard dans messagesFeedback,
+         utile quand un mini-jeu veut commenter une combinaison précise
+         (ex. « bon partage, mauvais compte ») plutôt qu'un bravo générique ;
+       - silencieux : n'émet ni son ni confettis ici — utilisé par les
+         mini-jeux à DEUX sous-réponses (ex. Le bon partage), qui ont déjà
+         donné leur propre retour sonore/visuel à chaque sous-étape et ne
+         veulent pas le rejouer une seconde fois à la validation finale. */
+  function validerReponse(estCorrecte, correction, options) {
     if (etat.verrouille) return;
     etat.verrouille = true;
+    const opts = options || {};
     const zoneFeedback = document.getElementById('zone-feedback');
     if (estCorrecte) {
       etat.score++;
-      zoneFeedback.textContent = choisir(donnees.messagesFeedback.bravo);
+      zoneFeedback.textContent = opts.message || choisir(donnees.messagesFeedback.bravo);
       zoneFeedback.className = 'feedback feedback-succes';
-      lancerConfettis();
-      jouerSon('bravo');
+      if (!opts.silencieux) { lancerConfettis(); jouerSon('bravo'); }
     } else {
-      zoneFeedback.textContent = choisir(donnees.messagesFeedback.rate);
+      zoneFeedback.textContent = opts.message || choisir(donnees.messagesFeedback.rate);
       zoneFeedback.className = 'feedback feedback-erreur';
-      jouerSon('rate');
+      if (!opts.silencieux) jouerSon('rate');
       if (correction) afficherCorrection(zoneFeedback, correction.donnee, correction.attendue);
     }
     document.getElementById('bouton-suivant').hidden = false;
@@ -1534,7 +1568,10 @@
           else if (c === carte) b.classList.add('incorrect');
         });
         if (carte.correcte) {
-          jouerSon('tic');
+          // Petite récompense propre à CETTE sous-réponse, indépendante du
+          // verdict final de la manche (qui dépend aussi du comptage).
+          jouerSon('bravo');
+          lancerConfettis();
           ouvrirComptage();
         } else {
           // CHARTE §18 : la découpe fautive en rouge, la bonne en vert, et
@@ -1566,17 +1603,34 @@
         saisie.verrouiller();
         const phase2Juste = valeur === d;
         saisie.marquer(phase2Juste);
+        // Là encore, la sous-réponse a son propre retour immédiat.
         if (phase2Juste) {
+          jouerSon('bravo');
+          lancerConfettis();
           const vocab = document.createElement('p');
           vocab.className = 'legende';
           vocab.textContent = 'Ce nombre de parts, c’est le DÉNOMINATEUR de la fraction !';
           zoneComptage.appendChild(vocab);
+        } else {
+          jouerSon('rate');
+        }
+        // La manche n'est acquise que si LES DEUX sous-réponses sont justes,
+        // mais le commentaire final distingue les deux cas de réussite
+        // partielle plutôt que de les noyer dans un « rate » générique — les
+        // sons/confettis ont déjà été joués par sous-réponse, on ne les
+        // rejoue donc pas ici (options.silencieux).
+        let message = null;
+        if (phase1Juste && !phase2Juste) {
+          message = 'Bon choix de partage ! Mais recompte bien les parts la prochaine fois.';
+        } else if (!phase1Juste && phase2Juste) {
+          message = 'Le partage n’était pas le bon, mais bien compté !';
         }
         validerReponse(phase1Juste && phase2Juste,
           (phase1Juste && phase2Juste) ? null : {
             donnee: phase2Juste ? null : String(valeur),
             attendue: d + ' parts égales'
-          });
+          },
+          { message, silencieux: true });
       });
       zoneComptage.appendChild(saisie.el);
       lireAVoixHaute('Maintenant, compte : combien de parts égales dans le bon partage ?');
@@ -1717,7 +1771,13 @@
        installe n/n = 1 en versant toute la bouteille. */
     const manche = etat.index;
     let d, cible;
-    if (manche === 1) { d = 2; cible = 1; }
+    /* Manche 1 (« la moitié ») : partager la bouteille en SEULEMENT deux
+       verres ferait tenir la moitié entière dans un seul verre — une portion
+       énorme, peu réaliste pour un verre. On partage donc en quatre verres
+       plus petits et on demande d'en remplir deux sur quatre : le volume
+       versé reste exactement la moitié de la bouteille, mais réparti dans des
+       verres de taille crédible. */
+    if (manche === 1) { d = 4; cible = 2; }
     else if (manche === 2) { d = choisir([3, 4]); cible = nombreAleatoire(1, d - 1); }
     else if (manche === 3) { d = choisir([3, 4]); cible = nombreAleatoire(1, d - 1); }
     else if (manche === 4) { d = choisir([3, 4, 6]); cible = nombreAleatoire(1, d - 1); }
@@ -1729,7 +1789,8 @@
     if (manche === 1) {
       zone.appendChild(creerBlocConsigne(
         'Verse la moitié (1/2) de la bouteille dans les verres.',
-        'La bouteille est partagée en deux parts égales. Touche un verre pour verser. Verse la moitié de la bouteille, puis valide.'
+        'La bouteille est partagée en quatre verres égaux. Touche les verres pour verser. '
+        + 'Verse deux verres sur les quatre : c’est la moitié de la bouteille. Puis valide.'
       ));
     } else if (manche === 2) {
       zone.appendChild(creerBlocConsigne(
@@ -2250,7 +2311,8 @@
 
     const scene = document.createElement('div');
     scene.className = 'scene-limonade';
-    scene.appendChild(creerBouteille(d, a).el);
+    const bouteille = creerBouteille(d, a);
+    scene.appendChild(bouteille.el);
     zone.appendChild(scene);
     const rappel = document.createElement('div');
     rappel.className = 'rappel-calcul';
@@ -2267,6 +2329,9 @@
     rappel.appendChild(document.createTextNode('1'));
     zone.appendChild(rappel);
 
+    const zoneLegende = document.createElement('div');
+    zone.appendChild(zoneLegende);
+
     const saisie = creerSaisieFraction({
       denominateurFixe: d,
       onValider: (nSaisi) => {
@@ -2274,6 +2339,15 @@
         saisie.verrouiller();
         const juste = nSaisi === manque;
         saisie.marquer(juste, true);
+        // La bouteille se remplit entièrement à la validation : le complément
+        // (la vraie valeur, pas la réponse de l'enfant) monte dans une AUTRE
+        // couleur jusqu'au bouchon, pour VOIR que a/d + manque/d = d/d = 1.
+        bouteille.animerComplement(a, d, () => {
+          const legende = document.createElement('p');
+          legende.className = 'legende';
+          legende.textContent = a + '/' + d + ' (jaune) + ' + manque + '/' + d + ' (orange) = ' + d + '/' + d + ' = 1 bouteille pleine.';
+          zoneLegende.appendChild(legende);
+        });
         validerReponse(juste, juste ? null : { donnee: nSaisi + '/' + d, attendue: manque + '/' + d + ' (car ' + a + '/' + d + ' + ' + manque + '/' + d + ' = ' + d + '/' + d + ' = 1)' });
       }
     });
