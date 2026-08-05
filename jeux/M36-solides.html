@@ -13,12 +13,13 @@
        CP  : cube, boule, cône, cylindre, pavé — PAS la pyramide.
              Vocabulaire limité à « face ». Le cube n'est PAS un pavé
              (distinction explicitement travaillée dans le jeu).
-       CE1 : + la pyramide, + « sommet » et « arête », + la notion de
-             polyèdre, + le dénombrement faces/arêtes/sommets.
-       CE2 : REPREND le vocabulaire du CE1 et l'enrichit — justification
-             de la nature d'un solide par ses faces, patrons, et lecture
-             d'une représentation en perspective cavalière (arêtes
-             cachées en pointillés, à interpréter et non à produire).
+       CE1 : + la pyramide, + « sommet » et « arête », + le dénombrement
+             faces/arêtes/sommets. PAS encore « polyèdre ».
+       CE2 : REPREND le vocabulaire du CE1 et l'enrichit — la notion de
+             polyèdre, la justification de la nature d'un solide par ses
+             faces, les patrons, et la lecture d'une représentation en
+             perspective cavalière (arêtes cachées en pointillés, à
+             interpréter et non à produire).
      Le contenu CE2 vient de l'ancien module M42, fusionné ici comme
      troisième palier plutôt que gardé dans un fichier séparé.
      Règles série : contenu JSON séparé / charte commune / ID backlog
@@ -193,14 +194,6 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
   background:var(--soleil); border-radius:16px; font-size:1.7rem; font-weight:700;
   text-align:center; box-shadow:var(--ombre); display:none; pointer-events:none;
 }
-#btnShow{
-  position:absolute; top:10px; left:10px; border:none; border-radius:14px;
-  padding:9px 13px; font-family:inherit; font-weight:600; font-size:.88rem;
-  background:var(--soleil); color:var(--encre); box-shadow:var(--ombre); cursor:pointer;
-  display:none;
-}
-#btnShow:active{transform:translateY(2px);}
-
 /* ---------- Question / réponses ---------- */
 #qText{
   font-size:1.12rem; font-weight:600; text-align:center; margin:14px 4px 12px;
@@ -427,7 +420,6 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
     <div id="viewport">
       <canvas id="c3d"></canvas>
       <div id="counterBubble">0</div>
-      <button id="btnShow">👀 Montre-moi</button>
       <div id="hint3d">↻ Fais-le tourner avec ton doigt</div>
     </div>
   </main>
@@ -452,10 +444,14 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
            cube et pavé systématiquement proposés l'un contre l'autre)
 
      CE1 · + la pyramide
-         · + « sommet » et « arête », + la notion de polyèdre
+         · + « sommet » et « arête »
          · + le dénombrement des faces, arêtes et sommets
+         · PAS « polyèdre » : le mot et le tri qui va avec sont réservés
+           au CE2 (ni mini-jeu, ni badge, ni devinette au CE1)
 
      CE2 · reprend tout le CE1, sans rien en redéfinir
+         · + la notion de polyèdre (mini-jeu « Polyèdre ? » et badge de
+           l'écran Découverte)
          · + justifier la nature d'un solide par le nombre et la nature
            de ses faces (drapeau `justifier` du palier, pas un nouveau
            vocabulaire)
@@ -551,14 +547,15 @@ const CONTENU = {
     CE1: {
       sousTitre: "Faces, arêtes et sommets : explore les solides !",
       solides: ["cube","pave","pyramide","cylindre","cone","boule"],
-      vocabulaire: ["face","sommet","arete","polyedre"],
+      /* Pas de « polyèdre » ici : la notion est reportée au CE2, où elle est
+         travaillée pour elle-même (mini-jeu « Polyèdre ? » + badge Découverte).
+         Le CE1 s'en tient donc à face / sommet / arête et à leur dénombrement. */
+      vocabulaire: ["face","sommet","arete"],
       miniJeux: [
         { id:"ce1-nommer", mode:"nomme", titre:"Qui suis-je ?", icone:"🎯",
           description:"Nomme les solides.", nbQuestions:6 },
         { id:"ce1-compter", mode:"compte", kinds:["faces","sommets","aretes"],
           titre:"Je compte", icone:"🔢", description:"Faces, sommets, arêtes.", nbQuestions:6 },
-        { id:"ce1-polyedre", mode:"polyedre", titre:"Polyèdre ?", icone:"🧐",
-          description:"Tout plat, ou tout rond ?", nbQuestions:6 },
         { id:"ce1-explorer", mode:"explore", titre:"J'explore", icone:"👆",
           description:"Faces opposées & cie.", nbQuestions:6 },
         { id:"ce1-construction", mode:"construction", titre:"Construction", icone:"🧩",
@@ -622,14 +619,20 @@ const CONTENU = {
     {q:"J'ai 1 seule face plate, une pointe tout en haut, et je peux rouler. Qui suis-je ?", ans:"cone", niveau:"CP"},
     {q:"Ma base est un rond et je finis en pointe. Qui suis-je ?", ans:"cone", niveau:"CP"},
     {q:"Je n'ai aucune face plate et je roule dans tous les sens. Qui suis-je ?", ans:"boule", niveau:"CP"},
-    {q:"On me trouve dans un match de football. Qui suis-je ?", ans:"boule", niveau:"CP"},
-    {q:"On me trouve dans une boîte de conserve. Qui suis-je ?", ans:"cylindre", niveau:"CP"},
-    {q:"On me trouve dans un cornet de glace. Qui suis-je ?", ans:"cone", niveau:"CP"},
-    {q:"On me trouve dans une boîte de céréales. Qui suis-je ?", ans:"pave", niveau:"CP"},
-    /* --- CE1 seulement : « sommet », « arête », « polyèdre », pyramide --- */
+    /* Formulées « tel objet a ma forme », et non « on me trouve dans tel
+       objet » : le solide n'est pas CONTENU dans l'objet, il en est la forme.
+       La tournure d'origine induisait l'enfant en erreur. */
+    {q:"Un ballon de football est de ma forme. Qui suis-je ?", ans:"boule", niveau:"CP"},
+    {q:"Une boîte de conserve a souvent ma forme. Qui suis-je ?", ans:"cylindre", niveau:"CP"},
+    {q:"Un cornet de glace est de ma forme. Qui suis-je ?", ans:"cone", niveau:"CP"},
+    {q:"Une boîte de céréales a souvent ma forme. Qui suis-je ?", ans:"pave", niveau:"CP"},
+    /* --- CE1 seulement : « sommet », « arête », pyramide --- */
     {q:"J'ai 5 faces : 4 triangles et 1 carré. Qui suis-je ?", ans:"pyramide", niveau:"CE1"},
     {q:"J'ai 5 faces, 5 sommets et 8 arêtes. Qui suis-je ?", ans:"pyramide", niveau:"CE1"},
-    {q:"Je suis un polyèdre et j'ai exactement 5 sommets. Qui suis-je ?", ans:"pyramide", niveau:"CE1"},
+    /* Seule devinette citant « polyèdre » : réservée au CE2, palier où le mot
+       est introduit (le filtre des devinettes est un filtre de PALIER, pas de
+       vocabulaire — sans ce reclassement elle fuirait au CE1). */
+    {q:"Je suis un polyèdre et j'ai exactement 5 sommets. Qui suis-je ?", ans:"pyramide", niveau:"CE2"},
     {q:"Je fais penser aux pyramides d'Égypte. Qui suis-je ?", ans:"pyramide", niveau:"CE1"},
     {q:"J'ai 8 sommets, 12 arêtes, et toutes mes faces sont exactement les mêmes. Qui suis-je ?", ans:"cube", niveau:"CE1"},
     {q:"Toutes mes faces sont des carrés identiques, et j'ai 12 arêtes égales. Qui suis-je ?", ans:"cube", niveau:"CE1"},
@@ -855,6 +858,28 @@ function faceMesh(pts, normalOut){
   return new THREE.Mesh(geo, mat);
 }
 
+/* Face plate d'un solide de révolution (les disques du cylindre et du cône) :
+   même rôle que `faceMesh` pour les polyèdres — un calque surlignable, décalé
+   vers l'extérieur pour ne pas z-fighter avec la surface du solide. C'est ce
+   qui permet de COMPTER les faces plates d'un solide rond (2 pour le
+   cylindre, 1 pour le cône), exigé dès le CP. */
+function disqueMesh(rayon, y, sensNormale){
+  const geo = new THREE.CircleGeometry(rayon, 48);
+  const mat = new THREE.MeshBasicMaterial({color:0xFFC93C, transparent:true, opacity:0, side:THREE.DoubleSide, depthWrite:false});
+  const m = new THREE.Mesh(geo, mat);
+  // CircleGeometry naît dans le plan XY (normale +Z) : on la couche à plat.
+  m.rotation.x = sensNormale > 0 ? -Math.PI/2 : Math.PI/2;
+  m.position.y = y + sensNormale * 0.025;
+  return m;
+}
+
+function sommetMesh(position){
+  const s = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12),
+    new THREE.MeshBasicMaterial({color:0xFF5D5D, transparent:true, opacity:0}));
+  s.position.copy(position);
+  return s;
+}
+
 function edgeMesh(p1, p2, radius, opacity, color){
   const dirV = new THREE.Vector3().subVectors(p2, p1);
   const len = dirV.length();
@@ -901,11 +926,29 @@ function montrerSolide(key, opts={}){
       groupe.add(vis); groupe.add(hit);
     });
     V.forEach((p, i) => {
-      const s = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12),
-        new THREE.MeshBasicMaterial({color:0xFF5D5D, transparent:true, opacity:0}));
-      s.position.copy(p); s.userData = {type:"sommet", index:i};
+      const s = sommetMesh(p);
+      s.userData = {type:"sommet", index:i};
       partiesC.sommets.push(s); groupe.add(s);
     });
+  } else if(S.geo.type === "cylinder"){
+    /* Cylindre : 2 faces plates (les disques du haut et du bas), aucune arête
+       ni sommet. args = [rayonHaut, rayonBas, hauteur, …]. */
+    const [rHaut, rBas, h] = S.geo.args;
+    [disqueMesh(rHaut, h/2, 1), disqueMesh(rBas, -h/2, -1)].forEach((d, i) => {
+      d.userData = {type:"face", index:i};
+      partiesC.faces.push(d); groupe.add(d);
+    });
+  } else if(S.geo.type === "cone"){
+    /* Cône : 1 face plate (le disque de base) et 1 sommet (la pointe), sans
+       arête. args = [rayon, hauteur, …]. La pyramide, elle, passe par la
+       branche polyèdre ci-dessus (c'est un cône à 4 côtés, mais un polyèdre). */
+    const [r, h] = S.geo.args;
+    const base = disqueMesh(r, -h/2, -1);
+    base.userData = {type:"face", index:0};
+    partiesC.faces.push(base); groupe.add(base);
+    const pointe = sommetMesh(new THREE.Vector3(0, h/2, 0));
+    pointe.userData = {type:"sommet", index:0};
+    partiesC.sommets.push(pointe); groupe.add(pointe);
   }
   groupe.rotation.set(0.35, -0.65, 0);
   scene.add(groupe);
@@ -1274,9 +1317,9 @@ function qNomme(cfg, palier){
   });
 }
 
-/* « Polyèdre ? » — CE1 uniquement (la notion n'existe pas au CP). Banque =
-   les solides du palier, chacun devant être classé : même justification
-   d'exhaustivité que qNomme. */
+/* « Polyèdre ? » — CE2 uniquement (le mot n'est introduit ni au CP ni au CE1).
+   Banque = les solides du palier, chacun devant être classé : même
+   justification d'exhaustivité que qNomme. */
 function qPolyedre(cfg, palier){
   return melange(palier.solides).slice(0, cfg.nbQuestions).map(k => {
     const S = CONTENU.solides[k];
@@ -1291,7 +1334,8 @@ function qPolyedre(cfg, palier){
    CP, faces/sommets/arêtes au CE1. Sommets et arêtes n'ont de sens que sur un
    polyèdre ; les faces, elles, se comptent sur tous les solides (2 pour le
    cylindre, 1 pour le cône, 0 pour la boule — c'est justement ce que le CP
-   doit observer). */
+   doit observer). Toutes ces parties sont modélisées, y compris les disques
+   des solides ronds : le comptage animé de la correction marche partout. */
 function qCompte(cfg, palier){
   const noms = {faces:"faces", sommets:"sommets", aretes:"arêtes"};
   const combos = [];
@@ -1310,10 +1354,7 @@ function qCompte(cfg, palier){
     while(distr.size<3){ const d = n + pioche([-3,-2,-1,1,2,3,4]); if(d>=0 && d!==n) distr.add(d); }
     return {mode:"compte", solide:k, kind:t, ans:n,
       q:`Combien de ${libelle} a ${S.nom} ?`,
-      opts:melange([n, ...distr]), fmt:x=>String(x),
-      /* Le comptage animé n'existe que si les parties sont modélisées, donc
-         seulement pour les polyèdres. */
-      aide:S.poly};
+      opts:melange([n, ...distr]), fmt:x=>String(x)};
   });
 }
 
@@ -1678,7 +1719,6 @@ function question(){
   $("qText").textContent = q.q;
   $("feedback").textContent = ""; $("feedback").className = "";
   $("btnNext").style.display = "none";
-  $("btnShow").style.display = "none";
   $("hint3d").style.display = "block";
   const ans = $("answers"); ans.innerHTML = ""; ans.classList.remove("uno", "construction");
   ans.style.gridTemplateColumns = ""; // « Les patrons » peut la surcharger
@@ -1704,10 +1744,9 @@ function question(){
     requestAnimationFrame(resize);
   }
 
-  if(q.mode === "compte" && q.aide){
-    $("btnShow").style.display = "block";
-    $("btnShow").onclick = () => sequenceComptage(q.kind);
-  }
+  /* Plus de bouton « 👀 Montre-moi » proposé d'emblée : il donnait la réponse
+     avant même que l'enfant ait cherché. Le comptage animé ne se déclenche
+     désormais qu'en CORRECTION, automatiquement, sur une mauvaise réponse. */
 
   if(q.mode === "explore") prepareExplore(q);
 
@@ -1815,7 +1854,7 @@ function repond(bon, bouton, q){
       // au CE1, la correction reste la phrase seule.
       correction = `C'était ${CONTENU.solides[q.ans].nom} !` + (q.expl ? ` (${q.expl})` : "");
     }
-    else if(q.mode==="compte") correction = `La bonne réponse était ${q.ans}. Appuie sur 👀 pour vérifier !`;
+    else if(q.mode==="compte") correction = `La bonne réponse était ${q.ans}. Comptons ensemble !`;
     else if(q.mode==="construction") correction = "Regarde bien : les bonnes formes sont maintenant en vert.";
     else if(q.expl) correction = q.expl;
     else if(q.opts || q.nets){
@@ -1832,11 +1871,20 @@ function repond(bon, bouton, q){
     span.textContent = correction;
     $("feedback").appendChild(span);
     $("feedback").className = "mauvais";
+    /* « Je compte » : on ne se contente pas d'annoncer le bon nombre, on le
+       fait CONSTATER — les éléments à compter défilent un à un, exactement
+       comme le faisait le bouton « Montre-moi ». */
+    if(q.mode === "compte") sequenceComptage(q.kind);
   }
   $("btnNext").style.display = "block";
   $("btnNext").textContent = pos === file.length-1 ? "Voir mon score ⭐" : "Suivant ➜";
   majDots();
-  armerAutoSuivant();
+  /* Le passage automatique (CHARTE §20) est neutralisé pendant le comptage
+     de correction : la séquence dure bien plus que le délai d'auto-avance et
+     serait coupée en plein milieu. L'enfant enchaîne lui-même avec « Suivant ».
+     Tous les autres cas — y compris une bonne réponse en « Je compte » —
+     gardent l'enchaînement automatique. */
+  if(!(q.mode === "compte" && !bon)) armerAutoSuivant();
 }
 
 $("btnNext").addEventListener("click", () => {
@@ -1868,8 +1916,10 @@ $("bMenu").addEventListener("click", retourAccueil);
 
 /* ============================================================
    MODE DÉCOUVERTE
-   Bridé par le palier : au CP, ni arêtes, ni sommets, ni badge polyèdre —
-   le vocabulaire s'y limite à « face ».
+   Bridé par le palier : au CP, ni arêtes ni sommets — le vocabulaire s'y
+   limite à « face ». Le badge polyèdre, lui, n'apparaît qu'au CE2.
+   Les boutons restants sont actifs selon ce que le solide possède RÉELLEMENT
+   (le cylindre a 2 faces plates, le cône 1 face plate et 1 sommet).
    ============================================================ */
 let decToggles = {faces:false, aretes:false, sommets:false};
 
@@ -1912,8 +1962,20 @@ function montreDecouverte(k){
   decToggles = {faces:false, aretes:false, sommets:false};
   document.querySelectorAll(".tog").forEach(t => t.classList.remove("on"));
   const S = CONTENU.solides[k];
-  const peut = S.poly;
-  document.querySelectorAll(".tog").forEach(t => { t.disabled = !peut; t.style.opacity = peut ? "1" : ".4"; });
+  /* Un bouton n'est actif que si la partie correspondante est réellement
+     modélisée sur ce solide — et non plus « seulement si c'est un polyèdre ».
+     Le cylindre a bien 2 faces plates, le cône 1 face plate et 1 sommet : les
+     masquer revenait à contredire ce que l'enfant doit justement observer.
+     Seule la boule reste sans aucune partie à montrer. */
+  const dispo = {
+    faces: partiesC.faces.length > 0,
+    aretes: partiesC.aretes.length > 0,
+    sommets: partiesC.sommets.length > 0
+  };
+  document.querySelectorAll(".tog").forEach(t => {
+    const peut = !!dispo[t.dataset.t];
+    t.disabled = !peut; t.style.opacity = peut ? "1" : ".4";
+  });
 
   /* Ligne de comptage : au CP on ne cite que les faces ; au CE1 le trio
      complet. Un solide rond n'a de toute façon pas de parties modélisées :
@@ -1946,8 +2008,7 @@ function montreDecouverte(k){
 }
 
 document.querySelectorAll(".tog").forEach(t => t.addEventListener("click", () => {
-  const k = $("infoCard").dataset.solide;
-  if(!CONTENU.solides[k].poly) return;
+  if(!partiesC) return;
   const type = t.dataset.t;
   decToggles[type] = !decToggles[type];
   t.classList.toggle("on", decToggles[type]);
