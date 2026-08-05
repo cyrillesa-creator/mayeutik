@@ -221,6 +221,28 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 .rep svg{display:block; margin:0 auto; max-width:100%; height:88px;}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 
+/* ---------- Construction (paliers CP/CE1) : emplacements + banque de formes ---------- */
+#answers.construction{display:block;}
+.emplacements{display:flex; justify-content:center; gap:10px; margin-bottom:16px; flex-wrap:wrap;}
+.emplacement{
+  width:64px; height:64px; border-radius:14px;
+  border:3px dashed color-mix(in srgb, var(--encre) 30%, white);
+  display:flex; align-items:center; justify-content:center;
+  background:color-mix(in srgb, var(--ciel) 60%, white);
+}
+.emplacement svg{width:100%; height:100%;}
+.emplacement.rempli{border-style:solid;}
+.emplacement.ok{border-color:var(--menthe); background:color-mix(in srgb, var(--menthe) 14%, white);}
+.banque-formes{display:flex; justify-content:center; gap:10px; flex-wrap:wrap;}
+.forme{
+  width:56px; height:56px; padding:5px; border:none; border-radius:14px;
+  background:var(--carte); box-shadow:var(--ombre); cursor:pointer;
+}
+.forme svg{width:100%; height:100%;}
+.forme:active{transform:translateY(2px); box-shadow:0 1px 0 rgba(29,51,84,.12);}
+.forme.placee{opacity:.35; cursor:default;}
+.forme.ko{background:var(--corail); animation:shake .35s;}
+
 #feedback{
   text-align:center; font-weight:700; margin-top:12px; min-height:2.4em;
   font-size:1.06rem; line-height:1.35; padding:0 6px;
@@ -323,7 +345,7 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 [hidden]{display:none !important;}
 @media (prefers-color-scheme: dark){
   html, body{background:var(--ciel) !important; color:var(--encre) !important;}
-  .card, .rep, .chip, .tog, #infoCard, #viewport, #btnBack, .puce-palier{background:var(--carte) !important; color:var(--encre) !important;}
+  .card, .rep, .forme, .chip, .tog, #infoCard, #viewport, #btnBack, .puce-palier{background:var(--carte) !important; color:var(--encre) !important;}
   .puce-palier.actif{background:var(--mandarine) !important; color:#fff !important;}
 }
 @media (prefers-reduced-motion:reduce){ *{animation:none !important;} }
@@ -520,6 +542,8 @@ const CONTENU = {
           description:"Nomme les solides.", nbQuestions:5 },
         { id:"cp-compter-faces", mode:"compte", kinds:["faces"], titre:"Je compte",
           icone:"🔢", description:"Compte les faces plates.", nbQuestions:5 },
+        { id:"cp-construction", mode:"construction", titre:"Construction", icone:"🧩",
+          description:"Assemble les faces.", nbQuestions:2 },
         { id:"cp-devinettes", mode:"devinette", titre:"Devinettes", icone:"🕵️",
           description:"Qui suis-je ?", nbQuestions:6 }
       ]
@@ -537,6 +561,8 @@ const CONTENU = {
           description:"Tout plat, ou tout rond ?", nbQuestions:6 },
         { id:"ce1-explorer", mode:"explore", titre:"J'explore", icone:"👆",
           description:"Faces opposées & cie.", nbQuestions:6 },
+        { id:"ce1-construction", mode:"construction", titre:"Construction", icone:"🧩",
+          description:"Assemble les faces.", nbQuestions:3 },
         { id:"ce1-devinettes", mode:"devinette", titre:"Devinettes", icone:"🕵️",
           description:"Qui suis-je ?", nbQuestions:8 }
       ]
@@ -740,6 +766,39 @@ const CAVALIERE = (() => {
     pyramide: pyramideCavaliere("#FFE3CC")
   };
 })();
+
+/* ============================================================
+   CONSTRUCTION — pièces détachées à réassembler (paliers CP/CE1)
+   ------------------------------------------------------------
+   Compétence du programme distincte des « patrons » (CE2) : ici, l'enfant
+   ne juge jamais la validité d'un patron déplié — il reconstitue un solide
+   DÉJÀ VU (assemblé en 3D, dans le viewport) en reconnaissant, parmi des
+   formes mélangées à des intrus, celles qui composent ce solide. Un seul
+   remplissage (fill neutre, sans lien avec la couleur du solide) pour
+   toutes les formes : la décision doit porter sur la FORME, pas la couleur.
+   ============================================================ */
+const FORMES = (() => {
+  const wrap = (vb, inner) =>
+    `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" style="fill:#D6E6FF;stroke:#1D3354;stroke-width:3;stroke-linejoin:round">${inner}</svg>`;
+  return {
+    carre:    wrap("0 0 64 64", `<rect x="4" y="4" width="56" height="56"/>`),
+    // Les trois rectangles du pavé : proportions distinctes (avant, dessus, côté) — jamais des carrés.
+    rectL:    wrap("0 0 90 50", `<rect x="4" y="4" width="82" height="42"/>`),
+    rectM:    wrap("0 0 90 64", `<rect x="4" y="4" width="82" height="56"/>`),
+    rectS:    wrap("0 0 50 64", `<rect x="4" y="4" width="42" height="56"/>`),
+    triangle: wrap("0 0 64 60", `<polygon points="32,4 60,56 4,56"/>`),
+    disque:   wrap("0 0 64 64", `<circle cx="32" cy="32" r="28"/>`)
+  };
+})();
+
+/* Formes requises par solide constructible (une entrée par emplacement,
+   les doublons de type sont interchangeables entre eux). Le pavé n'a
+   jamais de carré parmi ses faces (CHARTE — distinction cube/pavé). */
+const PIECES_CONSTRUCTION = {
+  cube:     ["carre", "carre", "carre"],
+  pave:     ["rectL", "rectM", "rectS"],
+  pyramide: ["carre", "triangle", "triangle"]
+};
 
 /* ============================================================
    MOTEUR 3D
@@ -1303,6 +1362,23 @@ function qPatrons(cfg, palier){
    un solide à surface courbe n'a pas cette représentation au programme. Les
    distracteurs sont les deux autres, systématiquement — la banque tient en
    trois items, tous posés. */
+/* « Construction » — CP (cube, pavé) et CE1 (+ pyramide). Un tour par
+   solide constructible du palier : la banque EST cet ensemble, comme pour
+   qNomme (CHARTE §13). Chaque tour reçoit ses propres emplacements (un par
+   face requise) et une banque mélangée de formes correctes + intrus. */
+function qConstruction(cfg, palier){
+  const cibles = Object.keys(PIECES_CONSTRUCTION).filter(k => palier.solides.includes(k));
+  return melange(cibles).slice(0, cfg.nbQuestions).map(k => {
+    const requis = PIECES_CONSTRUCTION[k];
+    const typesRequis = new Set(requis);
+    const intrus = melange(Object.keys(FORMES).filter(t => !typesRequis.has(t))).slice(0, 2);
+    return {mode:"construction", solide:k,
+      q:`Touche les faces qui vont avec ${CONTENU.solides[k].nom}.`,
+      slots: requis.map(type => ({type})),
+      banque: melange(requis.concat(intrus)).map(type => ({type}))};
+  });
+}
+
 function qCavaliere(cfg, palier){
   const dessinables = palier.solides.filter(k => CAVALIERE[k]);
   return melange(dessinables).slice(0, cfg.nbQuestions).map(k => {
@@ -1319,6 +1395,7 @@ function construireFile(cfg, palier, palierNom){
   if(cfg.mode === "polyedre")  return qPolyedre(cfg, palier);
   if(cfg.mode === "compte")    return qCompte(cfg, palier);
   if(cfg.mode === "explore")   return qExplore(cfg, palier);
+  if(cfg.mode === "construction") return qConstruction(cfg, palier);
   if(cfg.mode === "patrons")   return qPatrons(cfg, palier);
   if(cfg.mode === "cavaliere") return qCavaliere(cfg, palier);
   return qDevinettes(cfg, palier, palierNom);
@@ -1542,6 +1619,58 @@ function illustration(svgMarkup){
   return d;
 }
 
+/* Zone d'assemblage de « Construction » : des emplacements typés (un par
+   face requise) et une banque mélangée de formes (correctes + intrus) que
+   l'enfant touche une à une. Une forme correcte se pose dans le premier
+   emplacement libre de son type ; une forme fausse termine la question
+   (CHARTE §18 : la correction montre alors toutes les bonnes formes en
+   vert, y compris celles non posées). */
+function construireAssemblage(q, ans){
+  ans.classList.add("construction");
+  const zoneEmplacements = document.createElement("div");
+  zoneEmplacements.className = "emplacements";
+  const elEmplacements = q.slots.map(s => {
+    const e = document.createElement("div");
+    e.className = "emplacement";
+    e.dataset.type = s.type;
+    zoneEmplacements.appendChild(e);
+    return e;
+  });
+  const zoneBanque = document.createElement("div");
+  zoneBanque.className = "banque-formes";
+  const typesRequis = new Set(q.slots.map(s => s.type));
+  let restants = q.slots.length;
+  let terminee = false;
+  q.banque.forEach(tuile => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "forme";
+    b.dataset.type = tuile.type;
+    b.innerHTML = FORMES[tuile.type];
+    b.addEventListener("click", () => {
+      if(terminee) return;
+      if(typesRequis.has(tuile.type)){
+        const cible = elEmplacements.find(e => e.dataset.type === tuile.type && !e.classList.contains("rempli"));
+        cible.innerHTML = FORMES[tuile.type];
+        cible.classList.add("rempli", "ok");
+        b.disabled = true; b.classList.add("placee");
+        restants--;
+        if(restants === 0){ terminee = true; repond(true, null, q); }
+      } else {
+        terminee = true;
+        b.classList.add("ko");
+        document.querySelectorAll(".forme").forEach(x => { x.disabled = true; });
+        elEmplacements.filter(e => !e.classList.contains("rempli"))
+          .forEach(e => { e.innerHTML = FORMES[e.dataset.type]; e.classList.add("rempli", "ok"); });
+        repond(false, null, q);
+      }
+    });
+    zoneBanque.appendChild(b);
+  });
+  ans.appendChild(zoneEmplacements);
+  ans.appendChild(zoneBanque);
+}
+
 function question(){
   desarmerAutoSuivant();
   stopSequence(); tapHandler = null;
@@ -1551,7 +1680,7 @@ function question(){
   $("btnNext").style.display = "none";
   $("btnShow").style.display = "none";
   $("hint3d").style.display = "block";
-  const ans = $("answers"); ans.innerHTML = ""; ans.classList.remove("uno");
+  const ans = $("answers"); ans.innerHTML = ""; ans.classList.remove("uno", "construction");
   ans.style.gridTemplateColumns = ""; // « Les patrons » peut la surcharger
   document.querySelectorAll(".patronTmp").forEach(el => el.remove());
   autoRot = true;
@@ -1583,7 +1712,9 @@ function question(){
   if(q.mode === "explore") prepareExplore(q);
 
   /* --- réponses --- */
-  if(q.mode === "patrons" && q.type === "solidToNet"){
+  if(q.mode === "construction"){
+    construireAssemblage(q, ans);
+  } else if(q.mode === "patrons" && q.type === "solidToNet"){
     // Réponses DESSINÉES : chaque bouton porte un patron, pas un mot.
     q.nets.forEach((n, i) => {
       const b = document.createElement("button");
@@ -1685,6 +1816,7 @@ function repond(bon, bouton, q){
       correction = `C'était ${CONTENU.solides[q.ans].nom} !` + (q.expl ? ` (${q.expl})` : "");
     }
     else if(q.mode==="compte") correction = `La bonne réponse était ${q.ans}. Appuie sur 👀 pour vérifier !`;
+    else if(q.mode==="construction") correction = "Regarde bien : les bonnes formes sont maintenant en vert.";
     else if(q.expl) correction = q.expl;
     else if(q.opts || q.nets){
       const estIndex = q.idx !== undefined || q.mode==="polyedre" || q.mode==="patrons";
