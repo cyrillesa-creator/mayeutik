@@ -565,15 +565,15 @@
     "domaine": "Espace et géométrie",
     "sousTheme": "Les solides",
     "anneeIntro": "CP",
-    "anneesCouvertes": "CP,CE1,CE2",
+    "anneesCouvertes": "CP,CE1",
     "periodeIntro": "P2",
-    "competence": "CP : reconnaître cube/boule/cône/cylindre/pavé, décrire par les faces (cube≠pavé) ; CE1 : + sommets/arêtes, pyramide, juger si un assemblage est un patron ; CE2 : patrons productifs, polyèdres à base polygonale",
+    "competence": "CP : reconnaître/nommer cube, boule, cône, cylindre, pavé (PAS la pyramide), décrire par les faces, le cube n'étant PAS un pavé ; CE1 : + pyramide, + sommets/arêtes, dénombrer faces/arêtes/sommets d'un polyèdre. Le CE2 (patrons, perspective cavalière) relève d'un module séparé.",
     "mecanique": "3D interactive",
     "priorite": "Haute",
     "statut": "Terminé",
     "effortEstime": 8,
     "effortReel": 8,
-    "notes": "✔ FAIT (ex-M31 v1, renommé après l'audit de numérotation). Points de vigilance confirmés par lecture intégrale : (1) au CP, le cube n'est PAS considéré comme un pavé (distinction explicite à respecter) ; (2) le terme officiel « pavé » désigne le parallélépipède rectangle (« pavé droit » ou « pavé » interchangeables en classe) ; (3) CE2 introduit la PERSPECTIVE CAVALIÈRE (faces/arêtes non visibles en pointillés), absent de nos notes jusqu'ici — à vérifier/ajouter. (4) Raisonnement « est-ce un patron valide ? » (CE1) distinct de la construction productive (CE2), déjà noté en « Points à enrichir »."
+    "notes": "✔ FAIT (jeux/M36-solides.html), RECONSTRUIT en module adaptatif CP/CE1 (CHARTE §15) — l'ancienne version, mono-niveau et étiquetée CE2, ne gérait aucun palier. SPLIT CP-CE1 / CE2 : le CE2 introduit une vraie rupture (patrons productifs, perspective cavalière avec faces et arêtes cachées en pointillés) qui justifie un fichier séparé, sur le modèle du split M15 (fractions CE1) / M17 (fractions CE2). Ce fichier ne couvre donc plus que CP et CE1, et le prisme droit (absent du programme cycle 2) comme toute notion de patron en ont été retirés. Palier CP (5 solides, vocabulaire limité à « face ») : Qui suis-je ? (cp-nommer), Je compte (cp-compter-faces, faces plates uniquement — 6 pour le cube et le pavé, 2 pour le cylindre, 1 pour le cône, 0 pour la boule), Devinettes (cp-devinettes). Palier CE1 (6 solides avec la pyramide, vocabulaire enrichi sommet/arête/polyèdre) : ce1-nommer, ce1-compter (faces/sommets/arêtes), ce1-polyedre, ce1-explorer, ce1-devinettes. La distinction cube ≠ pavé, explicitement exigée au CP, est travaillée à trois endroits : encart dédié dans la fiche Découverte des deux solides, devinettes contrastées, et cube/pavé systématiquement proposés l'un contre l'autre dans « Qui suis-je ? ». Les devinettes portent un champ `niveau` = palier le plus bas où elles sont dicibles : aucune devinette CP n'emploie sommet/arête/polyèdre (vérifié par test automatisé). L'écran Découverte est bridé de même (ni bouton Arêtes/Sommets ni badge POLYÈDRE au CP). Paquet cadeau à l'ouverture du palier CE1 pour un profil CP qui maîtrise son palier, indexé par palier cible. Lancement paramétré ?competence=&palier= (CHARTE §16). Moteur 3D Three.js et géométries des solides conservés de la v1. RESTE À FAIRE : la compétence « construction » du programme (assembler les faces d'un cube/pavé à partir d'un modèle au CP ; faces OU arêtes+sommets d'un cube/pavé/pyramide au CE1) n'est pas encore couverte — aucun mini-jeu d'assemblage n'existe dans ce module."
   },
   {
     "id": "M37",

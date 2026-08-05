@@ -136,9 +136,13 @@
     {
       "id": "M36",
       "titre": "Les Solides",
-      "description": "Manipule les solides en 3D : nomme-les, compte leurs faces, plie leurs patrons.",
+      "description": "Manipule les solides en 3D : nomme-les, compte leurs faces, leurs arêtes et leurs sommets.",
       "icone": "🧊",
-      "niveau": "CE2",
+      "niveau": "CP",
+      "niveaux": [
+        "CP",
+        "CE1"
+      ],
       "domaine": "Espace et géométrie",
       "domaineProgramme": "Espace et géométrie",
       "theme": "Solides",
@@ -147,28 +151,36 @@
       "fichier": "jeux/M36-solides.html",
       "competences": [
         {
-          "id": "nomme",
-          "libelle": "Nommer les solides usuels"
+          "id": "cp-nommer",
+          "libelle": "Reconnaître et nommer cube, pavé, boule, cône et cylindre (CP)"
         },
         {
-          "id": "polyedre",
-          "libelle": "Distinguer polyèdres et non-polyèdres"
+          "id": "cp-compter-faces",
+          "libelle": "Dénombrer les faces plates d'un solide (CP)"
         },
         {
-          "id": "compte",
-          "libelle": "Dénombrer faces, sommets et arêtes"
+          "id": "cp-devinettes",
+          "libelle": "Reconnaître un solide d'après ses faces (CP)"
         },
         {
-          "id": "explore",
-          "libelle": "Explorer les propriétés des solides"
+          "id": "ce1-nommer",
+          "libelle": "Reconnaître et nommer les solides usuels, pyramide comprise (CE1)"
         },
         {
-          "id": "devinette",
-          "libelle": "Reconnaître un solide d'après ses propriétés"
+          "id": "ce1-compter",
+          "libelle": "Dénombrer faces, sommets et arêtes d'un polyèdre (CE1)"
         },
         {
-          "id": "patrons",
-          "libelle": "Associer un solide à son patron"
+          "id": "ce1-polyedre",
+          "libelle": "Distinguer polyèdres et solides à surface courbe (CE1)"
+        },
+        {
+          "id": "ce1-explorer",
+          "libelle": "Explorer faces, arêtes et sommets sur un solide en 3D (CE1)"
+        },
+        {
+          "id": "ce1-devinettes",
+          "libelle": "Reconnaître un solide d'après ses faces, arêtes et sommets (CE1)"
         }
       ]
     },

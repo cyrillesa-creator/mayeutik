@@ -7,8 +7,16 @@
 <meta name="supported-color-schemes" content="light">
 <title>Les Solides — M36</title>
 <!-- ============================================================
-     JEU M36 — Reconnaître les solides (CE2)
-     Backlog : Pilotage_Maths_Cycle2.xlsx
+     JEU M36 — Reconnaître les solides (CP et CE1)
+     Backlog : pilotage/backlog.json
+     Module ADAPTATIF par niveau (CHARTE §15) : deux paliers, CP et CE1.
+       CP  : cube, boule, cône, cylindre, pavé — PAS la pyramide.
+             Vocabulaire limité à « face ». Le cube n'est PAS un pavé
+             (distinction explicitement travaillée dans le jeu).
+       CE1 : + la pyramide, + « sommet » et « arête », + la notion de
+             polyèdre, + le dénombrement faces/arêtes/sommets.
+     Le CE2 (patrons, perspective cavalière) fait l'objet d'un module
+     séparé : rien de ce qui lui appartient ne doit revenir ici.
      Règles série : contenu JSON séparé / charte commune / ID backlog
      ============================================================ -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,30 +42,25 @@
 
   /* `touch-action` ne s'hérite PAS : le sélecteur universel est le seul moyen
      de couvrir toute l'interface. `manipulation` supprime le zoom au
-     double-tap tout en laissant le défilement et le pincement — les gestes à
-     deux doigts pilotés en JS (rotation de la règle mobile de M23) restent
-     donc intacts, d'autant qu'ils déclarent eux-mêmes `touch-action:none`,
-     plus spécifique que `*`. */
+     double-tap tout en laissant le défilement et le pincement — le viewport
+     3D, qui pilote la rotation au doigt, déclare lui-même `touch-action:none`,
+     plus spécifique que `*`, et reste donc intact. */
   * { touch-action: manipulation; }
 
   /* Empêche iOS de grossir les textes en paysage, ce qui casserait les
-     mises en page calculées au pixel (règles graduées, figures SVG). */
+     mises en page calculées au pixel. */
   html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
   /* `user-select` et `-webkit-touch-callout`, eux, s'héritent : les poser sur
-     body suffit à couvrir consignes, boutons, illustrations et éléments
-     glissables. */
+     body suffit à couvrir consignes, boutons et illustrations. */
   body {
     -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
   }
-  /* Pas de « fantôme » d'image traîné à la souris par-dessus un glisser-déposer. */
+  /* Pas de « fantôme » d'image traîné à la souris par-dessus une manipulation. */
   img, svg, canvas { -webkit-user-drag: none; }
 
-  /* Les champs de saisie gardent sélection, curseur et menu d'édition : les
-     en priver rendrait la correction d'une valeur impossible. La série en
-     compte deux (décomposition m/dm/cm de M23, cellule manquante de M39). */
   input, textarea, select, [contenteditable="true"] {
     -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text;
     -webkit-touch-callout: default;
@@ -99,14 +102,25 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 
 /* ---------- Home ---------- */
 #home h1{font-size:1.7rem; margin:4px 0 2px; font-weight:700;}
-#home .sub{color:var(--encre2); margin:0 0 16px; font-size:.95rem;}
+#home .sub{color:var(--encre2); margin:0 0 12px; font-size:.95rem;}
+
+/* Sélecteur de palier (CHARTE §15 : niveau du profil actif par défaut, changement possible) */
+.rangee-paliers{display:flex; justify-content:center; gap:8px; margin:6px 0 8px; flex-wrap:wrap;}
+.puce-palier{
+  min-height:40px; padding:6px 18px; border-radius:999px; font-family:inherit;
+  font-weight:700; font-size:.92rem; cursor:pointer;
+  border:2.5px solid color-mix(in srgb, var(--encre) 22%, white); background:var(--carte); color:var(--encre);
+}
+.puce-palier.actif{background:var(--mandarine); border-color:var(--mandarine); color:#fff;}
+.note-palier{text-align:center; font-size:.82rem; color:var(--encre2); opacity:.85; margin:0 0 12px;}
+
 .cards{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
 .card{
   background:var(--carte); border:none; border-radius:var(--r); padding:16px 12px 14px;
   box-shadow:var(--ombre); cursor:pointer; text-align:center;
   font-family:inherit; color:var(--encre);
   display:flex; flex-direction:column; align-items:center; gap:6px;
-  transition:transform .08s;
+  max-height:34vh; transition:transform .08s;
 }
 .card:active{transform:translateY(3px); box-shadow:0 1px 0 rgba(29,51,84,.12);}
 .card .ico{font-size:2rem; line-height:1;}
@@ -114,6 +128,47 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 .card .det{font-size:.78rem; color:var(--encre2);}
 .card .stars{font-size:.85rem; letter-spacing:2px; min-height:1.1em;}
 .card.wide{grid-column:1 / -1; flex-direction:row; justify-content:center; gap:12px; padding:14px;}
+
+/* Palier bonus : présenté comme une récompense, distinct visuellement (CHARTE §15) */
+.bloc-bonus{
+  margin-top:18px; border-radius:var(--r); padding:14px 12px;
+  border:3px dashed var(--soleil); background:color-mix(in srgb, var(--soleil) 14%, white);
+}
+.bloc-bonus h3{text-align:center; font-size:1rem; margin:0 0 2px; color:color-mix(in srgb, var(--soleil) 55%, black 30%);}
+.bloc-bonus .note-palier{margin:2px 0 10px;}
+
+/* Paquet cadeau : première révélation d'un palier bonus (CHARTE §15,
+   pattern générique « paquet cadeau »). Recouvre grille-bonus tant que
+   l'enfant n'a pas cliqué dessus. */
+.paquet-cadeau{
+  display:flex; flex-direction:column; align-items:center; gap:.7rem;
+  width:100%; border:none; background:transparent; padding:1rem .5rem; cursor:pointer;
+  min-height:44px; font-family:inherit;
+}
+.paquet-cadeau-boite{
+  position:relative; width:5.6rem; height:4.6rem; border-radius:14px;
+  background:linear-gradient(180deg, var(--corail), color-mix(in srgb, var(--corail) 70%, black 15%));
+  border:3px solid color-mix(in srgb, var(--corail) 55%, black 20%);
+  box-shadow:0 5px 0 color-mix(in srgb, var(--corail) 50%, black 25%);
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.paquet-cadeau:active .paquet-cadeau-boite{
+  transform:translateY(3px); box-shadow:0 2px 0 color-mix(in srgb, var(--corail) 50%, black 25%);
+}
+.paquet-cadeau-ruban-v{position:absolute; left:50%; top:0; bottom:0; width:14px; margin-left:-7px; background:var(--soleil);}
+.paquet-cadeau-ruban-h{position:absolute; top:50%; left:0; right:0; height:14px; margin-top:-7px; background:var(--soleil);}
+.paquet-cadeau-noeud{position:absolute; left:50%; top:-1rem; transform:translateX(-50%); font-size:1.9rem; line-height:1;}
+.paquet-cadeau-texte{font-weight:700; font-size:.88rem; text-align:center; color:color-mix(in srgb, var(--encre) 85%, white);}
+@keyframes paquet-cadeau-pop{
+  0%{ transform:scale(1) rotate(0deg); opacity:1; }
+  35%{ transform:scale(1.18) rotate(-5deg); opacity:1; }
+  100%{ transform:scale(.25) rotate(10deg); opacity:0; }
+}
+.paquet-cadeau.paquet-cadeau-ouverture .paquet-cadeau-boite{animation:paquet-cadeau-pop .45s ease forwards;}
+.paquet-cadeau.paquet-cadeau-ouverture .paquet-cadeau-texte{opacity:0; transition:opacity .2s ease;}
+@media (prefers-reduced-motion:reduce){
+  .paquet-cadeau.paquet-cadeau-ouverture .paquet-cadeau-boite{animation:none; opacity:0; transition:opacity .3s ease;}
+}
 
 /* ---------- Viewport 3D ---------- */
 #viewport{
@@ -149,13 +204,12 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 .rep{
   border:none; border-radius:16px; padding:15px 8px; font-family:inherit;
   font-size:1.05rem; font-weight:600; background:var(--carte); color:var(--encre);
-  box-shadow:var(--ombre); cursor:pointer;
+  box-shadow:var(--ombre); cursor:pointer; min-height:44px;
 }
 .rep:active{transform:translateY(2px); box-shadow:0 1px 0 rgba(29,51,84,.12);}
 .rep.ok{background:var(--menthe); color:#fff;}
 .rep.ko{background:var(--corail); color:#fff; animation:shake .35s;}
 .rep.dim{opacity:.55;}
-.rep svg{display:block; margin:0 auto; max-width:100%; height:88px;}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 
 #feedback{
@@ -180,14 +234,14 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 .chip{
   flex:none; border:none; border-radius:14px; padding:9px 14px; font-family:inherit;
   font-weight:600; font-size:.92rem; background:var(--carte); color:var(--encre);
-  box-shadow:var(--ombre); cursor:pointer;
+  box-shadow:var(--ombre); cursor:pointer; min-height:44px;
 }
 .chip.sel{background:var(--encre); color:#fff;}
 #toggles{display:flex; gap:8px; margin:10px 0;}
 .tog{
   flex:1; border:none; border-radius:14px; padding:10px 4px; font-family:inherit;
   font-weight:600; font-size:.88rem; background:var(--carte); color:var(--encre);
-  box-shadow:var(--ombre); cursor:pointer;
+  box-shadow:var(--ombre); cursor:pointer; min-height:44px;
 }
 .tog.on{outline:3px solid var(--mandarine); color:var(--mandarine-f);}
 #infoCard{
@@ -200,6 +254,12 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 #infoCard .ligne{font-size:.95rem; margin:4px 0; color:var(--encre);}
 #infoCard .ligne b{color:var(--mandarine-f);}
 #infoCard .objet{margin-top:8px; font-size:.92rem; color:var(--encre2);}
+/* Distinction cube / pavé, explicitement travaillée dès le CP (programme). */
+#infoCard .distinction{
+  margin-top:8px; padding:8px 10px; border-radius:12px; font-size:.88rem;
+  background:color-mix(in srgb, var(--mandarine) 12%, white);
+  border-left:4px solid var(--mandarine);
+}
 
 /* ---------- Fin ---------- */
 #end{text-align:center; padding-top:8vh;}
@@ -212,7 +272,7 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 #end .actions{display:flex; gap:12px; justify-content:center;}
 #end .actions button{
   border:none; border-radius:18px; padding:13px 26px; font-family:inherit;
-  font-size:1.05rem; font-weight:700; cursor:pointer; box-shadow:var(--ombre);
+  font-size:1.05rem; font-weight:700; cursor:pointer; box-shadow:var(--ombre); min-height:44px;
 }
 #bRejouer{background:var(--mandarine); color:#fff; box-shadow:0 4px 0 var(--mandarine-f);}
 #bMenu{background:var(--carte); color:var(--encre);}
@@ -254,7 +314,8 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 [hidden]{display:none !important;}
 @media (prefers-color-scheme: dark){
   html, body{background:var(--ciel) !important; color:var(--encre) !important;}
-  .card, .rep, .chip, .tog, #infoCard, #viewport, #btnBack{background:var(--carte) !important; color:var(--encre) !important;}
+  .card, .rep, .chip, .tog, #infoCard, #viewport, #btnBack, .puce-palier{background:var(--carte) !important; color:var(--encre) !important;}
+  .puce-palier.actif{background:var(--mandarine) !important; color:#fff !important;}
 }
 @media (prefers-reduced-motion:reduce){ *{animation:none !important;} }
 </style>
@@ -284,36 +345,22 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
         <button type="button" class="bouton-menu" id="bouton-menu">← Menu</button>
       </div>
       <h1>Les Solides 🧊</h1>
-      <p class="sub">Touche un solide pour le faire tourner !</p>
-      <div class="cards">
-        <button class="card wide" data-mode="decouvre">
-          <span class="ico">🔍</span>
-          <span><span class="nom">Découvre les solides</span><br><span class="det">Manipule-les en 3D</span></span>
+      <p class="sub" id="sous-titre-accueil"></p>
+      <div class="rangee-paliers" id="rangee-paliers"></div>
+      <p class="note-palier" id="note-palier"></p>
+      <div class="cards" id="grille-jeux"></div>
+      <div class="bloc-bonus" id="bloc-bonus" hidden>
+        <h3>Palier bonus 🎁</h3>
+        <p class="note-palier" id="note-bonus"></p>
+        <button type="button" class="paquet-cadeau" id="paquet-cadeau" hidden>
+          <span class="paquet-cadeau-boite">
+            <span class="paquet-cadeau-ruban-v"></span>
+            <span class="paquet-cadeau-ruban-h"></span>
+            <span class="paquet-cadeau-noeud">🎀</span>
+          </span>
+          <span class="paquet-cadeau-texte">Touche le paquet pour découvrir ta récompense !</span>
         </button>
-        <button class="card" data-mode="nomme">
-          <span class="ico">🎯</span><span class="nom">Qui suis-je ?</span>
-          <span class="det">Nomme les solides</span><span class="stars" data-stars="nomme"></span>
-        </button>
-        <button class="card" data-mode="polyedre">
-          <span class="ico">🧐</span><span class="nom">Polyèdre ?</span>
-          <span class="det">Plat ou courbe ?</span><span class="stars" data-stars="polyedre"></span>
-        </button>
-        <button class="card" data-mode="compte">
-          <span class="ico">🔢</span><span class="nom">Je compte</span>
-          <span class="det">Faces, sommets, arêtes</span><span class="stars" data-stars="compte"></span>
-        </button>
-        <button class="card" data-mode="explore">
-          <span class="ico">👆</span><span class="nom">J'explore</span>
-          <span class="det">Faces opposées &amp; cie</span><span class="stars" data-stars="explore"></span>
-        </button>
-        <button class="card" data-mode="devinette">
-          <span class="ico">🕵️</span><span class="nom">Devinettes</span>
-          <span class="det">Qui suis-je ?</span><span class="stars" data-stars="devinette"></span>
-        </button>
-        <button class="card" data-mode="patrons">
-          <span class="ico">✂️</span><span class="nom">Les patrons</span>
-          <span class="det">Plier les solides</span><span class="stars" data-stars="patrons"></span>
-        </button>
+        <div class="cards" id="grille-bonus"></div>
       </div>
     </section>
 
@@ -358,128 +405,181 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 <script>
 /* ============================================================
    CONTENU PÉDAGOGIQUE (JSON) — modifiable sans toucher au moteur
+   ------------------------------------------------------------
+   Module ADAPTATIF (CHARTE §15) : deux paliers, CP et CE1.
+
+   Ce que le programme autorise, palier par palier — c'est la seule
+   source de vérité de ce fichier :
+
+     CP  · solides : cube, boule, cône, cylindre, pavé (PAS la pyramide)
+         · vocabulaire : « face » UNIQUEMENT (ni sommet, ni arête, ni
+           polyèdre — ces mots n'apparaissent nulle part au palier CP)
+         · le cube n'est PAS un pavé : la distinction est explicitement
+           travaillée (encart en découverte, devinettes contrastées,
+           cube et pavé systématiquement proposés l'un contre l'autre)
+
+     CE1 · + la pyramide
+         · + « sommet » et « arête », + la notion de polyèdre
+         · + le dénombrement des faces, arêtes et sommets
+
+   Le CE2 (patrons, perspective cavalière) appartient à un module
+   séparé : le prisme droit et toute notion de patron ont donc été
+   retirés d'ici, et ne doivent pas y revenir.
    ============================================================ */
 const CONTENU = {
+  sousTitre: "Touche un solide pour le faire tourner !",
+
   solides: {
     cube: {
-      nom:"le cube", court:"Cube", couleur:0x4D96FF, poly:true,
+      nom:"le cube", court:"Cube", couleur:0x4D96FF, poly:true, facesPlates:6,
       geo:{type:"box", args:[2,2,2]},
       objet:"un dé 🎲",
+      /* Distinction cube / pavé, exigée dès le CP par le programme. */
+      distinction:"Toutes ses faces sont des carrés identiques. Le pavé, lui, a des faces rectangulaires : le cube n'est pas un pavé, ce sont deux solides différents.",
       v:[[-1,-1,-1],[1,-1,-1],[1,-1,1],[-1,-1,1],[-1,1,-1],[1,1,-1],[1,1,1],[-1,1,1]],
       e:[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]],
       f:[[0,1,2,3],[4,7,6,5],[3,2,6,7],[0,4,5,1],[1,5,6,2],[0,3,7,4]],
       fOpp:[[0,1],[2,3],[4,5]]
     },
     pave: {
-      nom:"le pavé droit", court:"Pavé droit", couleur:0x9B5DE5, poly:true,
+      nom:"le pavé droit", court:"Pavé droit", couleur:0x9B5DE5, poly:true, facesPlates:6,
       geo:{type:"box", args:[3,1.6,2]},
       objet:"une boîte de céréales 📦",
+      distinction:"Ses faces sont des rectangles, et elles ne sont pas toutes pareilles. Le cube, lui, a toutes ses faces carrées : le cube n'est pas un pavé.",
       v:[[-1.5,-0.8,-1],[1.5,-0.8,-1],[1.5,-0.8,1],[-1.5,-0.8,1],[-1.5,0.8,-1],[1.5,0.8,-1],[1.5,0.8,1],[-1.5,0.8,1]],
       e:[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]],
       f:[[0,1,2,3],[4,7,6,5],[3,2,6,7],[0,4,5,1],[1,5,6,2],[0,3,7,4]],
       fOpp:[[0,1],[2,3],[4,5]]
     },
     pyramide: {
-      nom:"la pyramide", court:"Pyramide", couleur:0xFF8A3D, poly:true,
+      nom:"la pyramide", court:"Pyramide", couleur:0xFF8A3D, poly:true, facesPlates:5,
       geo:{type:"cone", args:[1.7,2.2,4]},
       objet:"les pyramides d'Égypte 🏜️",
       v:[[0,1.1,0],[0,-1.1,1.7],[1.7,-1.1,0],[0,-1.1,-1.7],[-1.7,-1.1,0]],
       e:[[1,2],[2,3],[3,4],[4,1],[0,1],[0,2],[0,3],[0,4]],
       f:[[1,2,3,4],[0,1,2],[0,2,3],[0,3,4],[0,4,1]]
     },
-    prisme: {
-      nom:"le prisme droit", court:"Prisme droit", couleur:0x2EC4A6, poly:true,
-      geo:{type:"cylinder", args:[1.5,1.5,2.4,3]},
-      objet:"une tente ⛺",
-      v:[[0,1.2,1.5],[1.299,1.2,-0.75],[-1.299,1.2,-0.75],[0,-1.2,1.5],[1.299,-1.2,-0.75],[-1.299,-1.2,-0.75]],
-      e:[[0,1],[1,2],[2,0],[3,4],[4,5],[5,3],[0,3],[1,4],[2,5]],
-      f:[[0,1,2],[3,5,4],[0,3,4,1],[1,4,5,2],[2,5,3,0]]
-    },
     cylindre: {
-      nom:"le cylindre", court:"Cylindre", couleur:0xFFC93C, poly:false,
+      nom:"le cylindre", court:"Cylindre", couleur:0xFFC93C, poly:false, facesPlates:2,
       geo:{type:"cylinder", args:[1.2,1.2,2.4,48]},
       objet:"une boîte de conserve 🥫",
-      info:"2 faces plates (des disques) et 1 surface courbe. Il peut rouler !"
+      /* `info` : version CP, vocabulaire limité à « face ». */
+      info:"2 faces plates (des disques) et une surface toute ronde. Il peut rouler !",
+      /* `infoCE1` : même solide, vocabulaire enrichi du palier CE1. */
+      infoCE1:"2 faces plates (des disques) et une surface courbe : ce n'est pas un polyèdre. Il peut rouler !"
     },
     cone: {
-      nom:"le cône", court:"Cône", couleur:0xFF5D8F, poly:false,
+      nom:"le cône", court:"Cône", couleur:0xFF5D8F, poly:false, facesPlates:1,
       geo:{type:"cone", args:[1.4,2.4,48]},
       objet:"un cornet de glace 🍦",
-      info:"1 face plate, 1 surface courbe et 1 pointe (le sommet). Il peut rouler !"
+      info:"1 face plate (un disque), une surface toute ronde et une pointe en haut. Il peut rouler !",
+      infoCE1:"1 face plate, une surface courbe et 1 sommet tout en haut : ce n'est pas un polyèdre. Il peut rouler !"
     },
     boule: {
-      nom:"la boule", court:"Boule", couleur:0x5FD068, poly:false,
+      nom:"la boule", court:"Boule", couleur:0x5FD068, poly:false, facesPlates:0,
       geo:{type:"sphere", args:[1.5,48,32]},
       objet:"un ballon ⚽",
-      info:"Une seule surface, toute courbe. Pas de face plate, pas de sommet, pas d'arête. Elle roule dans tous les sens !"
+      info:"Aucune face plate : une seule surface, toute ronde. Elle roule dans tous les sens !",
+      infoCE1:"Aucune face plate, aucun sommet, aucune arête : une seule surface courbe. Ce n'est pas un polyèdre, et elle roule dans tous les sens !"
     }
   },
+
+  /* ---- Paliers (CHARTE §15) ---- */
+  paliers: {
+    CP: {
+      sousTitre: "Découvre les solides et leurs faces !",
+      solides: ["cube","pave","cylindre","cone","boule"],
+      /* Ce qui est dicible à ce palier. Sert à filtrer les devinettes ET à
+         brider l'écran Découverte (ni arêtes, ni sommets, ni badge polyèdre). */
+      vocabulaire: ["face"],
+      miniJeux: [
+        { id:"cp-nommer", mode:"nomme", titre:"Qui suis-je ?", icone:"🎯",
+          description:"Nomme les solides.", nbQuestions:5 },
+        { id:"cp-compter-faces", mode:"compte", kinds:["faces"], titre:"Je compte",
+          icone:"🔢", description:"Compte les faces plates.", nbQuestions:5 },
+        { id:"cp-devinettes", mode:"devinette", titre:"Devinettes", icone:"🕵️",
+          description:"Qui suis-je ?", nbQuestions:6 }
+      ]
+    },
+    CE1: {
+      sousTitre: "Faces, arêtes et sommets : explore les solides !",
+      solides: ["cube","pave","pyramide","cylindre","cone","boule"],
+      vocabulaire: ["face","sommet","arete","polyedre"],
+      miniJeux: [
+        { id:"ce1-nommer", mode:"nomme", titre:"Qui suis-je ?", icone:"🎯",
+          description:"Nomme les solides.", nbQuestions:6 },
+        { id:"ce1-compter", mode:"compte", kinds:["faces","sommets","aretes"],
+          titre:"Je compte", icone:"🔢", description:"Faces, sommets, arêtes.", nbQuestions:6 },
+        { id:"ce1-polyedre", mode:"polyedre", titre:"Polyèdre ?", icone:"🧐",
+          description:"Tout plat, ou tout rond ?", nbQuestions:6 },
+        { id:"ce1-explorer", mode:"explore", titre:"J'explore", icone:"👆",
+          description:"Faces opposées & cie.", nbQuestions:6 },
+        { id:"ce1-devinettes", mode:"devinette", titre:"Devinettes", icone:"🕵️",
+          description:"Qui suis-je ?", nbQuestions:8 }
+      ]
+    }
+  },
+
   explicationPoly:{
     oui:"toutes ses faces sont plates : c'est un POLYÈDRE !",
     non:"il a une surface courbe (il peut rouler) : ce n'est PAS un polyèdre."
   },
   bravo:["Bravo !","Super !","Excellent !","Bien joué !","Champion !","Parfait !"],
+
+  /* `niveau` = palier le PLUS BAS où la devinette est dicible. Une devinette
+     CP reste posable au CE1 ; l'inverse est faux (vocabulaire non encore
+     introduit). Le solide visé est de toute façon filtré séparément, si bien
+     qu'une devinette parlant de la pyramide ne peut pas sortir au CP même si
+     son vocabulaire y était admissible. */
   devinettes:[
-    {q:"J'ai 6 faces, toutes carrées. Qui suis-je ?", ans:"cube"},
-    {q:"J'ai 6 faces, mais elles ne sont pas toutes carrées. Qui suis-je ?", ans:"pave"},
-    {q:"J'ai 5 faces : 4 triangles et 1 carré. Qui suis-je ?", ans:"pyramide"},
-    {q:"J'ai 5 faces : 2 triangles et 3 rectangles. Qui suis-je ?", ans:"prisme"},
-    {q:"Je n'ai aucune face plate, aucun sommet, aucune arête… et je roule dans tous les sens. Qui suis-je ?", ans:"boule"},
-    {q:"J'ai 2 faces plates en forme de disque, et je peux rouler. Qui suis-je ?", ans:"cylindre"},
-    {q:"J'ai 1 seule face plate, 1 sommet tout en haut, et je peux rouler. Qui suis-je ?", ans:"cone"},
-    {q:"J'ai 8 sommets, 12 arêtes, et toutes mes faces sont exactement les mêmes. Qui suis-je ?", ans:"cube"},
-    {q:"Je suis un polyèdre et j'ai exactement 5 sommets. Qui suis-je ?", ans:"pyramide"},
-    {q:"J'ai autant de faces que la pyramide, mais j'ai 6 sommets. Qui suis-je ?", ans:"prisme"},
-    {q:"Je ressemble à un dé, mais mes faces ne sont pas toutes des carrés identiques. Qui suis-je ?", ans:"pave"},
-    {q:"J'ai 9 arêtes et 6 sommets. Qui suis-je ?", ans:"prisme"},
-    {q:"J'ai un seul sommet, tout en haut, et ma base est un cercle. Qui suis-je ?", ans:"cone"},
-    {q:"On me trouve dans un match de football. Qui suis-je ?", ans:"boule"},
-    {q:"On me trouve dans une boîte de conserve. Qui suis-je ?", ans:"cylindre"},
-    {q:"On me trouve dans un cornet de glace. Qui suis-je ?", ans:"cone"},
-    {q:"Je ressemble à une tente de camping. Qui suis-je ?", ans:"prisme"},
-    {q:"On me trouve dans une boîte de céréales. Qui suis-je ?", ans:"pave"},
-    {q:"Je fais penser aux pyramides d'Égypte. Qui suis-je ?", ans:"pyramide"},
-    {q:"Toutes mes faces sont des carrés identiques, et j'ai 12 arêtes égales. Qui suis-je ?", ans:"cube"}
+    /* --- dicibles dès le CP : « face » et objets du quotidien --- */
+    {q:"J'ai 6 faces, toutes carrées. Qui suis-je ?", ans:"cube", niveau:"CP"},
+    {q:"Toutes mes faces sont des carrés identiques. Qui suis-je ?", ans:"cube", niveau:"CP"},
+    {q:"J'ai 6 faces, mais elles ne sont pas toutes carrées. Qui suis-je ?", ans:"pave", niveau:"CP"},
+    {q:"Je ressemble à un dé, mais mes faces ne sont pas toutes des carrés identiques. Qui suis-je ?", ans:"pave", niveau:"CP"},
+    {q:"J'ai 2 faces plates en forme de disque, et je peux rouler. Qui suis-je ?", ans:"cylindre", niveau:"CP"},
+    {q:"J'ai 1 seule face plate, une pointe tout en haut, et je peux rouler. Qui suis-je ?", ans:"cone", niveau:"CP"},
+    {q:"Ma base est un rond et je finis en pointe. Qui suis-je ?", ans:"cone", niveau:"CP"},
+    {q:"Je n'ai aucune face plate et je roule dans tous les sens. Qui suis-je ?", ans:"boule", niveau:"CP"},
+    {q:"On me trouve dans un match de football. Qui suis-je ?", ans:"boule", niveau:"CP"},
+    {q:"On me trouve dans une boîte de conserve. Qui suis-je ?", ans:"cylindre", niveau:"CP"},
+    {q:"On me trouve dans un cornet de glace. Qui suis-je ?", ans:"cone", niveau:"CP"},
+    {q:"On me trouve dans une boîte de céréales. Qui suis-je ?", ans:"pave", niveau:"CP"},
+    /* --- CE1 seulement : « sommet », « arête », « polyèdre », pyramide --- */
+    {q:"J'ai 5 faces : 4 triangles et 1 carré. Qui suis-je ?", ans:"pyramide", niveau:"CE1"},
+    {q:"J'ai 5 faces, 5 sommets et 8 arêtes. Qui suis-je ?", ans:"pyramide", niveau:"CE1"},
+    {q:"Je suis un polyèdre et j'ai exactement 5 sommets. Qui suis-je ?", ans:"pyramide", niveau:"CE1"},
+    {q:"Je fais penser aux pyramides d'Égypte. Qui suis-je ?", ans:"pyramide", niveau:"CE1"},
+    {q:"J'ai 8 sommets, 12 arêtes, et toutes mes faces sont exactement les mêmes. Qui suis-je ?", ans:"cube", niveau:"CE1"},
+    {q:"Toutes mes faces sont des carrés identiques, et j'ai 12 arêtes égales. Qui suis-je ?", ans:"cube", niveau:"CE1"},
+    {q:"J'ai 8 sommets et 12 arêtes, mais mes faces ne sont pas toutes des carrés. Qui suis-je ?", ans:"pave", niveau:"CE1"},
+    {q:"J'ai 1 seule face plate, 1 sommet tout en haut, et je peux rouler. Qui suis-je ?", ans:"cone", niveau:"CE1"},
+    {q:"J'ai un seul sommet, tout en haut, et ma base est un cercle. Qui suis-je ?", ans:"cone", niveau:"CE1"},
+    {q:"Je n'ai aucune face plate, aucun sommet, aucune arête… et je roule dans tous les sens. Qui suis-je ?", ans:"boule", niveau:"CE1"}
   ],
-  patrons:[
-    {type:"netToName", net:"cube", q:"Si on plie ce patron, quel solide obtient-on ?", opts:["cube","pave","pyramide","prisme"], ans:0},
-    {type:"solidToNet", solide:"cube", q:"Quel patron permet de construire ce solide ?", nets:["cube","cube5","pyramide"], ans:0},
-    {type:"netToName", net:"pyramide", q:"Si on plie ce patron, quel solide obtient-on ?", opts:["pyramide","cube","prisme","cone"], ans:0},
-    {type:"netToName", net:"cylindre", q:"Si on plie ce patron, quel solide obtient-on ?", opts:["cylindre","cone","boule","cube"], ans:0},
-    {type:"solidToNet", solide:"pave", q:"Quel patron permet de construire ce solide ?", nets:["pave","cube","prisme"], ans:0},
-    {type:"solidToNet", solide:"prisme", q:"Quel patron permet de construire ce solide ?", nets:["prisme","pyramide","cone"], ans:0},
-    {type:"netToName", net:"cube2x3", q:"Ce patron a 6 carrés. En le pliant, peut-on faire un cube ?", opts:["Oui","Non"], ans:1,
-     expl:"Non ! Les 6 carrés sont mal placés : en pliant, des faces se retrouvent l'une sur l'autre et il manque des côtés."}
+
+  /* Scènes 3D pointées de « J'explore » (CE1 : vocabulaire arête/sommet/face). */
+  explorations:[
+    {type:"areteFaces", solide:"cube",
+     q:"Regarde l'arête orange. Combien de faces sépare-t-elle ?", opts:[1,2,3], ans:2},
+    {type:"opposee", solide:"cube",
+     q:"Tape la face OPPOSÉE à la face bleue !"},
+    {type:"sommetFaces", solide:"cube", sommet:null,
+     q:"Regarde le sommet rouge. Combien de faces se rejoignent à ce sommet ?", opts:[2,3,4], ans:3},
+    {type:"areteTap", solide:"cube",
+     q:"Tape l'arête qui sépare les deux faces colorées !"},
+    {type:"opposee", solide:"pave",
+     q:"Tape la face OPPOSÉE à la face bleue !"},
+    {type:"areteTap", solide:"pave",
+     q:"Tape l'arête qui sépare les deux faces colorées !"},
+    {type:"sommetFaces", solide:"pyramide", sommet:0,
+     q:"Regarde le sommet rouge, en haut. Combien de faces se rejoignent à ce sommet ?", opts:[3,4,5], ans:4},
+    {type:"sommetFaces", solide:"pyramide", sommet:2,
+     q:"Regarde le sommet rouge, en bas. Combien de faces se rejoignent à ce sommet ?", opts:[2,3,4], ans:3},
+    {type:"areteFaces", solide:"pyramide",
+     q:"Regarde l'arête orange. Combien de faces sépare-t-elle ?", opts:[1,2,3], ans:2}
   ]
 };
-
-/* ============================================================
-   PATRONS — dessins SVG
-   ============================================================ */
-const NETS = (() => {
-  const sq = (x,y,s) => `<rect x="${x}" y="${y}" width="${s}" height="${s}" />`;
-  const rc = (x,y,w,h) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" />`;
-  const pg = pts => `<polygon points="${pts}" />`;
-  const wrap = (vb, inner, fill) =>
-    `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" style="fill:${fill};stroke:#1D3354;stroke-width:2;stroke-linejoin:round">${inner}</svg>`;
-  const grid = (cells, s=24) => cells.map(([cx,cy]) => sq(2+cx*s, 2+cy*s, s)).join("");
-  return {
-    cube:    wrap("0 0 76 100", grid([[1,0],[0,1],[1,1],[2,1],[1,2],[1,3]]), "#D6E6FF"),
-    cube5:   wrap("0 0 76 100", grid([[1,0],[0,1],[1,1],[2,1],[1,2]]), "#D6E6FF"),
-    cube2x3: wrap("0 0 52 76",  grid([[0,0],[1,0],[0,1],[1,1],[0,2],[1,2]]), "#D6E6FF"),
-    pave:    wrap("0 0 70 94",
-      rc(20,2,30,16)+rc(20,18,30,26)+rc(20,44,30,16)+rc(20,60,30,26)+rc(2,18,18,26)+rc(50,18,18,26), "#EBDCFF"),
-    pyramide:wrap("0 0 120 120",
-      rc(45,45,30,30)+pg("45,45 75,45 60,18")+pg("75,45 75,75 102,60")+pg("45,75 75,75 60,102")+pg("45,45 45,75 18,60"), "#FFE3CC"),
-    prisme:  wrap("0 0 96 100",
-      rc(33,3,30,28)+rc(33,31,30,28)+rc(33,59,30,28)+pg("33,31 33,59 8,45")+pg("63,31 63,59 88,45"), "#CFF3EA"),
-    cylindre:wrap("0 0 96 106",
-      `<circle cx="48" cy="16" r="13"/>`+rc(16,31,64,42)+`<circle cx="48" cy="89" r="13"/>`, "#FFF1C4"),
-    cone:    wrap("0 0 120 110",
-      pg("60,14 26,72 94,72").replace("<polygon","<path d=\"M60,14 L26,72 A46,46 0 0 0 94,72 Z\" ").replace(/points="[^"]*" \/>/,"/>")+
-      `<circle cx="42" cy="92" r="14"/>`, "#FFD9E6")
-  };
-})();
 
 /* ============================================================
    MOTEUR 3D
@@ -669,7 +769,7 @@ function bip(freq, dur, type="sine", vol=0.12){
 }
 /* Sons de référence de la série (CHARTE §5) : même motif partout, plutôt que
    des variantes d'un module à l'autre. `bip` reste pour les besoins propres à
-   ce module. */
+   ce module (égrenage du compteur). */
 function jouerNote(freq, debut, duree, volume, forme){
   try{
     actx = actx || new (window.AudioContext||window.webkitAudioContext)();
@@ -699,7 +799,7 @@ function sonNiveauParfait(){
 function sonErreur(){
   [392.0, 293.66].forEach((f, i) => jouerNote(f, i * 0.17, 0.17, 0.22));
 }
-// Noms historiques conservés : ce module les appelle en une quinzaine d'endroits.
+// Noms historiques conservés : ce module les appelle en plusieurs endroits.
 function sonBravo(){ sonBonneReponse(); }
 function sonRate(){ sonErreur(); }
 
@@ -725,7 +825,7 @@ function lancerConfettis(){
 
 /* ============================================================
    ÉTOILES : stockage sûr (mémoire + localStorage best-effort)
-   Pattern imposé par CHARTE.md section 9 — cf. M17 pour référence.
+   Pattern imposé par CHARTE.md section 9.
    ============================================================ */
 const CLE_STOCKAGE = 'mayeutik-m36-solides-etoiles';
 let memoireEtoiles = null;
@@ -754,29 +854,102 @@ function enregistrerEtoiles(jeuId, valeur) {
 }
 
 /* ============================================================
+   PALIER BONUS : révélation « paquet cadeau » (CHARTE §15)
+   Indexé par profil ET par palier cible : un module qui gagnerait un
+   3ᵉ palier plus tard doit pouvoir offrir un second paquet.
+   ============================================================ */
+const CLE_BONUS_REVELE = 'mayeutik-m36-bonus-revele';
+let memoireBonusRevele = null;
+function lireBonusRevele() {
+  if (memoireBonusRevele === null) {
+    memoireBonusRevele = {};
+    try {
+      const brut = window.localStorage.getItem(CLE_BONUS_REVELE);
+      if (brut) memoireBonusRevele = JSON.parse(brut);
+    } catch (e) {
+      memoireBonusRevele = {};
+    }
+  }
+  return memoireBonusRevele;
+}
+function bonusDejaRevele(profilId, palierCible) {
+  const entree = lireBonusRevele()[profilId];
+  return !!(entree && typeof entree === 'object' && entree[palierCible]);
+}
+function marquerBonusRevele(profilId, palierCible) {
+  const tout = lireBonusRevele();
+  if (!tout[profilId] || typeof tout[profilId] !== 'object') tout[profilId] = {};
+  tout[profilId][palierCible] = true;
+  memoireBonusRevele = tout;
+  try {
+    window.localStorage.setItem(CLE_BONUS_REVELE, JSON.stringify(tout));
+  } catch (e) {
+    // localStorage indisponible : le paquet cadeau réapparaîtra à la prochaine visite.
+  }
+}
+
+/* ============================================================
+   PROFIL ACTIF : lecture du niveau (CHARTE §15)
+   Un jeu autonome ne peut pas importer js/profils.js de la coquille : il
+   relit directement les mêmes clés partagées localStorage, en lecture seule.
+   ============================================================ */
+const CLE_PROFILS = 'mayeutik-profils';
+const CLE_PROFIL_ACTIF = 'mayeutik-profil-actif';
+const ORDRE_PALIERS = ['CP', 'CE1'];
+
+function lireProfilActifId() {
+  try {
+    return window.localStorage.getItem(CLE_PROFIL_ACTIF) || 'p1';
+  } catch (e) {
+    return 'p1';
+  }
+}
+function niveauDuProfilActif() {
+  try {
+    const brut = window.localStorage.getItem(CLE_PROFILS);
+    if (!brut) return null;
+    const profils = JSON.parse(brut);
+    const actif = profils.find((p) => p.id === lireProfilActifId());
+    return (actif && actif.niveau) || null;
+  } catch (e) {
+    return null;
+  }
+}
+/* Lancement paramétré (CHARTE §16) : `?palier=ce1&competence=ce1-nommer`.
+   Le palier du POINT D'ENTRÉE cliqué dans la coquille prime sur le niveau du
+   profil actif. Insensible à la casse ; absent, invalide, ou ne correspondant
+   à rien dans ce module -> null, on retombe silencieusement sur le
+   comportement par défaut (jamais d'erreur visible). */
+function parametreURL(nom) {
+  try {
+    return new URLSearchParams(window.location.search).get(nom);
+  } catch (e) {
+    return null;
+  }
+}
+function palierDepuisURL() {
+  const brut = parametreURL('palier');
+  if (!brut) return null;
+  const majuscule = brut.toUpperCase();
+  return CONTENU.paliers[majuscule] ? majuscule : null;
+}
+function palierParDefaut() {
+  const palierURL = palierDepuisURL();
+  if (palierURL) return palierURL;
+  const niveau = niveauDuProfilActif();
+  if (niveau && CONTENU.paliers[niveau]) return niveau;
+  // Niveau absent/non couvert par ce module : palier le plus bas (CHARTE §15).
+  return ORDRE_PALIERS.find((n) => CONTENU.paliers[n]) || ORDRE_PALIERS[0];
+}
+
+/* ============================================================
    SESSIONS : contrat de données v1 (CHARTE.md, section 11)
-   Même implémentation que M17, avec MODULE_ID adapté.
    ============================================================ */
 const CLE_SESSIONS = 'mayeutik-sessions';
-const CLE_PROFIL_ACTIF = 'mayeutik-profil-actif';
 const MODULE_ID = 'M36';
 const MAX_SESSIONS_PAR_PROFIL = 500;
 
-let memoireProfilActif = null;
 let memoireSessions = null;
-
-function lireProfilActif() {
-  if (memoireProfilActif === null) {
-    memoireProfilActif = 'p1';
-    try {
-      const brut = window.localStorage.getItem(CLE_PROFIL_ACTIF);
-      if (brut) memoireProfilActif = brut;
-    } catch (e) {
-      memoireProfilActif = 'p1';
-    }
-  }
-  return memoireProfilActif;
-}
 
 function lireSessions() {
   if (memoireSessions === null) {
@@ -790,33 +963,19 @@ function lireSessions() {
   }
   return memoireSessions;
 }
-
 // Écrit une session brute à la fin d'un mini-jeu TERMINÉ (jamais pour une
 // partie abandonnée). `competence` = id du mini-jeu (granularité fine).
 function enregistrerSession(competence, score, total, duree) {
-  const profilId = lireProfilActif();
+  const profilId = lireProfilActifId();
   const toutes = lireSessions();
-  toutes.push({
-    profilId,
-    module: MODULE_ID,
-    competence,
-    score,
-    total,
-    date: new Date().toISOString(),
-    duree
-  });
-
-  // Plafond : au maximum les 500 dernières sessions par profil.
+  toutes.push({ profilId, module: MODULE_ID, competence, score, total, date: new Date().toISOString(), duree });
   let compteur = 0;
   for (let i = toutes.length - 1; i >= 0; i--) {
     if (toutes[i].profilId === profilId) {
       compteur++;
-      if (compteur > MAX_SESSIONS_PAR_PROFIL) {
-        toutes.splice(i, 1);
-      }
+      if (compteur > MAX_SESSIONS_PAR_PROFIL) toutes.splice(i, 1);
     }
   }
-
   memoireSessions = toutes;
   try {
     window.localStorage.setItem(CLE_SESSIONS, JSON.stringify(toutes));
@@ -825,37 +984,78 @@ function enregistrerSession(competence, score, total, duree) {
   }
 }
 
+/*
+ * Maîtrise locale d'un palier (CHARTE §15) : heuristique SIMPLIFIÉE propre à
+ * ce jeu, pas le calcul officiel LSU (qui reste propriété de la coquille). Un
+ * mini-jeu est « maîtrisé » si sa DERNIÈRE session atteint au moins 80 %. Le
+ * palier est maîtrisé quand TOUS ses mini-jeux le sont. La Découverte, qui
+ * n'est pas notée, ne figure pas dans `miniJeux` et n'entre donc pas en compte.
+ */
+const SEUIL_MAITRISE_LOCALE = 0.8;
+function palierMaitrise(palierNom) {
+  const palier = CONTENU.paliers[palierNom];
+  if (!palier) return false;
+  const profilId = lireProfilActifId();
+  const sessions = lireSessions().filter((s) => s.profilId === profilId && s.module === MODULE_ID);
+  return palier.miniJeux.every((mj) => {
+    const dernieres = sessions.filter((s) => s.competence === mj.id);
+    if (!dernieres.length) return false;
+    const derniere = dernieres[dernieres.length - 1];
+    return derniere.total > 0 && (derniere.score / derniere.total) >= SEUIL_MAITRISE_LOCALE;
+  });
+}
+function palierSuivant(palierNom) {
+  const i = ORDRE_PALIERS.indexOf(palierNom);
+  if (i === -1 || i === ORDRE_PALIERS.length - 1) return null;
+  const suivant = ORDRE_PALIERS[i + 1];
+  return CONTENU.paliers[suivant] ? suivant : null;
+}
+
 /* ============================================================
    GÉNÉRATION DES QUESTIONS
+   Chaque générateur reçoit la config du mini-jeu ET son palier : c'est le
+   palier qui décide des solides jouables et du vocabulaire autorisé.
    ============================================================ */
 const melange = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
 const pioche = a => a[Math.floor(Math.random()*a.length)];
-// CHARTE.md section 13 : mélange les options d'un QCM à index (comme les
-// patrons ou "polyèdre ?", où la bonne réponse est repérée par sa position),
-// et recalcule l'index correct après mélange.
+// CHARTE §13 : mélange les options d'un QCM à index (comme « Polyèdre ? », où
+// la bonne réponse est repérée par sa position), et recalcule l'index correct.
 function melangerOptions(options, indexCorrect){
   const enveloppes = options.map((valeur, i) => ({valeur, estCorrecte: i === indexCorrect}));
   const melangees = melange(enveloppes);
   return {options: melangees.map(e => e.valeur), indexCorrect: melangees.findIndex(e => e.estCorrecte)};
 }
-const CLES = Object.keys(CONTENU.solides);
-const POLYS = CLES.filter(k => CONTENU.solides[k].poly);
+const maj = s => s.charAt(0).toUpperCase() + s.slice(1);
 
-function qNomme(){
-  // Un tour par solide (banque naturellement limitée au programme, 7
-  // solides) : compléter avec des tirages avec remise sur ce même petit
-  // ensemble garantirait des doublons exacts à chaque partie (CHARTE §13).
-  const base = melange(CLES);
-  return base.map(k => {
-    const autres = melange(CLES.filter(x => x!==k)).slice(0,3);
+/* Le mot juste pour « face » selon le solide : un polyèdre n'a que des faces
+   planes, un solide rond a des « faces plates » qu'il faut distinguer de sa
+   surface courbe. Les deux formulations sont exactes ; celle qui colle à
+   l'objet évite d'avoir à choisir un libellé unique et bancal. */
+function motFaces(S){ return S.poly ? "faces" : "faces plates"; }
+
+/* « Qui suis-je ? » — un tour par solide du palier. La banque EST l'ensemble
+   des solides à connaître (5 au CP, 6 au CE1) : la compléter par des tirages
+   avec remise ne produirait que des doublons exacts (CHARTE §13). Le tirage
+   reste mélangé à chaque partie, et les distracteurs changent. */
+function qNomme(cfg, palier){
+  return melange(palier.solides).slice(0, cfg.nbQuestions).map(k => {
+    let autres = melange(palier.solides.filter(x => x!==k)).slice(0,3);
+    /* Cube et pavé sont systématiquement proposés l'un contre l'autre : c'est
+       la confusion que le programme demande explicitement de lever dès le CP. */
+    const jumeau = k==="cube" ? "pave" : k==="pave" ? "cube" : null;
+    if(jumeau && palier.solides.includes(jumeau) && !autres.includes(jumeau)){
+      autres = [jumeau, ...autres.slice(0, 2)];
+    }
     return {mode:"nomme", solide:k, q:"Comment s'appelle ce solide ?",
       opts:melange([k, ...autres]), ans:k, fmt:x=>CONTENU.solides[x].court};
   });
 }
-function qPolyedre(){
-  // Même précaution que qNomme : pas de tirage avec remise en complément
-  // sur cette même petite banque de 7 solides (CHARTE §13).
-  return melange(CLES).map(k => {
+
+/* « Polyèdre ? » — CE1 uniquement (la notion n'existe pas au CP). Banque =
+   les solides du palier, chacun devant être classé : même justification
+   d'exhaustivité que qNomme. */
+function qPolyedre(cfg, palier){
+  return melange(palier.solides).slice(0, cfg.nbQuestions).map(k => {
     const S = CONTENU.solides[k];
     const {options, indexCorrect} = melangerOptions(["Polyèdre ✔","Pas un polyèdre ✖"], S.poly?0:1);
     return {mode:"polyedre", solide:k, q:`${maj(S.nom)} est-il un polyèdre ?`,
@@ -863,77 +1063,86 @@ function qPolyedre(){
       expl:`${maj(S.nom)} : ${S.poly?CONTENU.explicationPoly.oui:CONTENU.explicationPoly.non}`};
   });
 }
-function qCompte(){
-  const kinds = ["faces","sommets","aretes"];
+
+/* « Je compte » — les grandeurs comptées viennent du palier : faces seules au
+   CP, faces/sommets/arêtes au CE1. Sommets et arêtes n'ont de sens que sur un
+   polyèdre ; les faces, elles, se comptent sur tous les solides (2 pour le
+   cylindre, 1 pour le cône, 0 pour la boule — c'est justement ce que le CP
+   doit observer). */
+function qCompte(cfg, palier){
   const noms = {faces:"faces", sommets:"sommets", aretes:"arêtes"};
   const combos = [];
-  POLYS.forEach(k => kinds.forEach(t => combos.push([k,t])));
-  return melange(combos).slice(0,9).map(([k,t]) => {
+  palier.solides.forEach(k => {
     const S = CONTENU.solides[k];
-    const n = t==="faces" ? S.f.length : t==="sommets" ? S.v.length : S.e.length;
+    cfg.kinds.forEach(t => {
+      if(t !== "faces" && !S.poly) return;
+      combos.push([k, t]);
+    });
+  });
+  return melange(combos).slice(0, cfg.nbQuestions).map(([k,t]) => {
+    const S = CONTENU.solides[k];
+    const n = t==="faces" ? S.facesPlates : t==="sommets" ? S.v.length : S.e.length;
+    const libelle = t==="faces" ? motFaces(S) : noms[t];
     const distr = new Set();
-    while(distr.size<3){ const d = n + pioche([-3,-2,-1,1,2,3,4]); if(d>0 && d!==n) distr.add(d); }
+    while(distr.size<3){ const d = n + pioche([-3,-2,-1,1,2,3,4]); if(d>=0 && d!==n) distr.add(d); }
     return {mode:"compte", solide:k, kind:t, ans:n,
-      q:`Combien de ${noms[t]} a ${S.nom} ?`,
-      opts:melange([n, ...distr]), fmt:x=>String(x), aide:true};
+      q:`Combien de ${libelle} a ${S.nom} ?`,
+      opts:melange([n, ...distr]), fmt:x=>String(x),
+      /* Le comptage animé n'existe que si les parties sont modélisées, donc
+         seulement pour les polyèdres. */
+      aide:S.poly};
   });
 }
-function qExplore(){
-  // Banque de 8 scènes 3D pointées (contenu figé, lié aux repères visuels
-  // du modèle) : tirer un sous-ensemble de 6 plutôt que les 8 à chaque
-  // partie évite de toujours poser exactement les mêmes questions dans le
-  // même ordre mélangé (CHARTE §13).
-  return melange([
-    {mode:"explore", type:"areteFaces", solide:"cube",
-     q:"Regarde l'arête orange. Combien de faces sépare-t-elle ?", opts:melange([1,2,3]), ans:2},
-    {mode:"explore", type:"opposee", solide:"cube",
-     q:"Tape la face OPPOSÉE à la face bleue !"},
-    {mode:"explore", type:"sommetFaces", solide:"cube", sommet:null,
-     q:"Regarde le sommet rouge. Combien de faces se rejoignent à ce sommet ?", opts:melange([2,3,4]), ans:3},
-    {mode:"explore", type:"areteTap", solide:"cube",
-     q:"Tape l'arête qui sépare les deux faces colorées !"},
-    {mode:"explore", type:"opposee", solide:"pave",
-     q:"Tape la face OPPOSÉE à la face bleue !"},
-    {mode:"explore", type:"sommetFaces", solide:"pyramide", sommet:0,
-     q:"Regarde le sommet rouge, en haut. Combien de faces se rejoignent à ce sommet ?", opts:melange([3,4,5]), ans:4},
-    {mode:"explore", type:"sommetFaces", solide:"pyramide", sommet:2,
-     q:"Regarde le sommet rouge, en bas. Combien de faces se rejoignent à ce sommet ?", opts:melange([2,3,4]), ans:3},
-    {mode:"explore", type:"areteFaces", solide:"prisme",
-     q:"Regarde l'arête orange. Combien de faces sépare-t-elle ?", opts:melange([1,2,3]), ans:2}
-  ]).slice(0,6);
+
+/* « J'explore » — CE1 uniquement (vocabulaire arête/sommet). Banque de scènes
+   figées, liées aux repères visuels du modèle : on en tire un sous-ensemble à
+   chaque partie plutôt que de toutes les poser dans un ordre mélangé (§13). */
+function qExplore(cfg, palier){
+  return melange(CONTENU.explorations.filter(e => palier.solides.includes(e.solide)))
+    .slice(0, cfg.nbQuestions)
+    .map(e => Object.assign({}, e, {mode:"explore"}, e.opts ? {opts:melange(e.opts)} : {}));
 }
-function qPatrons(){
-  // Banque de 7 patrons (contenu figé, illustrations dessinées) : tirer un
-  // sous-ensemble de 5 plutôt que les 7 à chaque partie, même raison que
-  // qExplore ci-dessus (CHARTE §13).
-  return melange(CONTENU.patrons.map(p => {
-    if(p.opts){
-      const {options, indexCorrect} = melangerOptions(p.opts, p.ans);
-      return {...p, mode:"patrons", opts:options, ans:indexCorrect};
-    }
-    if(p.nets){
-      const {options, indexCorrect} = melangerOptions(p.nets, p.ans);
-      return {...p, mode:"patrons", nets:options, ans:indexCorrect};
-    }
-    return {...p, mode:"patrons"};
-  })).slice(0,5);
-}
-function qDevinettes(){
-  return melange(CONTENU.devinettes).slice(0,8).map(d => {
-    const autres = melange(CLES.filter(x => x !== d.ans)).slice(0,3);
+
+/* « Devinettes » — double filtre : le solide visé doit exister au palier, ET
+   la devinette doit être dicible avec le vocabulaire déjà introduit. Une
+   devinette CP reste posable au CE1 ; l'inverse est faux. */
+function qDevinettes(cfg, palier, palierNom){
+  const rang = ORDRE_PALIERS.indexOf(palierNom);
+  const banque = CONTENU.devinettes.filter(d =>
+    palier.solides.includes(d.ans) && ORDRE_PALIERS.indexOf(d.niveau) <= rang);
+  return melange(banque).slice(0, cfg.nbQuestions).map(d => {
+    const autres = melange(palier.solides.filter(x => x !== d.ans)).slice(0,3);
     return {mode:"devinette", q:d.q, ans:d.ans,
       opts:melange([d.ans, ...autres]), fmt:x=>CONTENU.solides[x].court};
   });
 }
 
-const maj = s => s.charAt(0).toUpperCase() + s.slice(1);
+function construireFile(cfg, palier, palierNom){
+  if(cfg.mode === "nomme")     return qNomme(cfg, palier);
+  if(cfg.mode === "polyedre")  return qPolyedre(cfg, palier);
+  if(cfg.mode === "compte")    return qCompte(cfg, palier);
+  if(cfg.mode === "explore")   return qExplore(cfg, palier);
+  return qDevinettes(cfg, palier, palierNom);
+}
 
 /* ============================================================
    ÉCRANS & DÉROULÉ
    ============================================================ */
 const $ = id => document.getElementById(id);
 const ecrans = {home:$("home"), discover:$("discover"), game:$("game"), end:$("end")};
-let file = [], pos = 0, score = 0, modeCourant = null, demarreLe = 0;
+let file = [], pos = 0, score = 0, demarreLe = 0;
+let miniJeuCourant = null;   // { cfg, palier, palierNom }
+let etatPalierAffiche = palierParDefaut();
+
+function trouverMiniJeu(id){
+  for(const nom of ORDRE_PALIERS){
+    const palier = CONTENU.paliers[nom];
+    if(!palier) continue;
+    const cfg = palier.miniJeux.find(mj => mj.id === id);
+    if(cfg) return {cfg, palier, palierNom:nom};
+  }
+  return null;
+}
 
 /* Remonte en haut à chaque changement d'écran (CHARTE §17) : sans cela, le
    nouvel écran hérite du défilement de l'écran précédent. Repositionnement
@@ -974,20 +1183,131 @@ function montreEcran(nom){
   remonterEnHaut();
 }
 
-$("btnBack").addEventListener("click", () => { stopSequence(); tapHandler=null; document.querySelectorAll(".patronTmp").forEach(el=>el.remove()); montreEcran("home"); majEtoilesHome(); });
+function retourAccueil(){
+  stopSequence();
+  tapHandler = null;
+  montreEcran("home");
+  construireAccueil();
+}
+$("btnBack").addEventListener("click", retourAccueil);
 
-document.querySelectorAll(".card").forEach(c => c.addEventListener("click", () => lance(c.dataset.mode)));
+/* ---------- Écran d'accueil : cartes construites depuis le palier ---------- */
 
-function lance(mode){
-  modeCourant = mode;
-  if(mode === "decouvre"){ initDecouverte(); return; }
-  file = mode==="nomme" ? qNomme() : mode==="polyedre" ? qPolyedre()
-       : mode==="compte" ? qCompte() : mode==="explore" ? qExplore()
-       : mode==="devinette" ? qDevinettes() : qPatrons();
+function creerCarte(cfg){
+  const b = document.createElement("button");
+  b.className = "card";
+  b.dataset.jeu = cfg.id;
+  const ico = document.createElement("span");
+  ico.className = "ico"; ico.textContent = cfg.icone;
+  const nom = document.createElement("span");
+  nom.className = "nom"; nom.textContent = cfg.titre;
+  const det = document.createElement("span");
+  det.className = "det"; det.textContent = cfg.description;
+  const stars = document.createElement("span");
+  stars.className = "stars";
+  const n = lireEtoiles()[cfg.id] || 0;
+  stars.textContent = n ? "⭐".repeat(n) : "";
+  b.append(ico, nom, det, stars);
+  b.addEventListener("click", () => lance(cfg.id));
+  return b;
+}
+
+function creerCarteDecouverte(){
+  const b = document.createElement("button");
+  b.className = "card wide";
+  b.dataset.jeu = "decouvre";
+  b.innerHTML = '<span class="ico">🔍</span>' +
+    '<span><span class="nom">Découvre les solides</span><br>' +
+    '<span class="det">Manipule-les en 3D</span></span>';
+  b.addEventListener("click", () => initDecouverte());
+  return b;
+}
+
+function construireAccueil(){
+  $("hdrTitle").textContent = "Les Solides";
+  const palier = CONTENU.paliers[etatPalierAffiche];
+  $("sous-titre-accueil").textContent = (palier && palier.sousTitre) || CONTENU.sousTitre;
+
+  const rangee = $("rangee-paliers");
+  rangee.innerHTML = "";
+  ORDRE_PALIERS.filter(n => CONTENU.paliers[n]).forEach(n => {
+    const puce = document.createElement("button");
+    puce.type = "button";
+    puce.className = "puce-palier" + (n === etatPalierAffiche ? " actif" : "");
+    puce.textContent = n;
+    puce.addEventListener("click", () => { etatPalierAffiche = n; construireAccueil(); });
+    rangee.appendChild(puce);
+  });
+
+  const niveauProfil = niveauDuProfilActif();
+  $("note-palier").textContent = niveauProfil
+    ? "Niveau de " + (niveauProfil === etatPalierAffiche
+        ? "ton profil"
+        : "ton profil : " + niveauProfil + " — tu regardes le palier " + etatPalierAffiche)
+    : "";
+
+  const grille = $("grille-jeux");
+  grille.innerHTML = "";
+  grille.appendChild(creerCarteDecouverte());
+  (palier ? palier.miniJeux : []).forEach(cfg => grille.appendChild(creerCarte(cfg)));
+
+  /* Palier bonus (CHARTE §15) : uniquement si le palier courant est maîtrisé
+     ET qu'un palier suivant existe. Première apparition pour ce profil :
+     habillé en « paquet cadeau » tant qu'il n'a pas été ouvert ; ensuite
+     affiché normalement à chaque visite. */
+  const suivant = palierSuivant(etatPalierAffiche);
+  const blocBonus = $("bloc-bonus");
+  const paquetCadeau = $("paquet-cadeau");
+  const grilleBonus = $("grille-bonus");
+  if(suivant && palierMaitrise(etatPalierAffiche)){
+    blocBonus.hidden = false;
+    $("note-bonus").textContent =
+      "Tu maîtrises tout le palier " + etatPalierAffiche + " : essaie un aperçu du palier " + suivant + " !";
+    grilleBonus.innerHTML = "";
+    CONTENU.paliers[suivant].miniJeux.forEach(cfg => grilleBonus.appendChild(creerCarte(cfg)));
+
+    const profilId = lireProfilActifId();
+    if(bonusDejaRevele(profilId, suivant)){
+      paquetCadeau.hidden = true;
+      grilleBonus.hidden = false;
+    } else {
+      paquetCadeau.hidden = false;
+      paquetCadeau.disabled = false;
+      paquetCadeau.classList.remove("paquet-cadeau-ouverture");
+      grilleBonus.hidden = true;
+      /* Propriété `onclick`, pas addEventListener : ce bouton est un élément
+         fixe du DOM réutilisé à chaque appel — addEventListener empilerait
+         un gestionnaire de plus à chaque re-rendu (CHARTE §15). */
+      paquetCadeau.onclick = () => ouvrirPaquetCadeau(profilId, suivant, paquetCadeau, grilleBonus);
+    }
+  } else {
+    blocBonus.hidden = true;
+  }
+}
+
+function ouvrirPaquetCadeau(profilId, palierCible, paquetCadeau, grilleBonus){
+  if(paquetCadeau.disabled) return;
+  paquetCadeau.disabled = true;
+  marquerBonusRevele(profilId, palierCible);
+  lancerConfettis();
+  sonBonneReponse();
+  paquetCadeau.classList.add("paquet-cadeau-ouverture");
+  setTimeout(() => {
+    paquetCadeau.hidden = true;
+    grilleBonus.hidden = false;
+  }, 480); // doit correspondre à la durée de l'animation CSS .paquet-cadeau-pop
+}
+
+/* ---------- Déroulé d'une partie ---------- */
+
+function lance(miniJeuId){
+  const trouve = trouverMiniJeu(miniJeuId);
+  if(!trouve) return;
+  miniJeuCourant = trouve;
+  file = construireFile(trouve.cfg, trouve.palier, trouve.palierNom);
   pos = 0; score = 0;
   demarreLe = Date.now();
-  const titres = {nomme:"Qui suis-je ?", polyedre:"Polyèdre ?", compte:"Je compte", explore:"J'explore", devinette:"Devinettes", patrons:"Les patrons"};
-  $("hdrTitle").textContent = titres[mode];
+  $("hdrTitle").textContent = trouve.cfg.titre;
   montreEcran("game");
   majDots();
   question();
@@ -1007,24 +1327,13 @@ function question(){
   $("btnNext").style.display = "none";
   $("btnShow").style.display = "none";
   $("hint3d").style.display = "block";
-  const ans = $("answers"); ans.innerHTML = ""; ans.classList.remove("uno"); ans.style.gridTemplateColumns = "";
-  document.querySelectorAll(".patronTmp").forEach(el => el.remove());
+  const ans = $("answers"); ans.innerHTML = ""; ans.classList.remove("uno");
   autoRot = true;
 
-  /* --- mise en place 3D / SVG selon le type --- */
+  /* --- mise en place 3D : une devinette se résout SANS voir le solide,
+         il n'apparaît qu'à la correction. --- */
   if(q.mode === "devinette"){
     viewport.style.display = "none";
-  } else if(q.mode === "patrons" && q.type !== "solidToNet"){
-    viewport.style.display = "none";
-    // patron en grand au-dessus des réponses
-    const d = document.createElement("div");
-    d.className = "patronTmp";
-    d.style.cssText = "background:var(--carte);border-radius:var(--r);box-shadow:var(--ombre);padding:10px;display:flex;justify-content:center;margin-bottom:2px;";
-    d.innerHTML = `<div style="height:170px;display:flex;justify-content:center">${NETS[q.net]}</div>`;
-    const svg = d.querySelector("svg");
-    svg.style.height = "100%"; svg.style.width = "auto";
-    $("qText").after(d);
-    q._tmp = d;
   } else {
     viewport.style.display = "block";
     montrerSolide(q.solide, {neutre: q.mode === "explore"});
@@ -1039,30 +1348,19 @@ function question(){
   if(q.mode === "explore") prepareExplore(q);
 
   /* --- réponses --- */
-  if(q.opts || q.nets){
-    if(q.mode==="patrons" && q.type==="solidToNet"){
-      ans.innerHTML = "";
-      q.nets.forEach((n, i) => {
-        const b = document.createElement("button");
-        b.className = "rep"; b.innerHTML = NETS[n];
-        if(i === q.ans) b.dataset.correct = "1";
-        b.onclick = () => repond(i === q.ans, b, q);
-        ans.appendChild(b);
-      });
-      if(q.nets.length===3) ans.classList.add("uno"), ans.style.gridTemplateColumns="1fr 1fr 1fr";
-    } else {
-      q.opts.forEach((o, i) => {
-        const b = document.createElement("button");
-        b.className = "rep";
-        b.textContent = q.fmt ? q.fmt(o) : (q.mode==="patrons"&&q.type==="netToName" ? CONTENU.solides[o]?.court ?? o : String(o));
-        const bon = q.idx!==undefined||q.mode==="polyedre" ? (i===q.ans)
-                  : (q.mode==="patrons" ? i===q.ans : o===q.ans);
-        if(bon) b.dataset.correct = "1";
-        b.onclick = () => repond(bon, b, q);
-        ans.appendChild(b);
-      });
-      if(q.opts.length===2) ans.classList.add("uno");
-    }
+  if(q.opts){
+    q.opts.forEach((o, i) => {
+      const b = document.createElement("button");
+      b.className = "rep";
+      b.textContent = q.fmt ? q.fmt(o) : String(o);
+      // « Polyèdre ? » et « J'explore » repèrent la bonne réponse par son
+      // index (options textuelles génériques) ; les autres, par sa valeur.
+      const bon = (q.idx !== undefined || q.mode === "polyedre") ? (i === q.ans) : (o === q.ans);
+      if(bon) b.dataset.correct = "1";
+      b.onclick = () => repond(bon, b, q);
+      ans.appendChild(b);
+    });
+    if(q.opts.length === 2) ans.classList.add("uno");
   }
   majDots();
 }
@@ -1113,33 +1411,37 @@ function repond(bon, bouton, q){
   tapHandler = null;
   document.querySelectorAll(".rep").forEach(b => { b.disabled = true; if(b!==bouton) b.classList.add("dim"); });
   if(bouton) bouton.classList.add(bon ? "ok" : "ko");
+  /* CHARTE §18 : la bonne réponse est montrée en vert même si elle n'a pas
+     été cliquée. */
   if(!bon){
     const correct = document.querySelector('.rep[data-correct]');
     if(correct){ correct.classList.remove("dim"); correct.classList.add("ok"); }
   }
+  // La devinette révèle enfin le solide dont il était question.
   if(q.mode === "devinette"){
     viewport.style.display = "block";
     montrerSolide(q.ans);
     requestAnimationFrame(resize);
   }
   q._ok = bon;
-  if(bon){ score++; sonBravo(); lancerConfettis(); $("feedback").textContent = pioche(CONTENU.bravo) + (q.expl ? " " + q.expl : ""); $("feedback").className = "bon"; }
-  else {
+  if(bon){
+    score++; sonBravo(); lancerConfettis();
+    $("feedback").textContent = pioche(CONTENU.bravo) + (q.expl ? " " + q.expl : "");
+    $("feedback").className = "bon";
+  } else {
     sonRate();
     let correction = "";
     if(q.mode==="nomme" || q.mode==="devinette") correction = `C'était ${CONTENU.solides[q.ans].nom} !`;
     else if(q.mode==="compte") correction = `La bonne réponse était ${q.ans}. Appuie sur 👀 pour vérifier !`;
     else if(q.expl) correction = q.expl;
     else if(q.opts){
-      const estIndex = q.idx !== undefined || q.mode==="polyedre" || q.mode==="patrons";
-      const val = estIndex ? q.opts[q.ans] : q.ans;
-      const lbl = (q.mode==="patrons" && q.type==="netToName") ? (CONTENU.solides[val]?.court ?? val) : val;
-      correction = `La bonne réponse était : ${lbl}`;
+      const estIndex = q.idx !== undefined || q.mode==="polyedre";
+      correction = `La bonne réponse était : ${estIndex ? q.opts[q.ans] : q.ans}`;
     }
     $("feedback").textContent = "Presque ! ";
     const span = document.createElement("span");
     span.className = "correction-attendue";
-    span.textContent = q.expl && bon===false ? q.expl : correction;
+    span.textContent = correction;
     $("feedback").appendChild(span);
     $("feedback").className = "mauvais";
   }
@@ -1150,8 +1452,6 @@ function repond(bon, bouton, q){
 }
 
 $("btnNext").addEventListener("click", () => {
-  const q = file[pos];
-  if(q._tmp){ q._tmp.remove(); q._tmp = null; }
   pos++;
   if(pos < file.length) question();
   else fin();
@@ -1161,9 +1461,10 @@ function fin(){
   stopSequence(); tapHandler = null;
   const ratio = score / file.length;
   const n = ratio >= 0.85 ? 3 : ratio >= 0.6 ? 2 : 1;
-  enregistrerEtoiles(modeCourant, n);
+  const cfg = miniJeuCourant.cfg;
+  enregistrerEtoiles(cfg.id, n);
   const dureeSecondes = Math.max(0, Math.round((Date.now() - demarreLe) / 1000));
-  enregistrerSession(modeCourant, score, file.length, dureeSecondes);
+  enregistrerSession(cfg.id, score, file.length, dureeSecondes);
   $("hdrTitle").textContent = "Résultat";
   montreEcran("end");
   $("endStars").innerHTML = "⭐".repeat(n).split("").map(s=>`<span>${s}</span>`).join("") +
@@ -1174,36 +1475,48 @@ function fin(){
   if(n === 3){ sonNiveauParfait(); lancerConfettis(); }
   else sonBonneReponse();
 }
-$("bRejouer").addEventListener("click", () => lance(modeCourant));
-$("bMenu").addEventListener("click", () => { montreEcran("home"); majEtoilesHome(); });
-
-function majEtoilesHome(){
-  $("hdrTitle").textContent = "Les Solides";
-  const tout = lireEtoiles();
-  document.querySelectorAll("[data-stars]").forEach(el => {
-    const n = tout[el.dataset.stars] || 0;
-    el.textContent = n ? "⭐".repeat(n) : "";
-  });
-}
+$("bRejouer").addEventListener("click", () => lance(miniJeuCourant.cfg.id));
+$("bMenu").addEventListener("click", retourAccueil);
 
 /* ============================================================
    MODE DÉCOUVERTE
+   Bridé par le palier : au CP, ni arêtes, ni sommets, ni badge polyèdre —
+   le vocabulaire s'y limite à « face ».
    ============================================================ */
 let decToggles = {faces:false, aretes:false, sommets:false};
+
+function palierAutorise(mot){
+  const palier = CONTENU.paliers[etatPalierAffiche];
+  return !!palier && palier.vocabulaire.includes(mot);
+}
+
 function initDecouverte(){
   $("hdrTitle").textContent = "Découvre";
   montreEcran("discover");
+  const solides = CONTENU.paliers[etatPalierAffiche].solides;
+
+  // Arêtes et sommets ne s'affichent qu'aux paliers où ces mots existent.
+  document.querySelectorAll(".tog").forEach(t => {
+    const mot = t.dataset.t === "aretes" ? "arete" : t.dataset.t === "sommets" ? "sommet" : "face";
+    t.hidden = !palierAutorise(mot);
+  });
+
   const chips = $("chips");
   chips.innerHTML = "";
-  CLES.forEach((k, i) => {
+  solides.forEach((k, i) => {
     const b = document.createElement("button");
     b.className = "chip" + (i===0 ? " sel" : "");
     b.textContent = CONTENU.solides[k].court;
-    b.onclick = () => { document.querySelectorAll(".chip").forEach(c=>c.classList.remove("sel")); b.classList.add("sel"); montreDecouverte(k); };
+    b.onclick = () => {
+      document.querySelectorAll(".chip").forEach(c=>c.classList.remove("sel"));
+      b.classList.add("sel");
+      montreDecouverte(k);
+    };
     chips.appendChild(b);
   });
-  montreDecouverte(CLES[0]);
+  montreDecouverte(solides[0]);
 }
+
 function montreDecouverte(k){
   stopSequence();
   montrerSolide(k);
@@ -1213,18 +1526,37 @@ function montreDecouverte(k){
   const S = CONTENU.solides[k];
   const peut = S.poly;
   document.querySelectorAll(".tog").forEach(t => { t.disabled = !peut; t.style.opacity = peut ? "1" : ".4"; });
+
+  /* Ligne de comptage : au CP on ne cite que les faces ; au CE1 le trio
+     complet. Un solide rond n'a de toute façon pas de parties modélisées :
+     son texte descriptif (`info`/`infoCE1`) le remplace. */
   let lignes;
   if(S.poly){
-    lignes = `<div class="ligne">🟧 <b>${S.f.length}</b> faces &nbsp;·&nbsp; 📏 <b>${S.e.length}</b> arêtes &nbsp;·&nbsp; 🔴 <b>${S.v.length}</b> sommets</div>`;
+    lignes = palierAutorise("arete")
+      ? `<div class="ligne">🟧 <b>${S.f.length}</b> faces &nbsp;·&nbsp; 📏 <b>${S.e.length}</b> arêtes &nbsp;·&nbsp; 🔴 <b>${S.v.length}</b> sommets</div>`
+      : `<div class="ligne">🟧 <b>${S.facesPlates}</b> faces</div>`;
   } else {
-    lignes = `<div class="ligne">${S.info}</div>`;
+    lignes = `<div class="ligne">${palierAutorise("polyedre") && S.infoCE1 ? S.infoCE1 : S.info}</div>`;
   }
+
+  // Le badge POLYÈDRE n'apparaît qu'au palier où le mot a été introduit.
+  const badge = palierAutorise("polyedre")
+    ? ` <span class="badge ${S.poly?"poly":"nonpoly"}">${S.poly?"POLYÈDRE":"PAS UN POLYÈDRE"}</span>`
+    : "";
+
+  // Encart de distinction cube / pavé (exigé dès le CP par le programme).
+  const distinction = S.distinction
+    ? `<div class="distinction">💡 ${S.distinction}</div>`
+    : "";
+
   $("infoCard").innerHTML = `
-    <h2>${maj(S.nom)} <span class="badge ${S.poly?"poly":"nonpoly"}">${S.poly?"POLYÈDRE":"PAS UN POLYÈDRE"}</span></h2>
+    <h2>${maj(S.nom)}${badge}</h2>
     ${lignes}
-    <div class="objet">Dans la vie : comme ${S.objet}</div>`;
+    <div class="objet">Dans la vie : comme ${S.objet}</div>
+    ${distinction}`;
   $("infoCard").dataset.solide = k;
 }
+
 document.querySelectorAll(".tog").forEach(t => t.addEventListener("click", () => {
   const k = $("infoCard").dataset.solide;
   if(!CONTENU.solides[k].poly) return;
@@ -1240,9 +1572,22 @@ document.querySelectorAll(".tog").forEach(t => t.addEventListener("click", () =>
 /* ============================================================
    DÉMARRAGE
    ============================================================ */
+construireAccueil();
 montreEcran("home");
-majEtoilesHome();
 resize();
+
+/* Lancement paramétré (CHARTE §16) : `?competence=<id>` démarre directement
+   sur le mini-jeu, en sautant l'accueil. Un id inconnu est ignoré
+   silencieusement — ce n'est qu'un raccourci d'entrée. */
+(function () {
+  const demande = parametreURL('competence');
+  if (!demande) return;
+  const trouve = trouverMiniJeu(demande);
+  if (!trouve) return;
+  etatPalierAffiche = trouve.palierNom;
+  construireAccueil();
+  lance(demande);
+})();
 
 /* Bouton « ← Menu » : retour à la coquille avec confirmation (CHARTE §7).
    Le bouton vit dans #home : il n'est visible que sur l'écran d'accueil. */
