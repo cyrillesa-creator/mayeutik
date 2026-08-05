@@ -455,6 +455,10 @@
   .jeton-fantome .objet-dessin{ width:2.7rem; height:2.7rem; }
   .cellule-placement.cible-survolee{ background:color-mix(in srgb, var(--couleur-mandarine) 20%, white);
     outline:3px dashed var(--couleur-mandarine); outline-offset:-3px; }
+  /* Le vivier lui aussi accepte un objet glissé — depuis le tableau, pour le
+     reprendre. */
+  .pool-objets.cible-survolee{ background:color-mix(in srgb, var(--couleur-mandarine) 14%, white);
+    border-color:var(--couleur-mandarine); border-style:solid; }
   .tableau-placement.verrouille .cellule-placement{ cursor:default; }
   .note-rangement{ text-align:center; font-size:.88rem; font-weight:600; margin:.3rem 0 .1rem; }
   .note-rangement.erreur{ color:color-mix(in srgb, var(--couleur-corail) 70%, black 20%); }
@@ -2199,9 +2203,12 @@
        l'objet. Un enfant qui ne glisse jamais ne voit aucune différence. */
     const SEUIL_GLISSE_PX = 8;
 
-    function celluleSous(x, y) {
+    function cibleSous(x, y) {
       const el = document.elementFromPoint(x, y);
-      return el ? el.closest('.cellule-placement') : null;
+      if (!el) return null;
+      // Deux sortes de cible acceptent un objet lâché : une case du tableau,
+      // ou le vivier lui-même — pour reprendre un objet déjà rangé.
+      return el.closest('.cellule-placement') || el.closest('.pool-objets');
     }
 
     function activerGlisser(el, jeton) {
@@ -2239,7 +2246,7 @@
         }
         fantome.style.left = ev.clientX + 'px';
         fantome.style.top = ev.clientY + 'px';
-        const sous = celluleSous(ev.clientX, ev.clientY);
+        const sous = cibleSous(ev.clientX, ev.clientY);
         if (sous !== survolee) {
           if (survolee) survolee.classList.remove('cible-survolee');
           survolee = sous;
@@ -2250,12 +2257,14 @@
       el.addEventListener('pointerup', (ev) => {
         if (!depart) return;
         const aGlisse = glisse;
-        const cible = aGlisse ? celluleSous(ev.clientX, ev.clientY) : null;
+        const cible = aGlisse ? cibleSous(ev.clientX, ev.clientY) : null;
         glisse = false;
         nettoyer();
         if (!aGlisse) return;         // simple tap : on laisse le `click` agir
         noterFinDeGlisse();
-        if (cible) deposer(cible.dataset.cle, jeton);
+        if (!cible) return;
+        if (cible.classList.contains('pool-objets')) remettreDansVivier(jeton);
+        else deposer(cible.dataset.cle, jeton);
       });
 
       // Doigt relevé hors zone, geste interrompu par le système, capture
@@ -2279,6 +2288,7 @@
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'jeton-objet' + (selection && selection.ref === jeton.ref ? ' selectionnee' : '');
+        btn.dataset.cle = jeton.cle; // sa case correcte, au même usage que dataset.cle sur les cellules
         btn.appendChild(dessinerObjet(objetPar[jeton.objetId].forme, teintePar[jeton.teinteId].hex));
         btn.setAttribute('aria-label', nommer(jeton));
         btn.addEventListener('click', () => {
@@ -2367,6 +2377,7 @@
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'objet-mini';
+        btn.dataset.cle = jeton.cle; // sa case correcte, au même usage que dataset.cle sur les cellules
         btn.appendChild(dessinerObjet(objetPar[jeton.objetId].forme, teintePar[jeton.teinteId].hex));
         btn.setAttribute('aria-label', 'Reprendre ' + nommer(jeton));
         btn.addEventListener('click', (ev) => {
@@ -2416,6 +2427,27 @@
          bien qu'un rangement se fait en une seule série de clics dans le
          tableau, sans revenir chercher chaque objet. */
       selection = vivier[0] || null;
+      rendreVivier();
+      jouerSon('tic');
+    }
+
+    /* Glisser un objet déjà posé jusqu'au vivier l'en retire — pendant du
+       clic sur l'objet dans sa case (même effet, geste en plus). Sans objet
+       à retirer (le jeton était déjà dans le vivier), rien ne se passe. */
+    function remettreDansVivier(jeton) {
+      if (phase !== 'rangement') return;
+      let retire = false;
+      cles.forEach((k) => {
+        if (enCellule[k].indexOf(jeton) !== -1) {
+          enCellule[k] = enCellule[k].filter((j) => j !== jeton);
+          rendreCellule(k);
+          retire = true;
+        }
+      });
+      if (!retire) return;
+      vivier.push(jeton);
+      selection = jeton;
+      effacerMarques();
       rendreVivier();
       jouerSon('tic');
     }
@@ -2479,6 +2511,7 @@
         boutonValider.hidden = true;
         note.textContent = 'Ton tableau est juste !';
         note.className = 'note-rangement reussite';
+        lancerConfettis();
         jouerSon('tic');
         poserQuestionFinale();
         return;
