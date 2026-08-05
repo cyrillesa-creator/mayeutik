@@ -867,6 +867,23 @@
     }
   }
 
+  /* Navigation automatique après un délai (CHARTE §20) : 2 s après l'affichage
+     du bouton « Suivant », on avance sans attendre le clic de l'enfant. Un
+     clic manuel ou une sortie du jeu annulent ce minuteur. */
+  const DELAI_AUTO_SUIVANT = 2000;
+  let minuteurAutoSuivant = null;
+  function armerAutoSuivant() {
+    clearTimeout(minuteurAutoSuivant);
+    const bouton = document.getElementById('bouton-suivant');
+    minuteurAutoSuivant = setTimeout(() => {
+      if (bouton.hidden || bouton.disabled || !bouton.isConnected) return;
+      bouton.click();
+    }, DELAI_AUTO_SUIVANT);
+  }
+  function desarmerAutoSuivant() {
+    clearTimeout(minuteurAutoSuivant);
+  }
+
   function afficherCorrection(zone, donnee, attendue) {
     const bloc = document.createElement('p');
     bloc.className = 'bloc-correction';
@@ -1376,6 +1393,7 @@
   }
 
   function retourAccueil() {
+    desarmerAutoSuivant();
     if (window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch (e) { /* ignore */ } }
     document.getElementById('ecran-jeu').hidden = true;
     document.getElementById('ecran-accueil').hidden = false;
@@ -1402,6 +1420,7 @@
   }
 
   function mancheSuivante() {
+    desarmerAutoSuivant();
     const cfg = trouverConfig(etat.jeuId);
     if (etat.index >= cfg.nbQuestions) {
       afficherResultats(cfg);
@@ -1451,6 +1470,7 @@
       if (correction) afficherCorrection(zoneFeedback, correction.donnee, correction.attendue);
     }
     document.getElementById('bouton-suivant').hidden = false;
+    armerAutoSuivant();
   }
 
   function afficherResultats(cfg) {

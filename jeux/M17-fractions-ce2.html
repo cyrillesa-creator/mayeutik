@@ -1104,6 +1104,23 @@
     }
   }
 
+  /* Navigation automatique après un délai (CHARTE §20) : 2 s après l'affichage
+     du bouton « Suivant », on avance sans attendre le clic de l'enfant. Un
+     clic manuel ou une sortie du jeu annulent ce minuteur. */
+  const DELAI_AUTO_SUIVANT = 2000;
+  let minuteurAutoSuivant = null;
+  function armerAutoSuivant() {
+    clearTimeout(minuteurAutoSuivant);
+    const bouton = document.getElementById('bouton-suivant');
+    minuteurAutoSuivant = setTimeout(() => {
+      if (bouton.hidden || bouton.disabled || !bouton.isConnected) return;
+      bouton.click();
+    }, DELAI_AUTO_SUIVANT);
+  }
+  function desarmerAutoSuivant() {
+    clearTimeout(minuteurAutoSuivant);
+  }
+
   /* Correction après une MAUVAISE réponse (CHARTE §18) : ce que l'enfant a
      répondu en rouge, ce qu'il fallait répondre en vert. N'est jamais appelée
      sur une bonne réponse (elle brouillerait la récompense). */
@@ -1157,6 +1174,7 @@
   }
 
   function retourAccueil() {
+    desarmerAutoSuivant();
     document.getElementById('ecran-jeu').hidden = true;
     document.getElementById('ecran-accueil').hidden = false;
     construireAccueil();
@@ -1185,6 +1203,7 @@
   }
 
   function questionSuivante() {
+    desarmerAutoSuivant();
     const cfg = trouverConfig(etat.jeuId);
     if (etat.index >= cfg.nbQuestions) {
       afficherResultats(cfg);
@@ -1222,6 +1241,7 @@
       jouerSon('rate');
     }
     document.getElementById('bouton-suivant').hidden = false;
+    armerAutoSuivant();
   }
 
   function afficherResultats(cfg) {

@@ -483,6 +483,7 @@ Règle absolue : on ne touche **jamais** au format (nombre d'items, chronométra
 | Mode chronométré | Modules "E" uniquement : temps imparti par exercice (référentiel), arrêt net à expiration, pas de rattrapage |
 | Variété & randomisation | QCM mélangés (Fisher-Yates), questions mélangées par partie SANS redondance jusqu'à épuisement de la banque, banque ≥ 2-3× le nombre posé ou génération procédurale |
 | Modules adaptatifs par niveau | Un seul fichier, contenu JSON par palier, niveau du profil actif lu au démarrage, palier bonus optionnel au-delà de la maîtrise |
+| Navigation automatique | Bouton « Suivant » : avance automatique 2 s après son affichage, sauf clic manuel ou sortie du jeu avant ce délai |
 
 ---
 
@@ -878,3 +879,64 @@ input, textarea, select, [contenteditable="true"] {
 arbitrage assumé pour un public d'enfants de 6 à 8 ans, chez qui le zoom accidentel casse la partie
 bien plus souvent qu'il ne rend service — et l'interface est dimensionnée pour être lisible sans
 zoom (§1, cibles tactiles de 44 px minimum).
+
+---
+
+## 20. Navigation automatique après un délai (obligatoire)
+
+**Règle générale, applicable par défaut à TOUS les mini-jeux de TOUS les modules, dès maintenant et pour tout nouveau module, sauf mention contraire explicite dans la spec d'un mini-jeu précis :** à la fin de chaque question qui précède un changement d'écran (vers la question suivante, ou vers l'écran de résultats quand c'était la dernière), **2 secondes après l'affichage du bouton « Suivant »**, le jeu avance automatiquement — sans attendre que l'enfant clique.
+
+**Pourquoi.** Cliquer « Suivant » après chaque question est un geste répété des dizaines de fois par partie, pour une information qu'il ne porte pas lui-même (l'enfant a déjà vu son résultat et sa correction avant que le bouton n'apparaisse). L'avance automatique retire ce clic de trop tout en laissant l'enfant maître du rythme : un clic manuel avant les 2 secondes reste toujours prioritaire et immédiat, rien n'est perdu ni précipité côté feedback (§18) — l'auto-avance ne fait que déclencher, avec un léger différé, exactement l'action que le clic aurait déclenchée.
+
+### Mise en œuvre
+
+Le minuteur s'arme au moment précis où le bouton « Suivant » devient visible (dans la fonction de validation de manche, juste après `bouton-suivant.hidden = false`), et se désarme à deux endroits : au tout début de la fonction qui avance réellement à la manche suivante (déclenchée aussi bien par le clic manuel que par le minuteur), et au tout début du retour à l'accueil — sans quoi un enfant qui quitte le mini-jeu pendant les 2 secondes verrait le minuteur, resté armé, déclencher une avance fantôme sur un écran qu'il a déjà quitté.
+
+```js
+/* Navigation automatique après un délai (CHARTE §20) : 2 s après l'affichage
+   du bouton « Suivant », on avance sans attendre le clic de l'enfant. Un
+   clic manuel ou une sortie du jeu annulent ce minuteur. */
+const DELAI_AUTO_SUIVANT = 2000;
+let minuteurAutoSuivant = null;
+function armerAutoSuivant() {
+  clearTimeout(minuteurAutoSuivant);
+  const bouton = document.getElementById('bouton-suivant');
+  minuteurAutoSuivant = setTimeout(() => {
+    if (bouton.hidden || bouton.disabled || !bouton.isConnected) return;
+    bouton.click();
+  }, DELAI_AUTO_SUIVANT);
+}
+function desarmerAutoSuivant() {
+  clearTimeout(minuteurAutoSuivant);
+}
+```
+
+Trois points d'ancrage, dans la fonction de validation (`validerReponse`/`validerTour`), la fonction d'avance (`questionSuivante`/`mancheSuivante`/`tourSuivant`…) et `retourAccueil` :
+
+```js
+// Dans la fonction de validation, juste après avoir révélé le bouton :
+document.getElementById('bouton-suivant').hidden = false;
+armerAutoSuivant();
+
+// Dans la fonction qui avance réellement à la manche/question suivante,
+// TOUTE PREMIÈRE instruction (couvre le clic manuel ET le déclenchement
+// automatique, puisque le minuteur agit en simulant ce même clic) :
+function questionSuivante() {
+  desarmerAutoSuivant();
+  // ... reste de la fonction, inchangé
+}
+
+// Dans retourAccueil, TOUTE PREMIÈRE instruction :
+function retourAccueil() {
+  desarmerAutoSuivant();
+  // ... reste de la fonction, inchangé
+}
+```
+
+### Points d'attention
+
+- **Ne jamais déclencher l'avance directement** (ex. appeler `questionSuivante()` depuis le minuteur) : passer par `bouton.click()` garantit que le minuteur emprunte exactement le même chemin que le clic manuel, y compris tout traitement futur ajouté sur cet événement.
+- **Le garde-fou `bouton.hidden`** protège les cas où le minuteur reste armé au-delà de sa pertinence sans qu'aucune fonction n'ait explicitement désarmé (par exemple si un module gagne un nouveau point de sortie à l'avenir) : un bouton redevenu invisible ne doit jamais déclencher de clic fantôme. Il ne dispense pas pour autant des deux points d'ancrage `desarmerAutoSuivant()` ci-dessus, qui restent nécessaires (le bouton peut rester `hidden = false` alors que l'écran qui le contient a lui-même été masqué par un autre écran).
+- **Un seul minuteur global par fichier** (`minuteurAutoSuivant`) : `armerAutoSuivant()` annule systématiquement tout minuteur précédent avant d'en poser un nouveau, il ne peut donc jamais y en avoir deux en concurrence.
+- **Ce mécanisme ne concerne que la transition « Suivant » de fin de manche.** Il ne s'applique pas aux écrans de résultats (« Rejouer » / « Retour à l'accueil » restent des choix manuels, sans minuteur) ni à un mini-jeu dont la mécanique n'a structurellement pas de bouton « Suivant » entre les questions (ex. un jeu à rythme continu qui enchaîne déjà sans pause, comme `M99-boss-des-tables.html`) — rien à ajouter dans ce cas.
+- **Pour tout nouveau module :** cette règle fait partie du gabarit dès la conception, au même titre que la navigation (§17) et le feedback d'erreur (§18). Un mini-jeu dont le bouton « Suivant » attend indéfiniment le clic est considéré comme non conforme, sauf mention contraire explicite et justifiée dans la spec de ce mini-jeu.

@@ -944,7 +944,25 @@ function remonterEnHaut(){
   catch(e){ window.scrollTo(0, 0); } // navigateurs sans l'API à options
 }
 
+/* Navigation automatique après un délai (CHARTE §20) : 2 s après l'affichage
+   du bouton « Suivant », on avance sans attendre le clic de l'enfant. Un
+   clic manuel ou une sortie du jeu annulent ce minuteur. */
+const DELAI_AUTO_SUIVANT = 2000;
+let minuteurAutoSuivant = null;
+function armerAutoSuivant(){
+  clearTimeout(minuteurAutoSuivant);
+  const bouton = $("btnNext");
+  minuteurAutoSuivant = setTimeout(() => {
+    if (bouton.style.display === "none" || bouton.disabled || !bouton.isConnected) return;
+    bouton.click();
+  }, DELAI_AUTO_SUIVANT);
+}
+function desarmerAutoSuivant(){
+  clearTimeout(minuteurAutoSuivant);
+}
+
 function montreEcran(nom){
+  desarmerAutoSuivant();
   Object.values(ecrans).forEach(e => e.hidden = true);
   ecrans[nom].hidden = false;
   $("btnBack").hidden = (nom === "home");
@@ -981,6 +999,7 @@ function majDots(){
 }
 
 function question(){
+  desarmerAutoSuivant();
   stopSequence(); tapHandler = null;
   const q = file[pos];
   $("qText").textContent = q.q;
@@ -1127,6 +1146,7 @@ function repond(bon, bouton, q){
   $("btnNext").style.display = "block";
   $("btnNext").textContent = pos === file.length-1 ? "Voir mon score ⭐" : "Suivant ➜";
   majDots();
+  armerAutoSuivant();
 }
 
 $("btnNext").addEventListener("click", () => {
