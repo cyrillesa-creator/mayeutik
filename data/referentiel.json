@@ -185,6 +185,49 @@
       ]
     },
     {
+      "id": "M42",
+      "titre": "Les Solides (CE2)",
+      "description": "Nomme, dénombre et interprète les solides : polyèdres, patrons et perspective cavalière.",
+      "icone": "📐",
+      "niveau": "CE2",
+      "domaine": "Espace et géométrie",
+      "domaineProgramme": "Espace et géométrie",
+      "theme": "Solides",
+      "programme": "BO-2024",
+      "type": "entrainement",
+      "fichier": "jeux/M42-solides-ce2.html",
+      "competences": [
+        {
+          "id": "nomme",
+          "libelle": "Nommer et justifier la nature d'un solide par ses faces"
+        },
+        {
+          "id": "polyedre",
+          "libelle": "Distinguer polyèdres et solides à surface courbe"
+        },
+        {
+          "id": "compte",
+          "libelle": "Dénombrer faces, sommets et arêtes d'un polyèdre"
+        },
+        {
+          "id": "explore",
+          "libelle": "Explorer les propriétés des solides (faces opposées, sommets, arêtes)"
+        },
+        {
+          "id": "devinette",
+          "libelle": "Reconnaître un solide d'après ses propriétés"
+        },
+        {
+          "id": "cavaliere",
+          "libelle": "Interpréter une représentation en perspective cavalière"
+        },
+        {
+          "id": "patrons",
+          "libelle": "Associer un solide à son patron"
+        }
+      ]
+    },
+    {
       "id": "M99",
       "moduleParent": "M07",
       "moduleParentTitre": "Tables de multiplication (fluence)",
