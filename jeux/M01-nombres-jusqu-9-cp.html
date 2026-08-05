@@ -227,17 +227,18 @@
   /* Trait en cours de tracé : légèrement transparent et pointillé, pour se
      distinguer d'un lien déjà établi tant que le doigt n'a pas relâché. */
   .trait-en-cours{ stroke-width:4; stroke-linecap:round; opacity:.75; stroke-dasharray:7 5; }
-  /* Étiquette survolée pendant un tracé : l'enfant voit où son trait va se
-     poser avant de relâcher. */
-  .etiquette-nombre.cible-survolee{ transform:scale(1.06); border-color:var(--couleur-mandarine);
+  /* Élément survolé pendant un tracé (carte ou étiquette, selon le sens du
+     geste) : l'enfant voit où son trait va se poser avant de relâcher. */
+  .etiquette-nombre.cible-survolee, .carte-etiquetage.cible-survolee{ transform:scale(1.06); border-color:var(--couleur-mandarine);
     box-shadow:0 0 0 3px color-mix(in srgb, var(--couleur-mandarine) 35%, transparent); }
-  /* `touch-action:none` sur les seules cartes de gauche : c'est de là que part
-     le tracé au doigt, et le navigateur ne doit pas le confondre avec un
-     défilement (cf. gelerDefilement). Les étiquettes de droite, elles, restent
-     un point de départ de défilement normal. */
-  .carte-etiquetage{ touch-action:none; }
-  /* Carte d'où part le tracé en cours. */
-  .carte-etiquetage.trace-depart{ border-color:var(--couleur-mandarine); }
+  /* `touch-action:none` sur les deux colonnes : le tracé au doigt peut partir
+     d'une carte de gauche OU d'une étiquette de droite (règle générale pour
+     tout jeu reprenant cette logique de liaison bidirectionnelle), et le
+     navigateur ne doit jamais le confondre avec un défilement (cf.
+     gelerDefilement). */
+  .carte-etiquetage, .etiquette-nombre{ touch-action:none; }
+  /* Élément d'où part le tracé en cours. */
+  .carte-etiquetage.trace-depart, .etiquette-nombre.trace-depart{ border-color:var(--couleur-mandarine); }
   .carte-etiquetage, .etiquette-nombre{
     min-height:3.6rem; border-radius:16px; border:2.5px solid var(--couleur-encre); background:#ffffff;
     display:flex; align-items:center; justify-content:center; padding:.4rem;
@@ -335,8 +336,9 @@
   .rangee-boutons-cible{ display:flex; gap:.6rem; justify-content:center; margin:.6rem 0; }
   .bouton-ajouter, .bouton-retirer{
     display:block; min-height:44px; border-radius:16px; border:none;
-    color:#fff; font-weight:700; padding:0 1.2rem;
+    color:#fff; font-weight:700; padding:0 1.3rem; font-size:1.3rem;
   }
+  .bouton-principal-grand{ font-size:1.3rem; }
   .bouton-ajouter{
     background:var(--couleur-menthe);
     box-shadow:0 4px 0 color-mix(in srgb, var(--couleur-menthe) 60%, black 10%);
@@ -413,12 +415,12 @@
   "titre": "Le Jardin des Petites Bêtes",
   "sousTitre": "Compte, compare et range les habitants du jardin !",
   "especes": {
-    "coccinelle": {"emoji":"🐞","singulier":"coccinelle","pluriel":"coccinelles","laLe":"la coccinelle"},
-    "escargot": {"emoji":"🐌","singulier":"escargot","pluriel":"escargots","laLe":"l'escargot"},
-    "papillon": {"emoji":"🦋","singulier":"papillon","pluriel":"papillons","laLe":"le papillon"},
-    "abeille": {"emoji":"🐝","singulier":"abeille","pluriel":"abeilles","laLe":"l'abeille"},
-    "fleur": {"emoji":"🌸","singulier":"fleur","pluriel":"fleurs","laLe":"la fleur"},
-    "fraise": {"emoji":"🍓","singulier":"fraise","pluriel":"fraises","laLe":"la fraise"}
+    "coccinelle": {"emoji":"🐞","singulier":"coccinelle","pluriel":"coccinelles"},
+    "escargot": {"emoji":"🐌","singulier":"escargot","pluriel":"escargots"},
+    "papillon": {"emoji":"🦋","singulier":"papillon","pluriel":"papillons"},
+    "abeille": {"emoji":"🐝","singulier":"abeille","pluriel":"abeilles"},
+    "fleur": {"emoji":"🌸","singulier":"fleur","pluriel":"fleurs"},
+    "fraise": {"emoji":"🍓","singulier":"fraise","pluriel":"fraises"}
   },
   "universComparer": [
     {"contenant":"boîte","article":"la","emoji":"🍬","mot":"bonbons"},
@@ -465,6 +467,7 @@
     return copie;
   }
   const maj = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  function deElision(mot) { return /^[aeiouyàâäéèêëïîôöùûü]/i.test(mot) ? `d'${mot}` : `de ${mot}`; }
 
   /* ---------- Étoiles : stockage sûr (mémoire + localStorage best-effort) ---------- */
 
@@ -1066,7 +1069,7 @@
 
   /* `correction` (facultatif) = { donnee, attendue } : affiché uniquement en cas
      d'erreur, sous le message de feedback (CHARTE §18). */
-  function validerReponse(estCorrecte, correction) {
+  function validerReponse(estCorrecte, correction, messageErreur) {
     if (etat.verrouille) return;
     etat.verrouille = true;
     const zoneFeedback = document.getElementById('zone-feedback');
@@ -1077,7 +1080,7 @@
       lancerConfettis();
       jouerSon('bravo');
     } else {
-      zoneFeedback.textContent = choisir(donnees.messagesFeedback.rate);
+      zoneFeedback.textContent = messageErreur || choisir(donnees.messagesFeedback.rate);
       zoneFeedback.className = 'feedback feedback-erreur';
       jouerSon('rate');
       if (correction) afficherCorrection(zoneFeedback, correction.donnee, correction.attendue);
@@ -1158,21 +1161,21 @@
 
   function genererDenombrer(zone, cfg) {
     const plage = plageActuelle();
+    // Un minimum de 2 bêtes : en dessous, dénombrer perd son sens (et la
+    // question du pavé numérique qui suit devient bancale à formuler).
+    const min = Math.max(plage.min, 2);
     // Évite de reposer la même question (même nombre, même espèce) que la
-    // manche précédente — la plage étant étroite en début de partie (1 à 5),
-    // le risque de répétition immédiate serait sinon non négligeable (CHARTE §13).
+    // manche précédente — la plage étant étroite en début de partie, le
+    // risque de répétition immédiate serait sinon non négligeable (CHARTE §13).
     let n, especeId;
     do {
-      n = nombreAleatoire(plage.min, plage.max);
+      n = nombreAleatoire(min, plage.max);
       especeId = choisir(Object.keys(donnees.especes));
     } while (etat.dernierDenombrer && n === etat.dernierDenombrer.n && especeId === etat.dernierDenombrer.especeId);
     etat.dernierDenombrer = { n, especeId };
     const espece = donnees.especes[especeId];
 
-    const consigneTexte = n === 1
-      ? `Tape sur ${espece.laLe} du jardin pour la compter !`
-      : `Tape sur chaque ${espece.singulier} du jardin pour les compter !`;
-    zone.appendChild(creerBlocConsigne(consigneTexte));
+    zone.appendChild(creerBlocConsigne(`Tape sur chaque ${espece.singulier} du jardin pour les compter !`));
 
     const scene = document.createElement('div');
     scene.className = 'zone-jardin';
@@ -1207,10 +1210,7 @@
 
     function afficherPaveNumerique() {
       zonePave.innerHTML = '';
-      const motCompte = n === 1 ? espece.singulier : espece.pluriel;
-      const consigne2 = n === 1
-        ? `As-tu compté ${motCompte} ? Appuie sur le bon nombre.`
-        : `Combien de ${motCompte} as-tu comptées ? Appuie sur le bon nombre.`;
+      const consigne2 = `Combien ${deElision(espece.pluriel)} as-tu comptées ? Appuie sur le bon nombre.`;
       zonePave.appendChild(creerBlocConsigne(consigne2, consigne2));
       const pave = document.createElement('div');
       pave.className = 'pave-numerique';
@@ -1344,23 +1344,26 @@
       majBoutonValider();
     }
 
-    /* Deux façons de relier, toutes deux actives :
-         - le TAP SÉQUENTIEL (toucher un bocal, puis son étiquette) ;
-         - le TRACÉ CONTINU (partir d'un bocal et glisser sans relâcher jusqu'à
-           l'étiquette), avec un trait qui suit le doigt en temps réel.
+    /* Deux façons de relier, toutes deux actives, ET DANS LES DEUX SENS —
+       depuis une carte de gauche vers son étiquette, ou depuis une étiquette
+       de droite vers sa carte (règle générale à reprendre dans tout futur jeu
+       suivant cette même logique de liaison) :
+         - le TAP SÉQUENTIEL (toucher un élément, puis celui d'en face) ;
+         - le TRACÉ CONTINU (glisser sans relâcher jusqu'à l'élément visé),
+           avec un trait qui suit le doigt en temps réel.
        Le geste se décide au relâchement : en dessous de SEUIL_TRACE_PX, c'est un
        appui simple et on retombe sur la sélection ; au-delà, c'est un tracé. */
     const SEUIL_TRACE_PX = 8;
-    let trace = null; // { gaucheId, ligne, cible }
+    let trace = null; // { cote: 'gauche'|'droite', id, ligne, cible }
 
     function pointDansZone(clientX, clientY) {
       const r = zoneMatch.getBoundingClientRect();
       return { x: clientX - r.left, y: clientY - r.top };
     }
 
-    function etiquetteSous(clientX, clientY) {
+    function elementSurvole(clientX, clientY, selecteur) {
       const el = document.elementFromPoint(clientX, clientY);
-      const btn = el && el.closest ? el.closest('.etiquette-nombre') : null;
+      const btn = el && el.closest ? el.closest(selecteur) : null;
       return btn && !btn.disabled ? btn : null;
     }
 
@@ -1369,35 +1372,44 @@
       if (trace && trace.cible) trace.cible.classList.remove('cible-survolee');
       if (trace) trace.cible = btn;
       if (btn) btn.classList.add('cible-survolee');
+      // Un tracé parti de la droite n'a pas de couleur propre avant de savoir
+      // quelle carte il va rejoindre : il emprunte celle de la carte survolée.
+      if (trace && trace.cote === 'droite' && trace.ligne) {
+        const idCible = btn ? Number(btn.dataset.gaucheId) : NaN;
+        trace.ligne.setAttribute('stroke', !Number.isNaN(idCible) && gauches[idCible]
+          ? gauches[idCible].couleur : 'var(--couleur-encre)');
+      }
     }
 
     function terminerTrace() {
       if (!trace) return;
       if (trace.cible) trace.cible.classList.remove('cible-survolee');
       if (trace.ligne) trace.ligne.remove();
-      gauches[trace.gaucheId].btn.classList.remove('trace-depart');
+      (trace.cote === 'gauche' ? gauches[trace.id] : droites[trace.id]).btn.classList.remove('trace-depart');
       trace = null;
       degelerDefilement();
     }
 
-    gaucheAffiche.forEach((carte) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'carte-etiquetage';
-      btn.appendChild(carte.type === 'de' ? creerDe(carte.n) : creerMiniCollection(carte.especeId, carte.n));
-      gauches[carte.id] = { n: carte.n, couleur: carte.couleur, btn, droiteId: null, ligne: null };
+    function selectionner(gaucheId) {
+      const g = gauches[gaucheId];
+      if (!g || g.btn.disabled) return;
+      if (selectionGaucheId !== null) gauches[selectionGaucheId].btn.classList.remove('selectionnee');
+      selectionGaucheId = gaucheId;
+      g.btn.classList.add('selectionnee');
+    }
 
-      function selectionner() {
-        if (btn.disabled) return;
-        if (selectionGaucheId !== null) gauches[selectionGaucheId].btn.classList.remove('selectionnee');
-        selectionGaucheId = carte.id;
-        btn.classList.add('selectionnee');
-      }
-      // `click` ne sert plus qu'au clavier (detail === 0) : au doigt, c'est
-      // `pointerup` qui tranche entre appui simple et tracé, sinon un tracé
-      // terminé ailleurs déclencherait aussi une sélection parasite.
-      btn.addEventListener('click', (e) => { if (e.detail === 0) selectionner(); });
+    function relierDepuisSelection(droiteId) {
+      const d = droites[droiteId];
+      if (!d || d.btn.disabled || selectionGaucheId === null) return;
+      const idASelectionner = selectionGaucheId;
+      gauches[idASelectionner].btn.classList.remove('selectionnee');
+      selectionGaucheId = null;
+      connecter(idASelectionner, droiteId);
+    }
 
+    /* Attache le geste de tracé à un élément d'un des deux côtés ; `cibleSelecteur`
+       cible les éléments d'en face parmi lesquels chercher un relâchement valide. */
+    function attacherGlisser(btn, cote, id, cibleSelecteur, couleurDepart) {
       let departX = 0, departY = 0;
       btn.addEventListener('pointerdown', (e) => {
         if (btn.disabled || etat.verrouille) return;
@@ -1407,50 +1419,75 @@
         departX = e.clientX; departY = e.clientY;
         try { btn.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
         gelerDefilement();
-        const depart = pointDansZone(
-          btn.getBoundingClientRect().right,
-          btn.getBoundingClientRect().top + btn.getBoundingClientRect().height / 2
-        );
+        const rect = btn.getBoundingClientRect();
+        const bordX = cote === 'gauche' ? rect.right : rect.left;
+        const depart = pointDansZone(bordX, rect.top + rect.height / 2);
         const ligne = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         ligne.setAttribute('x1', String(depart.x));
         ligne.setAttribute('y1', String(depart.y));
         ligne.setAttribute('x2', String(depart.x));
         ligne.setAttribute('y2', String(depart.y));
         ligne.setAttribute('class', 'trait-en-cours');
-        ligne.setAttribute('stroke', carte.couleur);
+        ligne.setAttribute('stroke', couleurDepart);
         svg.appendChild(ligne);
         btn.classList.add('trace-depart');
-        trace = { gaucheId: carte.id, ligne, cible: null };
+        trace = { cote, id, ligne, cible: null };
       });
 
       btn.addEventListener('pointermove', (e) => {
-        if (!trace || trace.gaucheId !== carte.id) return;
+        if (!trace || trace.cote !== cote || trace.id !== id) return;
         e.preventDefault();
         const p = pointDansZone(e.clientX, e.clientY);
         trace.ligne.setAttribute('x2', String(p.x));
         trace.ligne.setAttribute('y2', String(p.y));
-        survoler(etiquetteSous(e.clientX, e.clientY));
+        survoler(elementSurvole(e.clientX, e.clientY, cibleSelecteur));
       });
 
       function relacher(e) {
-        if (!trace || trace.gaucheId !== carte.id) return;
+        if (!trace || trace.cote !== cote || trace.id !== id) return;
         const distance = Math.hypot(e.clientX - departX, e.clientY - departY);
-        const cible = distance >= SEUIL_TRACE_PX ? etiquetteSous(e.clientX, e.clientY) : null;
-        const idCible = cible ? Number(cible.dataset.droiteId) : null;
+        const cible = distance >= SEUIL_TRACE_PX ? elementSurvole(e.clientX, e.clientY, cibleSelecteur) : null;
         terminerTrace();
-        if (distance < SEUIL_TRACE_PX) { selectionner(); return; } // appui simple
-        // Relâché en dehors d'une étiquette : le tracé est simplement abandonné,
-        // sans liaison ni sélection en suspens.
-        if (idCible === null || Number.isNaN(idCible)) return;
+        if (distance < SEUIL_TRACE_PX) { // appui simple
+          if (cote === 'gauche') selectionner(id); else relierDepuisSelection(id);
+          return;
+        }
+        // Relâché en dehors d'une cible valide : le tracé est simplement
+        // abandonné, sans liaison ni sélection en suspens.
+        if (!cible) return;
         if (selectionGaucheId !== null) {
           gauches[selectionGaucheId].btn.classList.remove('selectionnee');
           selectionGaucheId = null;
         }
-        connecter(carte.id, idCible);
+        if (cote === 'gauche') {
+          const idCible = Number(cible.dataset.droiteId);
+          if (Number.isNaN(idCible)) return;
+          connecter(id, idCible);
+        } else {
+          const idCible = Number(cible.dataset.gaucheId);
+          if (Number.isNaN(idCible)) return;
+          connecter(idCible, id);
+        }
       }
       btn.addEventListener('pointerup', relacher);
       btn.addEventListener('pointercancel', () => terminerTrace());
       btn.addEventListener('lostpointercapture', () => { if (trace) terminerTrace(); });
+    }
+
+    gaucheAffiche.forEach((carte) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'carte-etiquetage';
+      btn.dataset.gaucheId = String(carte.id); // retrouvé par le tracé parti de droite
+      btn.appendChild(carte.type === 'de' ? creerDe(carte.n) : creerMiniCollection(carte.especeId, carte.n));
+      gauches[carte.id] = { n: carte.n, couleur: carte.couleur, btn, droiteId: null, ligne: null };
+
+      // `click` ne sert plus qu'au clavier (detail === 0) : au doigt/à la
+      // souris, c'est `pointerup` (dans attacherGlisser) qui tranche entre
+      // appui simple et tracé, sinon un tracé terminé ailleurs déclencherait
+      // aussi une sélection parasite.
+      btn.addEventListener('click', (e) => { if (e.detail === 0) selectionner(carte.id); });
+      attacherGlisser(btn, 'gauche', carte.id, '.etiquette-nombre', carte.couleur);
 
       colGauche.appendChild(btn);
     });
@@ -1460,15 +1497,12 @@
       btn.type = 'button';
       btn.className = 'etiquette-nombre';
       btn.textContent = String(etq.n);
-      btn.dataset.droiteId = String(etq.id); // retrouvé par le tracé au doigt
+      btn.dataset.droiteId = String(etq.id); // retrouvé par le tracé parti de gauche
       droites[etq.id] = { n: etq.n, btn, gaucheId: null };
-      btn.addEventListener('click', () => {
-        if (btn.disabled || selectionGaucheId === null) return;
-        const idASelectionner = selectionGaucheId;
-        gauches[idASelectionner].btn.classList.remove('selectionnee');
-        selectionGaucheId = null;
-        connecter(idASelectionner, etq.id);
-      });
+
+      btn.addEventListener('click', (e) => { if (e.detail === 0) relierDepuisSelection(etq.id); });
+      attacherGlisser(btn, 'droite', etq.id, '.carte-etiquetage', 'var(--couleur-encre)');
+
       colDroite.appendChild(btn);
     });
 
@@ -1729,6 +1763,14 @@
     const collCible = document.createElement('div');
     collCible.className = 'collection-cible';
     collCible.style.gridTemplateColumns = `repeat(${colonnes}, 1fr)`;
+    // La boîte « à toi » est dimensionnée dès le départ à la taille qu'elle
+    // aura une fois le bon compte atteint (même vide) : si le résultat prend
+    // deux lignes, elle les réserve tout de suite, pour que les boutons
+    // ajouter/retirer ne se déplacent jamais en cours de jeu (règle générale :
+    // ne jamais laisser une mise en page dynamique déplacer des boutons).
+    const HAUTEUR_LIGNE_CIBLE = 44, ESPACE_LIGNE_CIBLE = 3;
+    const lignesCible = Math.max(1, Math.ceil(cible / colonnes));
+    collCible.style.minHeight = `${lignesCible * HAUTEUR_LIGNE_CIBLE + (lignesCible - 1) * ESPACE_LIGNE_CIBLE}px`;
     rangeeCible.appendChild(etiqCible);
     rangeeCible.appendChild(collCible);
     zone.appendChild(rangeeCible);
@@ -1763,13 +1805,14 @@
       compte--;
       boutonRetirer.disabled = compte <= 0;
     });
-    rangeeBoutons.appendChild(boutonAjouter);
+    // Retirer à gauche, Ajouter à droite.
     rangeeBoutons.appendChild(boutonRetirer);
+    rangeeBoutons.appendChild(boutonAjouter);
     zone.appendChild(rangeeBoutons);
 
     const boutonValider = document.createElement('button');
     boutonValider.type = 'button';
-    boutonValider.className = 'bouton-principal';
+    boutonValider.className = 'bouton-principal bouton-principal-grand';
     boutonValider.textContent = 'Valider';
     boutonValider.addEventListener('click', () => {
       if (etat.verrouille) return;
@@ -1784,8 +1827,15 @@
       // CHARTE §18 : la collection construite vire au vert ou au rouge, et le
       // nombre attendu est rappelé sous le feedback.
       collCible.classList.add(estCorrecte ? 'contenant-correct' : 'contenant-incorrect');
+      // Piège fréquent : reproduire le modèle au lieu d'appliquer la relation
+      // demandée (+1 / -1). Le message pointe alors vers la consigne plutôt
+      // que de simplement rappeler le compte attendu.
+      const messageErreur = !estCorrecte && compte === modele
+        ? `Tu as mis autant que le modèle : relis bien la consigne, il fallait en mettre ${relation === 'plus-un' ? 'un DE PLUS' : 'un DE MOINS'} !`
+        : undefined;
       validerReponse(estCorrecte, estCorrecte ? null
-        : { donnee: compte + (compte > 1 ? ' bêtes' : ' bête'), attendue: cible + (cible > 1 ? ' bêtes' : ' bête') });
+        : { donnee: compte + (compte > 1 ? ' bêtes' : ' bête'), attendue: cible + (cible > 1 ? ' bêtes' : ' bête') },
+        messageErreur);
     });
     zone.appendChild(boutonValider);
   }

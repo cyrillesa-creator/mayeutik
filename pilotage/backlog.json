@@ -13,7 +13,7 @@
     "statut": "Terminé",
     "effortEstime": 8,
     "effortReel": 8,
-    "notes": "✔ FAIT. Le Jardin des Petites Bêtes, 6 mini-jeux."
+    "notes": "✔ FAIT. Le Jardin des Petites Bêtes, 6 mini-jeux. Retouches : « Compte les petites bêtes » n'a plus de manche à 1 seul élément et corrige l'élision (« Combien d'abeilles »/« Combien de fleurs ») ; « La bonne étiquette » relie désormais aussi bien en glissant de la droite vers la gauche que l'inverse (règle générale pour les jeux à liaison bidirectionnelle) ; « Autant que le modèle » a ses boutons Retirer/Ajouter inversés (retirer à gauche) avec police agrandie, un message d'erreur dédié quand le compte reproduit le modèle au lieu d'appliquer +1/-1, et sa boîte « à toi » pré-dimensionnée pour ne jamais déplacer les boutons."
   },
   {
     "id": "M02",
