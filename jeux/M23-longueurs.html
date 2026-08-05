@@ -82,6 +82,9 @@
     border:2.5px solid color-mix(in srgb, var(--couleur-encre) 22%, white); background:#ffffff; color:var(--couleur-encre);
   }
   .puce-palier.actif{ background:var(--couleur-mandarine); border-color:var(--couleur-mandarine); color:#ffffff; }
+  /* Palier verrouillé (CHARTE §15) : au-delà du niveau du profil actif, tant
+     que son paquet cadeau n'a pas été ouvert une première fois. */
+  .puce-palier.verrouille{ opacity:.5; cursor:not-allowed; }
   .note-palier{ text-align:center; font-size:.82rem; opacity:.7; margin:-.3rem 0 .8rem; }
 
   .grille-jeux { display:grid; grid-template-columns:repeat(2,1fr); gap:.9rem; }
@@ -1636,15 +1639,26 @@
 
     const rangee = document.getElementById('rangee-paliers');
     rangee.innerHTML = '';
+    const niveauProfil = niveauDuProfilActif();
+    /* Verrouillage des onglets (CHARTE §15) : un palier au-delà du niveau du
+       profil actif reste verrouillé tant que son paquet cadeau n'a pas été
+       ouvert une première fois — sinon le sélecteur de palier contournerait
+       entièrement la mécanique de déblocage qui protège le bloc bonus plus
+       bas sur la même page. Niveau absent ou non couvert par ce module :
+       même repli que palierParDefaut (traité comme le palier le plus bas). */
+    let indexNiveauProfil = ORDRE_PALIERS.indexOf(niveauProfil);
+    if (indexNiveauProfil === -1) indexNiveauProfil = 0;
+    const profilIdPourVerrou = lireProfilActifId();
     ORDRE_PALIERS.filter((n) => donnees.paliers[n]).forEach((n) => {
+      const verrouille = ORDRE_PALIERS.indexOf(n) > indexNiveauProfil && !bonusDejaRevele(profilIdPourVerrou, n);
       const puce = document.createElement('button');
       puce.type = 'button';
-      puce.className = 'puce-palier' + (n === etatPalierAffiche ? ' actif' : '');
-      puce.textContent = n;
-      puce.addEventListener('click', () => { etatPalierAffiche = n; construireAccueil(); });
+      puce.className = 'puce-palier' + (n === etatPalierAffiche ? ' actif' : '') + (verrouille ? ' verrouille' : '');
+      puce.textContent = verrouille ? n + ' 🔒' : n;
+      puce.disabled = verrouille;
+      if (!verrouille) puce.addEventListener('click', () => { etatPalierAffiche = n; construireAccueil(); });
       rangee.appendChild(puce);
     });
-    const niveauProfil = niveauDuProfilActif();
     document.getElementById('note-palier').textContent = niveauProfil
       ? 'Niveau de ' + (niveauProfil === etatPalierAffiche ? 'ton profil' : 'ton profil : ' + niveauProfil + ' — tu regardes le palier ' + etatPalierAffiche)
       : '';

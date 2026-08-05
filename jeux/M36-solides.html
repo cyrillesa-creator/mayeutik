@@ -112,6 +112,9 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
   border:2.5px solid color-mix(in srgb, var(--encre) 22%, white); background:var(--carte); color:var(--encre);
 }
 .puce-palier.actif{background:var(--mandarine); border-color:var(--mandarine); color:#fff;}
+/* Palier verrouillé (CHARTE §15) : au-delà du niveau du profil actif, tant
+   que son paquet cadeau n'a pas été ouvert une première fois. */
+.puce-palier.verrouille{opacity:.5; cursor:not-allowed;}
 .note-palier{text-align:center; font-size:.82rem; color:var(--encre2); opacity:.85; margin:0 0 12px;}
 
 .cards{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
@@ -1230,16 +1233,26 @@ function construireAccueil(){
 
   const rangee = $("rangee-paliers");
   rangee.innerHTML = "";
+  const niveauProfil = niveauDuProfilActif();
+  /* Verrouillage des onglets (CHARTE §15) : un palier au-delà du niveau du
+     profil actif reste verrouillé tant que son paquet cadeau n'a pas été
+     ouvert une première fois — sinon le sélecteur de palier contournerait
+     entièrement la mécanique de déblocage qui protège le bloc bonus plus
+     bas sur la même page. Niveau absent ou non couvert par ce module :
+     même repli que palierParDefaut (traité comme le palier le plus bas). */
+  let indexNiveauProfil = ORDRE_PALIERS.indexOf(niveauProfil);
+  if (indexNiveauProfil === -1) indexNiveauProfil = 0;
+  const profilIdPourVerrou = lireProfilActifId();
   ORDRE_PALIERS.filter(n => CONTENU.paliers[n]).forEach(n => {
+    const verrouille = ORDRE_PALIERS.indexOf(n) > indexNiveauProfil && !bonusDejaRevele(profilIdPourVerrou, n);
     const puce = document.createElement("button");
     puce.type = "button";
-    puce.className = "puce-palier" + (n === etatPalierAffiche ? " actif" : "");
-    puce.textContent = n;
-    puce.addEventListener("click", () => { etatPalierAffiche = n; construireAccueil(); });
+    puce.className = "puce-palier" + (n === etatPalierAffiche ? " actif" : "") + (verrouille ? " verrouille" : "");
+    puce.textContent = verrouille ? n + " 🔒" : n;
+    puce.disabled = verrouille;
+    if(!verrouille) puce.addEventListener("click", () => { etatPalierAffiche = n; construireAccueil(); });
     rangee.appendChild(puce);
   });
-
-  const niveauProfil = niveauDuProfilActif();
   $("note-palier").textContent = niveauProfil
     ? "Niveau de " + (niveauProfil === etatPalierAffiche
         ? "ton profil"
