@@ -7,16 +7,20 @@
 <meta name="supported-color-schemes" content="light">
 <title>Les Solides — M36</title>
 <!-- ============================================================
-     JEU M36 — Reconnaître les solides (CP et CE1)
+     JEU M36 — Reconnaître les solides (CP, CE1 et CE2)
      Backlog : pilotage/backlog.json
-     Module ADAPTATIF par niveau (CHARTE §15) : deux paliers, CP et CE1.
+     Module ADAPTATIF par niveau (CHARTE §15) : trois paliers.
        CP  : cube, boule, cône, cylindre, pavé — PAS la pyramide.
              Vocabulaire limité à « face ». Le cube n'est PAS un pavé
              (distinction explicitement travaillée dans le jeu).
        CE1 : + la pyramide, + « sommet » et « arête », + la notion de
              polyèdre, + le dénombrement faces/arêtes/sommets.
-     Le CE2 (patrons, perspective cavalière) fait l'objet d'un module
-     séparé : rien de ce qui lui appartient ne doit revenir ici.
+       CE2 : REPREND le vocabulaire du CE1 et l'enrichit — justification
+             de la nature d'un solide par ses faces, patrons, et lecture
+             d'une représentation en perspective cavalière (arêtes
+             cachées en pointillés, à interpréter et non à produire).
+     Le contenu CE2 vient de l'ancien module M42, fusionné ici comme
+     troisième palier plutôt que gardé dans un fichier séparé.
      Règles série : contenu JSON séparé / charte commune / ID backlog
      ============================================================ -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -213,6 +217,8 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 .rep.ok{background:var(--menthe); color:#fff;}
 .rep.ko{background:var(--corail); color:#fff; animation:shake .35s;}
 .rep.dim{opacity:.55;}
+/* Réponse illustrée (patrons proposés en dessin, palier CE2). */
+.rep svg{display:block; margin:0 auto; max-width:100%; height:88px;}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 
 #feedback{
@@ -409,10 +415,12 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 /* ============================================================
    CONTENU PÉDAGOGIQUE (JSON) — modifiable sans toucher au moteur
    ------------------------------------------------------------
-   Module ADAPTATIF (CHARTE §15) : deux paliers, CP et CE1.
+   Module ADAPTATIF (CHARTE §15) : trois paliers, CP, CE1 et CE2.
 
    Ce que le programme autorise, palier par palier — c'est la seule
-   source de vérité de ce fichier :
+   source de vérité de ce fichier. Chaque palier REPREND le précédent et
+   l'enrichit ; rien n'est jamais redéfini d'un palier à l'autre (mêmes
+   solides, mêmes devinettes filtrées par `niveau`, même explicationPoly) :
 
      CP  · solides : cube, boule, cône, cylindre, pavé (PAS la pyramide)
          · vocabulaire : « face » UNIQUEMENT (ni sommet, ni arête, ni
@@ -425,9 +433,15 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
          · + « sommet » et « arête », + la notion de polyèdre
          · + le dénombrement des faces, arêtes et sommets
 
-   Le CE2 (patrons, perspective cavalière) appartient à un module
-   séparé : le prisme droit et toute notion de patron ont donc été
-   retirés d'ici, et ne doivent pas y revenir.
+     CE2 · reprend tout le CE1, sans rien en redéfinir
+         · + justifier la nature d'un solide par le nombre et la nature
+           de ses faces (drapeau `justifier` du palier, pas un nouveau
+           vocabulaire)
+         · + les patrons, + la perspective cavalière (à INTERPRÉTER, le
+           programme ne demande jamais de la produire)
+
+   Le prisme droit reste absent de tous les paliers : il n'appartient pas
+   au programme du cycle 2.
    ============================================================ */
 const CONTENU = {
   sousTitre: "Touche un solide pour le faire tourner !",
@@ -437,6 +451,7 @@ const CONTENU = {
       nom:"le cube", court:"Cube", couleur:0x4D96FF, poly:true, facesPlates:6,
       geo:{type:"box", args:[2,2,2]},
       objet:"un dé 🎲",
+      justification:"6 faces carrées identiques",
       /* Distinction cube / pavé, exigée dès le CP par le programme. */
       distinction:"Toutes ses faces sont des carrés identiques. Le pavé, lui, a des faces rectangulaires : le cube n'est pas un pavé, ce sont deux solides différents.",
       v:[[-1,-1,-1],[1,-1,-1],[1,-1,1],[-1,-1,1],[-1,1,-1],[1,1,-1],[1,1,1],[-1,1,1]],
@@ -448,6 +463,7 @@ const CONTENU = {
       nom:"le pavé droit", court:"Pavé droit", couleur:0x9B5DE5, poly:true, facesPlates:6,
       geo:{type:"box", args:[3,1.6,2]},
       objet:"une boîte de céréales 📦",
+      justification:"6 faces rectangulaires, pas toutes identiques",
       distinction:"Ses faces sont des rectangles, et elles ne sont pas toutes pareilles. Le cube, lui, a toutes ses faces carrées : le cube n'est pas un pavé.",
       v:[[-1.5,-0.8,-1],[1.5,-0.8,-1],[1.5,-0.8,1],[-1.5,-0.8,1],[-1.5,0.8,-1],[1.5,0.8,-1],[1.5,0.8,1],[-1.5,0.8,1]],
       e:[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]],
@@ -458,6 +474,7 @@ const CONTENU = {
       nom:"la pyramide", court:"Pyramide", couleur:0xFF8A3D, poly:true, facesPlates:5,
       geo:{type:"cone", args:[1.7,2.2,4]},
       objet:"les pyramides d'Égypte 🏜️",
+      justification:"1 base carrée et 4 faces triangulaires",
       v:[[0,1.1,0],[0,-1.1,1.7],[1.7,-1.1,0],[0,-1.1,-1.7],[-1.7,-1.1,0]],
       e:[[1,2],[2,3],[3,4],[4,1],[0,1],[0,2],[0,3],[0,4]],
       f:[[1,2,3,4],[0,1,2],[0,2,3],[0,3,4],[0,4,1]]
@@ -466,6 +483,7 @@ const CONTENU = {
       nom:"le cylindre", court:"Cylindre", couleur:0xFFC93C, poly:false, facesPlates:2,
       geo:{type:"cylinder", args:[1.2,1.2,2.4,48]},
       objet:"une boîte de conserve 🥫",
+      justification:"2 faces planes (des disques) et 1 surface courbe",
       /* `info` : version CP, vocabulaire limité à « face ». */
       info:"2 faces plates (des disques) et une surface toute ronde. Il peut rouler !",
       /* `infoCE1` : même solide, vocabulaire enrichi du palier CE1. */
@@ -475,6 +493,7 @@ const CONTENU = {
       nom:"le cône", court:"Cône", couleur:0xFF5D8F, poly:false, facesPlates:1,
       geo:{type:"cone", args:[1.4,2.4,48]},
       objet:"un cornet de glace 🍦",
+      justification:"1 face plane et 1 surface courbe",
       info:"1 face plate (un disque), une surface toute ronde et une pointe en haut. Il peut rouler !",
       infoCE1:"1 face plate, une surface courbe et 1 sommet tout en haut : ce n'est pas un polyèdre. Il peut rouler !"
     },
@@ -482,6 +501,7 @@ const CONTENU = {
       nom:"la boule", court:"Boule", couleur:0x5FD068, poly:false, facesPlates:0,
       geo:{type:"sphere", args:[1.5,48,32]},
       objet:"un ballon ⚽",
+      justification:"aucune face plane : une seule surface, toute courbe",
       info:"Aucune face plate : une seule surface, toute ronde. Elle roule dans tous les sens !",
       infoCE1:"Aucune face plate, aucun sommet, aucune arête : une seule surface courbe. Ce n'est pas un polyèdre, et elle roule dans tous les sens !"
     }
@@ -519,6 +539,38 @@ const CONTENU = {
           description:"Faces opposées & cie.", nbQuestions:6 },
         { id:"ce1-devinettes", mode:"devinette", titre:"Devinettes", icone:"🕵️",
           description:"Qui suis-je ?", nbQuestions:8 }
+      ]
+    },
+    CE2: {
+      sousTitre: "Patrons et perspective : la géométrie des solides !",
+      solides: ["cube","pave","pyramide","cylindre","cone","boule"],
+      /* Le CE2 REPREND le vocabulaire du CE1 (face, sommet, arête, polyèdre)
+         et l'ENRICHIT de deux notions propres : le patron et la perspective
+         cavalière. Rien n'est redéfini — `explicationPoly`, les devinettes et
+         `motFaces()` restent les mêmes objets partagés, le palier ne fait
+         qu'ouvrir l'accès à davantage. */
+      vocabulaire: ["face","sommet","arete","polyedre","patron","cavaliere"],
+      /* Exigence propre au CE2 : nommer un solide ne suffit pas, il faut
+         justifier sa nature par le nombre et la nature de ses faces. Ce
+         drapeau fait remonter `justification` dans le retour de « Qui
+         suis-je ? » et des Devinettes — au CP et au CE1, le retour reste
+         inchangé. */
+      justifier: true,
+      miniJeux: [
+        { id:"ce2-nommer", mode:"nomme", titre:"Qui suis-je ?", icone:"🎯",
+          description:"Nomme et justifie.", nbQuestions:6 },
+        { id:"ce2-compter", mode:"compte", kinds:["faces","sommets","aretes"],
+          titre:"Je compte", icone:"🔢", description:"Faces, sommets, arêtes.", nbQuestions:6 },
+        { id:"ce2-polyedre", mode:"polyedre", titre:"Polyèdre ?", icone:"🧐",
+          description:"Tout plat, ou tout rond ?", nbQuestions:6 },
+        { id:"ce2-explorer", mode:"explore", titre:"J'explore", icone:"👆",
+          description:"Faces opposées & cie.", nbQuestions:6 },
+        { id:"ce2-devinettes", mode:"devinette", titre:"Devinettes", icone:"🕵️",
+          description:"Qui suis-je ?", nbQuestions:8 },
+        { id:"ce2-patrons", mode:"patrons", titre:"Les patrons", icone:"✂️",
+          description:"Plier les solides.", nbQuestions:5 },
+        { id:"ce2-cavaliere", mode:"cavaliere", titre:"Perspective cavalière", icone:"📐",
+          description:"Arêtes cachées en pointillés.", nbQuestions:3 }
       ]
     }
   },
@@ -581,8 +633,113 @@ const CONTENU = {
      q:"Regarde le sommet rouge, en bas. Combien de faces se rejoignent à ce sommet ?", opts:[2,3,4], ans:3},
     {type:"areteFaces", solide:"pyramide",
      q:"Regarde l'arête orange. Combien de faces sépare-t-elle ?", opts:[1,2,3], ans:2}
+  ],
+
+  /* Patrons (palier CE2 uniquement) : `netToName` montre un patron et demande
+     le solide obtenu ; `solidToNet` montre un solide et demande lequel des
+     patrons proposés le construit. Le dernier item est un CONTRE-EXEMPLE :
+     six carrés mal disposés qui ne se plient pas en cube. */
+  patrons:[
+    {type:"netToName", net:"cube", q:"Si on plie ce patron, quel solide obtient-on ?", opts:["cube","pave","pyramide","cylindre"], ans:0},
+    {type:"solidToNet", solide:"cube", q:"Quel patron permet de construire ce solide ?", nets:["cube","cube5","pyramide"], ans:0},
+    {type:"netToName", net:"pyramide", q:"Si on plie ce patron, quel solide obtient-on ?", opts:["pyramide","cube","pave","cone"], ans:0},
+    {type:"netToName", net:"cylindre", q:"Si on plie ce patron, quel solide obtient-on ?", opts:["cylindre","cone","boule","cube"], ans:0},
+    {type:"solidToNet", solide:"pave", q:"Quel patron permet de construire ce solide ?", nets:["pave","cube","cylindre"], ans:0},
+    {type:"netToName", net:"cube2x3", q:"Ce patron a 6 carrés. En le pliant, peut-on faire un cube ?", opts:["Oui","Non"], ans:1,
+     expl:"Non ! Les 6 carrés sont mal placés : en pliant, des faces se retrouvent l'une sur l'autre et il manque des côtés."}
   ]
 };
+
+/* ============================================================
+   PATRONS — dessins SVG (palier CE2)
+   ============================================================ */
+const NETS = (() => {
+  const sq = (x,y,s) => `<rect x="${x}" y="${y}" width="${s}" height="${s}" />`;
+  const rc = (x,y,w,h) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" />`;
+  const pg = pts => `<polygon points="${pts}" />`;
+  const wrap = (vb, inner, fill) =>
+    `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" style="fill:${fill};stroke:#1D3354;stroke-width:2;stroke-linejoin:round">${inner}</svg>`;
+  const grid = (cells, s=24) => cells.map(([cx,cy]) => sq(2+cx*s, 2+cy*s, s)).join("");
+  return {
+    cube:    wrap("0 0 76 100", grid([[1,0],[0,1],[1,1],[2,1],[1,2],[1,3]]), "#D6E6FF"),
+    cube5:   wrap("0 0 76 100", grid([[1,0],[0,1],[1,1],[2,1],[1,2]]), "#D6E6FF"),
+    cube2x3: wrap("0 0 52 76",  grid([[0,0],[1,0],[0,1],[1,1],[0,2],[1,2]]), "#D6E6FF"),
+    pave:    wrap("0 0 70 94",
+      rc(20,2,30,16)+rc(20,18,30,26)+rc(20,44,30,16)+rc(20,60,30,26)+rc(2,18,18,26)+rc(50,18,18,26), "#EBDCFF"),
+    pyramide:wrap("0 0 120 120",
+      rc(45,45,30,30)+pg("45,45 75,45 60,18")+pg("75,45 75,75 102,60")+pg("45,75 75,75 60,102")+pg("45,45 45,75 18,60"), "#FFE3CC"),
+    cylindre:wrap("0 0 96 106",
+      `<circle cx="48" cy="16" r="13"/>`+rc(16,31,64,42)+`<circle cx="48" cy="89" r="13"/>`, "#FFF1C4"),
+    cone:    wrap("0 0 120 110",
+      pg("60,14 26,72 94,72").replace("<polygon","<path d=\"M60,14 L26,72 A46,46 0 0 0 94,72 Z\" ").replace(/points="[^"]*" \/>/,"/>")+
+      `<circle cx="42" cy="92" r="14"/>`, "#FFD9E6")
+  };
+})();
+
+/* ============================================================
+   PERSPECTIVE CAVALIÈRE — dessins SVG (palier CE2)
+   ------------------------------------------------------------
+   Représentation conventionnelle enseignée au CE2 : les arêtes NON
+   visibles (cachées par le solide) sont tracées en pointillés. L'élève
+   se contente ici de l'INTERPRÉTER (identifier le solide représenté) —
+   le programme ne demande jamais à l'élève de la produire lui-même.
+
+   Réservée aux polyèdres à faces planes (cube, pavé, pyramide) : un
+   solide à surface courbe n'a pas de représentation en perspective
+   cavalière au programme.
+   ============================================================ */
+const CAVALIERE = (() => {
+  const pt = (p) => p.join(",");
+  // Arête : pleine par défaut, pointillée (arête cachée) sur demande.
+  const ligne = (a, b, cachee) =>
+    `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"${cachee ? ' stroke-dasharray="6 4"' : ""}/>`;
+  const cadre = (vb, inner) =>
+    `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" style="stroke:#1D3354; stroke-width:2.2; stroke-linecap:round; fill:none">${inner}</svg>`;
+
+  /* Cube / pavé : face avant pleine grandeur, face arrière décalée selon
+     le même vecteur de fuite oblique (dx,dy) pour les deux solides — c'est
+     précisément ce vecteur constant qui fait « perspective cavalière ».
+     Un seul sommet (arrière-bas-gauche) est caché : ses 3 arêtes sont les
+     seules pointillées. */
+  function boite(largeur, hauteur, couleur) {
+    const x0 = 24, y0 = 56, dx = 34, dy = -26;
+    const FTL = [x0, y0], FTR = [x0 + largeur, y0], FBR = [x0 + largeur, y0 + hauteur], FBL = [x0, y0 + hauteur];
+    const decale = ([x, y]) => [x + dx, y + dy];
+    const BTL = decale(FTL), BTR = decale(FTR), BBR = decale(FBR), BBL = decale(FBL);
+    const vbW = x0 + largeur + dx + 16, vbH = y0 + hauteur + 16;
+    return cadre(`0 0 ${vbW} ${vbH}`, `
+      <polygon points="${pt(FTL)} ${pt(FTR)} ${pt(FBR)} ${pt(FBL)}" fill="${couleur}" stroke="none"/>
+      ${ligne(FTL, FTR)}${ligne(FTR, FBR)}${ligne(FBR, FBL)}${ligne(FBL, FTL)}
+      ${ligne(BTL, BTR)}${ligne(BTR, BBR)}${ligne(BBR, BBL, true)}${ligne(BBL, BTL, true)}
+      ${ligne(FTL, BTL)}${ligne(FTR, BTR)}${ligne(FBR, BBR)}${ligne(FBL, BBL, true)}
+    `);
+  }
+
+  /* Pyramide : base en losange (un carré vu de biais), dont les deux
+     arêtes arrière sont cachées ; les 4 arêtes latérales (base -> sommet)
+     restent toutes visibles. */
+  function pyramideCavaliere(couleur) {
+    const centre = [70, 92], rx = 46, ry = 20;
+    const avant = [centre[0], centre[1] + ry];
+    const droite = [centre[0] + rx, centre[1]];
+    const fond = [centre[0], centre[1] - ry];
+    const gauche = [centre[0] - rx, centre[1]];
+    const sommet = [centre[0], 18];
+    return cadre("0 0 140 130", `
+      <polygon points="${pt(gauche)} ${pt(avant)} ${pt(sommet)}" fill="${couleur}" stroke="none"/>
+      <polygon points="${pt(avant)} ${pt(droite)} ${pt(sommet)}" fill="${couleur}" fill-opacity="0.72" stroke="none"/>
+      ${ligne(gauche, avant)}${ligne(avant, droite)}
+      ${ligne(droite, fond, true)}${ligne(fond, gauche, true)}
+      ${ligne(sommet, avant)}${ligne(sommet, droite)}${ligne(sommet, gauche)}${ligne(sommet, fond)}
+    `);
+  }
+
+  return {
+    cube: boite(70, 70, "#D6E6FF"),
+    pave: boite(96, 52, "#EBDCFF"),
+    pyramide: pyramideCavaliere("#FFE3CC")
+  };
+})();
 
 /* ============================================================
    MOTEUR 3D
@@ -898,7 +1055,7 @@ function marquerBonusRevele(profilId, palierCible) {
    ============================================================ */
 const CLE_PROFILS = 'mayeutik-profils';
 const CLE_PROFIL_ACTIF = 'mayeutik-profil-actif';
-const ORDRE_PALIERS = ['CP', 'CE1'];
+const ORDRE_PALIERS = ['CP', 'CE1', 'CE2'];
 
 function lireProfilActifId() {
   try {
@@ -1050,7 +1207,11 @@ function qNomme(cfg, palier){
       autres = [jumeau, ...autres.slice(0, 2)];
     }
     return {mode:"nomme", solide:k, q:"Comment s'appelle ce solide ?",
-      opts:melange([k, ...autres]), ans:k, fmt:x=>CONTENU.solides[x].court};
+      opts:melange([k, ...autres]), ans:k, fmt:x=>CONTENU.solides[x].court,
+      /* Au CE2 seulement (palier.justifier) : le retour rappelle le nombre et
+         la nature des faces — le programme y demande de justifier la nature
+         d'un solide, pas seulement de le nommer. */
+      expl: palier.justifier ? CONTENU.solides[k].justification : undefined};
   });
 }
 
@@ -1116,7 +1277,40 @@ function qDevinettes(cfg, palier, palierNom){
   return melange(banque).slice(0, cfg.nbQuestions).map(d => {
     const autres = melange(palier.solides.filter(x => x !== d.ans)).slice(0,3);
     return {mode:"devinette", q:d.q, ans:d.ans,
-      opts:melange([d.ans, ...autres]), fmt:x=>CONTENU.solides[x].court};
+      opts:melange([d.ans, ...autres]), fmt:x=>CONTENU.solides[x].court,
+      // Même exigence de justification qu'en « Qui suis-je ? », au CE2 seul.
+      expl: palier.justifier ? CONTENU.solides[d.ans].justification : undefined};
+  });
+}
+
+/* « Les patrons » — CE2 uniquement. Banque figée de 6 patrons illustrés : on
+   en tire un sous-ensemble à chaque partie plutôt que de tous les poser dans
+   un ordre mélangé (CHARTE §13). Les options sont mélangées et l'index correct
+   recalculé, la bonne réponse étant ici repérée par sa POSITION. */
+function qPatrons(cfg, palier){
+  return melange(CONTENU.patrons.map(p => {
+    if(p.opts){
+      const {options, indexCorrect} = melangerOptions(p.opts, p.ans);
+      return Object.assign({}, p, {mode:"patrons", opts:options, ans:indexCorrect});
+    }
+    const {options, indexCorrect} = melangerOptions(p.nets, p.ans);
+    return Object.assign({}, p, {mode:"patrons", nets:options, ans:indexCorrect});
+  })).slice(0, cfg.nbQuestions);
+}
+
+/* « Perspective cavalière » — CE2 uniquement. Un tour par solide effectivement
+   dessiné en cavalière (les polyèdres à faces planes : cube, pavé, pyramide) ;
+   un solide à surface courbe n'a pas cette représentation au programme. Les
+   distracteurs sont les deux autres, systématiquement — la banque tient en
+   trois items, tous posés. */
+function qCavaliere(cfg, palier){
+  const dessinables = palier.solides.filter(k => CAVALIERE[k]);
+  return melange(dessinables).slice(0, cfg.nbQuestions).map(k => {
+    const autres = dessinables.filter(x => x !== k);
+    return {mode:"cavaliere", solide:k,
+      q:"Quel solide est représenté ici, en perspective cavalière ?",
+      opts:melange([k, ...autres]), ans:k, fmt:x=>CONTENU.solides[x].court,
+      expl:`${maj(CONTENU.solides[k].nom)} : ${CONTENU.solides[k].justification} — les arêtes cachées sont tracées en pointillés.`};
   });
 }
 
@@ -1125,6 +1319,8 @@ function construireFile(cfg, palier, palierNom){
   if(cfg.mode === "polyedre")  return qPolyedre(cfg, palier);
   if(cfg.mode === "compte")    return qCompte(cfg, palier);
   if(cfg.mode === "explore")   return qExplore(cfg, palier);
+  if(cfg.mode === "patrons")   return qPatrons(cfg, palier);
+  if(cfg.mode === "cavaliere") return qCavaliere(cfg, palier);
   return qDevinettes(cfg, palier, palierNom);
 }
 
@@ -1189,6 +1385,7 @@ function montreEcran(nom){
 function retourAccueil(){
   stopSequence();
   tapHandler = null;
+  document.querySelectorAll(".patronTmp").forEach(el => el.remove());
   montreEcran("home");
   construireAccueil();
 }
@@ -1331,6 +1528,20 @@ function majDots(){
     `<span class="dot ${i<pos ? (file[i]._ok?"ok":"ko") : i===pos ? "cur" : ""}"></span>`).join("");
 }
 
+/* Encart illustré inséré sous l'énoncé (patron ou perspective cavalière) :
+   un dessin SVG à la place du viewport 3D. Renvoyé pour être retiré au
+   changement de manche. */
+function illustration(svgMarkup){
+  const d = document.createElement("div");
+  d.className = "patronTmp";
+  d.style.cssText = "background:var(--carte);border-radius:var(--r);box-shadow:var(--ombre);padding:10px;display:flex;justify-content:center;margin-bottom:2px;";
+  d.innerHTML = `<div style="height:170px;display:flex;justify-content:center">${svgMarkup}</div>`;
+  const svg = d.querySelector("svg");
+  svg.style.height = "100%"; svg.style.width = "auto";
+  $("qText").after(d);
+  return d;
+}
+
 function question(){
   desarmerAutoSuivant();
   stopSequence(); tapHandler = null;
@@ -1341,12 +1552,23 @@ function question(){
   $("btnShow").style.display = "none";
   $("hint3d").style.display = "block";
   const ans = $("answers"); ans.innerHTML = ""; ans.classList.remove("uno");
+  ans.style.gridTemplateColumns = ""; // « Les patrons » peut la surcharger
+  document.querySelectorAll(".patronTmp").forEach(el => el.remove());
   autoRot = true;
 
   /* --- mise en place 3D : une devinette se résout SANS voir le solide,
          il n'apparaît qu'à la correction. --- */
   if(q.mode === "devinette"){
     viewport.style.display = "none";
+  } else if(q.mode === "patrons" && q.type !== "solidToNet"){
+    // Le patron s'affiche en grand au-dessus des réponses ; pas de 3D.
+    viewport.style.display = "none";
+    q._tmp = illustration(NETS[q.net]);
+  } else if(q.mode === "cavaliere"){
+    // Dessin plat, pas de modèle 3D : c'est justement la représentation en
+    // perspective cavalière qu'il faut interpréter, pas manipuler.
+    viewport.style.display = "none";
+    q._tmp = illustration(CAVALIERE[q.solide]);
   } else {
     viewport.style.display = "block";
     montrerSolide(q.solide, {neutre: q.mode === "explore"});
@@ -1361,14 +1583,27 @@ function question(){
   if(q.mode === "explore") prepareExplore(q);
 
   /* --- réponses --- */
-  if(q.opts){
+  if(q.mode === "patrons" && q.type === "solidToNet"){
+    // Réponses DESSINÉES : chaque bouton porte un patron, pas un mot.
+    q.nets.forEach((n, i) => {
+      const b = document.createElement("button");
+      b.className = "rep";
+      b.innerHTML = NETS[n];
+      if(i === q.ans) b.dataset.correct = "1";
+      b.onclick = () => repond(i === q.ans, b, q);
+      ans.appendChild(b);
+    });
+    if(q.nets.length === 3) ans.style.gridTemplateColumns = "1fr 1fr 1fr";
+  } else if(q.opts){
     q.opts.forEach((o, i) => {
       const b = document.createElement("button");
       b.className = "rep";
-      b.textContent = q.fmt ? q.fmt(o) : String(o);
-      // « Polyèdre ? » et « J'explore » repèrent la bonne réponse par son
-      // index (options textuelles génériques) ; les autres, par sa valeur.
-      const bon = (q.idx !== undefined || q.mode === "polyedre") ? (i === q.ans) : (o === q.ans);
+      b.textContent = q.fmt ? q.fmt(o)
+        : (q.mode === "patrons" && q.type === "netToName" ? (CONTENU.solides[o] ? CONTENU.solides[o].court : o) : String(o));
+      // « Polyèdre ? », « J'explore » et « Les patrons » repèrent la bonne
+      // réponse par son index (options textuelles génériques ou mélangées) ;
+      // les autres, par sa valeur.
+      const bon = (q.idx !== undefined || q.mode === "polyedre" || q.mode === "patrons") ? (i === q.ans) : (o === q.ans);
       if(bon) b.dataset.correct = "1";
       b.onclick = () => repond(bon, b, q);
       ans.appendChild(b);
@@ -1444,12 +1679,20 @@ function repond(bon, bouton, q){
   } else {
     sonRate();
     let correction = "";
-    if(q.mode==="nomme" || q.mode==="devinette") correction = `C'était ${CONTENU.solides[q.ans].nom} !`;
+    if(q.mode==="nomme" || q.mode==="devinette" || q.mode==="cavaliere"){
+      // `q.expl` ne porte la justification par les faces qu'au CE2 : au CP et
+      // au CE1, la correction reste la phrase seule.
+      correction = `C'était ${CONTENU.solides[q.ans].nom} !` + (q.expl ? ` (${q.expl})` : "");
+    }
     else if(q.mode==="compte") correction = `La bonne réponse était ${q.ans}. Appuie sur 👀 pour vérifier !`;
     else if(q.expl) correction = q.expl;
-    else if(q.opts){
-      const estIndex = q.idx !== undefined || q.mode==="polyedre";
-      correction = `La bonne réponse était : ${estIndex ? q.opts[q.ans] : q.ans}`;
+    else if(q.opts || q.nets){
+      const estIndex = q.idx !== undefined || q.mode==="polyedre" || q.mode==="patrons";
+      const val = estIndex ? (q.opts ? q.opts[q.ans] : q.nets[q.ans]) : q.ans;
+      // Un patron « netToName » propose des CLÉS de solides : on affiche le nom.
+      const lbl = (q.mode==="patrons" && q.type==="netToName" && CONTENU.solides[val])
+        ? CONTENU.solides[val].court : val;
+      correction = `La bonne réponse était : ${lbl}`;
     }
     $("feedback").textContent = "Presque ! ";
     const span = document.createElement("span");

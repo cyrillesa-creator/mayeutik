@@ -136,12 +136,13 @@
     {
       "id": "M36",
       "titre": "Les Solides",
-      "description": "Manipule les solides en 3D : nomme-les, compte leurs faces, leurs arêtes et leurs sommets.",
+      "description": "Manipule les solides en 3D : nomme-les, compte leurs faces, plie leurs patrons et lis-les en perspective.",
       "icone": "🧊",
       "niveau": "CP",
       "niveaux": [
         "CP",
-        "CE1"
+        "CE1",
+        "CE2"
       ],
       "domaine": "Espace et géométrie",
       "domaineProgramme": "Espace et géométrie",
@@ -181,49 +182,34 @@
         {
           "id": "ce1-devinettes",
           "libelle": "Reconnaître un solide d'après ses faces, arêtes et sommets (CE1)"
-        }
-      ]
-    },
-    {
-      "id": "M42",
-      "titre": "Les Solides (CE2)",
-      "description": "Nomme, dénombre et interprète les solides : polyèdres, patrons et perspective cavalière.",
-      "icone": "📐",
-      "niveau": "CE2",
-      "domaine": "Espace et géométrie",
-      "domaineProgramme": "Espace et géométrie",
-      "theme": "Solides",
-      "programme": "BO-2024",
-      "type": "entrainement",
-      "fichier": "jeux/M42-solides-ce2.html",
-      "competences": [
-        {
-          "id": "nomme",
-          "libelle": "Nommer et justifier la nature d'un solide par ses faces"
         },
         {
-          "id": "polyedre",
-          "libelle": "Distinguer polyèdres et solides à surface courbe"
+          "id": "ce2-nommer",
+          "libelle": "Nommer un solide et justifier sa nature par ses faces (CE2)"
         },
         {
-          "id": "compte",
-          "libelle": "Dénombrer faces, sommets et arêtes d'un polyèdre"
+          "id": "ce2-compter",
+          "libelle": "Dénombrer faces, sommets et arêtes d'un polyèdre (CE2)"
         },
         {
-          "id": "explore",
-          "libelle": "Explorer les propriétés des solides (faces opposées, sommets, arêtes)"
+          "id": "ce2-polyedre",
+          "libelle": "Distinguer polyèdres et solides à surface courbe (CE2)"
         },
         {
-          "id": "devinette",
-          "libelle": "Reconnaître un solide d'après ses propriétés"
+          "id": "ce2-explorer",
+          "libelle": "Explorer les propriétés des solides en 3D (CE2)"
         },
         {
-          "id": "cavaliere",
-          "libelle": "Interpréter une représentation en perspective cavalière"
+          "id": "ce2-devinettes",
+          "libelle": "Reconnaître un solide d'après ses propriétés (CE2)"
         },
         {
-          "id": "patrons",
-          "libelle": "Associer un solide à son patron"
+          "id": "ce2-patrons",
+          "libelle": "Associer un solide à son patron (CE2)"
+        },
+        {
+          "id": "ce2-cavaliere",
+          "libelle": "Interpréter une représentation en perspective cavalière (CE2)"
         }
       ]
     },
