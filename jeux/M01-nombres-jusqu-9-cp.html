@@ -441,7 +441,7 @@
   "jeux": [
     { "id": "denombrer", "titre": "Compte les petites bêtes", "icone": "🐞", "couleur": "mandarine", "description": "Tape pour compter les bêtes du jardin.", "nbQuestions": 6 },
     { "id": "etiqueter", "titre": "La bonne étiquette", "icone": "🏷️", "couleur": "menthe", "description": "Relie chaque collection à son nombre.", "nbQuestions": 6 },
-    { "id": "comparer", "titre": "Plus, moins, autant", "icone": "⚖️", "couleur": "soleil", "description": "Entoure le bon contenant.", "nbQuestions": 6 },
+    { "id": "comparer", "titre": "Plus, moins, autant", "icone": "⚖️", "couleur": "soleil", "description": "Choisis le bon contenant.", "nbQuestions": 6 },
     { "id": "constituer", "titre": "Le compte est juste", "icone": "🐝", "couleur": "corail", "description": "Fais glisser le bon nombre de bêtes.", "nbQuestions": 6 },
     { "id": "autant-que", "titre": "Autant que le modèle", "icone": "🌸", "couleur": "mandarine", "description": "Complète pour avoir autant, un de plus ou un de moins.", "nbQuestions": 6 },
     { "id": "ranger", "titre": "La parade des escargots", "icone": "🐌", "couleur": "menthe", "description": "Range la parade dans l'ordre demandé, croissant ou décroissant !", "nbQuestions": 6 }
@@ -1582,8 +1582,8 @@
     }
 
     const consigneTexte = motCle === 'AUTANT'
-      ? `Entoure ${univers.article} ${univers.contenant} qui a AUTANT de ${univers.mot} que le modèle !`
-      : `Entoure ${univers.article} ${univers.contenant} qui a LE ${motCle} de ${univers.mot} !`;
+      ? `Choisis ${univers.article} ${univers.contenant} qui a AUTANT de ${univers.mot} que le modèle !`
+      : `Choisis ${univers.article} ${univers.contenant} qui a LE ${motCle} de ${univers.mot} !`;
     zone.appendChild(creerBlocConsigne(consigneTexte));
 
     const SYMBOLES_MOT_CLE = { PLUS: '+', MOINS: '−', AUTANT: '=' };
