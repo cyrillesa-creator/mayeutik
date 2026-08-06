@@ -619,13 +619,16 @@ const CONTENU = {
     {q:"J'ai 1 seule face plate, une pointe tout en haut, et je peux rouler. Qui suis-je ?", ans:"cone", niveau:"CP"},
     {q:"Ma base est un rond et je finis en pointe. Qui suis-je ?", ans:"cone", niveau:"CP"},
     {q:"Je n'ai aucune face plate et je roule dans tous les sens. Qui suis-je ?", ans:"boule", niveau:"CP"},
-    /* Formulées « tel objet a ma forme », et non « on me trouve dans tel
-       objet » : le solide n'est pas CONTENU dans l'objet, il en est la forme.
-       La tournure d'origine induisait l'enfant en erreur. */
-    {q:"Un ballon de football est de ma forme. Qui suis-je ?", ans:"boule", niveau:"CP"},
-    {q:"Une boîte de conserve a souvent ma forme. Qui suis-je ?", ans:"cylindre", niveau:"CP"},
-    {q:"Un cornet de glace est de ma forme. Qui suis-je ?", ans:"cone", niveau:"CP"},
-    {q:"Une boîte de céréales a souvent ma forme. Qui suis-je ?", ans:"pave", niveau:"CP"},
+    /* Devinettes « objet du quotidien » : question directe « Quelle forme
+       a <objet> ? ». On ne fait plus parler le solide à la première personne
+       (« on me trouve dans… », puis « … est de ma forme ») — c'est la
+       tournure la plus courte, et l'enfant n'a pas à démêler qui est « je ».
+       Le solide n'est de toute façon pas CONTENU dans l'objet : il en est
+       la forme, ce que la question pose maintenant directement. */
+    {q:"Quelle forme a un ballon ?", ans:"boule", niveau:"CP"},
+    {q:"Quelle forme a une boîte de conserve ?", ans:"cylindre", niveau:"CP"},
+    {q:"Quelle forme a un cornet de glace ?", ans:"cone", niveau:"CP"},
+    {q:"Quelle forme a une boîte à chaussures ?", ans:"pave", niveau:"CP"},
     /* --- CE1 seulement : « sommet », « arête », pyramide --- */
     {q:"J'ai 5 faces : 4 triangles et 1 carré. Qui suis-je ?", ans:"pyramide", niveau:"CE1"},
     {q:"J'ai 5 faces, 5 sommets et 8 arêtes. Qui suis-je ?", ans:"pyramide", niveau:"CE1"},
