@@ -136,7 +136,7 @@
     {
       "id": "M36",
       "titre": "Les Solides",
-      "description": "Manipule les solides en 3D : nomme-les, compte leurs faces, plie leurs patrons et lis-les en perspective.",
+      "description": "Manipule les solides en 3D : nomme-les, compte leurs faces, construis-les, plie leurs patrons et lis-les en perspective.",
       "icone": "🧊",
       "niveau": "CP",
       "niveaux": [
@@ -160,6 +160,10 @@
           "libelle": "Dénombrer les faces plates d'un solide (CP)"
         },
         {
+          "id": "cp-construction",
+          "libelle": "Construire un cube ou un pavé en assemblant ses faces, d'après un modèle (CP)"
+        },
+        {
           "id": "cp-devinettes",
           "libelle": "Reconnaître un solide d'après ses faces (CP)"
         },
@@ -172,12 +176,12 @@
           "libelle": "Dénombrer faces, sommets et arêtes d'un polyèdre (CE1)"
         },
         {
-          "id": "ce1-polyedre",
-          "libelle": "Distinguer polyèdres et solides à surface courbe (CE1)"
-        },
-        {
           "id": "ce1-explorer",
           "libelle": "Explorer faces, arêtes et sommets sur un solide en 3D (CE1)"
+        },
+        {
+          "id": "ce1-construction",
+          "libelle": "Construire cube, pavé ou pyramide : faces assemblées, ou arêtes et sommets (CE1)"
         },
         {
           "id": "ce1-devinettes",
