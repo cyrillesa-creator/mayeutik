@@ -218,7 +218,7 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 #answers.construction{display:block;}
 .banque-formes{display:flex; justify-content:center; gap:10px; flex-wrap:wrap;}
 .forme{
-  width:60px; height:60px; padding:6px; border:none; border-radius:14px;
+  width:66px; height:66px; padding:3px; border:none; border-radius:14px;
   background:var(--carte); box-shadow:var(--ombre); cursor:pointer;
 }
 .forme svg{width:100%; height:100%; display:block;}
@@ -477,11 +477,15 @@ const CONTENU = {
     },
     pave: {
       nom:"le pavé droit", court:"Pavé droit", couleur:0x9B5DE5, poly:true, facesPlates:6,
-      geo:{type:"box", args:[3,1.6,2]},
+      /* Proportions 3 × 1,2 × 2 : ses trois formes de faces (3×2, 3×1,2 et
+         1,2×2) se distinguent au premier coup d'œil. Un pavé plus cubique
+         donnerait des rectangles trop proches pour que l'enfant puisse
+         choisir la bonne pièce dans « Construction ». */
+      geo:{type:"box", args:[3,1.2,2]},
       objet:"une boîte de céréales 📦",
       justification:"6 faces rectangulaires, pas toutes identiques",
       distinction:"Ses faces sont des rectangles, et elles ne sont pas toutes pareilles. Le cube, lui, a toutes ses faces carrées : le cube n'est pas un pavé.",
-      v:[[-1.5,-0.8,-1],[1.5,-0.8,-1],[1.5,-0.8,1],[-1.5,-0.8,1],[-1.5,0.8,-1],[1.5,0.8,-1],[1.5,0.8,1],[-1.5,0.8,1]],
+      v:[[-1.5,-0.6,-1],[1.5,-0.6,-1],[1.5,-0.6,1],[-1.5,-0.6,1],[-1.5,0.6,-1],[1.5,0.6,-1],[1.5,0.6,1],[-1.5,0.6,1]],
       e:[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]],
       f:[[0,1,2,3],[4,7,6,5],[3,2,6,7],[0,4,5,1],[1,5,6,2],[0,3,7,4]],
       fOpp:[[0,1],[2,3],[4,5]]
@@ -796,51 +800,101 @@ const CAVALIERE = (() => {
    remplissage neutre pour toutes les pièces : la décision doit porter sur
    la FORME, pas la couleur.
    ============================================================ */
-const FORMES = (() => {
-  const wrap = (vb, inner) =>
-    `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" style="fill:#D6E6FF;stroke:#1D3354;stroke-width:3;stroke-linejoin:round">${inner}</svg>`;
-  return {
-    carre:    wrap("0 0 64 64", `<rect x="4" y="4" width="56" height="56"/>`),
-    // Les trois rectangles du pavé : proportions distinctes (dessus 3×2,
-    // avant 3×1,6, côté 1,6×2) — jamais des carrés (distinction cube/pavé).
-    rectL:    wrap("0 0 90 50", `<rect x="4" y="4" width="82" height="42"/>`),
-    rectM:    wrap("0 0 90 64", `<rect x="4" y="4" width="82" height="56"/>`),
-    rectS:    wrap("0 0 50 64", `<rect x="4" y="4" width="42" height="56"/>`),
-    triangle: wrap("0 0 64 60", `<polygon points="32,4 60,56 4,56"/>`),
-    disque:   wrap("0 0 64 64", `<circle cx="32" cy="32" r="28"/>`)
+/* Contour d'une face, rabattu dans son plan : le polygone réel, tourné pour
+   que sa première arête soit horizontale et centré sur son centroïde. Sert à
+   DESSINER la pièce (elle est donc exactement la face du solide) et à
+   décider quelles faces sont superposables. */
+function contourFace2D(S, i){
+  const V = S.f[i].map(j => new THREE.Vector3(...S.v[j]));
+  const c = new THREE.Vector3(); V.forEach(p => c.add(p)); c.multiplyScalar(1/V.length);
+  const local = V.map(p => p.clone().sub(c));
+  const normale = new THREE.Vector3().crossVectors(
+    local[1].clone().sub(local[0]), local[2].clone().sub(local[0])).normalize();
+  const versZ = new THREE.Quaternion().setFromUnitVectors(normale, new THREE.Vector3(0,0,1));
+  const plats = local.map(p => p.clone().applyQuaternion(versZ));
+  const premiere = plats[1].clone().sub(plats[0]);
+  const droit = new THREE.Quaternion().setFromAxisAngle(
+    new THREE.Vector3(0,0,1), -Math.atan2(premiere.y, premiere.x));
+  return plats.map(p => p.applyQuaternion(droit)).map(p => [p.x, p.y]);
+}
+
+/* Signature de congruence : nombre de côtés + longueurs triées. Deux faces de
+   même signature sont superposables, donc INTERCHANGEABLES pour l'enfant —
+   c'est ce qui permet d'accepter toutes les poses géométriquement correctes,
+   et pas une seule arbitrairement choisie. */
+function signatureFace(S, i){
+  const pts = contourFace2D(S, i);
+  const cotes = pts.map((p, j) => {
+    const q = pts[(j + 1) % pts.length];
+    return Math.hypot(q[0] - p[0], q[1] - p[1]);
+  }).map(l => l.toFixed(2)).sort();
+  return pts.length + ":" + cotes.join("/");
+}
+
+function libelleSignature(sig){
+  const [n, cotes] = sig.split(":");
+  if(n === "3") return "un triangle";
+  if(n === "4") return new Set(cotes.split("/")).size === 1 ? "un carré" : "un rectangle";
+  return "un disque";
+}
+
+/* Géométrie de construction d'un solide, calculée UNE FOIS depuis ses
+   données partagées v/e/f : signature de chaque face, dessin de chaque
+   pièce, et intrus. Toutes les pièces d'un même solide partagent la même
+   échelle — c'est ce qui rend deux rectangles distinguables : l'enfant
+   compare des tailles réelles, pas des icônes normalisées. */
+const geometrieConstruction = (() => {
+  const cache = {};
+  /* Intrus : une forme absente de ce solide, empruntée à un autre solide
+     et dessinée à la même échelle. Pour le pavé c'est le CARRÉ du cube —
+     un pavé n'a jamais de face carrée, la distinction que le programme
+     demande de travailler dès le CP. */
+  const EMPRUNTS = {
+    cube:     [{solide:"pyramide", face:1}, {solide:"pave", face:2}, "disque"],
+    pave:     [{solide:"cube", face:0}, {solide:"pyramide", face:1}, "disque"],
+    pyramide: [{solide:"pave", face:2}, {solide:"cube", face:0}, "disque"]
+  };
+  const dessin = (pts, u) => {
+    const p = pts.map(([x, y]) => (50 + x*u).toFixed(1) + "," + (50 - y*u).toFixed(1)).join(" ");
+    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="fill:#D6E6FF;stroke:#1D3354;stroke-width:3;stroke-linejoin:round"><polygon points="${p}"/></svg>`;
+  };
+  const disque = u => `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="fill:#D6E6FF;stroke:#1D3354;stroke-width:3"><circle cx="50" cy="50" r="${(u).toFixed(1)}"/></svg>`;
+
+  return function(k){
+    if(cache[k]) return cache[k];
+    const S = CONTENU.solides[k];
+    const contours = S.f.map((_, i) => contourFace2D(S, i));
+    const signatures = S.f.map((_, i) => signatureFace(S, i));
+    // Échelle commune : la plus grande demi-extension du solide occupe 42/100.
+    const etendue = Math.max(...contours.flat().map(([x, y]) => Math.max(Math.abs(x), Math.abs(y))));
+    const u = 42/etendue;
+    const pieces = {};
+    signatures.forEach((sig, i) => { if(!pieces[sig]) pieces[sig] = dessin(contours[i], u); });
+    const intrus = EMPRUNTS[k].map(src => {
+      if(src === "disque") return {sig:"disque", piece:disque(u*0.62), libelle:"un disque"};
+      const A = CONTENU.solides[src.solide];
+      const sig = "intrus:" + signatureFace(A, src.face);
+      return {sig, piece:dessin(contourFace2D(A, src.face), u), libelle:libelleSignature(signatureFace(A, src.face))};
+    });
+    cache[k] = {signatures, pieces, intrus};
+    return cache[k];
   };
 })();
 
-const CONSTRUCTION = {
-  /* Forme 2D de chaque face, INDEXÉE comme CONTENU.solides[k].f.
-     pave : f = [dessous 3×2, dessus 3×2, avant 3×1,6, arrière 3×1,6,
-     droite 1,6×2, gauche 1,6×2] -> rectM/rectM/rectL/rectL/rectS/rectS. */
-  formes: {
-    cube:     ["carre","carre","carre","carre","carre","carre"],
-    pave:     ["rectM","rectM","rectL","rectL","rectS","rectS"],
-    pyramide: ["carre","triangle","triangle","triangle","triangle"]
-  },
-  /* Ordre de pose (indices dans `f`) : chaque face APRÈS la première
-     partage au moins une arête avec l'ensemble déjà posé, pour qu'il y
-     ait toujours une arête d'accroche à proposer. Cube et pavé ont la
-     même topologie ; la pyramide pose sa base puis ses 4 triangles. */
-  ordre: {
-    cube:     [0, 2, 4, 1, 5, 3],
-    pave:     [0, 2, 4, 1, 5, 3],
-    pyramide: [0, 1, 2, 3, 4]
-  },
-  /* Intrus de la réserve : des formes qui n'appartiennent PAS au solide
-     en cours (ex. un triangle dans la réserve du cube). */
-  intrus: {
-    cube:     ["triangle", "disque"],
-    pave:     ["triangle", "disque"],
-    pyramide: ["rectS", "disque"]
-  },
-  libelles: {
-    carre:"un carré", rectL:"un rectangle", rectM:"un rectangle",
-    rectS:"un rectangle", triangle:"un triangle", disque:"un disque"
-  }
-};
+/* Solides constructibles : les polyèdres du programme pour cette compétence
+   (le CP n'en verra que cube et pavé, son palier ne déclarant pas la pyramide). */
+const CONSTRUCTIBLES = ["cube", "pave", "pyramide"];
+
+/* Arêtes libres du chantier : exactement UNE de leurs deux faces est posée.
+   Ce sont les seuls points d'accroche possibles — une arête sans face posée
+   n'existe pas encore pour l'enfant, une arête entre deux faces posées est
+   déjà consommée. */
+function aretesLibres(S, posees){
+  return S.e.map((_, e) => e).filter(e =>
+    facesDeLArete(S, e).filter(i => posees.has(i)).length === 1);
+}
+// La face encore à poser de l'autre côté d'une arête libre.
+const faceAuBout = (S, e, posees) => facesDeLArete(S, e).find(i => !posees.has(i));
 
 /* ============================================================
    MOTEUR 3D
@@ -1663,11 +1717,11 @@ function qPatrons(cfg, palier){
    - au CE1 seulement (cfg.filaire), un tour noté « fil de fer » par
      solide (étape 3) : toutes les arêtes reconstruites sommet à sommet. */
 function qConstruction(cfg, palier){
-  const jouables = palier.solides.filter(k => CONSTRUCTION.formes[k]);
+  const jouables = palier.solides.filter(k => CONSTRUCTIBLES.includes(k));
   const file = [];
   jouables.forEach(k => {
     const nom = CONTENU.solides[k].nom;
-    CONSTRUCTION.ordre[k].forEach((_, t) => file.push({
+    CONTENU.solides[k].f.forEach((_, t) => file.push({
       mode:"construction", etape:"pose", solide:k, tour:t, decouverte:t === 0,
       q:"Construis " + nom + " !"}));
     if(cfg.filaire) file.push({
@@ -1981,82 +2035,130 @@ function afficherDecouverte(q, ans){
 function afficherTourPose(q, ans){
   ans.classList.add("construction");
   const S = CONTENU.solides[q.solide];
-  const ordre = CONSTRUCTION.ordre[q.solide];
-  const cible = ordre[q.tour];
-  const formeCible = CONSTRUCTION.formes[q.solide][cible];
+  const G = geometrieConstruction(q.solide);
 
   vignetteModele(q.solide);        // reconstruit la scène : AVANT le squelette
   montrerSquelette(q.solide);
   requestAnimationFrame(resize);
-  if(!etatChantier || etatChantier.solide !== q.solide){
+
+  /* Le chantier n'est PLUS déduit d'un ordre de pose imposé : l'enfant
+     choisit, donc l'état est réellement porté d'un tour à l'autre. Filet de
+     sécurité pour une entrée au milieu d'une séquence (deep-link, rejeu) :
+     on complète avec des poses connexes quelconques jusqu'au bon compte. */
+  if(!etatChantier || etatChantier.solide !== q.solide || q.tour === 0){
     etatChantier = {solide:q.solide, posees:new Set()};
   }
-  // Rejouable dans le désordre (retour accueil, deep-link…) : l'état du
-  // chantier se déduit toujours du numéro de tour, jamais d'un historique.
-  etatChantier.posees = new Set(ordre.slice(0, q.tour));
-  peindreChantier(S, etatChantier.posees, false);
+  const posees = etatChantier.posees;
+  while(posees.size < q.tour){
+    posees.add(posees.size === 0 ? 0 : faceAuBout(S, aretesLibres(S, posees)[0], posees));
+  }
+  peindreChantier(S, posees, false);
 
   $("qText").textContent = q.tour === 0
     ? "Choisis la première face pour commencer " + S.nom + "."
     : "Choisis la bonne face dans la réserve.";
 
-  // Arêtes d'accroche correctes : entre la face cible et une face déjà posée.
-  const accroches = S.e.map((_, e) => e).filter(e => {
-    const adj = facesDeLArete(S, e);
-    return adj.includes(cible) && adj.some(i => etatChantier.posees.has(i));
-  });
-  q._accroches = accroches;
+  /* Ce qui est posable MAINTENANT : toute face superposable à celle qui
+     attend au bout d'une arête libre. Plusieurs faces peuvent partager la
+     même signature (les 6 carrés d'un cube) et plusieurs arêtes peuvent
+     convenir pour une même pièce — toutes ces solutions sont acceptées.
+     Au premier tour, aucune contrainte : n'importe quelle face démarre. */
+  const posables = new Map();   // signature -> arêtes d'accroche possibles
+  if(q.tour === 0){
+    G.signatures.forEach(sig => { if(!posables.has(sig)) posables.set(sig, []); });
+  } else {
+    aretesLibres(S, posees).forEach(e => {
+      const sig = G.signatures[faceAuBout(S, e, posees)];
+      if(!posables.has(sig)) posables.set(sig, []);
+      posables.get(sig).push(e);
+    });
+  }
+  q._posables = posables;   // exposé pour les tests
 
-  const poserFaceCible = () => {
-    etatChantier.posees.add(cible);
-    montreFace(cible, S.couleur, 0.92);
+  /* JAMAIS deux pièces du même nom dans la réserve. Un pavé n'a que des
+     rectangles : en proposer deux reviendrait à demander à l'enfant de
+     deviner lequel poser sur la seule foi de leurs proportions — ce n'est
+     pas la compétence visée, et c'est indécidable au premier coup d'œil.
+     On n'en offre donc qu'UN par nom (« un rectangle », « un carré »,
+     « un triangle »), le choix étant figé sur le tour pour ne pas changer
+     d'un rendu à l'autre. Les trois rectangles du pavé restent montrés
+     ensemble à l'étape 1, où ils s'observent côte à côte sans enjeu. */
+  if(!q._sigOffertes){
+    const parNom = new Map();
+    [...posables.keys()].forEach(sig => {
+      const nom = libelleSignature(sig);
+      if(!parNom.has(nom)) parNom.set(nom, sig);
+    });
+    q._sigOffertes = [...parNom.values()];
+  }
+  let offertes = q._sigOffertes.filter(sig => posables.has(sig));
+  if(!offertes.length) offertes = [posables.keys().next().value];
+  const nomsOfferts = new Set(offertes.map(libelleSignature));
+
+  const poser = (i) => { posees.add(i); montreFace(i, S.couleur, 0.92); };
+  // Sur une erreur, le chantier avance quand même : on pose une face valide.
+  const poserUneValide = () => {
+    if(q.tour === 0){ poser(G.signatures.indexOf(offertes[0])); return; }
+    poser(faceAuBout(S, posables.get(offertes[0])[0], posees));
   };
 
-  // Réserve : les formes encore à poser (sans doublon) + les intrus.
-  const restantes = [...new Set(ordre.slice(q.tour).map(i => CONSTRUCTION.formes[q.solide][i]))];
   const banque = document.createElement("div");
   banque.className = "banque-formes";
-  melange([...restantes, ...CONSTRUCTION.intrus[q.solide]]).forEach(t => {
+  // Les intrus prennent eux aussi un nom encore libre : la réserve entière
+  // ne contient donc que des formes que l'enfant peut nommer distinctement.
+  const pieces = [
+    ...offertes.map(sig => ({sig, piece:G.pieces[sig], correcte:true})),
+    ...G.intrus.filter(x => !nomsOfferts.has(x.libelle)).slice(0, 2)
+      .map(x => ({sig:x.sig, piece:x.piece, correcte:false}))
+  ];
+  melange(pieces).forEach(({sig, piece, correcte}) => {
     const b = document.createElement("button");
     b.type = "button"; b.className = "rep forme";
-    b.dataset.type = t;
-    if(t === formeCible) b.dataset.correct = "1";
-    b.innerHTML = FORMES[t];
+    b.dataset.sig = sig;
+    if(correcte) b.dataset.correct = "1";
+    b.innerHTML = piece;
     b.addEventListener("click", () => {
       if(q._fini) return;
-      if(t !== formeCible){
+      if(!correcte){
         q._fini = true;
-        q.expl = "Il fallait choisir " + CONSTRUCTION.libelles[formeCible] + " — la bonne forme est en vert.";
-        poserFaceCible();
+        q.expl = "Cette forme n'est pas une face " + duSolide(S.nom) +
+          " : il fallait " + libelleSignature([...posables.keys()][0]) + ".";
+        poserUneValide();
         repond(false, b, q);
+        // Toutes les pièces acceptables restent lisibles, pas seulement une.
+        banque.querySelectorAll("[data-correct]").forEach(x => {
+          x.classList.remove("dim"); x.classList.add("ok");
+        });
         return;
       }
       if(q.tour === 0){
         q._fini = true;
-        poserFaceCible();
+        poser(G.signatures.indexOf(sig));
         repond(true, b, q);
         return;
       }
-      // Bonne pièce : au tour de l'arête d'accroche, au tap dans la 3D.
+      // Bonne pièce : reste à désigner une arête d'accroche — toutes celles
+      // qui bordent une face superposable à la pièce choisie conviennent.
+      const bonnes = posables.get(sig);
       b.classList.add("choisie");
       banque.querySelectorAll("button").forEach(x => { x.disabled = true; });
-      $("qText").textContent = "Touche l'arête allumée où poser cette face !";
-      peindreChantier(S, etatChantier.posees, true);
+      $("qText").textContent = "Touche une arête allumée où poser cette face !";
+      peindreChantier(S, posees, true);
       tapHandler = {cibles:partiesC.aretesHit, cb:(d) => {
         // Une arête éteinte (aucune face posée) ou interne (deux faces
         // posées) n'est pas une réponse : tap ignoré silencieusement.
-        const nbPosees = facesDeLArete(S, d.index).filter(i => etatChantier.posees.has(i)).length;
-        if(nbPosees !== 1 || q._fini) return;
+        if(q._fini || !aretesLibres(S, posees).includes(d.index)) return;
         q._fini = true;
-        const bon = accroches.includes(d.index);
+        const bon = bonnes.includes(d.index);
         if(bon){
           montreArete(d.index, 0x2EC4A6);
+          poser(faceAuBout(S, d.index, posees));
         } else {
           montreArete(d.index, 0xFF5D5D);
-          montreArete(accroches[0], 0x2EC4A6);
-          q.expl = "La face s'accrochait sur l'arête verte, contre une face déjà posée.";
+          bonnes.forEach(e => montreArete(e, 0x2EC4A6));
+          q.expl = "Cette face se posait sur une arête verte : celles dont le bord a la même longueur qu'elle.";
+          poser(faceAuBout(S, bonnes[0], posees));
         }
-        poserFaceCible();
         repond(bon, null, q);
       }};
     });
