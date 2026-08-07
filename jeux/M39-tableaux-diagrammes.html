@@ -2011,7 +2011,7 @@
     function choisirLigne(espece) {
       especeEnCours = espece;
       especes.forEach((e) => cellulesTally[e.id].total.classList.toggle('active', e.id === espece.id));
-      invite.textContent = 'Combien de ' + espece.pluriel + ' ' + espece.emoji + ' as-tu comptées ?';
+      invite.textContent = 'Combien ' + deElision(espece.pluriel) + ' ' + espece.emoji + ' as-tu comptées ?';
       pave.vider();
     }
 

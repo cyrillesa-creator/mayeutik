@@ -17,3 +17,34 @@
 
 - Vérifier la syntaxe JS (absence d'erreur console) avant de committer.
 - Ne jamais introduire de dépendance réseau dans les jeux (fichiers autonomes).
+
+## Langue : élision obligatoire dans les énoncés générés
+
+Les jeux **assemblent** leurs énoncés (« Combien de » + un mot venu d'une table
+de données). Dès qu'un mot variable suit un mot élidable, l'élision doit être
+calculée, jamais écrite en dur — sinon on produit « Combien de arêtes »,
+« de escargots », « de abeilles ».
+
+Mots concernés devant voyelle ou h muet : **de → d'**, **le/la → l'**,
+**ce → cet**, **que → qu'**, **ne → n'**, **je → j'**, **me/te/se**.
+
+Règle de production : dans un gabarit d'énoncé, **aucun mot élidable ne doit
+précéder directement une variable**. Utiliser un utilitaire — plusieurs jeux en
+ont déjà un, à reprendre tel quel :
+
+```js
+function deElision(mot){
+  return /^[aeiouyàâäéèêëïîôöùûü]/i.test(mot) ? "d'" + mot : "de " + mot;
+}
+// `Combien ${deElision(libelle)} a ${solide.nom} ?`  et NON  `Combien de ${libelle} …`
+```
+
+Vaut aussi pour l'article défini (`l'arbre` / `le camion` — cf.
+`nommerAvecArticle` dans M23) et pour l'accord en genre et en nombre des mots
+qui entourent la variable.
+
+À contrôler **à chaque fois qu'une série de questions est créée ou modifiée**,
+en générant les énoncés et en les relisant, pas seulement en lisant le gabarit :
+c'est la donnée qui révèle le défaut. Le script
+`scratchpad/lint_elision_runtime.js` fait ce balayage (chaînes littérales +
+énoncés produits à l'exécution).

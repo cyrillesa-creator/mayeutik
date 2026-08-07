@@ -1602,8 +1602,8 @@
     }
 
     const consigneTexte = motCle === 'AUTANT'
-      ? `Choisis ${univers.article} ${univers.contenant} qui a AUTANT de ${univers.mot} que le modèle !`
-      : `Choisis ${univers.article} ${univers.contenant} qui a LE ${motCle} de ${univers.mot} !`;
+      ? `Choisis ${univers.article} ${univers.contenant} qui a AUTANT ${deElision(univers.mot)} que le modèle !`
+      : `Choisis ${univers.article} ${univers.contenant} qui a LE ${motCle} ${deElision(univers.mot)} !`;
     zone.appendChild(creerBlocConsigne(consigneTexte));
 
     const SYMBOLES_MOT_CLE = { PLUS: '+', MOINS: '−', AUTANT: '=' };

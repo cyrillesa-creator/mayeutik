@@ -1597,6 +1597,13 @@ function melangerOptions(options, indexCorrect){
 }
 const maj = s => s.charAt(0).toUpperCase() + s.slice(1);
 
+/* Élision obligatoire de « de » devant une voyelle : « combien D'ARÊTES », et
+   jamais « combien de arêtes ». À utiliser dès que le mot qui suit vient
+   d'une donnée et non du texte écrit à la main. */
+function deElision(mot){
+  return /^[aeiouyàâäéèêëïîôöùûü]/i.test(mot) ? "d'" + mot : "de " + mot;
+}
+
 /* Le mot juste pour « face » selon le solide : un polyèdre n'a que des faces
    planes, un solide rond a des « faces plates » qu'il faut distinguer de sa
    surface courbe. Les deux formulations sont exactes ; celle qui colle à
@@ -1661,7 +1668,7 @@ function qCompte(cfg, palier){
     const distr = new Set();
     while(distr.size<3){ const d = n + pioche([-3,-2,-1,1,2,3,4]); if(d>=0 && d!==n) distr.add(d); }
     return {mode:"compte", solide:k, kind:t, ans:n,
-      q:`Combien de ${libelle} a ${S.nom} ?`,
+      q:`Combien ${deElision(libelle)} a ${S.nom} ?`,
       opts:melange([n, ...distr]), fmt:x=>String(x)};
   });
 }
