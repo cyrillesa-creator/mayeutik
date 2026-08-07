@@ -218,6 +218,33 @@
       ]
     },
     {
+      "id": "M37",
+      "titre": "Les Assemblages",
+      "description": "Reproduis des constructions de cubes et de pavés en 3D, étage par étage, en tournant tout autour.",
+      "icone": "🧱",
+      "niveau": "CP",
+      "niveaux": [
+        "CP",
+        "CE1"
+      ],
+      "domaine": "Espace et géométrie",
+      "domaineProgramme": "Espace et géométrie",
+      "theme": "Repérage dans l'espace",
+      "programme": "BO-2024",
+      "type": "entrainement",
+      "fichier": "jeux/M37-assemblages.html",
+      "competences": [
+        {
+          "id": "cp-assemblages",
+          "libelle": "Reproduire un assemblage de cubes et de pavés à partir d'un modèle en trois dimensions (CP)"
+        },
+        {
+          "id": "ce1-assemblages",
+          "libelle": "Construire un assemblage de cubes et de pavés, cubes cachés compris (CE1)"
+        }
+      ]
+    },
+    {
       "id": "M99",
       "moduleParent": "M07",
       "moduleParentTitre": "Tables de multiplication (fluence)",

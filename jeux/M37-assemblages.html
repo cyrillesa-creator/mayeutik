@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Les Assemblages — Mayeutik</title>
+<!-- ============================================================
+     JEU M37 — Assemblages de cubes et de pavés (CP et CE1)
+     Backlog : pilotage/backlog.json
+     Domaine « Espace et géométrie », sous-thème « Le repérage dans
+     l'espace » — et NON « Les solides » : le programme range ici la
+     reproduction d'un ASSEMBLAGE (CP p. 33, CE1 p. 35), alors que
+     « Les solides » (M36) couvre la construction d'UN solide à partir
+     de ses faces. Deux compétences distinctes, deux modules.
+
+     Module ADAPTATIF par niveau (CHARTE §15) : deux paliers.
+       CP  : « Construire et reproduire des assemblages de solides à
+             partir d'un modèle en trois dimensions ou de
+             représentations planes. » Assemblages entièrement
+             visibles, 2 à 3 étages, cubes ET pavés.
+       CE1 : « Construire des assemblages de cubes et de pavés. »
+             Assemblages plus grands, 3 étages, et introduction des
+             CUBES CACHÉS — invisibles sous tous les angles, déduits
+             par la règle d'appui (rien ne flotte).
+
+     Le moteur de rendu et de validation vient d'un prototype testé sur
+     appareil ; les commentaires qui l'accompagnent expliquent les choix
+     non évidents (projection, tri peintre, détection du tap).
+     ============================================================ -->
+<style>
+:root{
+  color-scheme: light only;
+  --ciel:#EAF2FC; --carte:#FFFFFF; --encre:#1D3354; --encre2:#41577A;
+  --mandarine:#FF8A3D; --mandarine-f:#E5701F;
+  --menthe:#2EC4A6; --menthe-t:#0B8A70; --corail:#FF5D5D; --corail-t:#D93636; --soleil:#FFC93C;
+  --r:20px; --ombre:0 4px 0 rgba(29,51,84,.12);
+  font-size:16px;
+}
+
+/* ---------- Protections tactiles (CHARTE §19) ----------
+   `touch-action` ne s'hérite PAS : le sélecteur universel est le seul
+   moyen de couvrir toute l'interface. */
+*{ box-sizing:border-box; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; background:var(--ciel); color-scheme:light only; }
+html,body{margin:0; padding:0; min-height:100%;}
+body{
+  -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none;
+  -webkit-touch-callout:none;
+  font-family:'Fredoka', ui-rounded, 'Segoe UI', system-ui, sans-serif;
+  background:var(--ciel); color:var(--encre);
+  background-image:radial-gradient(rgba(29,51,84,.05) 1.5px, transparent 1.5px);
+  background-size:26px 26px;
+  display:flex; justify-content:center;
+}
+img, svg{ -webkit-user-drag:none; }
+
+#app{width:100%; max-width:520px; min-height:100dvh; display:flex; flex-direction:column; padding:10px 14px 18px;}
+
+/* ---------- Header ---------- */
+header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-height:54px;}
+#btnBack{
+  width:42px; height:42px; border-radius:14px; border:none; flex:none;
+  background:var(--carte); color:var(--encre); font-size:20px; font-weight:700;
+  box-shadow:var(--ombre); cursor:pointer;
+}
+#btnBack:active{transform:translateY(2px); box-shadow:0 2px 0 rgba(29,51,84,.12);}
+#hdrTitle{font-weight:600; font-size:1.15rem; flex:1; line-height:1.1;}
+#dots{display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end; max-width:46%;}
+.dot{width:10px; height:10px; border-radius:50%; background:#C9D6E8;}
+.dot.ok{background:var(--menthe);} .dot.ko{background:var(--corail);} .dot.cur{background:var(--mandarine);}
+
+/* ---------- Accueil ---------- */
+#home h1{font-size:1.7rem; margin:4px 0 2px; font-weight:700;}
+#home .sub{color:var(--encre2); margin:0 0 12px; font-size:.95rem;}
+
+/* Sélecteur de palier (CHARTE §15) */
+.rangee-paliers{display:flex; justify-content:center; gap:8px; margin:6px 0 8px; flex-wrap:wrap;}
+.puce-palier{
+  min-height:40px; padding:6px 18px; border-radius:999px; font-family:inherit;
+  font-weight:700; font-size:.92rem; cursor:pointer;
+  border:2.5px solid color-mix(in srgb, var(--encre) 22%, white); background:var(--carte); color:var(--encre);
+}
+.puce-palier.actif{background:var(--mandarine); border-color:var(--mandarine); color:#fff;}
+/* Palier verrouillé (CHARTE §15) : au-delà du niveau du profil actif, tant
+   que son paquet cadeau n'a pas été ouvert une première fois. */
+.puce-palier.verrouille{opacity:.5; cursor:not-allowed;}
+.note-palier{text-align:center; font-size:.82rem; color:var(--encre2); opacity:.85; margin:0 0 12px;}
+
+.cards{display:grid; grid-template-columns:1fr; gap:12px;}
+.card{
+  background:var(--carte); border:none; border-radius:var(--r); padding:16px 12px 14px;
+  box-shadow:var(--ombre); cursor:pointer; text-align:center;
+  font-family:inherit; color:var(--encre);
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  transition:transform .08s;
+}
+.card:active{transform:translateY(3px); box-shadow:0 1px 0 rgba(29,51,84,.12);}
+.card .ico{font-size:2rem; line-height:1;}
+.card .nom{font-weight:600; font-size:1.02rem;}
+.card .det{font-size:.78rem; color:var(--encre2);}
+.card .stars{font-size:.85rem; letter-spacing:2px; min-height:1.1em;}
+
+/* Palier bonus : présenté comme une récompense (CHARTE §15) */
+.bloc-bonus{
+  margin-top:18px; border-radius:var(--r); padding:14px 12px;
+  border:3px dashed var(--soleil); background:color-mix(in srgb, var(--soleil) 14%, white);
+}
+.bloc-bonus h3{text-align:center; font-size:1rem; margin:0 0 2px; color:color-mix(in srgb, var(--soleil) 55%, black 30%);}
+.bloc-bonus .note-palier{margin:2px 0 10px;}
+
+/* Paquet cadeau : première révélation d'un palier bonus (CHARTE §15) */
+.paquet-cadeau{
+  display:flex; flex-direction:column; align-items:center; gap:.7rem;
+  width:100%; border:none; background:transparent; padding:1rem .5rem; cursor:pointer;
+  min-height:44px; font-family:inherit;
+}
+.paquet-cadeau-boite{
+  position:relative; width:5.6rem; height:4.6rem; border-radius:14px;
+  background:linear-gradient(180deg, var(--corail), color-mix(in srgb, var(--corail) 70%, black 15%));
+  border:3px solid color-mix(in srgb, var(--corail) 55%, black 20%);
+  box-shadow:0 5px 0 color-mix(in srgb, var(--corail) 50%, black 25%);
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.paquet-cadeau:active .paquet-cadeau-boite{
+  transform:translateY(3px); box-shadow:0 2px 0 color-mix(in srgb, var(--corail) 50%, black 25%);
+}
+.paquet-cadeau-ruban-v{position:absolute; left:50%; top:0; bottom:0; width:14px; margin-left:-7px; background:var(--soleil);}
+.paquet-cadeau-ruban-h{position:absolute; top:50%; left:0; right:0; height:14px; margin-top:-7px; background:var(--soleil);}
+.paquet-cadeau-noeud{position:absolute; left:50%; top:-1rem; transform:translateX(-50%); font-size:1.9rem; line-height:1;}
+.paquet-cadeau-texte{font-weight:700; font-size:.88rem; text-align:center; color:color-mix(in srgb, var(--encre) 85%, white);}
+@keyframes paquet-cadeau-pop{
+  0%{ transform:scale(1) rotate(0deg); opacity:1; }
+  35%{ transform:scale(1.18) rotate(-5deg); opacity:1; }
+  100%{ transform:scale(.25) rotate(10deg); opacity:0; }
+}
+.paquet-cadeau.paquet-cadeau-ouverture .paquet-cadeau-boite{animation:paquet-cadeau-pop .45s ease forwards;}
+.paquet-cadeau.paquet-cadeau-ouverture .paquet-cadeau-texte{opacity:0; transition:opacity .2s ease;}
+@media (prefers-reduced-motion:reduce){
+  .paquet-cadeau.paquet-cadeau-ouverture .paquet-cadeau-boite{animation:none; opacity:0; transition:opacity .3s ease;}
+}
+
+/* ---------- Scène de jeu ---------- */
+.scene{background:var(--carte); border-radius:var(--r); padding:10px; box-shadow:var(--ombre); position:relative;}
+.consigne{font-size:1rem; font-weight:700; margin:2px 0 2px; padding-right:154px;}
+.detail{font-size:.8rem; color:var(--encre2); margin:0 0 6px; padding-right:150px; line-height:1.35;}
+
+.vignette{position:absolute; top:8px; right:8px; z-index:2; width:146px; height:134px;
+  border:2px solid #C9D6E8; border-radius:11px; background:var(--carte); cursor:pointer; padding:0;}
+.vignette span{position:absolute; top:3px; left:0; right:0; text-align:center;
+  font-size:.62rem; font-weight:700; color:var(--encre2);}
+.vignette svg{width:100%; height:100%;}
+/* Pastille « on peut toucher le modèle » : sans elle, l'agrandissement passe
+   inaperçu — c'est pourtant le geste qui sauve les assemblages difficiles. */
+.doigt{position:absolute; right:5px; bottom:5px; width:32px; height:32px;
+  border-radius:50%; background:#7B5EA7;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 2px 0 rgba(29,51,84,.22); animation:pulse 1.9s ease-in-out infinite;}
+.doigt svg{width:17px; height:17px; display:block;}
+@keyframes pulse{ 0%,100%{transform:scale(1);} 50%{transform:scale(1.16);} }
+
+.plateau{position:relative;}
+/* `pan-y`, et non `none` : la rotation ne lit QUE le glissement horizontal,
+   on laisse donc le défilement vertical de la page au navigateur. Avec
+   `none`, un doigt posé sur le plateau bloquait le défilement de tout
+   l'écran sur iPhone (CHARTE §19 : plus spécifique que `manipulation`). */
+svg.aire{display:block; width:100%; height:auto; touch-action:pan-y; cursor:grab;}
+svg.aire.drag{cursor:grabbing;}
+.cell{cursor:pointer;}
+
+.vue{display:flex; gap:6px; justify-content:center; align-items:center; margin:2px 0 6px;}
+.vue button{border:2px solid #C9D6E8; background:var(--carte); border-radius:12px;
+  min-width:44px; min-height:44px; font-size:1rem; font-weight:700; cursor:pointer;
+  color:var(--encre); font-family:inherit;}
+.vue button:active{transform:translateY(2px);}
+.vue span{font-size:.74rem; color:var(--encre2);}
+
+.palette{display:flex; gap:8px; align-items:center; justify-content:center; margin:4px 0; flex-wrap:wrap;}
+.piece{border:2.5px solid #C9D6E8; background:var(--carte); border-radius:12px;
+  padding:5px 11px; display:flex; align-items:center; gap:6px; cursor:pointer;
+  font-size:.8rem; font-weight:700; color:var(--encre); min-height:44px; font-family:inherit;}
+.piece.on{border-color:var(--mandarine); background:#FFF3E9;}
+.piece .cpt{color:var(--encre2);}
+.piece svg{display:block;}
+.rot{border:2.5px solid #C9D6E8; background:var(--carte); border-radius:12px;
+  padding:7px 11px; font-size:.78rem; font-weight:700; cursor:pointer; color:var(--encre);
+  min-height:44px; font-family:inherit;}
+
+.actions{display:flex; gap:8px; margin-top:10px;}
+.actions button{flex:1; padding:13px 6px; border-radius:13px; border:none;
+  font-size:.85rem; font-weight:700; cursor:pointer; font-family:inherit; min-height:44px;}
+.btn-sec{background:var(--ciel); color:var(--encre);}
+.btn-val{background:var(--menthe); color:#fff;}
+.actions button .ico{font-size:1rem; margin-right:4px;}
+
+.msg{text-align:center; font-weight:700; min-height:2.4em; margin:8px 0 0;
+  font-size:1rem; line-height:1.35; padding:0 6px;}
+.msg.ok{color:var(--menthe-t);} .msg.ko{color:var(--corail-t);}
+/* CHARTE §18 : dans un message d'erreur, ce qu'il fallait faire reste en VERT —
+   le rouge ne désigne jamais la bonne réponse. */
+.msg .correction-attendue{color:var(--menthe-t);}
+
+#btnNext{
+  display:none; margin:12px auto 0; border:none; border-radius:18px;
+  padding:13px 38px; font-family:inherit; font-size:1.1rem; font-weight:700;
+  background:var(--mandarine); color:#fff; box-shadow:0 4px 0 var(--mandarine-f); cursor:pointer;
+}
+#btnNext:active{transform:translateY(3px); box-shadow:0 1px 0 var(--mandarine-f);}
+
+.aide{margin-top:12px; background:#FFF6E8; border:2px solid var(--soleil);
+  border-radius:var(--r); padding:10px 12px; font-size:.8rem; line-height:1.55; color:var(--encre);}
+.aide b{color:#8A4210;}
+
+/* Modèle en plein écran */
+.plein{position:fixed; inset:0; background:rgba(29,51,84,.93); display:none;
+  align-items:center; justify-content:center; flex-direction:column; z-index:50; padding:20px;}
+.plein.on{display:flex;}
+.plein svg{width:min(88vw,380px); height:auto; touch-action:none;}
+.plein p{color:#fff; font-size:.88rem; margin:12px 0 0;}
+.plein button{margin-top:16px; padding:12px 30px; border-radius:13px; border:none;
+  background:var(--mandarine); color:#fff; font-weight:700; font-size:.95rem; cursor:pointer;
+  font-family:inherit; min-height:44px;}
+
+/* ---------- Écran « cubes cachés » (CE1) ---------- */
+#regle .encart{background:var(--carte); border-radius:var(--r); box-shadow:var(--ombre); padding:16px 14px;}
+#regle h2{font-size:1.25rem; margin:0 0 8px;}
+#regle p{font-size:.95rem; line-height:1.5; margin:0 0 10px;}
+#regle .vues{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:10px 0 4px;}
+#regle .vues figure{margin:0; text-align:center;}
+#regle .vues svg{width:140px; height:140px; background:var(--ciel); border-radius:12px;}
+#regle figcaption{font-size:.74rem; color:var(--encre2); margin-top:4px; max-width:150px;}
+#regle .cle{background:color-mix(in srgb, var(--soleil) 16%, white);
+  border-left:4px solid var(--soleil); border-radius:12px; padding:10px 12px; font-size:.9rem; line-height:1.5;}
+
+/* ---------- Fin ---------- */
+#end{text-align:center; padding-top:8vh;}
+#endStars{font-size:3.4rem; letter-spacing:8px; margin:10px 0;}
+#endStars span{display:inline-block; animation:pop .5s backwards;}
+#endStars span:nth-child(2){animation-delay:.25s;} #endStars span:nth-child(3){animation-delay:.5s;}
+@keyframes pop{0%{transform:scale(0)}70%{transform:scale(1.35)}100%{transform:scale(1)}}
+#endMsg{font-size:1.3rem; font-weight:700;}
+#endScore{color:var(--encre2); margin:6px 0 22px;}
+#end .actions-fin{display:flex; gap:12px; justify-content:center;}
+#end .actions-fin button{
+  border:none; border-radius:18px; padding:13px 26px; font-family:inherit;
+  font-size:1.05rem; font-weight:700; cursor:pointer; box-shadow:var(--ombre); min-height:44px;
+}
+#bRejouer{background:var(--mandarine); color:#fff; box-shadow:0 4px 0 var(--mandarine-f);}
+#bMenu{background:var(--carte); color:var(--encre);}
+
+/* ---------- Retour à la coquille (CHARTE §7) ---------- */
+.barre-accueil{display:flex; margin:0 0 8px;}
+.bouton-menu{
+  min-height:44px; border-radius:14px; padding:0 14px; cursor:pointer; font-family:inherit;
+  border:2px solid color-mix(in srgb, var(--encre) 25%, white);
+  background:var(--carte); color:var(--encre); font-weight:600; font-size:.95rem;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.bouton-menu:active{transform:translateY(2px);}
+.modale-fond{
+  position:fixed; inset:0; z-index:1000; padding:1.2rem;
+  background:color-mix(in srgb, var(--encre) 55%, transparent);
+  display:flex; align-items:center; justify-content:center;
+}
+.modale-boite{
+  background:var(--carte); border-radius:20px; padding:22px 18px; max-width:20rem; width:100%;
+  text-align:center; box-shadow:0 12px 34px rgba(29,51,84,.3);
+}
+.modale-boite p{font-size:1.05rem; font-weight:600; margin:0 0 18px; color:var(--encre);}
+.modale-boutons{display:flex; gap:10px; justify-content:center; flex-wrap:wrap;}
+.modale-boutons button{
+  border:none; border-radius:16px; padding:12px 20px; font-family:inherit;
+  font-size:1rem; font-weight:700; cursor:pointer; min-height:44px;
+}
+.modale-boutons .m-rester{background:var(--carte); color:var(--encre); border:2px solid var(--encre);}
+.modale-boutons .m-revenir{background:var(--mandarine); color:#fff; box-shadow:0 4px 0 var(--mandarine-f);}
+
+/* ---------- Confettis (CHARTE §4) ---------- */
+#confettis-conteneur{position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:999;}
+.confetti{position:absolute; top:-12px; width:9px; height:14px; border-radius:2px;
+  animation-name:chute-confetti; animation-timing-function:ease-in; animation-fill-mode:forwards;}
+@keyframes chute-confetti{ to{ transform:translateY(105vh) rotate(340deg); opacity:.75; } }
+@media (prefers-reduced-motion:reduce){ .confetti{display:none; animation:none;} }
+
+[hidden]{display:none !important;}
+@media (prefers-color-scheme: dark){
+  html, body{background:var(--ciel) !important; color:var(--encre) !important;}
+  .card, .scene, .piece, .rot, .vue button, .vignette, #btnBack, .puce-palier{background:var(--carte) !important; color:var(--encre) !important;}
+  .puce-palier.actif{background:var(--mandarine) !important; color:#fff !important;}
+}
+@media (prefers-reduced-motion:reduce){ *{animation:none !important;} }
+</style>
+</head>
+<body>
+<div id="confettis-conteneur" aria-hidden="true"></div>
+
+<div class="modale-fond" id="modale-menu" hidden>
+  <div class="modale-boite" role="dialog" aria-modal="true" aria-labelledby="modale-menu-texte">
+    <p id="modale-menu-texte">Revenir au menu principal ? Ta partie en cours sera perdue.</p>
+    <div class="modale-boutons">
+      <button type="button" class="m-rester" id="modale-menu-rester">Rester</button>
+      <button type="button" class="m-revenir" id="modale-menu-revenir">Revenir au menu</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <button id="btnBack" hidden aria-label="Retour">←</button>
+    <div id="hdrTitle">Les Assemblages</div>
+    <div id="dots"></div>
+  </header>
+
+  <main>
+    <section id="home">
+      <div class="barre-accueil">
+        <button type="button" class="bouton-menu" id="bouton-menu">← Menu</button>
+      </div>
+      <h1>Les Assemblages</h1>
+      <p class="sub" id="sous-titre-accueil"></p>
+      <div class="rangee-paliers" id="rangee-paliers"></div>
+      <p class="note-palier" id="note-palier"></p>
+      <div class="cards" id="grille-jeux"></div>
+
+      <div class="bloc-bonus" id="bloc-bonus" hidden>
+        <h3>Palier bonus 🎁</h3>
+        <p class="note-palier" id="note-bonus"></p>
+        <button type="button" class="paquet-cadeau" id="paquet-cadeau" hidden>
+          <span class="paquet-cadeau-boite">
+            <span class="paquet-cadeau-ruban-v"></span>
+            <span class="paquet-cadeau-ruban-h"></span>
+            <span class="paquet-cadeau-noeud">🎀</span>
+          </span>
+          <span class="paquet-cadeau-texte">Touche le paquet pour découvrir ta récompense !</span>
+        </button>
+        <div class="cards" id="grille-bonus" hidden></div>
+      </div>
+    </section>
+
+    <section id="regle" hidden>
+      <div class="encart">
+        <h2>Attention : des cubes se cachent !</h2>
+        <p>Dans certaines constructions, un cube est complètement enfermé : on ne le voit
+           sous <b>aucun</b> angle, même en tournant tout autour.</p>
+        <div class="vues" id="regle-vues"></div>
+        <p class="cle">Comment le deviner ? <b>Rien ne flotte.</b> Si un cube est posé en
+           l'air, c'est qu'un autre le porte en dessous — même si tu ne le vois pas.</p>
+      </div>
+      <button id="btnRegleOk" style="display:block; margin:14px auto 0; border:none; border-radius:18px;
+        padding:13px 30px; font-family:inherit; font-size:1.05rem; font-weight:700;
+        background:var(--mandarine); color:#fff; box-shadow:0 4px 0 var(--mandarine-f); cursor:pointer;">
+        J'ai compris !</button>
+    </section>
+
+    <section id="game" hidden>
+      <div class="scene">
+        <button type="button" class="vignette" id="vignette" aria-label="Agrandir le modèle">
+          <span>Modèle</span>
+          <div class="doigt" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"
+            stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 11V5.5a1.6 1.6 0 0 1 3.2 0V11"/>
+            <path d="M12.2 11V9.2a1.5 1.5 0 0 1 3 0V12"/>
+            <path d="M15.2 12v-1.2a1.5 1.5 0 0 1 3 0V16a5 5 0 0 1-5 5h-1.6a5 5 0 0 1-3.6-1.5L5 16.4a1.5 1.5 0 0 1 2.2-2L9 16"/>
+          </svg></div>
+          <svg id="svg-vig" viewBox="0 0 146 134"></svg>
+        </button>
+        <p class="consigne" id="consigne"></p>
+        <p class="detail" id="detail"></p>
+        <div class="plateau"><svg class="aire" id="aire" viewBox="0 -78 340 396"></svg></div>
+        <div class="vue">
+          <button id="v-g" aria-label="Tourner à gauche">↺</button>
+          <span id="v-lbl">fais tourner la figure</span>
+          <button id="v-d" aria-label="Tourner à droite">↻</button>
+        </div>
+        <div class="palette" id="palette"></div>
+        <div class="actions">
+          <button class="btn-sec" id="btn-annuler"><span class="ico">↶</span>Annuler</button>
+          <button class="btn-sec" id="btn-reset"><span class="ico">⟳</span>Recommencer</button>
+          <button class="btn-val" id="btn-valider"><span class="ico">✓</span>Vérifier</button>
+        </div>
+        <p class="msg" id="msg"></p>
+        <button id="btnNext">Suivant ➜</button>
+      </div>
+      <div class="aide">
+        <b>Règle du jeu :</b> aucune pièce ne flotte — chaque pièce repose sur le sol ou sur
+        une autre pièce. Les cases où tu peux poser sont marquées en vert.
+      </div>
+    </section>
+
+    <section id="end" hidden>
+      <div id="endStars"></div>
+      <div id="endMsg"></div>
+      <div id="endScore"></div>
+      <div class="actions-fin">
+        <button id="bRejouer">Rejouer</button>
+        <button id="bMenu">Menu</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="plein" id="plein">
+  <svg id="svg-plein" viewBox="0 0 340 420"></svg>
+  <p>Modèle — fais glisser pour le tourner</p>
+  <button id="btn-fermer">Fermer</button>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+
+/* ============================================================
+   CONTENU PÉDAGOGIQUE — modifiable sans toucher au moteur
+   ------------------------------------------------------------
+   Une pièce : {type:"cube"|"pave", x, y, z, dx, dy}. Le plateau fait
+   4×4 cases ; z est l'étage (0 = sol). Un pavé occupe 2 cases, à plat,
+   en largeur (dx:2) ou en profondeur (dy:2).
+
+   Les assemblages sont ORDONNÉS par difficulté croissante et joués dans
+   cet ordre : c'est une progression, pas une banque à mélanger.
+   ============================================================ */
+const CONTENU = {
+  sousTitre: "Reproduis la construction du modèle, étage par étage !",
+  paliers: {
+    CP: {
+      sousTitre: "Reproduis des assemblages de cubes et de pavés !",
+      miniJeux: [{
+        id: "cp-assemblages", titre: "Reproduis la construction", icone: "🧱",
+        description: "Cubes et pavés, étage par étage.",
+        assemblages: [
+          /* 1 — la marche : deux cubes côte à côte, un dessus. */
+          {nom:"La marche", pieces:[
+            {type:"cube",x:1,y:1,z:0,dx:1,dy:1},{type:"cube",x:2,y:1,z:0,dx:1,dy:1},
+            {type:"cube",x:1,y:1,z:1,dx:1,dy:1}]},
+          /* 2 — le premier pavé : une pièce qui couvre deux cases. */
+          {nom:"Le banc", pieces:[
+            {type:"pave",x:0,y:1,z:0,dx:2,dy:1},{type:"cube",x:2,y:1,z:0,dx:1,dy:1},
+            {type:"cube",x:0,y:1,z:1,dx:1,dy:1},{type:"cube",x:2,y:1,z:1,dx:1,dy:1}]},
+          /* 3 — le petit escalier : trois marches qui montent. */
+          {nom:"Le petit escalier", pieces:[
+            {type:"cube",x:0,y:1,z:0,dx:1,dy:1},{type:"cube",x:1,y:1,z:0,dx:1,dy:1},
+            {type:"cube",x:2,y:1,z:0,dx:1,dy:1},
+            {type:"cube",x:0,y:1,z:1,dx:1,dy:1},{type:"cube",x:1,y:1,z:1,dx:1,dy:1},
+            {type:"cube",x:0,y:1,z:2,dx:1,dy:1}]},
+          /* 4 — la tour en L (prototype, testé sur appareil). */
+          {nom:"La tour en L", pieces:[
+            {type:"cube",x:0,y:1,z:0,dx:1,dy:1},{type:"cube",x:1,y:1,z:0,dx:1,dy:1},
+            {type:"cube",x:2,y:1,z:0,dx:1,dy:1},{type:"cube",x:1,y:2,z:0,dx:1,dy:1},
+            {type:"cube",x:1,y:1,z:1,dx:1,dy:1},{type:"cube",x:2,y:1,z:1,dx:1,dy:1},
+            {type:"cube",x:1,y:1,z:2,dx:1,dy:1}]},
+          /* 5 — cubes et pavés mêlés (prototype, testé sur appareil). */
+          {nom:"Le château", pieces:[
+            {type:"pave",x:0,y:1,z:0,dx:2,dy:1},{type:"cube",x:2,y:1,z:0,dx:1,dy:1},
+            {type:"cube",x:1,y:2,z:0,dx:1,dy:1},
+            {type:"pave",x:1,y:1,z:1,dx:2,dy:1},{type:"cube",x:1,y:2,z:1,dx:1,dy:1},
+            {type:"cube",x:1,y:1,z:2,dx:1,dy:1},{type:"cube",x:2,y:1,z:2,dx:1,dy:1}]}
+        ]
+      }]
+    },
+    CE1: {
+      sousTitre: "Des assemblages plus grands… et des cubes qui se cachent !",
+      miniJeux: [{
+        id: "ce1-assemblages", titre: "Reproduis la construction", icone: "🧱",
+        description: "Plus grand, avec des cubes cachés.",
+        assemblages: [
+          /* 1-2 — on monte en taille, tout reste visible. */
+          {nom:"La double tour", pieces:[
+            {type:"pave",x:0,y:1,z:0,dx:2,dy:1},{type:"pave",x:2,y:1,z:0,dx:2,dy:1},
+            {type:"pave",x:0,y:1,z:1,dx:2,dy:1},{type:"cube",x:3,y:1,z:1,dx:1,dy:1},
+            {type:"cube",x:0,y:1,z:2,dx:1,dy:1},{type:"cube",x:1,y:1,z:2,dx:1,dy:1}]},
+          {nom:"Le double escalier", pieces:[
+            {type:"cube",x:0,y:1,z:0,dx:1,dy:1},{type:"cube",x:1,y:1,z:0,dx:1,dy:1},
+            {type:"cube",x:2,y:1,z:0,dx:1,dy:1},{type:"cube",x:3,y:1,z:0,dx:1,dy:1},
+            {type:"cube",x:0,y:1,z:1,dx:1,dy:1},{type:"cube",x:1,y:1,z:1,dx:1,dy:1},
+            {type:"cube",x:2,y:1,z:1,dx:1,dy:1},
+            {type:"cube",x:0,y:1,z:2,dx:1,dy:1},{type:"cube",x:1,y:1,z:2,dx:1,dy:1}]},
+          /* 3 — PREMIER cube caché : la croix. Le cube du centre, à l'étage
+             du bas, a ses 4 voisins et un cube au-dessus : introuvable à
+             l'œil, il se déduit de la règle d'appui. Volontairement le plus
+             petit assemblage à cube caché, pour que l'écran d'explication
+             arrive sur un cas lisible. */
+          {nom:"La croix", cache:true, pieces:[
+            {type:"cube",x:1,y:1,z:0,dx:1,dy:1},
+            {type:"cube",x:0,y:1,z:0,dx:1,dy:1},{type:"cube",x:2,y:1,z:0,dx:1,dy:1},
+            {type:"cube",x:1,y:0,z:0,dx:1,dy:1},{type:"cube",x:1,y:2,z:0,dx:1,dy:1},
+            {type:"cube",x:1,y:1,z:1,dx:1,dy:1},
+            {type:"cube",x:1,y:1,z:2,dx:1,dy:1}]},
+          /* 4 — base pleine 3×3, une rangée dessus, une tour : le centre du
+             bas reste caché. */
+          {nom:"La tour sur socle", cache:true, pieces:[
+            {type:"cube",x:0,y:0,z:0,dx:1,dy:1},{type:"cube",x:1,y:0,z:0,dx:1,dy:1},
+            {type:"cube",x:2,y:0,z:0,dx:1,dy:1},{type:"cube",x:0,y:1,z:0,dx:1,dy:1},
+            {type:"cube",x:1,y:1,z:0,dx:1,dy:1},{type:"cube",x:2,y:1,z:0,dx:1,dy:1},
+            {type:"cube",x:0,y:2,z:0,dx:1,dy:1},{type:"cube",x:1,y:2,z:0,dx:1,dy:1},
+            {type:"cube",x:2,y:2,z:0,dx:1,dy:1},
+            {type:"cube",x:0,y:1,z:1,dx:1,dy:1},{type:"cube",x:1,y:1,z:1,dx:1,dy:1},
+            {type:"cube",x:2,y:1,z:1,dx:1,dy:1},
+            {type:"cube",x:1,y:1,z:2,dx:1,dy:1}]},
+          /* 5 — le plus exigeant (prototype, testé sur appareil). */
+          {nom:"Le gros bloc", cache:true, pieces:[
+            {type:"cube",x:0,y:0,z:0,dx:1,dy:1},{type:"cube",x:1,y:0,z:0,dx:1,dy:1},
+            {type:"cube",x:2,y:0,z:0,dx:1,dy:1},{type:"cube",x:0,y:1,z:0,dx:1,dy:1},
+            {type:"cube",x:1,y:1,z:0,dx:1,dy:1},{type:"cube",x:2,y:1,z:0,dx:1,dy:1},
+            {type:"cube",x:0,y:2,z:0,dx:1,dy:1},{type:"cube",x:1,y:2,z:0,dx:1,dy:1},
+            {type:"cube",x:2,y:2,z:0,dx:1,dy:1},
+            {type:"cube",x:0,y:0,z:1,dx:1,dy:1},{type:"cube",x:1,y:0,z:1,dx:1,dy:1},
+            {type:"cube",x:0,y:1,z:1,dx:1,dy:1},{type:"cube",x:1,y:1,z:1,dx:1,dy:1},
+            {type:"cube",x:0,y:0,z:2,dx:1,dy:1}]}
+        ]
+      }]
+    }
+  }
+};
+
+/* ============================================================
+   ÉTOILES : stockage sûr (mémoire + localStorage best-effort)
+   Pattern imposé par CHARTE §9.
+   ============================================================ */
+const CLE_STOCKAGE = 'mayeutik-m37-assemblages-etoiles';
+let memoireEtoiles = null;
+function lireEtoiles() {
+  if (memoireEtoiles === null) {
+    memoireEtoiles = {};
+    try {
+      const brut = window.localStorage.getItem(CLE_STOCKAGE);
+      if (brut) memoireEtoiles = JSON.parse(brut);
+    } catch (e) { memoireEtoiles = {}; }
+  }
+  return memoireEtoiles;
+}
+function enregistrerEtoiles(jeuId, valeur) {
+  const tout = lireEtoiles();
+  tout[jeuId] = Math.max(tout[jeuId] || 0, valeur);
+  memoireEtoiles = tout;
+  try { window.localStorage.setItem(CLE_STOCKAGE, JSON.stringify(tout)); }
+  catch (e) { /* localStorage indisponible : valable pour la session en cours. */ }
+}
+
+/* ============================================================
+   PALIER BONUS : révélation « paquet cadeau » (CHARTE §15)
+   Indexé par profil ET par palier cible.
+   ============================================================ */
+const CLE_BONUS_REVELE = 'mayeutik-m37-bonus-revele';
+let memoireBonusRevele = null;
+function lireBonusRevele() {
+  if (memoireBonusRevele === null) {
+    memoireBonusRevele = {};
+    try {
+      const brut = window.localStorage.getItem(CLE_BONUS_REVELE);
+      if (brut) memoireBonusRevele = JSON.parse(brut);
+    } catch (e) { memoireBonusRevele = {}; }
+  }
+  return memoireBonusRevele;
+}
+function bonusDejaRevele(profilId, palierCible) {
+  const entree = lireBonusRevele()[profilId];
+  return !!(entree && typeof entree === 'object' && entree[palierCible]);
+}
+function marquerBonusRevele(profilId, palierCible) {
+  const tout = lireBonusRevele();
+  if (!tout[profilId] || typeof tout[profilId] !== 'object') tout[profilId] = {};
+  tout[profilId][palierCible] = true;
+  memoireBonusRevele = tout;
+  try { window.localStorage.setItem(CLE_BONUS_REVELE, JSON.stringify(tout)); }
+  catch (e) { /* le paquet cadeau réapparaîtra à la prochaine visite. */ }
+}
+
+/* ============================================================
+   PROFIL ACTIF : lecture du niveau (CHARTE §15)
+   Un jeu autonome ne peut pas importer js/profils.js : il relit les
+   mêmes clés partagées localStorage, en lecture seule.
+   ============================================================ */
+const CLE_PROFILS = 'mayeutik-profils';
+const CLE_PROFIL_ACTIF = 'mayeutik-profil-actif';
+const ORDRE_PALIERS = ['CP', 'CE1'];
+
+function lireProfilActifId() {
+  try { return window.localStorage.getItem(CLE_PROFIL_ACTIF) || 'p1'; }
+  catch (e) { return 'p1'; }
+}
+function niveauDuProfilActif() {
+  try {
+    const brut = window.localStorage.getItem(CLE_PROFILS);
+    if (!brut) return null;
+    const profils = JSON.parse(brut);
+    const actif = profils.find((p) => p.id === lireProfilActifId());
+    return (actif && actif.niveau) || null;
+  } catch (e) { return null; }
+}
+/* Lancement paramétré (CHARTE §16) : `?palier=ce1&competence=ce1-assemblages`.
+   Absent, invalide ou inconnu -> null, on retombe silencieusement sur le
+   comportement par défaut. Jamais d'erreur visible. */
+function parametreURL(nom) {
+  try { return new URLSearchParams(window.location.search).get(nom); }
+  catch (e) { return null; }
+}
+function palierDepuisURL() {
+  const brut = parametreURL('palier');
+  if (!brut) return null;
+  const majuscule = brut.toUpperCase();
+  return CONTENU.paliers[majuscule] ? majuscule : null;
+}
+function palierParDefaut() {
+  const palierURL = palierDepuisURL();
+  if (palierURL) return palierURL;
+  const niveau = niveauDuProfilActif();
+  if (niveau && CONTENU.paliers[niveau]) return niveau;
+  // Niveau absent/non couvert par ce module : palier le plus bas (CHARTE §15).
+  return ORDRE_PALIERS.find((n) => CONTENU.paliers[n]) || ORDRE_PALIERS[0];
+}
+
+/* ============================================================
+   SESSIONS : contrat de données v1 (CHARTE §11)
+   ============================================================ */
+const CLE_SESSIONS = 'mayeutik-sessions';
+const MODULE_ID = 'M37';
+const MAX_SESSIONS_PAR_PROFIL = 500;
+let memoireSessions = null;
+
+function lireSessions() {
+  if (memoireSessions === null) {
+    memoireSessions = [];
+    try {
+      const brut = window.localStorage.getItem(CLE_SESSIONS);
+      if (brut) memoireSessions = JSON.parse(brut);
+    } catch (e) { memoireSessions = []; }
+  }
+  return memoireSessions;
+}
+function enregistrerSession(competence, score, total, duree) {
+  const profilId = lireProfilActifId();
+  const toutes = lireSessions();
+  toutes.push({ profilId, module: MODULE_ID, competence, score, total, date: new Date().toISOString(), duree });
+  let compteur = 0;
+  for (let i = toutes.length - 1; i >= 0; i--) {
+    if (toutes[i].profilId === profilId) {
+      compteur++;
+      if (compteur > MAX_SESSIONS_PAR_PROFIL) toutes.splice(i, 1);
+    }
+  }
+  memoireSessions = toutes;
+  try { window.localStorage.setItem(CLE_SESSIONS, JSON.stringify(toutes)); }
+  catch (e) { /* la session reste valable pour la partie en cours. */ }
+}
+
+/* Maîtrise locale d'un palier (CHARTE §15) : heuristique SIMPLIFIÉE propre à
+   ce jeu, pas le calcul officiel LSU. Un mini-jeu est « maîtrisé » si sa
+   DERNIÈRE session atteint au moins 80 %. */
+const SEUIL_MAITRISE_LOCALE = 0.8;
+function palierMaitrise(palierNom) {
+  const palier = CONTENU.paliers[palierNom];
+  if (!palier) return false;
+  const profilId = lireProfilActifId();
+  const sessions = lireSessions().filter((s) => s.profilId === profilId && s.module === MODULE_ID);
+  return palier.miniJeux.every((mj) => {
+    const siennes = sessions.filter((s) => s.competence === mj.id);
+    if (!siennes.length) return false;
+    const derniere = siennes[siennes.length - 1];
+    return derniere.total > 0 && (derniere.score / derniere.total) >= SEUIL_MAITRISE_LOCALE;
+  });
+}
+function palierSuivant(palierNom) {
+  const i = ORDRE_PALIERS.indexOf(palierNom);
+  if (i === -1 || i === ORDRE_PALIERS.length - 1) return null;
+  const suivant = ORDRE_PALIERS[i + 1];
+  return CONTENU.paliers[suivant] ? suivant : null;
+}
+
+/* ============================================================
+   SONS DE RÉFÉRENCE DE LA SÉRIE (CHARTE §5)
+   ============================================================ */
+let actx = null;
+function jouerNote(freq, debut, duree, volume, forme){
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = forme || "sine"; o.frequency.value = freq;
+    const t = actx.currentTime + debut;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(volume, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + duree);
+    o.connect(g); g.connect(actx.destination);
+    o.start(t); o.stop(t + duree + 0.02);
+  }catch(e){}
+}
+const NOTES_BONNE_REPONSE = [523.25, 659.25, 783.99, 1046.5];
+const NOTES_NIVEAU_PARFAIT = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
+const ACCORD_NIVEAU_PARFAIT = [523.25, 659.25, 783.99, 1046.5];
+function sonBonneReponse(){ NOTES_BONNE_REPONSE.forEach((f, i) => jouerNote(f, i * 0.11, 0.11, 0.22)); }
+function sonNiveauParfait(){
+  const pas = 0.1;
+  NOTES_NIVEAU_PARFAIT.forEach((f, i) => jouerNote(f, i * pas, 0.12, 0.2));
+  const tAccord = NOTES_NIVEAU_PARFAIT.length * pas + 0.04;
+  ACCORD_NIVEAU_PARFAIT.forEach((f) => jouerNote(f, tAccord, 0.75, 0.12, "triangle"));
+}
+function sonErreur(){ [392.0, 293.66].forEach((f, i) => jouerNote(f, i * 0.17, 0.17, 0.22)); }
+function sonPose(){ jouerNote(660, 0, 0.06, 0.14); }
+
+/* ----- confettis (CHARTE §4) ----- */
+const COULEURS_CONFETTIS = ['#FF8A3D', '#2EC4A6', '#FFC93C', '#5AB4DC', '#FF5D5D'];
+function lancerConfettis(nb){
+  const conteneur = $('confettis-conteneur');
+  if (!conteneur) return;
+  for (let i = 0; i < (nb || 30); i++) {
+    const p = document.createElement('span');
+    p.className = 'confetti';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.background = COULEURS_CONFETTIS[i % COULEURS_CONFETTIS.length];
+    p.style.animationDuration = (1.1 + Math.random() * 0.9) + 's';
+    p.style.animationDelay = (Math.random() * 0.35) + 's';
+    conteneur.appendChild(p);
+    p.addEventListener('animationend', () => p.remove());
+    setTimeout(() => p.remove(), 2600);
+  }
+}
+
+/* ============================================================
+   PROJECTION AXONOMÉTRIQUE AVEC ROTATION LIBRE
+   ------------------------------------------------------------
+   Vraie rotation autour de l'axe vertical + hauteur de caméra fixe : la
+   scène reste lisible à TOUS les angles. Un cisaillement isométrique
+   classique s'aplatit complètement tous les 45°. L'angle utilisateur 0
+   correspond à la vue en losange habituelle, d'où le décalage de 45°.
+   ============================================================ */
+const SX=46, SY=26, CH=41, CX=2, CY=2;
+
+function axo(x,y,ang){
+  const th=ang+Math.PI/4, c=Math.cos(th), s=Math.sin(th);
+  const u=x-CX, v=y-CY;
+  return [u*c-v*s, u*s+v*c];
+}
+function proj(x,y,z,ox,oy,ang){
+  const a=axo(x,y,ang);
+  return [ox+a[0]*SX, oy+a[1]*SY-z*CH];
+}
+/* profondeur écran d'un point : plus grand = plus proche du spectateur */
+function prof(x,y,ang){ return axo(x,y,ang)[1]; }
+
+const TEINTES={
+  cube:{top:"#FFB27A", clair:"#FF8A3D", sombre:"#E5701F", trait:"#8A4210"},
+  pave:{top:"#9FD8F0", clair:"#5AB4DC", sombre:"#2E7EA8", trait:"#1E5F80"},
+  /* Teinte réservée à l'écran d'explication des cubes cachés. */
+  cache:{top:"#D9C2F0", clair:"#9B5DE5", sombre:"#7B3FC4", trait:"#4A2478"}
+};
+
+/* Une pièce = {type,x,y,z,dx,dy}. Renvoie {svg, d}.
+   Une face verticale est visible si sa normale, une fois tournée, pointe
+   vers le bas de l'écran (vers le spectateur). Elle est éclairée si elle
+   est en plus orientée vers la droite. */
+function boite(p,ox,oy,ang){
+  const t=TEINTES[p.type]||TEINTES.cube;
+  const P=(a,b,c)=>proj(a,b,c,ox,oy,ang).join(",");
+  const x0=p.x,y0=p.y,z0=p.z,x1=p.x+p.dx,y1=p.y+p.dy,z1=p.z+1;
+  const th=ang+Math.PI/4, co=Math.cos(th), si=Math.sin(th);
+  const faces=[
+    {n:[ 1, 0], pts:[[x1,y0,z1],[x1,y1,z1],[x1,y1,z0],[x1,y0,z0]]},
+    {n:[-1, 0], pts:[[x0,y0,z1],[x0,y1,z1],[x0,y1,z0],[x0,y0,z0]]},
+    {n:[ 0, 1], pts:[[x0,y1,z1],[x1,y1,z1],[x1,y1,z0],[x0,y1,z0]]},
+    {n:[ 0,-1], pts:[[x0,y0,z1],[x1,y0,z1],[x1,y0,z0],[x0,y0,z0]]}
+  ];
+  let s="";
+  faces.forEach(f=>{
+    const na=f.n[0]*co-f.n[1]*si, nb=f.n[0]*si+f.n[1]*co;
+    if(nb<=0.001) return;                       /* face tournée vers l'arrière */
+    s+=`<polygon points="${f.pts.map(q=>P(q[0],q[1],q[2])).join(" ")}" `
+     + `fill="${na>0?t.clair:t.sombre}" stroke="${t.trait}" stroke-width="1.5"/>`;
+  });
+  s+=`<polygon points="${[[x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]]
+        .map(q=>P(q[0],q[1],q[2])).join(" ")}" fill="${t.top}" stroke="${t.trait}" stroke-width="1.5"/>`;
+  return {svg:s, d:prof(p.x+p.dx/2, p.y+p.dy/2, ang)};
+}
+
+function dessineAssemblage(pieces,ox,oy,ang){
+  return pieces.map(p=>({...boite(p,ox,oy,ang), z:p.z}))
+    .sort((a,b)=>(a.z-b.z)||(a.d-b.d)).map(o=>o.svg).join("");
+}
+
+/* ============================================================
+   ÉTAT DE LA PARTIE
+   ============================================================ */
+let etatPalierAffiche = palierParDefaut();
+let miniJeuCourant = null;      // {cfg, palier, palierNom}
+let iAssemblage = 0, resultats = [];
+let etage = 0, posees = [], typeSel = "cube", orient = "h";
+let angle = 0, reperes = [];    // repères {k,ox,oy} encore compatibles (cf. reperesEtageBase)
+let drag = null, erreurs = 0, demarreLe = 0;
+let assemblageFini = false, regleCacheVue = false;
+
+const listeAssemblages = () => (miniJeuCourant ? miniJeuCourant.cfg.assemblages : []);
+const assemblageCourant = () => listeAssemblages()[iAssemblage];
+const cible = () => assemblageCourant().pieces;
+const cibleEtage = z => cible().filter(p => p.z === z);
+const etagesMax = () => Math.max(...cible().map(p => p.z)) + 1;
+const posEtage = z => posees.filter(p => p.z === z);
+
+function cellules(p){ const o=[]; for(let i=0;i<p.dx;i++) for(let j=0;j<p.dy;j++) o.push([p.x+i,p.y+j]); return o; }
+function occSet(z){ const s=new Set(); posEtage(z).forEach(p=>cellules(p).forEach(c=>s.add(c.join(",")))); return s; }
+
+/* Cubes cachés : enfermés de tous côtés, donc invisibles sous tout angle.
+   Sert à l'écran d'explication (CE1) et au contrôle de cohérence des
+   données : un assemblage marqué `cache` doit réellement en contenir. */
+function cellulesOccupees(pieces){
+  const s = new Set();
+  pieces.forEach(p => cellules(p).forEach(c => s.add(c[0]+","+c[1]+","+p.z)));
+  return s;
+}
+function piecesCachees(pieces){
+  const occ = cellulesOccupees(pieces);
+  const dedans = (x,y,z) => occ.has(x+","+y+","+z);
+  return pieces.filter(p => cellules(p).every(([x,y]) =>
+    dedans(x-1,y,p.z) && dedans(x+1,y,p.z) && dedans(x,y-1,p.z) && dedans(x,y+1,p.z) &&
+    dedans(x,y,p.z+1) && (p.z === 0 || dedans(x,y,p.z-1))));
+}
+
+/* ============================================================
+   VALIDATION INVARIANTE PAR TRANSLATION ET ROTATION
+   Le modèle n'indique aucune position sur le plateau : poser la
+   construction à gauche ou à droite est également juste. On compare donc
+   des FORMES. L'étage 1 fixe le repère (rotation + décalage) ; les étages
+   suivants sont validés dans ce repère, pour que la construction reste
+   cohérente d'un étage à l'autre.
+   ============================================================ */
+function tourneCell(c,k){ let [x,y]=c; for(let i=0;i<k;i++){ const t=x; x=-y; y=t; } return [x,y]; }
+function signature(pieces,k,ox,oy){
+  const items=pieces.map(p=>{
+    const cs=cellules(p).map(c=>{ const r=tourneCell(c,k); return [r[0]+ox, r[1]+oy]; });
+    return p.type+":"+cs.map(c=>c.join(",")).sort().join("|");
+  });
+  return items.sort().join(" / ");
+}
+function normalise(pieces,k){
+  const cs=[].concat(...pieces.map(p=>cellules(p).map(c=>tourneCell(c,k))));
+  const mx=Math.min(...cs.map(c=>c[0])), my=Math.min(...cs.map(c=>c[1]));
+  return {k, ox:-mx, oy:-my};
+}
+/* TOUS les repères compatibles avec l'étage 1, et non le premier trouvé : une
+   base symétrique en admet plusieurs (un socle carré 3×3 est identique dans
+   ses 4 rotations). En n'en verrouillant qu'un, on refusait ensuite un étage
+   supérieur pourtant juste, simplement parce que l'enfant l'avait orienté
+   selon une autre des rotations également valables. On garde donc l'ensemble
+   des repères possibles, et on l'affine à chaque étage validé. */
+function reperesEtageBase(){
+  const posee=posEtage(0), att=cibleEtage(0);
+  if(!posee.length) return [];
+  const np=normalise(posee,0);
+  const sPose=signature(posee,0,np.ox,np.oy);
+  const out=[];
+  for(let k=0;k<4;k++){
+    const n=normalise(att,k);
+    /* décalage réel entre la cible tournée et ce que l'enfant a posé */
+    if(signature(att,k,n.ox,n.oy)===sPose) out.push({k, ox:n.ox-np.ox, oy:n.oy-np.oy});
+  }
+  return out;
+}
+function cibleDansRepere(z, rep){
+  return cibleEtage(z).map(p=>{
+    const cs=cellules(p).map(c=>{ const r=tourneCell(c,rep.k); return [r[0]+rep.ox, r[1]+rep.oy]; });
+    return {type:p.type, cells:cs};
+  });
+}
+function sigListe(liste){
+  return liste.map(o=>o.type+":"+o.cells.map(c=>c.join(",")).sort().join("|")).sort().join(" / ");
+}
+const etagePose = () => posEtage(etage).map(p => ({type:p.type, cells:cellules(p)}));
+// Repères encore compatibles avec l'étage courant tel qu'il est posé.
+function reperesCompatibles(){
+  if(etage === 0) return reperesEtageBase();
+  const sPose = sigListe(etagePose());
+  return reperes.filter(rep => sigListe(cibleDansRepere(etage, rep)) === sPose);
+}
+const etageCorrect = () => reperesCompatibles().length > 0;
+
+/* ============================================================
+   RENDU DU PLATEAU
+   ============================================================ */
+const IOX=170, IOY=150, GRILLE=4;
+function rend(leger){
+  $("consigne").textContent = "Étage " + (etage+1) + " — " + (etage===0 ? "la base" : "par-dessus");
+  const att=cibleEtage(etage);
+  $("detail").textContent = "Pose " + att.length + " pièce" + (att.length>1?"s":"")
+    + (etage===0 ? " · où tu veux sur le plateau" : " · sur ce que tu as déjà construit");
+
+  const dessous = etage>0 ? occSet(etage-1) : null;
+  const cur = occSet(etage);
+  let sol="";
+  for(let r=0;r<GRILLE;r++) for(let c=0;c<GRILLE;c++){
+    const pts=[[c,r],[c+1,r],[c+1,r+1],[c,r+1]]
+      .map(q=>proj(q[0],q[1],0,IOX,IOY,angle).join(",")).join(" ");
+    sol+=`<polygon points="${pts}" fill="#FFFFFF" stroke="#C9D6E8" stroke-width="1.2"/>`;
+  }
+  /* Pièces ET zones cliquables triées ENSEMBLE (algorithme du peintre) :
+     sans cela, une zone verte du fond se dessine par-dessus un cube du
+     premier plan, et l'enfant clique sur une case qu'il croyait masquée. */
+  const items=[];
+  posees.forEach(p=>{ const b=boite(p,IOX,IOY,angle); items.push({z:p.z, d:b.d, svg:b.svg}); });
+  if(!assemblageFini){
+    for(let r=0;r<GRILLE;r++) for(let c=0;c<GRILLE;c++){
+      const k=c+","+r;
+      if(cur.has(k)) continue;
+      if(etage!==0 && !dessous.has(k)) continue;   /* règle d'appui : rien ne flotte */
+      const pts=[[c,r],[c+1,r],[c+1,r+1],[c,r+1]]
+        .map(q=>proj(q[0],q[1],etage,IOX,IOY,angle).join(",")).join(" ");
+      items.push({z:etage-0.5, d:prof(c+0.5,r+0.5,angle),
+        svg:`<polygon class="cell" data-c="${c}" data-r="${r}" points="${pts}" `
+           +`fill="rgba(46,196,166,.22)" stroke="#2EC4A6" stroke-width="1.6"/>`});
+    }
+  }
+  items.sort((a,b)=>(a.z-b.z)||(a.d-b.d));
+  $("aire").innerHTML=sol+items.map(i=>i.svg).join("");
+
+  if(!leger) rendPalette();
+  rendModele();
+}
+
+/* Le modèle est mis à l'échelle automatiquement pour remplir son cadre : on
+   calcule son encombrement réel à l'écran (qui change avec l'angle), puis on
+   l'ajuste au plus grand possible sans débordement. */
+function encombrement(pieces,ang){
+  let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9;
+  pieces.forEach(p=>{
+    for(const gx of [p.x,p.x+p.dx]) for(const gy of [p.y,p.y+p.dy]) for(const gz of [p.z,p.z+1]){
+      const q=proj(gx,gy,gz,0,0,ang);
+      x1=Math.min(x1,q[0]); x2=Math.max(x2,q[0]);
+      y1=Math.min(y1,q[1]); y2=Math.max(y2,q[1]);
+    }
+  });
+  return {x1,y1,x2,y2,l:x2-x1,h:y2-y1};
+}
+function modeleAjuste(pieces,ang,larg,haut,hautTitre,marge){
+  const e=encombrement(pieces,ang);
+  const k=Math.min((larg-2*marge)/e.l, (haut-hautTitre-2*marge)/e.h);
+  const dx=(larg-e.l*k)/2 - e.x1*k;
+  const dy=hautTitre+(haut-hautTitre-e.h*k)/2 - e.y1*k;
+  return `<g transform="translate(${dx.toFixed(1)},${dy.toFixed(1)}) scale(${k.toFixed(3)})">`
+       + dessineAssemblage(pieces,0,0,ang)+`</g>`;
+}
+function rendModele(){
+  $("svg-vig").innerHTML   = modeleAjuste(cible(),angle,146,134,15,5);
+  $("svg-plein").innerHTML = modeleAjuste(cible(),angle,340,420,0,10);
+}
+
+/* Vignette d'une pièce isolée, dessinée par le MÊME moteur que le plateau :
+   l'enfant reconnaît exactement ce qu'il va poser, orientation comprise. */
+function mini(type,ori){
+  const dx=(type==="pave"&&ori==="h")?2:1, dy=(type==="pave"&&ori==="v")?2:1;
+  const pc=[{type,x:CX-dx/2,y:CY-dy/2,z:0,dx,dy}];
+  const L=(type==="pave")?44:30, H=30;
+  return `<svg width="${L}" height="${H}" viewBox="0 0 ${L} ${H}">`
+       + modeleAjuste(pc,0,L,H,0,2)+`</svg>`;
+}
+
+function rendPalette(){
+  if(assemblageFini){ $("palette").innerHTML=""; return; }
+  const att=cibleEtage(etage);
+  const nbC=att.filter(p=>p.type==="cube").length, nbP=att.filter(p=>p.type==="pave").length;
+  const misC=posEtage(etage).filter(p=>p.type==="cube").length;
+  const misP=posEtage(etage).filter(p=>p.type==="pave").length;
+  let s=`<button type="button" class="piece ${typeSel==="cube"?"on":""}" data-t="cube">${mini("cube","h")}cube <span class="cpt">${misC}/${nbC}</span></button>`;
+  if(nbP>0){
+    s+=`<button type="button" class="piece ${typeSel==="pave"?"on":""}" data-t="pave">${mini("pave",orient)}pavé <span class="cpt">${misP}/${nbP}</span></button>`;
+    if(typeSel==="pave") s+=`<button type="button" class="rot" id="btn-rot">↻ ${orient==="h"?"posé en largeur":"posé en profondeur"}</button>`;
+  }
+  $("palette").innerHTML=s;
+  $("palette").querySelectorAll(".piece").forEach(el=>
+    el.addEventListener("click",()=>{ typeSel=el.dataset.t; rendPalette(); }));
+  const br=$("btn-rot");
+  if(br) br.addEventListener("click",()=>{ orient=orient==="h"?"v":"h"; rendPalette(); });
+}
+
+/* Message : la partie « ce qu'il fallait faire » passe en vert (CHARTE §18). */
+function message(t, cl, correction){
+  const m=$("msg");
+  m.textContent = t || "";
+  m.className = "msg" + (cl ? " " + cl : "");
+  if(correction){
+    const span=document.createElement("span");
+    span.className="correction-attendue";
+    span.textContent=" "+correction;
+    m.appendChild(span);
+  }
+}
+
+/* ============================================================
+   POSE D'UNE PIÈCE
+   ============================================================ */
+function poser(c,r){
+  if(assemblageFini) return;
+  const dx=(typeSel==="pave"&&orient==="h")?2:1;
+  const dy=(typeSel==="pave"&&orient==="v")?2:1;
+  if(c+dx>GRILLE||r+dy>GRILLE){ message("La pièce dépasse le plateau.","ko"); return; }
+  const p={type:typeSel,x:c,y:r,z:etage,dx,dy};
+  const cur=occSet(etage);
+  for(const k of cellules(p)) if(cur.has(k.join(","))){ message("Il y a déjà une pièce ici.","ko"); return; }
+  if(etage>0){
+    const d=occSet(etage-1);
+    for(const k of cellules(p)) if(!d.has(k.join(","))){
+      message("Une pièce ne peut pas flotter :","ko","il lui faut un appui dessous."); return; }
+  }
+  posees.push(p); sonPose(); message(""); rend(); verifAuto();
+}
+
+function valider(){
+  if(assemblageFini) return;
+  if(!etageCorrect()){
+    erreurs++;
+    sonErreur();
+    message(etage===0
+      ? "Ce n'est pas encore la bonne forme."
+      : "Ce n'est pas encore comme le modèle.",
+      "ko", "Regarde le modèle, et fais tourner la figure pour mieux voir.");
+    return;
+  }
+  reperes = reperesCompatibles();   // on affine à chaque étage validé
+  if(etage+1<etagesMax()){
+    etage++; lancerConfettis(26); sonBonneReponse();
+    message("Étage réussi ! On monte d'un cran.","ok"); rend();
+  }else{
+    terminerAssemblage();
+  }
+}
+
+/* Dès que l'enfant a posé le nombre de pièces attendu, on vérifie tout seul :
+   inutile de lui faire chercher un bouton quand l'étage est visiblement fini. */
+function verifAuto(){
+  if(posEtage(etage).length !== cibleEtage(etage).length) return;
+  if(etageCorrect()) valider();
+  else {
+    erreurs++;
+    sonErreur();
+    message("Toutes les pièces sont posées,","ko",
+      "mais ce n'est pas encore comme le modèle : tourne pour comparer.");
+  }
+}
+
+/* ============================================================
+   ENCHAÎNEMENT DES ASSEMBLAGES
+   ============================================================ */
+const SEUIL_ERREURS = 2;   // seuil bienveillant : l'assemblage reste acquis
+function terminerAssemblage(){
+  assemblageFini = true;
+  const reussi = erreurs <= SEUIL_ERREURS;
+  resultats[iAssemblage] = reussi;
+  lancerConfettis(70);
+  if(reussi) sonNiveauParfait(); else sonBonneReponse();
+  message(reussi ? "Construction terminée, bravo !" : "Construction terminée !", "ok",
+    reussi ? "" : "Tu y es arrivé après quelques essais.");
+  rend();
+  majDots();
+  $("btnNext").style.display = "block";
+  $("btnNext").textContent = iAssemblage === listeAssemblages().length - 1
+    ? "Voir mon score ⭐" : "Suivant ➜";
+  armerAutoSuivant();
+}
+
+/* Navigation automatique (CHARTE §20) : 2 s après l'affichage du bouton
+   « Suivant », on avance sans attendre le clic. Un clic manuel ou une sortie
+   du jeu annulent le minuteur. */
+const DELAI_AUTO_SUIVANT = 2000;
+let minuteurAutoSuivant = null;
+function armerAutoSuivant(){
+  clearTimeout(minuteurAutoSuivant);
+  const bouton = $("btnNext");
+  minuteurAutoSuivant = setTimeout(() => {
+    if (bouton.style.display === "none" || bouton.disabled || !bouton.isConnected) return;
+    bouton.click();
+  }, DELAI_AUTO_SUIVANT);
+}
+function desarmerAutoSuivant(){ clearTimeout(minuteurAutoSuivant); }
+
+function assemblageSuivant(){
+  desarmerAutoSuivant();
+  if(iAssemblage + 1 < listeAssemblages().length){
+    iAssemblage++;
+    demarrerAssemblage();
+  } else {
+    fin();
+  }
+}
+$("btnNext").addEventListener("click", assemblageSuivant);
+
+/* Un assemblage à cube caché ouvre, la première fois de la partie, un écran
+   d'explication : la règle d'appui devient alors un outil de déduction et
+   non une simple contrainte de pose. */
+function demarrerAssemblage(){
+  const a = assemblageCourant();
+  if(a.cache && !regleCacheVue){
+    regleCacheVue = true;
+    montrerRegleCache(a);
+    return;
+  }
+  reinitAssemblage();
+  montreEcran("game");
+}
+
+function reinitAssemblage(){
+  etage=0; posees=[]; typeSel="cube"; orient="h"; reperes=[];
+  erreurs=0; assemblageFini=false; angle=0;
+  desarmerAutoSuivant();
+  $("btnNext").style.display="none";
+  message("");
+  /* En-tête : le NOM de la construction en cours, pas le titre du mini-jeu —
+     plus court (il tient sur une ligne) et plus utile, l'enfant sait ce qu'il
+     est en train de bâtir. */
+  $("hdrTitle").textContent = assemblageCourant().nom;
+  majDots();
+  rend();
+}
+
+function majDots(){
+  const n = listeAssemblages().length;
+  let s = "";
+  for(let i=0;i<n;i++){
+    const cl = i < iAssemblage || (i === iAssemblage && assemblageFini)
+      ? (resultats[i] ? "ok" : "ko") : (i === iAssemblage ? "cur" : "");
+    s += `<span class="dot ${cl}"></span>`;
+  }
+  $("dots").innerHTML = s;
+}
+
+/* ============================================================
+   ÉCRAN D'EXPLICATION DES CUBES CACHÉS (CE1)
+   ============================================================ */
+function montrerRegleCache(a){
+  const caches = piecesCachees(a.pieces);
+  const visible = modeleAjuste(a.pieces, 0, 140, 140, 0, 6);
+  /* Vue « écorchée » : on retire tout ce qui est au-dessus de l'étage du
+     cube caché, et on le peint en violet — il apparaît enfin. */
+  const zCache = caches.length ? caches[0].z : 0;
+  const ecorche = a.pieces.filter(p => p.z <= zCache).map(p =>
+    caches.indexOf(p) >= 0 ? {...p, type:"cache"} : p);
+  $("regle-vues").innerHTML =
+    `<figure><svg viewBox="0 0 140 140">${visible}</svg>
+       <figcaption>Ce que tu vois : impossible d'apercevoir le cube du milieu.</figcaption></figure>
+     <figure><svg viewBox="0 0 140 140">${modeleAjuste(ecorche, 0, 140, 140, 0, 6)}</svg>
+       <figcaption>En enlevant le dessus : le voilà, en violet !</figcaption></figure>`;
+  montreEcran("regle");
+}
+$("btnRegleOk").addEventListener("click", () => {
+  reinitAssemblage();
+  montreEcran("game");
+});
+
+/* ============================================================
+   ROTATION DU POINT DE VUE
+   Les boutons tournent d'un quart de tour : on retombe toujours sur une vue
+   en losange bien lisible. Le glissement au doigt reste libre, pour regarder
+   entre deux (une vue de face écrase la profondeur, c'est normal).
+   La rotation par bouton est ANIMÉE : sans transition, on a l'impression de
+   changer de photo plutôt que de tourner autour de la construction.
+   ============================================================ */
+let animId=null;
+function anime(vers){
+  cancelAnimationFrame(animId);
+  const a0=angle, t0=performance.now(), duree=460;
+  const pas=t=>{
+    const p=Math.min(1,(t-t0)/duree);
+    const e=p<0.5 ? 2*p*p : 1-Math.pow(-2*p+2,2)/2;   /* accélère puis ralentit */
+    angle=a0+(vers-a0)*e;
+    rend(p<1);
+    if(p<1) animId=requestAnimationFrame(pas);
+  };
+  animId=requestAnimationFrame(pas);
+}
+function tourne(d){ anime(Math.round(angle/(Math.PI/2))*(Math.PI/2)+d); }
+$("v-g").addEventListener("click",()=>tourne(-Math.PI/2));
+$("v-d").addEventListener("click",()=>tourne(Math.PI/2));
+
+function glisser(svg, posable){
+  svg.addEventListener("pointerdown",e=>{
+    cancelAnimationFrame(animId);
+    drag={x0:e.clientX, y0:e.clientY, a0:angle, bouge:false};
+    svg.setPointerCapture(e.pointerId); svg.classList.add("drag");
+  });
+  svg.addEventListener("pointermove",e=>{
+    if(!drag) return;
+    const d=e.clientX-drag.x0;
+    if(Math.abs(d)>8) drag.bouge=true;
+    if(drag.bouge){ angle=drag.a0+d*0.012; rend(true); }
+  });
+  /* La capture du pointeur (indispensable pour que la rotation continue même
+     si le doigt sort du SVG) empêche l'événement « click » d'atteindre la
+     case. On identifie donc la case visée au relâchement, par sa position à
+     l'écran. NE PAS remplacer par des écouteurs click sur les cases. */
+  svg.addEventListener("pointerup",e=>{
+    const bouge = drag && drag.bouge;
+    svg.classList.remove("drag"); drag=null;
+    if(bouge){ rendPalette(); return; }
+    if(!posable) return;
+    const el=document.elementFromPoint(e.clientX,e.clientY);
+    const cel=el && el.closest ? el.closest(".cell") : null;
+    if(cel) poser(+cel.dataset.c, +cel.dataset.r);
+  });
+  /* Un défilement vertical de la page annule le pointeur (touch-action:pan-y) :
+     on relâche l'état de glissement sans rien casser. */
+  svg.addEventListener("pointercancel",()=>{ svg.classList.remove("drag"); drag=null; });
+}
+glisser($("aire"), true); glisser($("svg-plein"), false);
+
+/* ============================================================
+   ÉCRANS
+   ============================================================ */
+const ecrans = {home:$("home"), regle:$("regle"), game:$("game"), end:$("end")};
+
+/* Remonte en haut à chaque changement d'écran (CHARTE §17) : sans cela, le
+   nouvel écran hérite du défilement du précédent. Repositionnement instantané
+   (jamais « smooth » : un glissement animé pendant une transition est parasite). */
+function remonterEnHaut(){
+  try { window.scrollTo({ top: 0, left: 0, behavior: "auto" }); }
+  catch(e){ window.scrollTo(0, 0); }
+}
+function montreEcran(nom){
+  desarmerAutoSuivant();
+  Object.values(ecrans).forEach(e => e.hidden = true);
+  ecrans[nom].hidden = false;
+  $("btnBack").hidden = (nom === "home");
+  if(nom === "home") $("dots").innerHTML = "";
+  remonterEnHaut();
+}
+
+function retourAccueil(){
+  desarmerAutoSuivant();
+  cancelAnimationFrame(animId);
+  drag = null;
+  $("plein").classList.remove("on");
+  montreEcran("home");
+  construireAccueil();
+}
+$("btnBack").addEventListener("click", retourAccueil);
+
+/* ---------- Accueil ---------- */
+function creerCarte(cfg){
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "card"; b.dataset.jeu = cfg.id;
+  const ico = document.createElement("span"); ico.className = "ico"; ico.textContent = cfg.icone;
+  const nom = document.createElement("span"); nom.className = "nom"; nom.textContent = cfg.titre;
+  const det = document.createElement("span"); det.className = "det"; det.textContent = cfg.description;
+  const stars = document.createElement("span"); stars.className = "stars";
+  const n = lireEtoiles()[cfg.id] || 0;
+  stars.textContent = n ? "⭐".repeat(n) : "";
+  b.append(ico, nom, det, stars);
+  b.addEventListener("click", () => lance(cfg.id));
+  return b;
+}
+
+function construireAccueil(){
+  $("hdrTitle").textContent = "Les Assemblages";
+  const palier = CONTENU.paliers[etatPalierAffiche];
+  $("sous-titre-accueil").textContent = (palier && palier.sousTitre) || CONTENU.sousTitre;
+
+  const rangee = $("rangee-paliers");
+  rangee.innerHTML = "";
+  const niveauProfil = niveauDuProfilActif();
+  /* Verrouillage des onglets (CHARTE §15) : un palier au-delà du niveau du
+     profil actif reste verrouillé tant que son paquet cadeau n'a pas été
+     ouvert une première fois — sinon le sélecteur de palier contournerait
+     entièrement la mécanique de déblocage qui protège le bloc bonus plus
+     bas sur la même page. Niveau absent ou non couvert par ce module :
+     même repli que palierParDefaut (traité comme le palier le plus bas). */
+  let indexNiveauProfil = ORDRE_PALIERS.indexOf(niveauProfil);
+  if (indexNiveauProfil === -1) indexNiveauProfil = 0;
+  const profilIdPourVerrou = lireProfilActifId();
+  ORDRE_PALIERS.filter(n => CONTENU.paliers[n]).forEach(n => {
+    const verrouille = ORDRE_PALIERS.indexOf(n) > indexNiveauProfil && !bonusDejaRevele(profilIdPourVerrou, n);
+    const puce = document.createElement("button");
+    puce.type = "button";
+    puce.className = "puce-palier" + (n === etatPalierAffiche ? " actif" : "") + (verrouille ? " verrouille" : "");
+    puce.textContent = verrouille ? n + " 🔒" : n;
+    puce.disabled = verrouille;
+    if(!verrouille) puce.addEventListener("click", () => { etatPalierAffiche = n; construireAccueil(); });
+    rangee.appendChild(puce);
+  });
+  $("note-palier").textContent = niveauProfil
+    ? "Niveau de " + (niveauProfil === etatPalierAffiche
+        ? "ton profil"
+        : "ton profil : " + niveauProfil + " — tu regardes le palier " + etatPalierAffiche)
+    : "";
+
+  const grille = $("grille-jeux");
+  grille.innerHTML = "";
+  (palier ? palier.miniJeux : []).forEach(cfg => grille.appendChild(creerCarte(cfg)));
+
+  /* Palier bonus (CHARTE §15) : uniquement si le palier courant est maîtrisé
+     ET qu'un palier suivant existe. Première apparition pour ce profil :
+     habillé en « paquet cadeau » tant qu'il n'a pas été ouvert. */
+  const suivant = palierSuivant(etatPalierAffiche);
+  const blocBonus = $("bloc-bonus");
+  const paquetCadeau = $("paquet-cadeau");
+  const grilleBonus = $("grille-bonus");
+  if(suivant && palierMaitrise(etatPalierAffiche)){
+    blocBonus.hidden = false;
+    $("note-bonus").textContent =
+      "Tu maîtrises tout le palier " + etatPalierAffiche + " : essaie un aperçu du palier " + suivant + " !";
+    grilleBonus.innerHTML = "";
+    CONTENU.paliers[suivant].miniJeux.forEach(cfg => grilleBonus.appendChild(creerCarte(cfg)));
+    const profilId = lireProfilActifId();
+    if(bonusDejaRevele(profilId, suivant)){
+      paquetCadeau.hidden = true;
+      grilleBonus.hidden = false;
+    } else {
+      paquetCadeau.hidden = false;
+      paquetCadeau.disabled = false;
+      paquetCadeau.classList.remove("paquet-cadeau-ouverture");
+      grilleBonus.hidden = true;
+      /* Propriété `onclick`, pas addEventListener : ce bouton est un élément
+         fixe du DOM réutilisé à chaque appel — addEventListener empilerait un
+         gestionnaire de plus à chaque re-rendu (CHARTE §15). */
+      paquetCadeau.onclick = () => ouvrirPaquetCadeau(profilId, suivant, paquetCadeau, grilleBonus);
+    }
+  } else {
+    blocBonus.hidden = true;
+  }
+}
+
+function ouvrirPaquetCadeau(profilId, palierCible, paquetCadeau, grilleBonus){
+  if(paquetCadeau.disabled) return;
+  paquetCadeau.disabled = true;
+  marquerBonusRevele(profilId, palierCible);
+  lancerConfettis(50);
+  sonBonneReponse();
+  paquetCadeau.classList.add("paquet-cadeau-ouverture");
+  setTimeout(() => {
+    paquetCadeau.hidden = true;
+    grilleBonus.hidden = false;
+  }, 480); // doit correspondre à la durée de l'animation CSS .paquet-cadeau-pop
+}
+
+/* ---------- Déroulé d'une partie ---------- */
+function trouverMiniJeu(id){
+  for(const nom of ORDRE_PALIERS){
+    const palier = CONTENU.paliers[nom];
+    if(!palier) continue;
+    const cfg = palier.miniJeux.find(mj => mj.id === id);
+    if(cfg) return {cfg, palier, palierNom:nom};
+  }
+  return null;
+}
+
+function lance(miniJeuId){
+  const trouve = trouverMiniJeu(miniJeuId);
+  if(!trouve) return;
+  miniJeuCourant = trouve;
+  iAssemblage = 0; resultats = []; regleCacheVue = false;
+  demarreLe = Date.now();
+  demarrerAssemblage();
+}
+
+function fin(){
+  desarmerAutoSuivant();
+  const total = listeAssemblages().length;
+  const score = resultats.filter(Boolean).length;
+  const ratio = total ? score / total : 0;
+  const n = ratio >= 0.85 ? 3 : ratio >= 0.6 ? 2 : 1;
+  enregistrerEtoiles(miniJeuCourant.cfg.id, n);
+  enregistrerSession(miniJeuCourant.cfg.id, score, total, Math.round((Date.now() - demarreLe) / 1000));
+  $("hdrTitle").textContent = "Résultat";
+  $("endStars").innerHTML = "⭐".repeat(n).split("").map(s => `<span>${s}</span>`).join("");
+  $("endMsg").textContent = n === 3 ? "Magnifique !" : n === 2 ? "Bien joué !" : "Continue, tu progresses !";
+  $("endScore").textContent = score + " construction" + (score > 1 ? "s" : "") + " sur " + total + " réussie" + (score > 1 ? "s" : "") + " du premier coup ou presque.";
+  if(n === 3) sonNiveauParfait(); else sonBonneReponse();
+  lancerConfettis(n === 3 ? 90 : 40);
+  montreEcran("end");
+}
+$("bRejouer").addEventListener("click", () => lance(miniJeuCourant.cfg.id));
+$("bMenu").addEventListener("click", retourAccueil);
+
+/* ---------- Contrôles de la scène ---------- */
+$("btn-annuler").addEventListener("click",()=>{
+  if(assemblageFini) return;
+  const i=posees.map(p=>p.z).lastIndexOf(etage);
+  if(i>=0){ posees.splice(i,1); message(""); rend(); }
+});
+$("btn-reset").addEventListener("click",()=>{ if(!assemblageFini) reinitAssemblage(); });
+$("btn-valider").addEventListener("click",valider);
+$("vignette").addEventListener("click",()=>$("plein").classList.add("on"));
+$("btn-fermer").addEventListener("click",()=>$("plein").classList.remove("on"));
+
+/* ============================================================
+   DÉMARRAGE
+   ============================================================ */
+construireAccueil();
+montreEcran("home");
+
+/* Lancement paramétré (CHARTE §16) : `?competence=<id>` démarre directement
+   sur le mini-jeu, en sautant l'accueil. Un id inconnu est ignoré
+   silencieusement — ce n'est qu'un raccourci d'entrée. */
+(function () {
+  const demande = parametreURL('competence');
+  if (!demande) return;
+  const trouve = trouverMiniJeu(demande);
+  if (!trouve) return;
+  etatPalierAffiche = trouve.palierNom;
+  construireAccueil();
+  lance(demande);
+})();
+
+/* Bouton « ← Menu » : retour à la coquille avec confirmation (CHARTE §7).
+   Le bouton vit dans #home : il n'est visible que sur l'écran d'accueil. */
+(function () {
+  const bouton = $('bouton-menu');
+  const modale = $('modale-menu');
+  if (!bouton || !modale) return;
+  function fermer(){ modale.hidden = true; }
+  bouton.addEventListener('click', function () { modale.hidden = false; });
+  $('modale-menu-rester').addEventListener('click', fermer);
+  $('modale-menu-revenir').addEventListener('click', function () {
+    fermer();
+    window.location.href = '../index.html';
+  });
+})();
+</script>
+</body>
+</html>
