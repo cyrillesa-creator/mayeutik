@@ -8,23 +8,23 @@
      JEU M37 — Assemblages de cubes et de pavés (CP et CE1)
      Backlog : pilotage/backlog.json
      Domaine « Espace et géométrie », sous-thème « Le repérage dans
-     l'espace » — et NON « Les solides » : le programme range ici la
-     reproduction d'un ASSEMBLAGE (CP p. 33, CE1 p. 35), alors que
-     « Les solides » (M36) couvre la construction d'UN solide à partir
+     l’espace » — et NON « Les solides » : le programme range ici la
+     reproduction d’un ASSEMBLAGE (CP p. 33, CE1 p. 35), alors que
+     « Les solides » (M36) couvre la construction d’UN solide à partir
      de ses faces. Deux compétences distinctes, deux modules.
 
      Module ADAPTATIF par niveau (CHARTE §15) : deux paliers.
        CP  : « Construire et reproduire des assemblages de solides à
-             partir d'un modèle en trois dimensions ou de
+             partir d’un modèle en trois dimensions ou de
              représentations planes. » Assemblages entièrement
              visibles, 2 à 3 étages, cubes ET pavés.
        CE1 : « Construire des assemblages de cubes et de pavés. »
              Assemblages plus grands, 3 étages, et introduction des
              CUBES CACHÉS — invisibles sous tous les angles, déduits
-             par la règle d'appui (rien ne flotte).
+             par la règle d’appui (rien ne flotte).
 
-     Le moteur de rendu et de validation vient d'un prototype testé sur
-     appareil ; les commentaires qui l'accompagnent expliquent les choix
+     Le moteur de rendu et de validation vient d’un prototype testé sur
+     appareil ; les commentaires qui l’accompagnent expliquent les choix
      non évidents (projection, tri peintre, détection du tap).
      ============================================================ -->
 <style>
@@ -38,8 +38,8 @@
 }
 
 /* ---------- Protections tactiles (CHARTE §19) ----------
-   `touch-action` ne s'hérite PAS : le sélecteur universel est le seul
-   moyen de couvrir toute l'interface. */
+   `touch-action` ne s’hérite PAS : le sélecteur universel est le seul
+   moyen de couvrir toute l’interface. */
 *{ box-sizing:border-box; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
 html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; background:var(--ciel); color-scheme:light only; }
 html,body{margin:0; padding:0; min-height:100%;}
@@ -82,7 +82,7 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 }
 .puce-palier.actif{background:var(--mandarine); border-color:var(--mandarine); color:#fff;}
 /* Palier verrouillé (CHARTE §15) : au-delà du niveau du profil actif, tant
-   que son paquet cadeau n'a pas été ouvert une première fois. */
+   que son paquet cadeau n’a pas été ouvert une première fois. */
 .puce-palier.verrouille{opacity:.5; cursor:not-allowed;}
 .note-palier{text-align:center; font-size:.82rem; color:var(--encre2); opacity:.85; margin:0 0 12px;}
 
@@ -108,7 +108,7 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 .bloc-bonus h3{text-align:center; font-size:1rem; margin:0 0 2px; color:color-mix(in srgb, var(--soleil) 55%, black 30%);}
 .bloc-bonus .note-palier{margin:2px 0 10px;}
 
-/* Paquet cadeau : première révélation d'un palier bonus (CHARTE §15) */
+/* Paquet cadeau : première révélation d’un palier bonus (CHARTE §15) */
 .paquet-cadeau{
   display:flex; flex-direction:column; align-items:center; gap:.7rem;
   width:100%; border:none; background:transparent; padding:1rem .5rem; cursor:pointer;
@@ -149,8 +149,8 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 .vignette span{position:absolute; top:3px; left:0; right:0; text-align:center;
   font-size:.62rem; font-weight:700; color:var(--encre2);}
 .vignette svg{width:100%; height:100%;}
-/* Pastille « on peut toucher le modèle » : sans elle, l'agrandissement passe
-   inaperçu — c'est pourtant le geste qui sauve les assemblages difficiles. */
+/* Pastille « on peut toucher le modèle » : sans elle, l’agrandissement passe
+   inaperçu — c’est pourtant le geste qui sauve les assemblages difficiles. */
 .doigt{position:absolute; right:5px; bottom:5px; width:32px; height:32px;
   border-radius:50%; background:#7B5EA7;
   display:flex; align-items:center; justify-content:center;
@@ -162,7 +162,7 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 /* `pan-y`, et non `none` : la rotation ne lit QUE le glissement horizontal,
    on laisse donc le défilement vertical de la page au navigateur. Avec
    `none`, un doigt posé sur le plateau bloquait le défilement de tout
-   l'écran sur iPhone (CHARTE §19 : plus spécifique que `manipulation`). */
+   l’écran sur iPhone (CHARTE §19 : plus spécifique que `manipulation`). */
 svg.aire{display:block; width:100%; height:auto; touch-action:pan-y; cursor:grab;}
 svg.aire.drag{cursor:grabbing;}
 .cell{cursor:pointer;}
@@ -195,7 +195,7 @@ svg.aire.drag{cursor:grabbing;}
 .msg{text-align:center; font-weight:700; min-height:2.4em; margin:8px 0 0;
   font-size:1rem; line-height:1.35; padding:0 6px;}
 .msg.ok{color:var(--menthe-t);} .msg.ko{color:var(--corail-t);}
-/* CHARTE §18 : dans un message d'erreur, ce qu'il fallait faire reste en VERT —
+/* CHARTE §18 : dans un message d’erreur, ce qu’il fallait faire reste en VERT —
    le rouge ne désigne jamais la bonne réponse. */
 .msg .correction-attendue{color:var(--menthe-t);}
 
@@ -343,12 +343,12 @@ svg.aire.drag{cursor:grabbing;}
            sous <b>aucun</b> angle, même en tournant tout autour.</p>
         <div class="vues" id="regle-vues"></div>
         <p class="cle">Comment le deviner ? <b>Rien ne flotte.</b> Si un cube est posé en
-           l'air, c'est qu'un autre le porte en dessous — même si tu ne le vois pas.</p>
+           l’air, c’est qu’un autre le porte en dessous — même si tu ne le vois pas.</p>
       </div>
       <button id="btnRegleOk" style="display:block; margin:14px auto 0; border:none; border-radius:18px;
         padding:13px 30px; font-family:inherit; font-size:1.05rem; font-weight:700;
         background:var(--mandarine); color:#fff; box-shadow:0 4px 0 var(--mandarine-f); cursor:pointer;">
-        J'ai compris !</button>
+        J’ai compris !</button>
     </section>
 
     <section id="game" hidden>
@@ -412,11 +412,11 @@ const $ = id => document.getElementById(id);
    CONTENU PÉDAGOGIQUE — modifiable sans toucher au moteur
    ------------------------------------------------------------
    Une pièce : {type:"cube"|"pave", x, y, z, dx, dy}. Le plateau fait
-   4×4 cases ; z est l'étage (0 = sol). Un pavé occupe 2 cases, à plat,
+   4×4 cases ; z est l’étage (0 = sol). Un pavé occupe 2 cases, à plat,
    en largeur (dx:2) ou en profondeur (dy:2).
 
    Les assemblages sont ORDONNÉS par difficulté croissante et joués dans
-   cet ordre : c'est une progression, pas une banque à mélanger.
+   cet ordre : c’est une progression, pas une banque à mélanger.
    ============================================================ */
 const CONTENU = {
   sousTitre: "Reproduis la construction du modèle, étage par étage !",
@@ -473,10 +473,10 @@ const CONTENU = {
             {type:"cube",x:0,y:1,z:1,dx:1,dy:1},{type:"cube",x:1,y:1,z:1,dx:1,dy:1},
             {type:"cube",x:2,y:1,z:1,dx:1,dy:1},
             {type:"cube",x:0,y:1,z:2,dx:1,dy:1},{type:"cube",x:1,y:1,z:2,dx:1,dy:1}]},
-          /* 3 — PREMIER cube caché : la croix. Le cube du centre, à l'étage
+          /* 3 — PREMIER cube caché : la croix. Le cube du centre, à l’étage
              du bas, a ses 4 voisins et un cube au-dessus : introuvable à
-             l'œil, il se déduit de la règle d'appui. Volontairement le plus
-             petit assemblage à cube caché, pour que l'écran d'explication
+             l'œil, il se déduit de la règle d’appui. Volontairement le plus
+             petit assemblage à cube caché, pour que l’écran d’explication
              arrive sur un cas lisible. */
           {nom:"La croix", cache:true, pieces:[
             {type:"cube",x:1,y:1,z:0,dx:1,dy:1},
@@ -588,7 +588,7 @@ function niveauDuProfilActif() {
 }
 /* Lancement paramétré (CHARTE §16) : `?palier=ce1&competence=ce1-assemblages`.
    Absent, invalide ou inconnu -> null, on retombe silencieusement sur le
-   comportement par défaut. Jamais d'erreur visible. */
+   comportement par défaut. Jamais d’erreur visible. */
 function parametreURL(nom) {
   try { return new URLSearchParams(window.location.search).get(nom); }
   catch (e) { return null; }
@@ -642,7 +642,7 @@ function enregistrerSession(competence, score, total, duree) {
   catch (e) { /* la session reste valable pour la partie en cours. */ }
 }
 
-/* Maîtrise locale d'un palier (CHARTE §15) : heuristique SIMPLIFIÉE propre à
+/* Maîtrise locale d’un palier (CHARTE §15) : heuristique SIMPLIFIÉE propre à
    ce jeu, pas le calcul officiel LSU. Un mini-jeu est « maîtrisé » si sa
    DERNIÈRE session atteint au moins 80 %. */
 const SEUIL_MAITRISE_LOCALE = 0.8;
@@ -716,10 +716,10 @@ function lancerConfettis(nb){
 /* ============================================================
    PROJECTION AXONOMÉTRIQUE AVEC ROTATION LIBRE
    ------------------------------------------------------------
-   Vraie rotation autour de l'axe vertical + hauteur de caméra fixe : la
+   Vraie rotation autour de l’axe vertical + hauteur de caméra fixe : la
    scène reste lisible à TOUS les angles. Un cisaillement isométrique
-   classique s'aplatit complètement tous les 45°. L'angle utilisateur 0
-   correspond à la vue en losange habituelle, d'où le décalage de 45°.
+   classique s’aplatit complètement tous les 45°. L’angle utilisateur 0
+   correspond à la vue en losange habituelle, d’où le décalage de 45°.
    ============================================================ */
 const SX=46, SY=26, CH=41, CX=2, CY=2;
 
@@ -732,19 +732,19 @@ function proj(x,y,z,ox,oy,ang){
   const a=axo(x,y,ang);
   return [ox+a[0]*SX, oy+a[1]*SY-z*CH];
 }
-/* profondeur écran d'un point : plus grand = plus proche du spectateur */
+/* profondeur écran d’un point : plus grand = plus proche du spectateur */
 function prof(x,y,ang){ return axo(x,y,ang)[1]; }
 
 const TEINTES={
   cube:{top:"#FFB27A", clair:"#FF8A3D", sombre:"#E5701F", trait:"#8A4210"},
   pave:{top:"#9FD8F0", clair:"#5AB4DC", sombre:"#2E7EA8", trait:"#1E5F80"},
-  /* Teinte réservée à l'écran d'explication des cubes cachés. */
+  /* Teinte réservée à l’écran d’explication des cubes cachés. */
   cache:{top:"#D9C2F0", clair:"#9B5DE5", sombre:"#7B3FC4", trait:"#4A2478"}
 };
 
 /* Une pièce = {type,x,y,z,dx,dy}. Renvoie {svg, d}.
    Une face verticale est visible si sa normale, une fois tournée, pointe
-   vers le bas de l'écran (vers le spectateur). Elle est éclairée si elle
+   vers le bas de l’écran (vers le spectateur). Elle est éclairée si elle
    est en plus orientée vers la droite. */
 function boite(p,ox,oy,ang){
   const t=TEINTES[p.type]||TEINTES.cube;
@@ -760,7 +760,7 @@ function boite(p,ox,oy,ang){
   let s="";
   faces.forEach(f=>{
     const na=f.n[0]*co-f.n[1]*si, nb=f.n[0]*si+f.n[1]*co;
-    if(nb<=0.001) return;                       /* face tournée vers l'arrière */
+    if(nb<=0.001) return;                       /* face tournée vers l’arrière */
     s+=`<polygon points="${f.pts.map(q=>P(q[0],q[1],q[2])).join(" ")}" `
      + `fill="${na>0?t.clair:t.sombre}" stroke="${t.trait}" stroke-width="1.5"/>`;
   });
@@ -796,7 +796,7 @@ function cellules(p){ const o=[]; for(let i=0;i<p.dx;i++) for(let j=0;j<p.dy;j++
 function occSet(z){ const s=new Set(); posEtage(z).forEach(p=>cellules(p).forEach(c=>s.add(c.join(",")))); return s; }
 
 /* Cubes cachés : enfermés de tous côtés, donc invisibles sous tout angle.
-   Sert à l'écran d'explication (CE1) et au contrôle de cohérence des
+   Sert à l’écran d’explication (CE1) et au contrôle de cohérence des
    données : un assemblage marqué `cache` doit réellement en contenir. */
 function cellulesOccupees(pieces){
   const s = new Set();
@@ -813,11 +813,11 @@ function piecesCachees(pieces){
 
 /* ============================================================
    VALIDATION INVARIANTE PAR TRANSLATION ET ROTATION
-   Le modèle n'indique aucune position sur le plateau : poser la
+   Le modèle n’indique aucune position sur le plateau : poser la
    construction à gauche ou à droite est également juste. On compare donc
-   des FORMES. L'étage 1 fixe le repère (rotation + décalage) ; les étages
+   des FORMES. L’étage 1 fixe le repère (rotation + décalage) ; les étages
    suivants sont validés dans ce repère, pour que la construction reste
-   cohérente d'un étage à l'autre.
+   cohérente d’un étage à l’autre.
    ============================================================ */
 function tourneCell(c,k){ let [x,y]=c; for(let i=0;i<k;i++){ const t=x; x=-y; y=t; } return [x,y]; }
 function signature(pieces,k,ox,oy){
@@ -832,12 +832,12 @@ function normalise(pieces,k){
   const mx=Math.min(...cs.map(c=>c[0])), my=Math.min(...cs.map(c=>c[1]));
   return {k, ox:-mx, oy:-my};
 }
-/* TOUS les repères compatibles avec l'étage 1, et non le premier trouvé : une
+/* TOUS les repères compatibles avec l’étage 1, et non le premier trouvé : une
    base symétrique en admet plusieurs (un socle carré 3×3 est identique dans
-   ses 4 rotations). En n'en verrouillant qu'un, on refusait ensuite un étage
-   supérieur pourtant juste, simplement parce que l'enfant l'avait orienté
-   selon une autre des rotations également valables. On garde donc l'ensemble
-   des repères possibles, et on l'affine à chaque étage validé. */
+   ses 4 rotations). En n’en verrouillant qu’un, on refusait ensuite un étage
+   supérieur pourtant juste, simplement parce que l’enfant l’avait orienté
+   selon une autre des rotations également valables. On garde donc l’ensemble
+   des repères possibles, et on l’affine à chaque étage validé. */
 function reperesEtageBase(){
   const posee=posEtage(0), att=cibleEtage(0);
   if(!posee.length) return [];
@@ -846,7 +846,7 @@ function reperesEtageBase(){
   const out=[];
   for(let k=0;k<4;k++){
     const n=normalise(att,k);
-    /* décalage réel entre la cible tournée et ce que l'enfant a posé */
+    /* décalage réel entre la cible tournée et ce que l’enfant a posé */
     if(signature(att,k,n.ox,n.oy)===sPose) out.push({k, ox:n.ox-np.ox, oy:n.oy-np.oy});
   }
   return out;
@@ -861,7 +861,7 @@ function sigListe(liste){
   return liste.map(o=>o.type+":"+o.cells.map(c=>c.join(",")).sort().join("|")).sort().join(" / ");
 }
 const etagePose = () => posEtage(etage).map(p => ({type:p.type, cells:cellules(p)}));
-// Repères encore compatibles avec l'étage courant tel qu'il est posé.
+// Repères encore compatibles avec l’étage courant tel qu’il est posé.
 function reperesCompatibles(){
   if(etage === 0) return reperesEtageBase();
   const sPose = sigListe(etagePose());
@@ -889,14 +889,14 @@ function rend(leger){
   }
   /* Pièces ET zones cliquables triées ENSEMBLE (algorithme du peintre) :
      sans cela, une zone verte du fond se dessine par-dessus un cube du
-     premier plan, et l'enfant clique sur une case qu'il croyait masquée. */
+     premier plan, et l’enfant clique sur une case qu’il croyait masquée. */
   const items=[];
   posees.forEach(p=>{ const b=boite(p,IOX,IOY,angle); items.push({z:p.z, d:b.d, svg:b.svg}); });
   if(!assemblageFini){
     for(let r=0;r<GRILLE;r++) for(let c=0;c<GRILLE;c++){
       const k=c+","+r;
       if(cur.has(k)) continue;
-      if(etage!==0 && !dessous.has(k)) continue;   /* règle d'appui : rien ne flotte */
+      if(etage!==0 && !dessous.has(k)) continue;   /* règle d’appui : rien ne flotte */
       const pts=[[c,r],[c+1,r],[c+1,r+1],[c,r+1]]
         .map(q=>proj(q[0],q[1],etage,IOX,IOY,angle).join(",")).join(" ");
       items.push({z:etage-0.5, d:prof(c+0.5,r+0.5,angle),
@@ -911,9 +911,9 @@ function rend(leger){
   rendModele();
 }
 
-/* Le modèle est mis à l'échelle automatiquement pour remplir son cadre : on
-   calcule son encombrement réel à l'écran (qui change avec l'angle), puis on
-   l'ajuste au plus grand possible sans débordement. */
+/* Le modèle est mis à l’échelle automatiquement pour remplir son cadre : on
+   calcule son encombrement réel à l’écran (qui change avec l’angle), puis on
+   l’ajuste au plus grand possible sans débordement. */
 function encombrement(pieces,ang){
   let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9;
   pieces.forEach(p=>{
@@ -938,8 +938,8 @@ function rendModele(){
   $("svg-plein").innerHTML = modeleAjuste(cible(),angle,340,420,0,10);
 }
 
-/* Vignette d'une pièce isolée, dessinée par le MÊME moteur que le plateau :
-   l'enfant reconnaît exactement ce qu'il va poser, orientation comprise. */
+/* Vignette d’une pièce isolée, dessinée par le MÊME moteur que le plateau :
+   l’enfant reconnaît exactement ce qu’il va poser, orientation comprise. */
 function mini(type,ori){
   const dx=(type==="pave"&&ori==="h")?2:1, dy=(type==="pave"&&ori==="v")?2:1;
   const pc=[{type,x:CX-dx/2,y:CY-dy/2,z:0,dx,dy}];
@@ -966,7 +966,7 @@ function rendPalette(){
   if(br) br.addEventListener("click",()=>{ orient=orient==="h"?"v":"h"; rendPalette(); });
 }
 
-/* Message : la partie « ce qu'il fallait faire » passe en vert (CHARTE §18). */
+/* Message : la partie « ce qu’il fallait faire » passe en vert (CHARTE §18). */
 function message(t, cl, correction){
   const m=$("msg");
   m.textContent = t || "";
@@ -980,7 +980,7 @@ function message(t, cl, correction){
 }
 
 /* ============================================================
-   POSE D'UNE PIÈCE
+   POSE D’UNE PIÈCE
    ============================================================ */
 function poser(c,r){
   if(assemblageFini) return;
@@ -1004,22 +1004,22 @@ function valider(){
     erreurs++;
     sonErreur();
     message(etage===0
-      ? "Ce n'est pas encore la bonne forme."
-      : "Ce n'est pas encore comme le modèle.",
+      ? "Ce n’est pas encore la bonne forme."
+      : "Ce n’est pas encore comme le modèle.",
       "ko", "Regarde le modèle, et fais tourner la figure pour mieux voir.");
     return;
   }
   reperes = reperesCompatibles();   // on affine à chaque étage validé
   if(etage+1<etagesMax()){
     etage++; lancerConfettis(26); sonBonneReponse();
-    message("Étage réussi ! On monte d'un cran.","ok"); rend();
+    message("Étage réussi ! On monte d’un cran.","ok"); rend();
   }else{
     terminerAssemblage();
   }
 }
 
-/* Dès que l'enfant a posé le nombre de pièces attendu, on vérifie tout seul :
-   inutile de lui faire chercher un bouton quand l'étage est visiblement fini. */
+/* Dès que l’enfant a posé le nombre de pièces attendu, on vérifie tout seul :
+   inutile de lui faire chercher un bouton quand l’étage est visiblement fini. */
 function verifAuto(){
   if(posEtage(etage).length !== cibleEtage(etage).length) return;
   if(etageCorrect()) valider();
@@ -1027,14 +1027,14 @@ function verifAuto(){
     erreurs++;
     sonErreur();
     message("Toutes les pièces sont posées,","ko",
-      "mais ce n'est pas encore comme le modèle : tourne pour comparer.");
+      "mais ce n’est pas encore comme le modèle : tourne pour comparer.");
   }
 }
 
 /* ============================================================
    ENCHAÎNEMENT DES ASSEMBLAGES
    ============================================================ */
-const SEUIL_ERREURS = 2;   // seuil bienveillant : l'assemblage reste acquis
+const SEUIL_ERREURS = 2;   // seuil bienveillant : l’assemblage reste acquis
 function terminerAssemblage(){
   assemblageFini = true;
   const reussi = erreurs <= SEUIL_ERREURS;
@@ -1051,7 +1051,7 @@ function terminerAssemblage(){
   armerAutoSuivant();
 }
 
-/* Navigation automatique (CHARTE §20) : 2 s après l'affichage du bouton
+/* Navigation automatique (CHARTE §20) : 2 s après l’affichage du bouton
    « Suivant », on avance sans attendre le clic. Un clic manuel ou une sortie
    du jeu annulent le minuteur. */
 const DELAI_AUTO_SUIVANT = 2000;
@@ -1078,7 +1078,7 @@ function assemblageSuivant(){
 $("btnNext").addEventListener("click", assemblageSuivant);
 
 /* Un assemblage à cube caché ouvre, la première fois de la partie, un écran
-   d'explication : la règle d'appui devient alors un outil de déduction et
+   d’explication : la règle d’appui devient alors un outil de déduction et
    non une simple contrainte de pose. */
 function demarrerAssemblage(){
   const a = assemblageCourant();
@@ -1098,7 +1098,7 @@ function reinitAssemblage(){
   $("btnNext").style.display="none";
   message("");
   /* En-tête : le NOM de la construction en cours, pas le titre du mini-jeu —
-     plus court (il tient sur une ligne) et plus utile, l'enfant sait ce qu'il
+     plus court (il tient sur une ligne) et plus utile, l’enfant sait ce qu’il
      est en train de bâtir. */
   $("hdrTitle").textContent = assemblageCourant().nom;
   majDots();
@@ -1117,19 +1117,19 @@ function majDots(){
 }
 
 /* ============================================================
-   ÉCRAN D'EXPLICATION DES CUBES CACHÉS (CE1)
+   ÉCRAN D’EXPLICATION DES CUBES CACHÉS (CE1)
    ============================================================ */
 function montrerRegleCache(a){
   const caches = piecesCachees(a.pieces);
   const visible = modeleAjuste(a.pieces, 0, 140, 140, 0, 6);
-  /* Vue « écorchée » : on retire tout ce qui est au-dessus de l'étage du
+  /* Vue « écorchée » : on retire tout ce qui est au-dessus de l’étage du
      cube caché, et on le peint en violet — il apparaît enfin. */
   const zCache = caches.length ? caches[0].z : 0;
   const ecorche = a.pieces.filter(p => p.z <= zCache).map(p =>
     caches.indexOf(p) >= 0 ? {...p, type:"cache"} : p);
   $("regle-vues").innerHTML =
     `<figure><svg viewBox="0 0 140 140">${visible}</svg>
-       <figcaption>Ce que tu vois : impossible d'apercevoir le cube du milieu.</figcaption></figure>
+       <figcaption>Ce que tu vois : impossible d’apercevoir le cube du milieu.</figcaption></figure>
      <figure><svg viewBox="0 0 140 140">${modeleAjuste(ecorche, 0, 140, 140, 0, 6)}</svg>
        <figcaption>En enlevant le dessus : le voilà, en violet !</figcaption></figure>`;
   montreEcran("regle");
@@ -1141,10 +1141,10 @@ $("btnRegleOk").addEventListener("click", () => {
 
 /* ============================================================
    ROTATION DU POINT DE VUE
-   Les boutons tournent d'un quart de tour : on retombe toujours sur une vue
+   Les boutons tournent d’un quart de tour : on retombe toujours sur une vue
    en losange bien lisible. Le glissement au doigt reste libre, pour regarder
-   entre deux (une vue de face écrase la profondeur, c'est normal).
-   La rotation par bouton est ANIMÉE : sans transition, on a l'impression de
+   entre deux (une vue de face écrase la profondeur, c’est normal).
+   La rotation par bouton est ANIMÉE : sans transition, on a l’impression de
    changer de photo plutôt que de tourner autour de la construction.
    ============================================================ */
 let animId=null;
@@ -1177,9 +1177,9 @@ function glisser(svg, posable){
     if(drag.bouge){ angle=drag.a0+d*0.012; rend(true); }
   });
   /* La capture du pointeur (indispensable pour que la rotation continue même
-     si le doigt sort du SVG) empêche l'événement « click » d'atteindre la
+     si le doigt sort du SVG) empêche l’événement « click » d’atteindre la
      case. On identifie donc la case visée au relâchement, par sa position à
-     l'écran. NE PAS remplacer par des écouteurs click sur les cases. */
+     l’écran. NE PAS remplacer par des écouteurs click sur les cases. */
   svg.addEventListener("pointerup",e=>{
     const bouge = drag && drag.bouge;
     svg.classList.remove("drag"); drag=null;
@@ -1190,7 +1190,7 @@ function glisser(svg, posable){
     if(cel) poser(+cel.dataset.c, +cel.dataset.r);
   });
   /* Un défilement vertical de la page annule le pointeur (touch-action:pan-y) :
-     on relâche l'état de glissement sans rien casser. */
+     on relâche l’état de glissement sans rien casser. */
   svg.addEventListener("pointercancel",()=>{ svg.classList.remove("drag"); drag=null; });
 }
 glisser($("aire"), true); glisser($("svg-plein"), false);
@@ -1200,7 +1200,7 @@ glisser($("aire"), true); glisser($("svg-plein"), false);
    ============================================================ */
 const ecrans = {home:$("home"), regle:$("regle"), game:$("game"), end:$("end")};
 
-/* Remonte en haut à chaque changement d'écran (CHARTE §17) : sans cela, le
+/* Remonte en haut à chaque changement d’écran (CHARTE §17) : sans cela, le
    nouvel écran hérite du défilement du précédent. Repositionnement instantané
    (jamais « smooth » : un glissement animé pendant une transition est parasite). */
 function remonterEnHaut(){
@@ -1250,7 +1250,7 @@ function construireAccueil(){
   rangee.innerHTML = "";
   const niveauProfil = niveauDuProfilActif();
   /* Verrouillage des onglets (CHARTE §15) : un palier au-delà du niveau du
-     profil actif reste verrouillé tant que son paquet cadeau n'a pas été
+     profil actif reste verrouillé tant que son paquet cadeau n’a pas été
      ouvert une première fois — sinon le sélecteur de palier contournerait
      entièrement la mécanique de déblocage qui protège le bloc bonus plus
      bas sur la même page. Niveau absent ou non couvert par ce module :
@@ -1279,8 +1279,8 @@ function construireAccueil(){
   (palier ? palier.miniJeux : []).forEach(cfg => grille.appendChild(creerCarte(cfg)));
 
   /* Palier bonus (CHARTE §15) : uniquement si le palier courant est maîtrisé
-     ET qu'un palier suivant existe. Première apparition pour ce profil :
-     habillé en « paquet cadeau » tant qu'il n'a pas été ouvert. */
+     ET qu’un palier suivant existe. Première apparition pour ce profil :
+     habillé en « paquet cadeau » tant qu’il n’a pas été ouvert. */
   const suivant = palierSuivant(etatPalierAffiche);
   const blocBonus = $("bloc-bonus");
   const paquetCadeau = $("paquet-cadeau");
@@ -1320,10 +1320,10 @@ function ouvrirPaquetCadeau(profilId, palierCible, paquetCadeau, grilleBonus){
   setTimeout(() => {
     paquetCadeau.hidden = true;
     grilleBonus.hidden = false;
-  }, 480); // doit correspondre à la durée de l'animation CSS .paquet-cadeau-pop
+  }, 480); // doit correspondre à la durée de l’animation CSS .paquet-cadeau-pop
 }
 
-/* ---------- Déroulé d'une partie ---------- */
+/* ---------- Déroulé d’une partie ---------- */
 function trouverMiniJeu(id){
   for(const nom of ORDRE_PALIERS){
     const palier = CONTENU.paliers[nom];
@@ -1380,8 +1380,8 @@ construireAccueil();
 montreEcran("home");
 
 /* Lancement paramétré (CHARTE §16) : `?competence=<id>` démarre directement
-   sur le mini-jeu, en sautant l'accueil. Un id inconnu est ignoré
-   silencieusement — ce n'est qu'un raccourci d'entrée. */
+   sur le mini-jeu, en sautant l’accueil. Un id inconnu est ignoré
+   silencieusement — ce n’est qu’un raccourci d’entrée. */
 (function () {
   const demande = parametreURL('competence');
   if (!demande) return;
@@ -1393,7 +1393,7 @@ montreEcran("home");
 })();
 
 /* Bouton « ← Menu » : retour à la coquille avec confirmation (CHARTE §7).
-   Le bouton vit dans #home : il n'est visible que sur l'écran d'accueil. */
+   Le bouton vit dans #home : il n’est visible que sur l’écran d’accueil. */
 (function () {
   const bouton = $('bouton-menu');
   const modale = $('modale-menu');

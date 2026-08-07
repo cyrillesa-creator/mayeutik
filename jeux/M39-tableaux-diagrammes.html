@@ -11,19 +11,19 @@
 <style>
   /* ================================================================
      Protections tactiles obligatoires (CHARTE §19)
-     Deux comportements natifs du navigateur parasitent l'usage tactile d'un
+     Deux comportements natifs du navigateur parasitent l’usage tactile d’un
      jeu : le zoom au double-tap (deux appuis rapprochés sont un geste NORMAL
      ici — remplir puis vider une case, corriger une saisie) et la sélection
-     native (surbrillance bleue, menu « copier / enregistrer l'image » au
-     maintien du doigt). On les neutralise à l'échelle de l'interface, une
-     bonne fois, plutôt qu'élément par élément.
+     native (surbrillance bleue, menu « copier / enregistrer l’image » au
+     maintien du doigt). On les neutralise à l’échelle de l’interface, une
+     bonne fois, plutôt qu’élément par élément.
      ================================================================ */
 
-  /* `touch-action` ne s'hérite PAS : le sélecteur universel est le seul moyen
-     de couvrir toute l'interface. `manipulation` supprime le zoom au
+  /* `touch-action` ne s’hérite PAS : le sélecteur universel est le seul moyen
+     de couvrir toute l’interface. `manipulation` supprime le zoom au
      double-tap tout en laissant le défilement et le pincement — les gestes à
      deux doigts pilotés en JS (rotation de la règle mobile de M23) restent
-     donc intacts, d'autant qu'ils déclarent eux-mêmes `touch-action:none`,
+     donc intacts, d’autant qu’ils déclarent eux-mêmes `touch-action:none`,
      plus spécifique que `*`. */
   * { touch-action: manipulation; }
 
@@ -31,7 +31,7 @@
      mises en page calculées au pixel (règles graduées, figures SVG). */
   html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
-  /* `user-select` et `-webkit-touch-callout`, eux, s'héritent : les poser sur
+  /* `user-select` et `-webkit-touch-callout`, eux, s’héritent : les poser sur
      body suffit à couvrir consignes, boutons, illustrations et éléments
      glissables. */
   body {
@@ -39,11 +39,11 @@
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
   }
-  /* Pas de « fantôme » d'image traîné à la souris par-dessus un glisser-déposer. */
+  /* Pas de « fantôme » d’image traîné à la souris par-dessus un glisser-déposer. */
   img, svg, canvas { -webkit-user-drag: none; }
 
-  /* Les champs de saisie gardent sélection, curseur et menu d'édition : les
-     en priver rendrait la correction d'une valeur impossible. La série en
+  /* Les champs de saisie gardent sélection, curseur et menu d’édition : les
+     en priver rendrait la correction d’une valeur impossible. La série en
      compte deux (décomposition m/dm/cm de M23, cellule manquante de M39). */
   input, textarea, select, [contenteditable="true"] {
     -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text;
@@ -83,7 +83,7 @@
   }
   .puce-palier.actif{ background:var(--couleur-mandarine); border-color:var(--couleur-mandarine); color:#ffffff; }
   /* Palier verrouillé (CHARTE §15) : au-delà du niveau du profil actif, tant
-     que son paquet cadeau n'a pas été ouvert une première fois. */
+     que son paquet cadeau n’a pas été ouvert une première fois. */
   .puce-palier.verrouille{ opacity:.5; cursor:not-allowed; }
   .note-palier{ text-align:center; font-size:.82rem; opacity:.7; margin:-.3rem 0 .8rem; }
 
@@ -117,9 +117,9 @@
   .bloc-bonus h3{ text-align:center; font-size:1rem; color:color-mix(in srgb, var(--couleur-soleil) 55%, black 25%); margin-bottom:.15rem; }
   .bloc-bonus .note-palier{ margin:.1rem 0 .7rem; }
 
-  /* Paquet cadeau : première révélation d'un palier bonus (CHARTE §15,
+  /* Paquet cadeau : première révélation d’un palier bonus (CHARTE §15,
      pattern générique "paquet cadeau" — cf. section « Palier bonus »).
-     Recouvre grille-bonus tant que l'enfant n'a pas cliqué dessus. */
+     Recouvre grille-bonus tant que l’enfant n’a pas cliqué dessus. */
   .paquet-cadeau{
     display:flex; flex-direction:column; align-items:center; gap:.7rem;
     width:100%; border:none; background:transparent; padding:1rem .5rem; cursor:pointer; min-height:44px;
@@ -242,8 +242,8 @@
   /* ---- Diagramme en barres (construction et lecture) ---- */
 
   /* ---- Sondage du jardin : décompte manuel puis report au pavé ---- */
-  /* Marques de comptage groupées par cinq : c'est le groupement qui rend le
-     total dénombrable d'un coup d'œil, seul intérêt d'un tableau de décompte. */
+  /* Marques de comptage groupées par cinq : c’est le groupement qui rend le
+     total dénombrable d’un coup d'œil, seul intérêt d’un tableau de décompte. */
   .tally-paquet{ display:inline-block; margin-right:.55rem; letter-spacing:2px; white-space:nowrap; }
   .tally-paquet.complet{ text-decoration:line-through; text-decoration-thickness:2px; }
   .cellule-total{ min-width:3.2rem; }
@@ -255,9 +255,9 @@
   .cellule-total.saisi{ background:color-mix(in srgb, var(--couleur-menthe) 18%, white);
     border:2px solid var(--couleur-menthe); font-weight:700; cursor:pointer; }
 
-  /* ---- L'enquête avancée : le carnet du jardinier à recompléter ----
-     Les totaux se distinguent des données par un fond légèrement teinté : c'est
-     sur eux que s'appuient toutes les déductions, il faut les repérer d'un coup
+  /* ---- L’enquête avancée : le carnet du jardinier à recompléter ----
+     Les totaux se distinguent des données par un fond légèrement teinté : c’est
+     sur eux que s’appuient toutes les déductions, il faut les repérer d’un coup
      d'œil. Les cases à trouver sont en pointillés, comme la colonne Total du
      sondage — même vocabulaire visuel dans tout le module. */
   .tableau-deduction{ width:100%; border-collapse:collapse; margin:.7rem 0; font-size:.92rem; }
@@ -276,24 +276,24 @@
     border:2px solid var(--couleur-menthe); font-weight:700; cursor:pointer; }
   .cellule-deduction.correct{ background:color-mix(in srgb, var(--couleur-menthe) 45%, white); border-color:var(--couleur-menthe); }
   .cellule-deduction.incorrect{ background:color-mix(in srgb, var(--couleur-corail) 35%, white); border-color:var(--couleur-corail); }
-  /* Barre déjà renseignée par l'énoncé : lisible, mais pas manipulable. La
-     colonne à construire, elle, s'annonce par un fond légèrement teinté et un
-     liseré — c'est le seul endroit du diagramme où l'on attend un geste. */
+  /* Barre déjà renseignée par l’énoncé : lisible, mais pas manipulable. La
+     colonne à construire, elle, s’annonce par un fond légèrement teinté et un
+     liseré — c’est le seul endroit du diagramme où l’on attend un geste. */
   .colonne-construction.colonne-donnee .case-construction{ opacity:1; }
   .colonne-construction.colonne-donnee .case-construction:not(.remplie){ background:color-mix(in srgb, var(--couleur-encre) 4%, white); }
   .diagramme-avec-donnees .colonne-construction:not(.colonne-donnee) .case-construction:not(.remplie){
     background:color-mix(in srgb, var(--couleur-mandarine) 12%, white);
     border-color:color-mix(in srgb, var(--couleur-mandarine) 30%, white);
   }
-  /* L'axe garde son épaisseur uniforme : un segment plus épais sous une seule
-     colonne donnerait une ligne d'abscisses qui semble cassée. */
+  /* L’axe garde son épaisseur uniforme : un segment plus épais sous une seule
+     colonne donnerait une ligne d’abscisses qui semble cassée. */
   .diagramme-avec-donnees .colonne-construction:not(.colonne-donnee) .etiquette-colonne{
     filter:drop-shadow(0 0 3px color-mix(in srgb, var(--couleur-mandarine) 60%, transparent)); }
 
   /* Pavé numérique diégétique — composant partagé de la série, repris à
-     l'identique de jeux/M23-longueurs.html et jeux/M99-boss-des-tables.html.
-     L'écran a une HAUTEUR FIXE et des chiffres à chasse constante : la saisie
-     ne fait donc jamais bouger la mise en page sous les doigts de l'enfant.
+     l’identique de jeux/M23-longueurs.html et jeux/M99-boss-des-tables.html.
+     L’écran a une HAUTEUR FIXE et des chiffres à chasse constante : la saisie
+     ne fait donc jamais bouger la mise en page sous les doigts de l’enfant.
      Les touches font 48 px de haut, au-dessus de la cible tactile minimale. */
   .pave-numerique{ max-width:250px; margin:.9rem auto 0; }
   .pave-ecran{
@@ -316,15 +316,15 @@
   .touche-effacer{ background:var(--couleur-corail); color:#ffffff; box-shadow:0 3px 0 color-mix(in srgb, var(--couleur-corail) 60%, black 10%); }
 
   /* ---- Diagramme à CONSTRUIRE : on clique une case pour monter la barre ----
-     Deux zones distinctes et empilées, pour l'axe comme pour chaque colonne :
+     Deux zones distinctes et empilées, pour l’axe comme pour chaque colonne :
      la ZONE DE TRACÉ (graduations / cases, hauteur dictée par le nombre de
      cases) puis un PIED de hauteur FIXE qui accueille les légendes des
-     abscisses. Les deux zones de tracé s'alignent alors par le haut et font la
+     abscisses. Les deux zones de tracé s’alignent alors par le haut et font la
      même hauteur : une graduation tombe toujours en face de sa case, quelles
      que soient la longueur des noms de catégories ou leur retour à la ligne. */
   :root{ --pied-diagramme:3.6rem; }
   /* La marge haute laisse la place au nombre le plus élevé, dont la moitié
-     dépasse au-dessus de la zone de tracé depuis qu'il est posé sur son trait. */
+     dépasse au-dessus de la zone de tracé depuis qu’il est posé sur son trait. */
   .diagramme-construction{ display:flex; align-items:flex-start; justify-content:center;
     margin:.9rem 0; overflow-x:auto; padding:.85rem .2rem .2rem; }
   .colonne-axe, .colonne-construction{ display:flex; flex-direction:column; align-items:center; }
@@ -332,19 +332,19 @@
     /* Axe des ORDONNÉES : le bord droit de la colonne des graduations, donc
        exactement à la gauche de la zone de tracé et de sa hauteur. */
     border-right:1.5px solid color-mix(in srgb, var(--couleur-encre) 45%, white); }
-  /* La bande garde la hauteur d'une case — c'est elle qui assure le rythme de
-     l'échelle — mais le nombre est calé sur son bord HAUT, donc sur le trait
+  /* La bande garde la hauteur d’une case — c’est elle qui assure le rythme de
+     l’échelle — mais le nombre est calé sur son bord HAUT, donc sur le trait
      de la graduation. */
   .axe-graduation{ position:relative; height:26px; }
   .valeur-graduation{ position:absolute; right:.3rem; top:0; transform:translateY(-50%);
     font-size:.72rem; font-weight:700; opacity:.55; line-height:1; white-space:nowrap; }
   /* Le quadrillage EST la grille des cases : bordures claires posées sur chaque
      case, donc toujours alignées avec la graduation, sans calcul de position.
-     L'axe des ABSCISSES est porté par le bord HAUT du pied, et non par le bas
+     L’axe des ABSCISSES est porté par le bord HAUT du pied, et non par le bas
      de la pile : le pied a une hauteur fixe, sa bordure ne change donc rien à
      la hauteur de la zone de tracé — une bordure sur la pile, elle, ajouterait
      son épaisseur et décalerait à nouveau les cases sous les graduations.
-     L'écart entre colonnes est une marge de la PILE, pas un `gap` du
+     L’écart entre colonnes est une marge de la PILE, pas un `gap` du
      conteneur : les pieds se touchent et leurs bords forment un trait continu. */
   .pile-construction{ display:flex; flex-direction:column-reverse; margin:0 .25rem; }
   .case-construction{
@@ -355,29 +355,29 @@
   .case-construction.remplie{ background:var(--c, var(--couleur-mandarine));
     border-color:color-mix(in srgb, var(--couleur-encre) 20%, transparent); }
   /* Le padding est INTÉRIEUR au pied : les légendes de deux colonnes voisines
-     ne se touchent pas, alors que la bordure haute — le trait d'abscisse —
+     ne se touchent pas, alors que la bordure haute — le trait d’abscisse —
      court bien, elle, sur toute la largeur de la colonne. */
   .pied-colonne{ height:var(--pied-diagramme); flex:0 0 var(--pied-diagramme); width:100%;
     box-sizing:border-box; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
     padding:.3rem 3px 0; overflow:hidden;
     border-top:1.5px solid color-mix(in srgb, var(--couleur-encre) 45%, white); }
-  /* L'abscisse part de l'origine : elle ne court pas sous la colonne des
-     graduations, qui est à gauche de l'axe des ordonnées. Dans le diagramme de
-     LECTURE, c'est la zone de tracé (de hauteur fixée en pixels) qui porte
-     l'abscisse — le pied n'en remet pas une seconde. */
+  /* L’abscisse part de l’origine : elle ne court pas sous la colonne des
+     graduations, qui est à gauche de l’axe des ordonnées. Dans le diagramme de
+     LECTURE, c’est la zone de tracé (de hauteur fixée en pixels) qui porte
+     l’abscisse — le pied n’en remet pas une seconde. */
   .colonne-axe .pied-colonne, .colonne-diagramme .pied-colonne{ border-top:none; }
   .colonne-construction .etiquette-colonne{ font-size:1.5rem; line-height:1.1; }
   /* ---- Diagramme de LECTURE : mêmes axes que le diagramme à construire ----
      Zone de tracé de hauteur fixe (posée en JS) + pied fixe pour les légendes.
-     L'écart entre colonnes est un padding INTÉRIEUR et non un `gap` : les zones
+     L’écart entre colonnes est un padding INTÉRIEUR et non un `gap` : les zones
      de tracé se touchent, et leurs bordures basses forment un axe des abscisses
-     d'un seul tenant, exactement au pied des barres. */
+     d’un seul tenant, exactement au pied des barres. */
   .diagramme{ display:flex; justify-content:center; margin:.9rem 0; overflow-x:auto; padding:.2rem 0; }
   .diagramme-corps{ display:flex; align-items:flex-start; }
   .colonne-diagramme{ display:flex; flex-direction:column; align-items:center; }
   /* `width:100%` est ce qui rend le trait continu : la colonne est parfois plus
-     large que la barre (une légende un peu longue l'élargit), et une zone de
-     tracé au gabarit de la seule barre laisserait autant de trous dans l'axe. */
+     large que la barre (une légende un peu longue l’élargit), et une zone de
+     tracé au gabarit de la seule barre laisserait autant de trous dans l’axe. */
   .zone-trace-lecture{
     width:100%; display:flex; align-items:flex-end; justify-content:center; box-sizing:border-box;
     padding:0 .55rem; border-bottom:1.5px solid color-mix(in srgb, var(--couleur-encre) 45%, white);
@@ -410,9 +410,9 @@
   .tableau-double td.cellule-manquante input.incorrect{ background:color-mix(in srgb, var(--couleur-corail) 35%, white); border-color:var(--couleur-corail); }
 
   /* ---- « Le grand tableau » : rangement libre puis correction ----
-     Le tableau ne contient pas des nombres mais les OBJETS EUX-MÊMES : c'est
-     ce qui permet de voir d'un coup d'œil quel objet est mal rangé, et de
-     compter le contenu d'une case pour répondre à la question finale. */
+     Le tableau ne contient pas des nombres mais les OBJETS EUX-MÊMES : c’est
+     ce qui permet de voir d’un coup d'œil quel objet est mal rangé, et de
+     compter le contenu d’une case pour répondre à la question finale. */
   .tableau-placement{ width:100%; border-collapse:collapse; margin:.55rem 0; table-layout:fixed; }
   .tableau-placement th, .tableau-placement td{
     border:2px solid color-mix(in srgb, var(--couleur-encre) 18%, white); padding:.22rem; text-align:center; }
@@ -425,8 +425,8 @@
   .cellule-placement:active{ background:color-mix(in srgb, var(--couleur-mandarine) 14%, white); }
   .contenu-cellule{ display:flex; flex-wrap:wrap; gap:2px; align-items:center; justify-content:center; min-height:2.3rem; }
 
-  /* Le dessin porte lui-même la couleur (corps de l'oiseau, pétales de la
-     fleur, chapeau du champignon) : aucune pastille n'est apposée à côté. */
+  /* Le dessin porte lui-même la couleur (corps de l’oiseau, pétales de la
+     fleur, chapeau du champignon) : aucune pastille n’est apposée à côté. */
   .objet-dessin{ display:block; width:1.9rem; height:1.9rem; }
   .pool-objets{ display:flex; flex-wrap:wrap; gap:.35rem; justify-content:center; padding:.45rem; border-radius:14px;
     border:2px dashed color-mix(in srgb, var(--couleur-encre) 20%, white); min-height:3.4rem; margin-bottom:.55rem;
@@ -440,15 +440,15 @@
   .objet-mini{ padding:1px; line-height:0; background:transparent; border:2px solid transparent; border-radius:8px; }
   .objet-mini .objet-dessin{ width:1.45rem; height:1.45rem; }
   /* CHARTE §18 : la case fautive en rouge, la case attendue en vert, et
-     l'objet mal rangé lui-même entouré de rouge pour qu'on sache LEQUEL bouger. */
+     l’objet mal rangé lui-même entouré de rouge pour qu’on sache LEQUEL bouger. */
   .objet-mini.mal-place{ border-color:var(--couleur-corail); background:color-mix(in srgb, var(--couleur-corail) 26%, white); }
   .cellule-placement.case-fausse{ background:color-mix(in srgb, var(--couleur-corail) 20%, white);
     outline:3px solid var(--couleur-corail); outline-offset:-3px; }
   .cellule-placement.case-attendue{ background:color-mix(in srgb, var(--couleur-menthe) 26%, white);
     outline:3px solid var(--couleur-menthe); outline-offset:-3px; }
-  /* Glisser-déposer : le jeton d'origine s'estompe, un fantôme suit le doigt
+  /* Glisser-déposer : le jeton d’origine s’estompe, un fantôme suit le doigt
      (hors flux et transparent aux événements, sinon il se désignerait lui-même
-     comme cible), et la case survolée s'annonce avant le relâchement. */
+     comme cible), et la case survolée s’annonce avant le relâchement. */
   .jeton-objet, .objet-mini{ touch-action:none; }
   .jeton-objet.en-glisse, .objet-mini.en-glisse{ opacity:.3; }
   .jeton-fantome{
@@ -519,7 +519,7 @@
 
 <main id="ecran-jeu" hidden>
   <div class="entete-jeu">
-    <button class="bouton-retour" id="bouton-retour" aria-label="Retour à l'accueil">←</button>
+    <button class="bouton-retour" id="bouton-retour" aria-label="Retour à l’accueil">←</button>
     <div class="entete-jeu-titres">
       <h2 id="titre-jeu-courant"></h2>
       <div class="progression" id="progression-jeu"></div>
@@ -543,12 +543,12 @@
 <script type="application/json" id="donnees-jeu">
 {
   "titre": "Tableaux et diagrammes",
-  "sousTitre": "Mène l'enquête dans le jardin !",
+  "sousTitre": "Mène l’enquête dans le jardin !",
   "especes": {
-    "coccinelle": {"emoji":"🐞","singulier":"coccinelle","pluriel":"coccinelles"},
-    "escargot": {"emoji":"🐌","singulier":"escargot","pluriel":"escargots"},
-    "papillon": {"emoji":"🦋","singulier":"papillon","pluriel":"papillons"},
-    "abeille": {"emoji":"🐝","singulier":"abeille","pluriel":"abeilles"}
+    "coccinelle": {"emoji":"🐞","singulier":"coccinelle","pluriel":"coccinelles","genre":"f"},
+    "escargot": {"emoji":"🐌","singulier":"escargot","pluriel":"escargots","genre":"m"},
+    "papillon": {"emoji":"🦋","singulier":"papillon","pluriel":"papillons","genre":"m"},
+    "abeille": {"emoji":"🐝","singulier":"abeille","pluriel":"abeilles","genre":"f"}
   },
   "objets": {
     "oiseau":     {"forme":"oiseau","singulier":"oiseau","pluriel":"oiseaux","genre":"m"},
@@ -599,7 +599,7 @@
     { "id": "cotes",   "colonnes": [{"id":"ouest","nom":"côté ouest"},{"id":"est","nom":"côté est"}] }
   ],
   "messagesFeedback": {
-    "bravo": ["Bravo !", "Super !", "Génial !", "Bien joué !", "C'est ça !", "Trop fort !"],
+    "bravo": ["Bravo !", "Super !", "Génial !", "Bien joué !", "C’est ça !", "Trop fort !"],
     "rate": ["Presque !", "Regarde bien le tableau.", "Pas cette fois, courage !", "On y retourne."]
   },
   "paliers": {
@@ -615,13 +615,13 @@
     },
     "CE1": {
       "miniJeux": [
-        { "id": "ce1-recueil-diagramme", "titre": "Le grand sondage", "icone": "📊", "couleur": "mandarine", "description": "Le jardin s'est agrandi : compte bien tout le monde !", "type": "recueil-diagramme", "nbTours": 2, "nbEspeces": 4, "capParEspece": 16, "totalMax": 24 },
+        { "id": "ce1-recueil-diagramme", "titre": "Le grand sondage", "icone": "📊", "couleur": "mandarine", "description": "Le jardin s’est agrandi : compte bien tout le monde !", "type": "recueil-diagramme", "nbTours": 2, "nbEspeces": 4, "capParEspece": 16, "totalMax": 24 },
         { "id": "ce1-lecture", "titre": "Lis et interprète", "icone": "🔍", "couleur": "soleil", "description": "Lis le diagramme et le tableau déjà construits.", "type": "lecture", "nbTours": 5, "nbEspeces": 4, "capParEspece": 16, "nbZones": 2 }
       ]
     },
     "CE2": {
       "miniJeux": [
-        { "id": "ce2-probleme-combine", "titre": "L'enquête", "icone": "🧮", "couleur": "corail", "description": "Complète le tableau grâce au diagramme.", "type": "probleme-combine", "nbTours": 4, "nbEspeces": 3, "nbCouleurs": 3, "capParCouleur": 9 },
+        { "id": "ce2-probleme-combine", "titre": "L’enquête", "icone": "🧮", "couleur": "corail", "description": "Complète le tableau grâce au diagramme.", "type": "probleme-combine", "nbTours": 4, "nbEspeces": 3, "nbCouleurs": 3, "capParCouleur": 9 },
         { "id": "diagramme-completer-ce2", "titre": "Les effectifs du jardin", "icone": "📶", "couleur": "menthe", "description": "Une barre manque au diagramme : retrouve-la.", "type": "diagramme-completer", "nbTours": 4, "miniEffectif": 3, "maxiEffectif": 9 },
         { "id": "tableau-double-entree-deduction-ce2", "titre": "Le carnet à trous du jardinier", "icone": "📓", "couleur": "soleil", "description": "Retrouve les nombres effacés, de proche en proche.", "type": "tableau-deduction", "nbTours": 3, "nbLignes": 4, "miniValeur": 2, "maxiValeur": 14, "nbCachees": 7 }
       ]
@@ -660,13 +660,19 @@
     const ids = melanger(Object.keys(donnees.especes)).slice(0, n);
     return ids.map((id) => Object.assign({ id }, donnees.especes[id]));
   }
-  // Élision : "de " + mot devient "d'" + mot devant une voyelle (ex. "d'abeilles").
+  // Élision : "de " + mot devient "d’" + mot devant une voyelle (ex. "d’abeilles").
   function deElision(mot) {
     return /^[aeiouyàâéèêëîïôöùûü]/i.test(mot) ? 'd’' + mot : 'de ' + mot;
   }
+  /* Accord du participe passé avec le COD placé AVANT le verbe : « combien
+     d’escargots as-tu comptés ? » mais « combien d’abeilles as-tu comptées ? ».
+     Le genre vient de la donnée (champ `genre`), jamais deviné du mot. */
+  function accordePluriel(base, genre) {
+    return base + (genre === 'f' ? 'es' : 's');
+  }
 
   /* Répartit `total` unités sur `nbParts` cases, chacune entre `mini` et `maxi`.
-     Sert à remplir un tableau à double entrée dont l'effectif total est imposé
+     Sert à remplir un tableau à double entrée dont l’effectif total est imposé
      par la progression (10 objets sur 4 cases, 15 sur 6) sans jamais laisser
      une case vide — une case vide rendrait la question finale triviale. */
   function repartir(total, nbParts, mini, maxi) {
@@ -711,12 +717,12 @@
   /* ---------- Palier bonus : révélation "paquet cadeau" (CHARTE §15, pattern
      générique réutilisable — cf. section « Palier bonus » du standard
      "Modules adaptatifs par niveau"). Une clé par module (comme les
-     étoiles), un indicateur par PROFIL puis par PALIER CIBLE à l'intérieur :
+     étoiles), un indicateur par PROFIL puis par PALIER CIBLE à l’intérieur :
      { [profilId]: { [palierCible]: true } }. Un module à 3 paliers (CP/CE1/
      CE2) a DEUX transitions bonus possibles (CP→CE1 puis CE1→CE2) : sans
-     l'indexation par palier cible, ouvrir le premier paquet marquait le
+     l’indexation par palier cible, ouvrir le premier paquet marquait le
      profil comme "déjà révélé" pour le module entier, et le second paquet
-     (CE1→CE2) n'apparaissait plus jamais — bug corrigé ici.
+     (CE1→CE2) n’apparaissait plus jamais — bug corrigé ici.
      Stockage sûr (mémoire + localStorage best-effort, CHARTE §9). ---------- */
   const CLE_BONUS_REVELE = 'mayeutik-m39-bonus-revele';
   let memoireBonusRevele = null;
@@ -792,12 +798,12 @@
       return null;
     }
   }
-  /* Lancement paramétré (CHARTE §16) : `?palier=ce1` dans l'URL — le niveau
-     du POINT D'ENTRÉE cliqué dans la coquille (ex. carte affichée dans une
+  /* Lancement paramétré (CHARTE §16) : `?palier=ce1` dans l’URL — le niveau
+     du POINT D’ENTRÉE cliqué dans la coquille (ex. carte affichée dans une
      section de niveau du menu, cf. js/app.js) prime sur le niveau du profil
      actif. Insensible à la casse ; absent, invalide, ou ne correspondant à
      aucun palier du module -> null, retombe silencieusement sur le
-     comportement par défaut (jamais d'erreur visible). */
+     comportement par défaut (jamais d’erreur visible). */
   function palierDepuisURL() {
     try {
       const brut = new URLSearchParams(window.location.search).get('palier');
@@ -857,7 +863,7 @@
   }
 
   /*
-   * Maîtrise locale d'un palier (CHARTE §15) : heuristique SIMPLIFIÉE propre à ce
+   * Maîtrise locale d’un palier (CHARTE §15) : heuristique SIMPLIFIÉE propre à ce
    * jeu, pas le calcul officiel LSU (qui reste propriété de la coquille, cf.
    * js/statuts.js). Un mini-jeu est considéré « maîtrisé » si sa DERNIÈRE
    * session enregistrée atteint au moins 80 %. Le palier est maîtrisé quand
@@ -916,10 +922,10 @@
     return contexteAudio;
   }
   /* ---------- Pavé numérique diégétique (composant de la charte) ----------
-     Reprise à l'identique du composant des autres modules : jamais de champ de
-     saisie brut pour un nombre, l'enfant compose sa réponse au pavé. Chaque
+     Reprise à l’identique du composant des autres modules : jamais de champ de
+     saisie brut pour un nombre, l’enfant compose sa réponse au pavé. Chaque
      appui sonne, comme dans M99, pour que le geste soit confirmé même quand la
-     valeur saisie ne change pas de largeur à l'écran. */
+     valeur saisie ne change pas de largeur à l’écran. */
   function creerPave(onValider, maxChiffres) {
     const cap = maxChiffres || 2;
     const conteneur = document.createElement('div');
@@ -953,7 +959,7 @@
   }
 
   /* ---------- Composant sonore partagé (CHARTE §5) ----------
-     Mêmes sons dans toute la série, générés à l'oscillateur : aucun fichier
+     Mêmes sons dans toute la série, générés à l’oscillateur : aucun fichier
      audio, donc aucune dépendance réseau. */
 
   /* Une note pure, avec une attaque douce et une extinction exponentielle —
@@ -983,10 +989,10 @@
     NOTES_BONNE_REPONSE.forEach((f, i) => jouerNote(ctx, f, t0 + i * 0.11, 0.11, 0.22));
   }
 
-  /* FIN DE NIVEAU PARFAITE (3 étoiles) : même famille sonore, pour qu'on la
-     reconnaisse, mais nettement plus ample — l'arpège monte deux notes plus
-     haut, puis se pose sur un accord tenu (~1.4 s en tout). C'est la durée et
-     l'accord final, plus que la hauteur, qui le rendent perceptiblement plus
+  /* FIN DE NIVEAU PARFAITE (3 étoiles) : même famille sonore, pour qu’on la
+     reconnaisse, mais nettement plus ample — l’arpège monte deux notes plus
+     haut, puis se pose sur un accord tenu (~1.4 s en tout). C’est la durée et
+     l’accord final, plus que la hauteur, qui le rendent perceptiblement plus
      marquant que la bonne réponse ponctuelle. */
   const NOTES_NIVEAU_PARFAIT = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
   const ACCORD_NIVEAU_PARFAIT = [523.25, 659.25, 783.99, 1046.5]; // do majeur tenu
@@ -997,8 +1003,8 @@
     const t0 = ctx.currentTime;
     const pas = 0.1;
     NOTES_NIVEAU_PARFAIT.forEach((f, i) => jouerNote(ctx, f, t0 + i * pas, 0.12, 0.2));
-    // Accord final, plus doux que les notes de l'arpège pour ne pas saturer :
-    // quatre voix simultanées s'additionnent.
+    // Accord final, plus doux que les notes de l’arpège pour ne pas saturer :
+    // quatre voix simultanées s’additionnent.
     const tAccord = t0 + NOTES_NIVEAU_PARFAIT.length * pas + 0.04;
     ACCORD_NIVEAU_PARFAIT.forEach((f) => jouerNote(ctx, f, tAccord, 0.75, 0.12, 'triangle'));
   }
@@ -1010,7 +1016,7 @@
     [392.0, 293.66].forEach((f, i) => jouerNote(ctx, f, t0 + i * 0.17, 0.17, 0.22));
   }
 
-  /* Clic discret de manipulation (pose d'un jeton, d'un lien...). */
+  /* Clic discret de manipulation (pose d’un jeton, d’un lien...). */
   function sonTic() {
     let ctx;
     try { ctx = obtenirContexteAudio(); } catch (e) { return; }
@@ -1033,20 +1039,20 @@
      très mécanique. Or la plupart des appareils embarquent aussi des voix de
      bien meilleure facture, gratuites et DÉJÀ INSTALLÉES : « Enhanced » et
      « Premium » sur iOS/macOS, « Neural »/« Natural » sur Windows et Android.
-     On les repère à leur nom et on les préfère. Tout reste local : rien n'est
-     téléchargé, aucun service distant n'est appelé (cf. autonomie des jeux). */
+     On les repère à leur nom et on les préfère. Tout reste local : rien n’est
+     téléchargé, aucun service distant n’est appelé (cf. autonomie des jeux). */
   const VOIX_QUALITE = /(enhanced|premium|neural|natural|siri|wavenet|studio)/i;
   // Voix françaises réputées les plus agréables selon les plateformes, quand
-  // aucun marqueur de qualité n'apparaît dans le nom.
+  // aucun marqueur de qualité n’apparaît dans le nom.
   const VOIX_FR_SOIGNEES = /(am[ée]lie|thomas|audrey|aur[ée]lie|c[ée]line|marie)/i;
 
-  /* Débit légèrement ralenti : la consigne s'adresse à un enfant qui ne lit pas
-     encore, et un débit posé fait plus pour le naturel perçu que n'importe quel
+  /* Débit légèrement ralenti : la consigne s’adresse à un enfant qui ne lit pas
+     encore, et un débit posé fait plus pour le naturel perçu que n’importe quel
      autre réglage. La HAUTEUR reste à sa valeur naturelle (1) : la déplacer est
-     appliqué comme une transformation par-dessus la voix, et c'est le réglage
-     qui risque le plus de réintroduire le côté métallique qu'on cherche
-     justement à supprimer. Les deux valeurs sont ici pour être ajustées d'un
-     seul endroit si l'oreille en décide autrement. */
+     appliqué comme une transformation par-dessus la voix, et c’est le réglage
+     qui risque le plus de réintroduire le côté métallique qu’on cherche
+     justement à supprimer. Les deux valeurs sont ici pour être ajustées d’un
+     seul endroit si l’oreille en décide autrement. */
   const DEBIT_VOIX = 0.92;
   const HAUTEUR_VOIX = 1;
 
@@ -1114,7 +1120,7 @@
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(texte);
       u.lang = 'fr-FR';
-      // Aucune voix française trouvée : on s'en remet au navigateur via `lang`,
+      // Aucune voix française trouvée : on s’en remet au navigateur via `lang`,
       // exactement comme avant — la consigne reste lue, sans erreur.
       const voix = voixPreferee();
       if (voix) {
@@ -1124,8 +1130,8 @@
       u.rate = DEBIT_VOIX;
       u.pitch = HAUTEUR_VOIX;
       // Voix distante injoignable (hors ligne) : on relit UNE fois avec la
-      // meilleure voix embarquée. On ignore les erreurs d'interruption, qui
-      // signalent seulement qu'une lecture a été coupée par la suivante.
+      // meilleure voix embarquée. On ignore les erreurs d’interruption, qui
+      // signalent seulement qu’une lecture a été coupée par la suivante.
       if (voix && voix.localService === false) {
         u.onerror = (ev) => {
           const cause = ev && ev.error;
@@ -1139,12 +1145,12 @@
             u2.rate = DEBIT_VOIX;
             u2.pitch = HAUTEUR_VOIX;
             window.speechSynthesis.speak(u2);
-          } catch (e2) { /* on renonce : la consigne reste lisible à l'écran */ }
+          } catch (e2) { /* on renonce : la consigne reste lisible à l’écran */ }
         };
       }
       window.speechSynthesis.speak(u);
     } catch (e) {
-      // synthèse vocale indisponible : la consigne reste lisible à l'écran.
+      // synthèse vocale indisponible : la consigne reste lisible à l’écran.
     }
   }
   function creerBlocConsigne(texte, texteVoix) {
@@ -1167,19 +1173,19 @@
   }
 
   /* ================================================================
-     Primitives d'affichage réutilisées par plusieurs mini-jeux
+     Primitives d’affichage réutilisées par plusieurs mini-jeux
      ================================================================ */
 
   const COULEUR_PAR_INDICE = ['var(--couleur-mandarine)', 'var(--couleur-menthe)', 'var(--couleur-corail)', 'var(--couleur-soleil)'];
 
   /* ---------- Objets dessinés, colorés dans le dessin ----------
      Un tableau à double entrée « forme × couleur » ne tient debout que si la
-     couleur appartient VRAIMENT à l'objet. Une pastille posée à côté du dessin
-     ferait deux informations juxtaposées, et l'enfant croiserait un dessin avec
+     couleur appartient VRAIMENT à l’objet. Une pastille posée à côté du dessin
+     ferait deux informations juxtaposées, et l’enfant croiserait un dessin avec
      une pastille au lieu de croiser une forme avec une couleur. Ici la teinte
-     remplit le corps de l'oiseau, les pétales de la fleur, le chapeau du
+     remplit le corps de l’oiseau, les pétales de la fleur, le chapeau du
      champignon ; les nuances secondaires (aile, oreille, anse) en dérivent, si
-     bien que l'objet se lit comme un tout coloré. */
+     bien que l’objet se lit comme un tout coloré. */
 
   const SVGNS = 'http://www.w3.org/2000/svg';
 
@@ -1198,7 +1204,7 @@
     return el;
   }
 
-  /* Teinte « non peinte » des en-têtes : l'en-tête désigne la SORTE d'objet,
+  /* Teinte « non peinte » des en-têtes : l’en-tête désigne la SORTE d’objet,
      pas une couleur ; le dessiner en gris évite de suggérer une case. */
   const TEINTE_NEUTRE = '#B4ADA3';
 
@@ -1234,7 +1240,7 @@
       }
       poser('circle', { cx: 20, cy: 16, r: 4.4, fill: '#8A5A2B' });
     } else if (forme === 'seau') {
-      // L'anse est tracée avant le seau (elle passe derrière le rebord) mais
+      // L’anse est tracée avant le seau (elle passe derrière le rebord) mais
       // doit culminer nettement au-dessus, sinon elle disparaît sous celui-ci.
       poser('path', { d: 'M11 15 Q20 -3 29 15', stroke: sombre, 'stroke-width': 3, fill: 'none', 'stroke-linecap': 'round' });
       poser('polygon', { points: '11,17 29,17 26,36 14,36', fill: hex });
@@ -1265,15 +1271,15 @@
    * options:
    *  - colonnes: [{id, emoji, label}]
    *  - valeurs: {id: n} (comptage actuel affiché)
-   *  - maxCases: hauteur maximale d'une colonne, en cases
-   *  - uniteParCase: nombre d'individus représentés par une case (CE2 : peut différer de 1)
+   *  - maxCases: hauteur maximale d’une colonne, en cases
+   *  - uniteParCase: nombre d’individus représentés par une case (CE2 : peut différer de 1)
    *  - interactif: true -> boutons +/- par colonne (construction)
    *  - onChangement(id, nouvelleValeur): appelé en mode interactif
    *  - afficherValeur: true -> affiche le nombre au-dessus de chaque colonne (lecture)
    */
-  /* Gabarit d'une case du diagramme de LECTURE, en pixels. La hauteur de la
-     zone de tracé s'en déduit : elle doit être connue en JS pour y poser
-     l'axe des abscisses, et rester identique à ce que la CSS dessine. */
+  /* Gabarit d’une case du diagramme de LECTURE, en pixels. La hauteur de la
+     zone de tracé s’en déduit : elle doit être connue en JS pour y poser
+     l’axe des abscisses, et rester identique à ce que la CSS dessine. */
   const CASE_LECTURE_H = 14;
   const CASE_LECTURE_GAP = 2;
 
@@ -1283,7 +1289,7 @@
     const conteneur = document.createElement('div');
     conteneur.className = 'diagramme';
 
-    /* Zone de tracé de HAUTEUR FIXE, commune à toutes les colonnes : c'est ce
+    /* Zone de tracé de HAUTEUR FIXE, commune à toutes les colonnes : c’est ce
        qui aligne le pied des barres entre elles et permet de poser un axe des
        abscisses continu. Sans cela, chaque colonne mesurait « barre + légende »
        et les bases des barres ne tombaient pas au même niveau. */
@@ -1363,10 +1369,10 @@
       }
 
       /* Les deux axes sont des BORDURES de la zone de tracé, pas des traits
-         posés par-dessus : l'abscisse est le bord bas de chaque zone, et comme
-         les colonnes se touchent (l'écart est un padding intérieur, pas un
+         posés par-dessus : l’abscisse est le bord bas de chaque zone, et comme
+         les colonnes se touchent (l’écart est un padding intérieur, pas un
          gap), ces bords se rejoignent en une ligne continue à la hauteur exacte
-         du pied des barres. L'ordonnée est le bord gauche de la première zone.
+         du pied des barres. L’ordonnée est le bord gauche de la première zone.
          Aucun calcul de position, donc aucun désalignement possible. */
       if (i === 0) zoneTrace.classList.add('porte-ordonnees');
 
@@ -1394,7 +1400,7 @@
     colonnes.forEach((col) => {
       const th = document.createElement('th');
       th.textContent = col.label;
-      // Une colonne de couleur s'annonce dans sa teinte, assombrie pour rester
+      // Une colonne de couleur s’annonce dans sa teinte, assombrie pour rester
       // lisible sur blanc — même convention que « Le grand tableau ».
       if (col.teinte) th.style.color = assombrir(col.teinte, 0.3);
       trHead.appendChild(th);
@@ -1473,8 +1479,8 @@
     return carte;
   }
 
-  /* Remonte en haut à chaque changement d'écran (CHARTE §17) : sans cela, le
-     nouvel écran hérite du défilement de l'écran précédent — l'enfant qui
+  /* Remonte en haut à chaque changement d’écran (CHARTE §17) : sans cela, le
+     nouvel écran hérite du défilement de l’écran précédent — l’enfant qui
      vient de valider en bas de page se retrouverait au milieu de la manche
      suivante. Repositionnement instantané (jamais « smooth » : un glissement
      animé pendant une transition est parasite). */
@@ -1482,12 +1488,12 @@
     try {
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     } catch (e) {
-      window.scrollTo(0, 0); // navigateurs sans l'API à options
+      window.scrollTo(0, 0); // navigateurs sans l’API à options
     }
   }
 
-  /* Navigation automatique après un délai (CHARTE §20) : 2 s après l'affichage
-     du bouton « Suivant », on avance sans attendre le clic de l'enfant. Un
+  /* Navigation automatique après un délai (CHARTE §20) : 2 s après l’affichage
+     du bouton « Suivant », on avance sans attendre le clic de l’enfant. Un
      clic manuel ou une sortie du jeu annulent ce minuteur. */
   const DELAI_AUTO_SUIVANT = 2000;
   let minuteurAutoSuivant = null;
@@ -1503,8 +1509,8 @@
     clearTimeout(minuteurAutoSuivant);
   }
 
-  /* Correction après une MAUVAISE réponse (CHARTE §18) : ce que l'enfant a
-     répondu en rouge, ce qu'il fallait répondre en vert. N'est jamais appelée
+  /* Correction après une MAUVAISE réponse (CHARTE §18) : ce que l’enfant a
+     répondu en rouge, ce qu’il fallait répondre en vert. N’est jamais appelée
      sur une bonne réponse (elle brouillerait la récompense). */
   function afficherCorrection(zone, donnee, attendue) {
     const bloc = document.createElement('p');
@@ -1531,7 +1537,7 @@
     rangee.innerHTML = '';
     const niveauProfil = niveauDuProfilActif();
     /* Verrouillage des onglets (CHARTE §15) : un palier au-delà du niveau du
-       profil actif reste verrouillé tant que son paquet cadeau n'a pas été
+       profil actif reste verrouillé tant que son paquet cadeau n’a pas été
        ouvert une première fois — sinon le sélecteur de palier contournerait
        entièrement la mécanique de déblocage qui protège le bloc bonus plus
        bas sur la même page. Niveau absent ou non couvert par ce module :
@@ -1559,8 +1565,8 @@
       .forEach((cfg) => grille.appendChild(construireCarteJeu(cfg)));
 
     /* Palier bonus (CHARTE §15) : uniquement si le palier courant est maîtrisé
-       ET qu'un palier suivant existe. Première apparition du bonus pour ce
-       profil : habillé en « paquet cadeau » tant qu'il n'a pas été ouvert
+       ET qu’un palier suivant existe. Première apparition du bonus pour ce
+       profil : habillé en « paquet cadeau » tant qu’il n’a pas été ouvert
        (cf. ouvrirPaquetCadeau) ; ensuite affiché normalement à chaque visite. */
     const suivant = palierSuivant(etatPalierAffiche);
     const blocBonus = document.getElementById('bloc-bonus');
@@ -1591,7 +1597,7 @@
 
   /* Ouverture du paquet cadeau (une seule fois par profil ET par palier
      cible, cf. marquerBonusRevele) : confettis + petite animation
-     d'explosion douce, puis le contenu du palier bonus est révélé
+     d’explosion douce, puis le contenu du palier bonus est révélé
      normalement. */
   function ouvrirPaquetCadeau(profilId, palierCible, paquetCadeau, grilleBonus) {
     if (paquetCadeau.disabled) return;
@@ -1652,7 +1658,7 @@
   }
 
   /* `correction` (facultatif) = { donnee, attendue } : affiché uniquement en cas
-     d'erreur, sous le message de feedback (CHARTE §18). */
+     d’erreur, sous le message de feedback (CHARTE §18). */
   function validerTour(estCorrecte, boutonAValider, correction) {
     if (etat.verrouille) return;
     etat.verrouille = true;
@@ -1682,13 +1688,13 @@
     const etoilesGagnees = calculerEtoiles(etat.score, cfg.nbTours);
     enregistrerEtoiles(cfg.id, etoilesGagnees);
     const dureeSecondes = Math.max(0, Math.round((Date.now() - etat.demarreLe) / 1000));
-    /* L'identifiant du mini-jeu EST sa compétence dans ce module : deux
+    /* L’identifiant du mini-jeu EST sa compétence dans ce module : deux
        exercices aussi différents que « compléter un diagramme » et « déduire
-       dans un tableau » sont donc deux mini-jeux, et non deux phases d'un
+       dans un tableau » sont donc deux mini-jeux, et non deux phases d’un
        même, faute de quoi le suivi les mêlerait sous une note unique dont on
        ne saurait plus rien conclure. */
     enregistrerSession(cfg.id, etat.score, cfg.nbTours, dureeSecondes);
-    // Résultat parfait : un son plus ample que celui d'une bonne réponse
+    // Résultat parfait : un son plus ample que celui d’une bonne réponse
     // ponctuelle, pour souligner ce qui est rare (CHARTE §5).
     if (etoilesGagnees === 3) sonNiveauParfait();
 
@@ -1716,7 +1722,7 @@
 
     const accueilBtn = document.createElement('button');
     accueilBtn.className = 'bouton-secondaire';
-    accueilBtn.textContent = "Retour à l'accueil";
+    accueilBtn.textContent = "Retour à l’accueil";
     accueilBtn.addEventListener('click', retourAccueil);
 
     boutons.appendChild(rejouer);
@@ -1736,33 +1742,33 @@
      Mini-jeu : Recueil + diagramme (CP et CE1, gabarit partagé)
      ================================================================ */
 
-  /* Diagramme à CONSTRUIRE case par case : l'enfant clique la case à la hauteur
+  /* Diagramme à CONSTRUIRE case par case : l’enfant clique la case à la hauteur
      voulue et la barre monte jusque-là (recliquer la case du sommet la fait
-     redescendre). Le quadrillage de fond n'est pas un décor : ce sont les
+     redescendre). Le quadrillage de fond n’est pas un décor : ce sont les
      bordures des cases elles-mêmes, donc toujours alignées avec la graduation
-     de gauche — aucun risque de décalage entre le repère et ce qu'on clique.
+     de gauche — aucun risque de décalage entre le repère et ce qu’on clique.
      Convention du module : 1 case = 1 individu.
 
      ZONE DE TRACÉ ET PIED SÉPARÉS. Les légendes des abscisses (icône + nom de
      la catégorie) vivent dans un PIED de hauteur fixe, hors de la zone de
      tracé. Sans cette séparation, la colonne mesure « cases + légende » là où
-     l'axe ne mesure que « graduations » : les deux étant alignés par le bas,
-     l'axe se retrouvait poussé vers le bas de toute la hauteur des légendes
+     l’axe ne mesure que « graduations » : les deux étant alignés par le bas,
+     l’axe se retrouvait poussé vers le bas de toute la hauteur des légendes
      (46 px mesurés), et les chiffres ne désignaient plus les bonnes cases.
-     L'axe porte donc lui aussi un pied de même hauteur, et l'ensemble s'aligne
+     L’axe porte donc lui aussi un pied de même hauteur, et l’ensemble s’aligne
      par le HAUT : les deux zones de tracé partent du même y et font la même
      hauteur, la coïncidence est structurelle et ne dépend plus du contenu des
      légendes (nom long, retour à la ligne, icône plus haute). */
   function construireDiagrammeConstructible(options) {
     const { colonnes, valeurs, hauteurMax, onChangement, verrouillees } = options;
-    // Colonnes déjà renseignées (données de l'énoncé) : elles se lisent mais ne
+    // Colonnes déjà renseignées (données de l’énoncé) : elles se lisent mais ne
     // se modifient pas, seule la barre manquante est à construire.
     const estVerrouillee = (id) => !!(verrouillees && verrouillees.has(id));
     const wrap = document.createElement('div');
     wrap.className = 'diagramme-construction';
-    /* Quand une partie des barres est donnée par l'énoncé, la barre à
-       construire doit se distinguer : sans cela, quatre colonnes d'apparence
-       identique n'indiquent pas où l'on attend un geste. */
+    /* Quand une partie des barres est donnée par l’énoncé, la barre à
+       construire doit se distinguer : sans cela, quatre colonnes d’apparence
+       identique n’indiquent pas où l’on attend un geste. */
     if (verrouillees && verrouillees.size) wrap.classList.add('diagramme-avec-donnees');
     // Permet de redessiner les barres après coup — utile pour révéler la bonne
     // hauteur au moment de la correction.
@@ -1811,7 +1817,7 @@
         if (!verrou) {
           b.addEventListener('click', () => {
             if (etat.verrouille) return;
-            // Recliquer la case du sommet redescend la barre d'un cran.
+            // Recliquer la case du sommet redescend la barre d’un cran.
             valeurs[col.id] = (valeurs[col.id] === n) ? n - 1 : n;
             rendre();
             onChangement();
@@ -1845,16 +1851,16 @@
   }
 
   /* ================================================================
-     Mini-jeu : Sondage du jardin — DEUX écrans d'un même exercice
+     Mini-jeu : Sondage du jardin — DEUX écrans d’un même exercice
      Écran 1 : compter les réponses une à une (marques de décompte), PUIS
        reporter soi-même chaque total au pavé numérique. Rien ne se remplit
        tout seul : ni le total pendant le comptage, ni la colonne de droite.
-       C'est le report qui fait travailler le dénombrement, l'automatiser
-       reviendrait à faire l'exercice à la place de l'enfant.
+       C’est le report qui fait travailler le dénombrement, l’automatiser
+       reviendrait à faire l’exercice à la place de l’enfant.
      Écran 2 : le tableau CORRECT est réaffiché comme référence (même si
-       l'enfant s'est trompé au report), et il construit le diagramme en
+       l’enfant s’est trompé au report), et il construit le diagramme en
        bâtons case par case.
-     La manche n'est comptée juste que si les deux écrans le sont.
+     La manche n’est comptée juste que si les deux écrans le sont.
      ================================================================ */
 
   function genererRecueilDiagramme(zone, cfg) {
@@ -1868,7 +1874,7 @@
     const total = () => especes.reduce((s, e) => s + valeursVraies[e.id], 0);
     let garde = 0;
     while (total() > totalMax && garde++ < 200) {
-      // On retire une unité à l'espèce la plus nombreuse, jamais en dessous de 1.
+      // On retire une unité à l’espèce la plus nombreuse, jamais en dessous de 1.
       const plusGrande = especes.slice().sort((a, b) => valeursVraies[b.id] - valeursVraies[a.id])[0];
       if (valeursVraies[plusGrande.id] <= 1) break;
       valeursVraies[plusGrande.id]--;
@@ -1879,11 +1885,11 @@
     especes.forEach((e) => { for (let i = 0; i < valeursVraies[e.id]; i++) population.push(e.id); });
     population = melanger(population);
 
-    /* Consigne SÉQUENCÉE : à l'écran, l'énoncé se limite au contexte, et la
-       tâche du moment est portée par la légende d'étape, qui change quand
-       l'étape change. Six lignes de texte d'un coup ne se lisent pas au CP —
+    /* Consigne SÉQUENCÉE : à l’écran, l’énoncé se limite au contexte, et la
+       tâche du moment est portée par la légende d’étape, qui change quand
+       l’étape change. Six lignes de texte d’un coup ne se lisent pas au CP —
        et surtout, la moitié concernait une étape pas encore commencée. La
-       version lue à voix haute, elle, garde l'explication complète. */
+       version lue à voix haute, elle, garde l’explication complète. */
     zone.appendChild(creerBlocConsigne(
       'Dans une classe de ' + nbEleves + ' élèves, chacun a choisi son insecte préféré.',
       'Dans une classe de ' + nbEleves + ' élèves, chacun a choisi son insecte préféré. '
@@ -1920,7 +1926,7 @@
     tableauTally.appendChild(tbodyTally);
 
     /* Marques groupées par paquets de cinq (le cinquième barre le paquet) :
-       c'est le groupement qui rend le total dénombrable, sinon autant compter
+       c’est le groupement qui rend le total dénombrable, sinon autant compter
        les bêtes elles-mêmes une seconde fois. */
     function redessinerMarques(especeId) {
       const n = comptesActuels[especeId];
@@ -1954,7 +1960,7 @@
         comptesActuels[especeId]++;
         nbComptees++;
         redessinerMarques(especeId);
-        // Aucun total affiché ici : c'est justement ce que l'enfant doit trouver.
+        // Aucun total affiché ici : c’est justement ce que l’enfant doit trouver.
         if (nbComptees === population.length) ouvrirReport();
       });
       zonePopulation.appendChild(btn);
@@ -1966,15 +1972,15 @@
     zone.appendChild(zoneSaisie);
 
     /* ---- Étape B : report des totaux, puis UNE SEULE validation ----
-       Le pavé n'évalue rien : sa touche ✓ écrit la valeur dans la ligne active,
-       point. Tant que le bouton « Valider mes totaux » n'a pas été touché,
-       l'enfant peut revenir sur n'importe quelle case pour la corriger — une
+       Le pavé n’évalue rien : sa touche ✓ écrit la valeur dans la ligne active,
+       point. Tant que le bouton « Valider mes totaux » n’a pas été touché,
+       l’enfant peut revenir sur n’importe quelle case pour la corriger — une
        vérification ligne par ligne lui livrerait la réponse des lignes suivantes
        et transformerait le report en suite de mini-questions. */
     const saisies = {};
     let especeEnCours = null;
 
-    // Espace réservé d'emblée : le pavé et le bouton apparaissent à hauteur
+    // Espace réservé d’emblée : le pavé et le bouton apparaissent à hauteur
     // constante, sans décaler le tableau sous les doigts.
     const invite = document.createElement('p');
     invite.className = 'legende';
@@ -1995,7 +2001,7 @@
         const cell = cellulesTally[e.id].total;
         cell.classList.add('a-saisir');
         cell.textContent = '?';
-        // Une case déjà remplie reste cliquable : c'est ce qui permet de se
+        // Une case déjà remplie reste cliquable : c’est ce qui permet de se
         // corriger avant la validation unique.
         cell.addEventListener('click', () => {
           if (etat.verrouille) return;
@@ -2011,7 +2017,8 @@
     function choisirLigne(espece) {
       especeEnCours = espece;
       especes.forEach((e) => cellulesTally[e.id].total.classList.toggle('active', e.id === espece.id));
-      invite.textContent = 'Combien ' + deElision(espece.pluriel) + ' ' + espece.emoji + ' as-tu comptées ?';
+      invite.textContent = 'Combien ' + deElision(espece.pluriel) + ' ' + espece.emoji
+        + ' as-tu ' + accordePluriel('compté', espece.genre) + ' ?';
       pave.vider();
     }
 
@@ -2021,8 +2028,8 @@
       cell.textContent = String(valeur);
       cell.classList.remove('a-saisir');
       cell.classList.add('saisi');
-      // On enchaîne sur la première ligne encore vide ; s'il n'en reste aucune,
-      // on garde la ligne courante active pour qu'elle reste corrigeable.
+      // On enchaîne sur la première ligne encore vide ; s’il n’en reste aucune,
+      // on garde la ligne courante active pour qu’elle reste corrigeable.
       const restantes = especes.filter((e) => saisies[e.id] === undefined);
       if (restantes.length) {
         choisirLigne(restantes[0]);
@@ -2047,8 +2054,8 @@
       legendeEtape.textContent = reportJuste
         ? 'Bravo, tes totaux sont justes !'
         : 'Regarde bien : voici les bons totaux.';
-      /* La manche n'est acquise qu'au bout des deux écrans, mais compter juste
-         mérite d'être fêté ici même : sans cela, le seul retour d'une étape
+      /* La manche n’est acquise qu’au bout des deux écrans, mais compter juste
+         mérite d’être fêté ici même : sans cela, le seul retour d’une étape
          entièrement réussie serait une ligne de texte. */
       if (reportJuste) {
         lancerConfettis();
@@ -2080,11 +2087,11 @@
       zone.innerHTML = '';
       zone.appendChild(creerBlocConsigne(
         'Voici le tableau complet. Construis le diagramme : clique pour faire monter chaque barre à la bonne hauteur.',
-        'Clique dans une colonne pour faire monter la barre jusqu\'au total du tableau. Une case vaut une bête.'
+        'Clique dans une colonne pour faire monter la barre jusqu’au total du tableau. Une case vaut une bête.'
       ));
 
-      // Le tableau de référence porte les VRAIS totaux : l'enfant doit pouvoir
-      // construire le diagramme même s'il s'est trompé au report.
+      // Le tableau de référence porte les VRAIS totaux : l’enfant doit pouvoir
+      // construire le diagramme même s’il s’est trompé au report.
       const rappel = document.createElement('table');
       rappel.className = 'tableau-tally';
       rappel.innerHTML = '<thead><tr><th>Bête</th><th>Total</th></tr></thead>';
@@ -2122,7 +2129,7 @@
       boutonValider.addEventListener('click', () => {
         const diagrammeJuste = especes.every((e) => valeursDiagramme[e.id] === valeursVraies[e.id]);
         const enTexte = (source) => especes.map((e) => e.emoji + ' ' + source[e.id]).join('  ');
-        // La manche n'est acquise que si le comptage ET le diagramme sont bons.
+        // La manche n’est acquise que si le comptage ET le diagramme sont bons.
         validerTour(reportJuste && diagrammeJuste, boutonValider,
           diagrammeJuste
             ? (reportJuste ? null : { donnee: null, attendue: 'les totaux du tableau : ' + enTexte(valeursVraies) })
@@ -2135,24 +2142,24 @@
   /* ================================================================
      Mini-jeu : Le grand tableau — tableau à double entrée (CP)
 
-     L'ERREUR EST AUTORISÉE. Une version antérieure refusait le geste tant que
-     la case visée n'était pas la bonne : l'enfant ne pouvait pas se tromper,
+     L’ERREUR EST AUTORISÉE. Une version antérieure refusait le geste tant que
+     la case visée n’était pas la bonne : l’enfant ne pouvait pas se tromper,
      donc rien ne lui apprenait à croiser une ligne et une colonne — il lui
-     suffisait de taper les cases jusqu'à ce que l'une accepte. Ici tout objet
-     se pose où l'on veut ; c'est la VALIDATION qui trie, en marquant la case
+     suffisait de taper les cases jusqu’à ce que l’une accepte. Ici tout objet
+     se pose où l’on veut ; c’est la VALIDATION qui trie, en marquant la case
      fautive en rouge et la case attendue en vert (CHARTE §18), puis en rendant
-     au vivier les seuls objets mal rangés pour qu'ils soient replacés.
+     au vivier les seuls objets mal rangés pour qu’ils soient replacés.
 
      Deux étapes forment une même manche :
        1. ranger les objets, valider, corriger si besoin ;
        2. répondre à une question sur le tableau ainsi rempli.
-     La manche n'est acquise que si le rangement était juste DU PREMIER COUP
+     La manche n’est acquise que si le rangement était juste DU PREMIER COUP
      et la question bien répondue : la correction sert à comprendre, elle ne
      rattrape pas le score.
      ================================================================ */
 
   function genererTableauDoubleEntree(zone, cfg) {
-    /* Une paire d'objets par manche, tirée SANS REMISE : sur les trois manches
+    /* Une paire d’objets par manche, tirée SANS REMISE : sur les trois manches
        les trois paires sortent toutes, mais dans un ordre différent à chaque
        partie — le thème ne trahit donc jamais la difficulté à venir. */
     if (!etat.deckPaires || !etat.deckPaires.length) etat.deckPaires = melanger(donnees.pairesObjets);
@@ -2176,9 +2183,9 @@
     const teintePar = {};
     teintes.forEach((t) => { teintePar[t.id] = t; });
 
-    /* Étiquette vocale d'un objet : la couleur s'accorde avec son genre
-       (« une souris verte », « un seau vert »). C'est le seul texte que
-       rencontre un lecteur d'écran, le dessin n'en portant aucun. */
+    /* Étiquette vocale d’un objet : la couleur s’accorde avec son genre
+       (« une souris verte », « un seau vert »). C’est le seul texte que
+       rencontre un lecteur d’écran, le dessin n’en portant aucun. */
     function nommer(jeton) {
       const objet = objetPar[jeton.objetId];
       const teinte = teintePar[jeton.teinteId];
@@ -2198,18 +2205,18 @@
     let vivier = melanger(jetons);
     let premierEssaiJuste = true;
     let phase = 'rangement';
-    /* Un objet est sélectionné d'office, dès le départ puis après chaque pose :
+    /* Un objet est sélectionné d’office, dès le départ puis après chaque pose :
        le rangement devient une suite de clics DANS LE TABLEAU, sans aller-retour
        vers le vivier à chaque objet. */
     let selection = vivier[0] || null;
 
     /* Un glisser-déposer venant de se terminer produit un `click` de fin de
        geste : sans ce garde-fou, il rejouerait une sélection ou une reprise
-       par-dessus la dépose qu'il vient d'effectuer. On neutralise UN clic, celui
+       par-dessus la dépose qu’il vient d’effectuer. On neutralise UN clic, celui
        -là, et pas une fenêtre de temps : une fenêtre finirait par avaler le clic
-       délibéré d'un enfant rapide, et il n'y a aucune durée qui distingue les
-       deux de façon fiable. Le délai n'est qu'un filet, si aucun clic ne suit
-       (l'élément traîné ayant été redessiné entre-temps). */
+       délibéré d’un enfant rapide, et il n’y a aucune durée qui distingue les
+       deux de façon fiable. Le délai n’est qu’un filet, si aucun clic ne suit
+       (l’élément traîné ayant été redessiné entre-temps). */
     let clicASupprimer = false;
     function noterFinDeGlisse() {
       clicASupprimer = true;
@@ -2221,7 +2228,7 @@
       return true;
     }
 
-    // Consigne courte à l'écran (un CP ne lit pas six lignes), détail complet
+    // Consigne courte à l’écran (un CP ne lit pas six lignes), détail complet
     // dans la version lue à voix haute.
     zone.appendChild(creerBlocConsigne(
       'Range chaque objet dans sa case : sa sorte et sa couleur.',
@@ -2230,11 +2237,11 @@
     ));
 
     /* ---- Glisser-déposer, EN PLUS du clic ----
-       Les deux gestes cohabitent sans se gêner : tant que le doigt n'a pas
+       Les deux gestes cohabitent sans se gêner : tant que le doigt n’a pas
        parcouru le seuil, rien ne se passe et le `click` suit son cours normal
        (choisir un objet, ou le reprendre) ; au-delà du seuil, le geste devient
-       un déplacement et c'est le relâchement au-dessus d'une case qui pose
-       l'objet. Un enfant qui ne glisse jamais ne voit aucune différence. */
+       un déplacement et c’est le relâchement au-dessus d’une case qui pose
+       l’objet. Un enfant qui ne glisse jamais ne voit aucune différence. */
     const SEUIL_GLISSE_PX = 8;
 
     function cibleSous(x, y) {
@@ -2302,7 +2309,7 @@
       });
 
       // Doigt relevé hors zone, geste interrompu par le système, capture
-      // perdue : on remet tout d'aplomb sans rien déposer.
+      // perdue : on remet tout d’aplomb sans rien déposer.
       ['pointercancel', 'lostpointercapture'].forEach((type) => {
         el.addEventListener(type, () => {
           if (glisse) noterFinDeGlisse();
@@ -2328,11 +2335,11 @@
         btn.addEventListener('click', () => {
           if (phase !== 'rangement' || sortDunGlisse()) return;
           /* Toucher un objet le SÉLECTIONNE, toujours — jamais de bascule qui
-             le désélectionnerait. Depuis qu'un objet est choisi d'office, une
-             bascule piégeait le geste habituel « je touche l'objet puis la
-             case » : le premier appui annulait la sélection, et l'appui sur la
+             le désélectionnerait. Depuis qu’un objet est choisi d’office, une
+             bascule piégeait le geste habituel « je touche l’objet puis la
+             case » : le premier appui annulait la sélection, et l’appui sur la
              case ne faisait plus rien. Choisir un autre objet suffit à changer
-             d'avis. */
+             d’avis. */
           selection = jeton;
           rendreVivier();
         });
@@ -2348,8 +2355,8 @@
     const axeColonnes = objetsEnLignes ? teintes : objets;
     const cleDe = (ligneId, colonneId) => (objetsEnLignes ? ligneId + '|' + colonneId : colonneId + '|' + ligneId);
 
-    // En-tête d'axe : le dessin non peint pour une sorte, le nom écrit dans sa
-    // teinte pour une couleur — jamais de pastille posée à côté d'un objet.
+    // En-tête d’axe : le dessin non peint pour une sorte, le nom écrit dans sa
+    // teinte pour une couleur — jamais de pastille posée à côté d’un objet.
     function enteteAxe(item) {
       const bloc = document.createElement('div');
       bloc.className = 'entete-axe';
@@ -2419,13 +2426,13 @@
           if (phase !== 'rangement' || sortDunGlisse()) return;
           /* Une case déjà occupée finit par être entièrement recouverte par ses
              objets : sans cette bascule, viser une case pleine reviendrait à
-             vider l'un de ses objets au lieu d'en ajouter un. Un objet
-             sélectionné dans le vivier lève l'ambiguïté — le geste vise à
+             vider l’un de ses objets au lieu d’en ajouter un. Un objet
+             sélectionné dans le vivier lève l’ambiguïté — le geste vise à
              POSER ; sans sélection, il vise à reprendre. */
           if (selection) { deposer(cle); return; }
           enCellule[cle] = enCellule[cle].filter((j) => j !== jeton);
           vivier.push(jeton);
-          // L'objet repris reste « en main » : corriger un objet mal rangé se
+          // L’objet repris reste « en main » : corriger un objet mal rangé se
           // fait alors en deux gestes, le prendre puis toucher la bonne case.
           selection = jeton;
           effacerMarques();
@@ -2438,7 +2445,7 @@
       });
     }
 
-    /* Dépose LIBRE : n'importe quelle case accepte n'importe quel objet.
+    /* Dépose LIBRE : n’importe quelle case accepte n’importe quel objet.
        `jetonForce` sert au glisser-déposer, qui désigne son propre objet sans
        passer par la sélection. */
     function deposer(cle, jetonForce) {
@@ -2447,7 +2454,7 @@
       if (!jeton) return;
       selection = null;
       vivier = vivier.filter((j) => j !== jeton);
-      // Un objet venant d'une autre case (correction au glisser) la quitte.
+      // Un objet venant d’une autre case (correction au glisser) la quitte.
       cles.forEach((k) => {
         if (enCellule[k].indexOf(jeton) !== -1) {
           enCellule[k] = enCellule[k].filter((j) => j !== jeton);
@@ -2457,16 +2464,16 @@
       enCellule[cle].push(jeton);
       effacerMarques();
       rendreCellule(cle);
-      /* On enchaîne : l'objet suivant du vivier est sélectionné d'office, si
-         bien qu'un rangement se fait en une seule série de clics dans le
+      /* On enchaîne : l’objet suivant du vivier est sélectionné d’office, si
+         bien qu’un rangement se fait en une seule série de clics dans le
          tableau, sans revenir chercher chaque objet. */
       selection = vivier[0] || null;
       rendreVivier();
       jouerSon('tic');
     }
 
-    /* Glisser un objet déjà posé jusqu'au vivier l'en retire — pendant du
-       clic sur l'objet dans sa case (même effet, geste en plus). Sans objet
+    /* Glisser un objet déjà posé jusqu’au vivier l’en retire — pendant du
+       clic sur l’objet dans sa case (même effet, geste en plus). Sans objet
        à retirer (le jeton était déjà dans le vivier), rien ne se passe. */
     function remettreDansVivier(jeton) {
       if (phase !== 'rangement') return;
@@ -2487,7 +2494,7 @@
     }
 
     /* Toute manipulation efface la correction affichée — et remet le bouton
-       dans son rôle de validation : l'enfant qui a déjà repris lui-même ses
+       dans son rôle de validation : l’enfant qui a déjà repris lui-même ses
        objets ne doit pas pouvoir déclencher une reprise devenue caduque. */
     function effacerMarques() {
       note.textContent = '';
@@ -2530,7 +2537,7 @@
       if (roleBouton === 'replacer') { reprendreMalRanges(); return; }
       if (vivier.length) return;
 
-      // Tous les objets étant posés et chacun n'ayant qu'une case légitime,
+      // Tous les objets étant posés et chacun n’ayant qu’une case légitime,
       // « aucun intrus » équivaut à « tous les effectifs sont justes ».
       const intrus = [];
       cles.forEach((cle) => {
@@ -2552,8 +2559,8 @@
       }
 
       // CHARTE §18 : la case fautive en rouge, la case attendue en vert, et
-      // l'objet fautif lui-même entouré — sinon on saurait qu'une case est
-      // fausse sans savoir lequel de ses objets l'est.
+      // l’objet fautif lui-même entouré — sinon on saurait qu’une case est
+      // fausse sans savoir lequel de ses objets l’est.
       premierEssaiJuste = false;
       jouerSon('rate');
       intrus.forEach(({ jeton, depuis, rang }) => {
@@ -2567,8 +2574,8 @@
         : 'Ces ' + intrus.length + ' objets ne sont pas dans la bonne case : les cases vertes les attendent.';
       note.className = 'note-rangement erreur';
 
-      // On rend la main sur un geste explicite plutôt qu'au bout d'un délai :
-      // l'enfant garde le rouge et le vert sous les yeux le temps qu'il veut.
+      // On rend la main sur un geste explicite plutôt qu’au bout d’un délai :
+      // l’enfant garde le rouge et le vert sous les yeux le temps qu’il veut.
       malRanges = intrus;
       roleBouton = 'replacer';
       boutonValider.disabled = false;
@@ -2586,7 +2593,7 @@
       rendreVivier();
     }
 
-    /* ---- Étape 2 : une question sur le tableau qui vient d'être rempli ---- */
+    /* ---- Étape 2 : une question sur le tableau qui vient d’être rempli ---- */
     function poserQuestionFinale() {
       const cle = choisir(cles);
       const [objetId, teinteId] = cle.split('|');
@@ -2596,17 +2603,17 @@
       const enonce = 'Combien ' + deElision(objet.pluriel) + ' ' + groupe + ' y a-t-il dans le tableau ?';
 
       zoneQuestion.appendChild(creerBlocConsigne(enonce, enonce));
-      /* La case visée n'est PAS signalée pendant la question : la désigner
+      /* La case visée n’est PAS signalée pendant la question : la désigner
          reviendrait à répondre à la moitié de la question, qui est justement
-         de trouver l'intersection de la ligne et de la colonne. Elle n'est
-         révélée qu'une fois la réponse validée (CHARTE §18). */
+         de trouver l’intersection de la ligne et de la colonne. Elle n’est
+         révélée qu’une fois la réponse validée (CHARTE §18). */
 
       const pave = creerPave((valeur) => {
         pave.verrouiller(true);
         phase = 'termine';
         cellules[cle].td.classList.add('case-attendue');
         const juste = valeur === attendus[cle];
-        // Le rangement corrigé ne rattrape pas le score : l'erreur a déjà été
+        // Le rangement corrigé ne rattrape pas le score : l’erreur a déjà été
         // signalée et expliquée sur le tableau au moment où elle a eu lieu.
         validerTour(juste && premierEssaiJuste, null,
           juste ? null : { donnee: String(valeur), attendue: String(attendus[cle]) });
@@ -2621,8 +2628,8 @@
 
   /* ---- Le diagramme dont une barre manque ----
      Trois effectifs sont donnés en toutes lettres par le dessin, le total par
-     l'énoncé : la quatrième barre s'obtient par SOUSTRACTION, pas par lecture.
-     C'est le seul endroit du module où l'on construit une barre sans en
+     l’énoncé : la quatrième barre s’obtient par SOUSTRACTION, pas par lecture.
+     C’est le seul endroit du module où l’on construit une barre sans en
      connaître directement la valeur. */
   function genererDiagrammeACompleter(zone, cfg) {
     const coin = choisir(donnees.coinsJardin);
@@ -2697,19 +2704,19 @@
      2 totaux de colonne, 1 total général. Sept sont masqués.
 
      LE POINT DÉLICAT est le choix de ces sept cases. Retirer sept cases au
-     hasard produit très souvent un tableau que l'on ne peut plus finir sans
+     hasard produit très souvent un tableau que l’on ne peut plus finir sans
      poser un système à deux inconnues — hors de portée au CE2 — ou, pire, un
      tableau à plusieurs solutions. On procède donc en trois temps :
        1. fabriquer un tableau complet et cohérent ;
        2. masquer les cases UNE À UNE, en ne conservant un masquage que si le
           tableau reste entièrement retrouvable ;
-       3. la vérification du point 2 est faite par un solveur qui n'applique
-          qu'une seule règle, celle qu'un enfant emploie : « dans une ligne ou
-          une colonne où il ne manque qu'un seul nombre, ce nombre se calcule ».
+       3. la vérification du point 2 est faite par un solveur qui n’applique
+          qu’une seule règle, celle qu’un enfant emploie : « dans une ligne ou
+          une colonne où il ne manque qu’un seul nombre, ce nombre se calcule ».
           Si le solveur ne retrouve pas TOUT, le masquage est annulé.
      Un tableau accepté est donc, par construction, résoluble par déductions
      successives — et sa solution est unique, chaque déduction ne laissant
-     qu'une valeur possible. */
+     qu’une valeur possible. */
 
   const NB_COLONNES_DEDUCTION = 2;
 
@@ -2739,9 +2746,9 @@
     return c;
   }
 
-  /* Solveur « à la main » : tant qu'une contrainte n'a qu'une seule case
+  /* Solveur « à la main » : tant qu’une contrainte n’a qu’une seule case
      inconnue, cette case devient connue. Aucune résolution de système, aucun
-     essai-erreur — exactement le raisonnement attendu de l'enfant. */
+     essai-erreur — exactement le raisonnement attendu de l’enfant. */
   function casesRetrouvables(connues, contraintes) {
     const su = new Set(connues);
     const ordre = []; // ordre dans lequel les cases deviennent déductibles
@@ -2804,17 +2811,17 @@
       });
       if (cachees.size !== cfg.nbCachees) continue;
 
-      /* Un tableau où l'on ne masquerait que des totaux se réduirait à « fais
-         les additions » ; un tableau où l'on ne masquerait que des données se
+      /* Un tableau où l’on ne masquerait que des totaux se réduirait à « fais
+         les additions » ; un tableau où l’on ne masquerait que des données se
          priverait du raisonnement sur le total général. On exige les deux. */
       const cacheesDonnees = [...cachees].filter((k) => k.charAt(0) === 'd').length;
       const cacheesTotaux = cachees.size - cacheesDonnees;
       if (cacheesDonnees < 2 || cacheesTotaux < 2) continue;
 
-      /* Ordre dans lequel les cases deviennent déductibles : c'est celui qu'on
-         proposera à l'enfant. Ouvrir sur une case encore indéductible le
-         mettrait en échec d'entrée, alors que rien ne l'empêche par ailleurs de
-         choisir lui-même la case qu'il veut. */
+      /* Ordre dans lequel les cases deviennent déductibles : c’est celui qu’on
+         proposera à l’enfant. Ouvrir sur une case encore indéductible le
+         mettrait en échec d’entrée, alors que rien ne l’empêche par ailleurs de
+         choisir lui-même la case qu’il veut. */
       const ordre = casesRetrouvables(toutesCles.filter((k) => !cachees.has(k)), contraintes).ordre;
 
       return { valeurs, cachees, contraintes, toutesCles, nbLignes, ordre };
@@ -3016,7 +3023,7 @@
     const banque = [];
     const especeMax = especes.slice().sort((a, b) => valeurs[b.id] - valeurs[a.id])[0];
     const especeMin = especes.slice().sort((a, b) => valeurs[a.id] - valeurs[b.id])[0];
-    // Question max/min posée seulement si la réponse est SANS AMBIGUÏTÉ (pas d'égalité).
+    // Question max/min posée seulement si la réponse est SANS AMBIGUÏTÉ (pas d’égalité).
     if (especes.every((e) => e.id === especeMax.id || valeurs[e.id] < valeurs[especeMax.id])) {
       banque.push({
         cle: 'max',
@@ -3049,7 +3056,7 @@
           bonne: String(parZone[e.id][zones[0].id]),
           options: [String(parZone[e.id][zones[0].id]), String(parZone[e.id][zones[1].id]), String(parZone[e.id][zones[0].id] + 2), String(Math.max(0, parZone[e.id][zones[0].id] - 2))]
         });
-        // Question de comparaison posée seulement si les deux zones diffèrent (pas d'égalité ambiguë).
+        // Question de comparaison posée seulement si les deux zones diffèrent (pas d’égalité ambiguë).
         if (parZone[e.id][zones[0].id] !== parZone[e.id][zones[1].id]) {
           banque.push({
             cle: 'compare-' + e.id,
@@ -3117,10 +3124,10 @@
     const especes = especesListe(cfg.nbEspeces);
     /* Le second critère du tableau est la COULEUR de la bête, comme dans « Le
        grand tableau » : un critère qui se voit sur le dessin, là où des
-       tranches d'âge (« 3-5 jours ») ne se lisent nulle part et n'étaient
-       qu'une étiquette à recopier. */
+       tranches d’âge (« 3-5 jours ») ne se lisent nulle part et n’étaient
+       qu’une étiquette à recopier. */
     const teintes = melanger(donnees.teintes).slice(0, cfg.nbCouleurs);
-    const uniteParCase = choisir([2, 3]); // échelle d'axe adaptée : pas toujours de 1 en 1 (CHARTE, énoncé M39)
+    const uniteParCase = choisir([2, 3]); // échelle d’axe adaptée : pas toujours de 1 en 1 (CHARTE, énoncé M39)
 
     const valeursVraies = {};
     const totauxParEspece = {};
@@ -3194,8 +3201,8 @@
 </script>
 <script>
   /* Bouton « ← Menu » : retour à la coquille avec confirmation (CHARTE §7).
-     Script isolé du moteur de jeu : il n'agit que sur les éléments statiques
-     de la page (le « ← Menu » ne s'affiche que sur l'écran d'accueil). */
+     Script isolé du moteur de jeu : il n’agit que sur les éléments statiques
+     de la page (le « ← Menu » ne s’affiche que sur l’écran d’accueil). */
   (function () {
     var bouton = document.getElementById('bouton-menu');
     var modale = document.getElementById('modale-menu');

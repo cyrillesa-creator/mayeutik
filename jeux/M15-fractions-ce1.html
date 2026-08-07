@@ -11,16 +11,16 @@
 <style>
   /* ================================================================
      Protections tactiles obligatoires (CHARTE §19)
-     Deux comportements natifs du navigateur parasitent l'usage tactile d'un
+     Deux comportements natifs du navigateur parasitent l’usage tactile d’un
      jeu : le zoom au double-tap (deux appuis rapprochés sont un geste NORMAL
      ici — colorier puis décolorier une part, verser puis reprendre un verre)
      et la sélection native (surbrillance bleue, menu « copier / enregistrer
-     l'image » au maintien du doigt). On les neutralise à l'échelle de
-     l'interface, une bonne fois, plutôt qu'élément par élément.
+     l’image » au maintien du doigt). On les neutralise à l’échelle de
+     l’interface, une bonne fois, plutôt qu’élément par élément.
      ================================================================ */
 
-  /* `touch-action` ne s'hérite PAS : le sélecteur universel est le seul moyen
-     de couvrir toute l'interface. `manipulation` supprime le zoom au
+  /* `touch-action` ne s’hérite PAS : le sélecteur universel est le seul moyen
+     de couvrir toute l’interface. `manipulation` supprime le zoom au
      double-tap tout en laissant le défilement et le pincement. */
   * { touch-action: manipulation; }
 
@@ -28,17 +28,17 @@
      mises en page calculées au pixel (figures SVG). */
   html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
-  /* `user-select` et `-webkit-touch-callout`, eux, s'héritent : les poser sur
+  /* `user-select` et `-webkit-touch-callout`, eux, s’héritent : les poser sur
      body suffit à couvrir consignes, boutons, illustrations. */
   body {
     -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
   }
-  /* Pas de « fantôme » d'image traîné à la souris. */
+  /* Pas de « fantôme » d’image traîné à la souris. */
   img, svg, canvas { -webkit-user-drag: none; }
 
-  /* Les champs de saisie gardent sélection, curseur et menu d'édition. */
+  /* Les champs de saisie gardent sélection, curseur et menu d’édition. */
   input, textarea, select, [contenteditable="true"] {
     -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text;
     -webkit-touch-callout: default;
@@ -51,7 +51,7 @@
     --couleur-menthe: #4ECDC4;
     --couleur-corail: #FF6B6B;
     --couleur-soleil: #FFD93D;
-    /* Teintes propres à l'univers du pique-nique */
+    /* Teintes propres à l’univers du pique-nique */
     --choco-fonce: #6C3E21;
     --choco-clair: #8A5432;
     --choco-bord: #8A5A2B;
@@ -75,7 +75,7 @@
   button { font-family: inherit; cursor: pointer; }
   h1, h2, h3 { font-weight: 700; margin: 0 0 0.4rem; }
 
-  /* ---------- Écran d'accueil ---------- */
+  /* ---------- Écran d’accueil ---------- */
 
   #ecran-accueil { max-width: 640px; margin: 0 auto; padding: 1.2rem 1rem 2rem; }
   .entete-accueil { text-align: center; margin-bottom: 1.2rem; }
@@ -143,7 +143,7 @@
   .rangee-forme { display: flex; justify-content: center; margin: 0 0 0.6rem; }
 
   /* Barre de chocolat : carrés sécables dans leur emballage. Les carreaux
-     PRIS sont en chocolat, les autres montrent l'emballage clair — la part
+     PRIS sont en chocolat, les autres montrent l’emballage clair — la part
      prise est toujours la part saturée, sur toutes les formes du jeu. */
   .bande-choco {
     display: flex; width: 100%; max-width: 20rem; height: 2.6rem;
@@ -153,7 +153,7 @@
   .carre-choco { flex: 1; border-right: 2px solid var(--choco-bord); background: var(--emballage); position: relative; padding: 0; }
   .carre-choco:last-child { border-right: none; }
   .carre-choco.rempli { background: linear-gradient(135deg, var(--choco-clair), var(--choco-fonce)); }
-  /* Reflet du carré de chocolat — c'est lui qui « fait vrai ». */
+  /* Reflet du carré de chocolat — c’est lui qui « fait vrai ». */
   .carre-choco.rempli::after {
     content: ''; position: absolute; left: 14%; top: 14%; width: 36%; height: 22%;
     border-radius: 40%; background: rgba(255,255,255,0.26);
@@ -213,7 +213,7 @@
   .slot-frac.correct { border-color: var(--couleur-menthe); border-style: solid; background: color-mix(in srgb, var(--couleur-menthe) 35%, white); }
   .slot-frac.incorrect { border-color: var(--couleur-corail); border-style: solid; background: color-mix(in srgb, var(--couleur-corail) 30%, white); }
   .barre-frac { width: 3.4rem; height: 3px; background: var(--couleur-encre); margin: 5px 0; border-radius: 2px; }
-  /* Vocabulaire officiel à côté des cases : le mot en face de la case qu'il nomme. */
+  /* Vocabulaire officiel à côté des cases : le mot en face de la case qu’il nomme. */
   .vocab-cotes { display: flex; flex-direction: column; justify-content: space-between; align-self: stretch; text-align: left; padding: 0.2rem 0; }
   .vocab-cotes span { font-size: 0.72rem; font-weight: 600; opacity: 0.8; max-width: 9.5rem; }
 
@@ -396,7 +396,7 @@
 
 <div id="confettis-conteneur" aria-hidden="true"></div>
 
-<!-- ---------- Écran d'accueil ---------- -->
+<!-- ---------- Écran d’accueil ---------- -->
 <main id="ecran-accueil">
   <div class="barre-accueil">
     <button type="button" class="bouton-menu" id="bouton-menu">← Menu</button>
@@ -411,7 +411,7 @@
 <!-- ---------- Écran de jeu ---------- -->
 <main id="ecran-jeu" hidden>
   <div class="entete-jeu">
-    <button class="bouton-retour" id="bouton-retour" aria-label="Retour à l'accueil">←</button>
+    <button class="bouton-retour" id="bouton-retour" aria-label="Retour à l’accueil">←</button>
     <div class="entete-jeu-titres">
       <h2 id="titre-jeu-courant"></h2>
       <div class="progression" id="progression-jeu"></div>
@@ -472,16 +472,16 @@
     "1/10": "un dixième"
   },
   "messagesFeedback": {
-    "bravo": ["Bravo !", "Super !", "Génial !", "Exact, bien joué !", "C'est ça !", "Parfait !", "Trop fort !"],
+    "bravo": ["Bravo !", "Super !", "Génial !", "Exact, bien joué !", "C’est ça !", "Parfait !", "Trop fort !"],
     "rate": ["Pas tout à fait...", "Essaie encore la prochaine fois !", "Pas cette fois, courage !", "Regarde bien la correction."]
   },
   "jeux": [
     { "id": "partage-egal", "titre": "Le bon partage", "icone": "🍰", "couleur": "mandarine", "description": "Trouve le partage en parts égales et compte les parts.", "nbQuestions": 5 },
     { "id": "lire-ecrire", "titre": "La part du pique-nique", "icone": "✏️", "couleur": "menthe", "description": "Colorie, lis et écris des fractions.", "nbQuestions": 5 },
     { "id": "contenances", "titre": "La bouteille de limonade", "icone": "🍋", "couleur": "soleil", "description": "Verse des fractions de bouteille dans les verres.", "nbQuestions": 5 },
-    { "id": "representations", "titre": "Les portraits de la fraction", "icone": "🖼️", "couleur": "corail", "description": "Retrouve toutes les images d'une même fraction.", "nbQuestions": 5 },
+    { "id": "representations", "titre": "Les portraits de la fraction", "icone": "🖼️", "couleur": "corail", "description": "Retrouve toutes les images d’une même fraction.", "nbQuestions": 5 },
     { "id": "comparer-ce1", "titre": "La plus grande part", "icone": "⚖️", "couleur": "menthe", "description": "Compare les parts : qui en a le plus ?", "nbQuestions": 5 },
-    { "id": "calculer-ce1", "titre": "Les comptes du goûter", "icone": "➕", "couleur": "mandarine", "description": "Ajoute et enlève des parts, complète jusqu'à 1.", "nbQuestions": 5 }
+    { "id": "calculer-ce1", "titre": "Les comptes du goûter", "icone": "➕", "couleur": "mandarine", "description": "Ajoute et enlève des parts, complète jusqu’à 1.", "nbQuestions": 5 }
   ]
 }
 </script>
@@ -675,7 +675,7 @@
   }
 
   /* ---------- Composant sonore partagé (CHARTE §5) ----------
-     Mêmes sons dans toute la série, générés à l'oscillateur : aucun fichier
+     Mêmes sons dans toute la série, générés à l’oscillateur : aucun fichier
      audio, donc aucune dépendance réseau. */
 
   let contexteAudio = null;
@@ -747,7 +747,7 @@
 
   /* Choix de la voix : on préfère les voix de qualité déjà installées
      (« Enhanced », « Premium », « Neural »...) à la voix par défaut, très
-     mécanique. Tout reste local, aucun service distant n'est appelé. */
+     mécanique. Tout reste local, aucun service distant n’est appelé. */
   const VOIX_QUALITE = /(enhanced|premium|neural|natural|siri|wavenet|studio)/i;
   const VOIX_FR_SOIGNEES = /(am[ée]lie|thomas|audrey|aur[ée]lie|c[ée]line|marie)/i;
   const DEBIT_VOIX = 0.92;
@@ -829,12 +829,12 @@
             u2.rate = DEBIT_VOIX;
             u2.pitch = HAUTEUR_VOIX;
             window.speechSynthesis.speak(u2);
-          } catch (e2) { /* on renonce : la consigne reste lisible à l'écran */ }
+          } catch (e2) { /* on renonce : la consigne reste lisible à l’écran */ }
         };
       }
       window.speechSynthesis.speak(u);
     } catch (e) {
-      // synthèse vocale indisponible : la consigne reste lisible à l'écran.
+      // synthèse vocale indisponible : la consigne reste lisible à l’écran.
     }
   }
 
@@ -867,8 +867,8 @@
     }
   }
 
-  /* Navigation automatique après un délai (CHARTE §20) : 2 s après l'affichage
-     du bouton « Suivant », on avance sans attendre le clic de l'enfant. Un
+  /* Navigation automatique après un délai (CHARTE §20) : 2 s après l’affichage
+     du bouton « Suivant », on avance sans attendre le clic de l’enfant. Un
      clic manuel ou une sortie du jeu annulent ce minuteur. */
   const DELAI_AUTO_SUIVANT = 2000;
   let minuteurAutoSuivant = null;
@@ -959,7 +959,7 @@
 
   /*
    * Tarte SVG : croûte dorée + parts en quartiers. `options` :
-   *  - angles : liste d'angles en degrés (parts INÉGALES ; somme = 360) ;
+   *  - angles : liste d’angles en degrés (parts INÉGALES ; somme = 360) ;
    *  - rotation : angle de départ (représentation « tournée », toujours valide) ;
    *  - interactive : parts cliquables ;
    *  - mangees : indices de parts grisées (soustractions).
@@ -1001,7 +1001,7 @@
           jouerSon('tic');
         });
       }
-      // La baie au centre de la part garnie : c'est la garniture qui dit
+      // La baie au centre de la part garnie : c’est la garniture qui dit
       // « cette part est prise », en plus de la couleur.
       const aMid = (a0 + a1) / 2 * Math.PI / 180;
       const baie = elSvg('circle', {
@@ -1102,7 +1102,7 @@
 
   /* Géométrie du corps : la zone graduée va de ZONE_HAUT à ZONE_BAS ; le
      niveau k/d remplit k parts de cette hauteur. Les épaules et le goulot ne
-     comptent pas — la « bouteille » du jeu, c'est son corps gradué. */
+     comptent pas — la « bouteille » du jeu, c’est son corps gradué. */
   const BTL_HAUT = 82;
   const BTL_BAS = 238;
   const BTL_X = 33;
@@ -1118,14 +1118,14 @@
     const svg = elSvg('svg', { viewBox: '0 0 120 250', class: 'bouteille-svg' });
     svg.setAttribute('aria-hidden', 'true');
 
-    // Liquide d'abord (sous le verre de la bouteille, translucide par-dessus).
+    // Liquide d’abord (sous le verre de la bouteille, translucide par-dessus).
     const zoneH = BTL_BAS - BTL_HAUT;
     let niveau = (niveauInitial === undefined) ? denom : niveauInitial;
     const liquide = elSvg('rect', { x: BTL_X, y: 0, width: BTL_LARG, height: 0, fill: 'var(--limonade)' });
     // Le COMPLÉMENT (mini-jeu « Les comptes du goûter ») : une seconde teinte,
-    // posée par-dessus le niveau initial, qui monte jusqu'au bouchon pour
+    // posée par-dessus le niveau initial, qui monte jusqu’au bouchon pour
     // montrer que a/d + manque/d = d/d = 1 — la bouteille se voit se remplir
-    // entièrement, dans une couleur qui n'est pas celle du niveau de départ.
+    // entièrement, dans une couleur qui n’est pas celle du niveau de départ.
     const complement = elSvg('rect', { x: BTL_X, y: BTL_BAS, width: BTL_LARG, height: 0, fill: 'var(--couleur-mandarine)', opacity: 0.85 });
     const vague = elSvg('ellipse', { cx: 60, cy: 0, rx: BTL_LARG / 2, ry: 4, fill: 'color-mix(in srgb, var(--limonade) 70%, white)' });
     svg.appendChild(liquide);
@@ -1175,7 +1175,7 @@
     poserComplement(0, 0);
 
     // Fait monter le complément de `bas` (le niveau déjà là) à `haut` parts —
-    // typiquement jusqu'au bouchon (denom), pour la manche du complément à 1.
+    // typiquement jusqu’au bouchon (denom), pour la manche du complément à 1.
     function animerComplement(bas, haut, onFini) {
       animer(550, (p) => poserComplement(bas, bas + (haut - bas) * p), onFini);
     }
@@ -1213,7 +1213,7 @@
      ================================================================ */
 
   /* Les 12 touches du pavé diégétique partagé (l'« écran » varie selon
-     l'usage : case de comptage, cases numérateur/dénominateur). */
+     l’usage : case de comptage, cases numérateur/dénominateur). */
   function creerTouchesPave(onTouche) {
     const conteneur = document.createElement('div');
     conteneur.className = 'pave-numerique';
@@ -1234,7 +1234,7 @@
   }
 
   /*
-   * Saisie d'une fraction : deux cases (numérateur, dénominateur) et le pavé.
+   * Saisie d’une fraction : deux cases (numérateur, dénominateur) et le pavé.
    * `options` :
    *  - denominateurFixe : le dénominateur est affiché, seule la case du haut se remplit ;
    *  - legendes : affiche le vocabulaire officiel en face de chaque case ;
@@ -1314,7 +1314,7 @@
       jouerSon('tic');
       // Sélection automatique du dénominateur une fois le numérateur rempli —
       // seulement la première fois (d encore vide), pour ne pas gêner une
-      // correction ultérieure du numérateur. Toucher l'une ou l'autre case
+      // correction ultérieure du numérateur. Toucher l’une ou l’autre case
       // reste possible à tout moment pour la corriger (cf. écouteurs de clic
       // sur slotN/slotD ci-dessus).
       if (actif === 'n' && !opts.denominateurFixe && valeurs.d === '') { actif = 'd'; rafraichir(); }
@@ -1331,7 +1331,7 @@
     };
   }
 
-  /* Saisie d'un nombre seul (compter des parts). */
+  /* Saisie d’un nombre seul (compter des parts). */
   function creerSaisieNombre(onValider) {
     const cont = document.createElement('div');
     const ligne = document.createElement('div');
@@ -1444,12 +1444,12 @@
   }
 
   /* `correction` (facultatif) = { donnee, attendue } : affiché uniquement en
-     cas d'erreur, sous le message de feedback (CHARTE §18).
+     cas d’erreur, sous le message de feedback (CHARTE §18).
      `options` (facultatif) = { message, silencieux } :
        - message : remplace le message tiré au hasard dans messagesFeedback,
          utile quand un mini-jeu veut commenter une combinaison précise
-         (ex. « bon partage, mauvais compte ») plutôt qu'un bravo générique ;
-       - silencieux : n'émet ni son ni confettis ici — utilisé par les
+         (ex. « bon partage, mauvais compte ») plutôt qu’un bravo générique ;
+       - silencieux : n’émet ni son ni confettis ici — utilisé par les
          mini-jeux à DEUX sous-réponses (ex. Le bon partage), qui ont déjà
          donné leur propre retour sonore/visuel à chaque sous-étape et ne
          veulent pas le rejouer une seconde fois à la validation finale. */
@@ -1501,7 +1501,7 @@
     rejouer.addEventListener('click', () => demarrerJeu(cfg.id));
     const accueilBtn = document.createElement('button');
     accueilBtn.className = 'bouton-secondaire';
-    accueilBtn.textContent = "Retour à l'accueil";
+    accueilBtn.textContent = "Retour à l’accueil";
     accueilBtn.addEventListener('click', retourAccueil);
     boutons.appendChild(rejouer);
     boutons.appendChild(accueilBtn);
@@ -1519,8 +1519,8 @@
      ================================================================ */
 
   /* Une découpe INÉGALE de d parts : largeurs (bande) ou angles (tarte)
-     visiblement différents — l'écart minimal entre la plus petite et la plus
-     grande part est imposé, sinon l'inégalité ne se voit pas à l'œil. */
+     visiblement différents — l’écart minimal entre la plus petite et la plus
+     grande part est imposé, sinon l’inégalité ne se voit pas à l'œil. */
   function decoupeInegale(d, total) {
     for (let essai = 0; essai < 60; essai++) {
       let poids = [];
@@ -1543,7 +1543,7 @@
   }
 
   function genererPartage(zone, cfg) {
-    // Progression fixe par position : petits dénominateurs d'abord.
+    // Progression fixe par position : petits dénominateurs d’abord.
     const d = etat.index <= 2 ? choisir([2, 3, 4]) : choisir([5, 6, 8]);
     const type = choisir(['bande', 'tarte']);
     // Nombre de parts du second piège : proche de d mais différent.
@@ -1595,7 +1595,7 @@
           ouvrirComptage();
         } else {
           // CHARTE §18 : la découpe fautive en rouge, la bonne en vert, et
-          // l'explication de ce qui cloche. On enchaîne quand même sur le
+          // l’explication de ce qui cloche. On enchaîne quand même sur le
           // comptage, à faire sur la BONNE découpe.
           jouerSon('rate');
           explication.textContent = 'Regarde : dans ce partage, les parts ne sont pas toutes pareilles. Le partage vert, lui, est équitable.';
@@ -1634,7 +1634,7 @@
         } else {
           jouerSon('rate');
         }
-        // La manche n'est acquise que si LES DEUX sous-réponses sont justes,
+        // La manche n’est acquise que si LES DEUX sous-réponses sont justes,
         // mais le commentaire final distingue les deux cas de réussite
         // partielle plutôt que de les noyer dans un « rate » générique — les
         // sons/confettis ont déjà été joués par sous-réponse, on ne les
@@ -1663,8 +1663,8 @@
 
   function genererLireEcrire(zone, cfg) {
     // Progression fixe par position (CHARTE §13 : la difficulté ne dépend pas
-    // du tirage) : unitaires d'abord, puis non unitaires, grands dénominateurs
-    // en fin de partie. Le TYPE d'activité alterne : écrire, mot, colorier.
+    // du tirage) : unitaires d’abord, puis non unitaires, grands dénominateurs
+    // en fin de partie. Le TYPE d’activité alterne : écrire, mot, colorier.
     const ordreTypes = ['ecrire', 'mot', 'colorier', 'ecrire', 'colorier'];
     const typeActivite = ordreTypes[etat.index - 1];
     const forme = choisir(['bande', 'tarte', 'brownie']);
@@ -1731,7 +1731,7 @@
       zone.appendChild(rangee);
       rangee.appendChild(creerForme(forme, dMot, nMot).el);
 
-      // Distracteurs : d'autres noms de la banque, tous distincts.
+      // Distracteurs : d’autres noms de la banque, tous distincts.
       const autres = melanger(cles.filter((c) => c !== cle)).slice(0, 3);
       const brutes = [donnees.nomsCourants[cle]].concat(autres.map((c) => donnees.nomsCourants[c]));
       const { options, indexCorrect } = melangerOptions(brutes, 0);
@@ -1794,7 +1794,7 @@
     /* Manche 1 (« la moitié ») : partager la bouteille en SEULEMENT deux
        verres ferait tenir la moitié entière dans un seul verre — une portion
        énorme, peu réaliste pour un verre. On partage donc en quatre verres
-       plus petits et on demande d'en remplir deux sur quatre : le volume
+       plus petits et on demande d’en remplir deux sur quatre : le volume
        versé reste exactement la moitié de la bouteille, mais réparti dans des
        verres de taille crédible. */
     if (manche === 1) { d = 4; cible = 2; }
@@ -1852,7 +1852,7 @@
         if (etat.verrouille || animationEnCours || !modeVerser) return;
         if (verre.estPlein()) {
           // Reprendre un verre : la limonade retourne dans la bouteille — le
-          // geste d'annulation le plus naturel qui soit pour un enfant.
+          // geste d’annulation le plus naturel qui soit pour un enfant.
           animationEnCours = true;
           verre.setPlein(false);
           bouteille.setNiveau(bouteille.niveau() + 1, true, () => { animationEnCours = false; });
@@ -1899,7 +1899,7 @@
         bouton.disabled = true;
         if (!juste) {
           // CHARTE §18 : on MONTRE le bon état — les verres et la bouteille
-          // rejoignent d'eux-mêmes la bonne réponse.
+          // rejoignent d’eux-mêmes la bonne réponse.
           verres.forEach((v, i) => v.setPlein(i < cible));
           bouteille.setNiveau(d - cible, true);
           validerReponse(false, { donnee: verse + '/' + d, attendue: cible + '/' + d });
@@ -1989,8 +1989,8 @@
 
     /* Construction des 6 cartes : 2 ou 3 bonnes (formes variées, dont parfois
        une tarte TOURNÉE — toujours valide, la fraction ne dépend pas de
-       l'orientation), 1 piège « parts inégales » (n parts prises sur d parts
-       inégales : ce n'est PAS n/d), et des fractions différentes pour remplir. */
+       l’orientation), 1 piège « parts inégales » (n parts prises sur d parts
+       inégales : ce n’est PAS n/d), et des fractions différentes pour remplir. */
     const nbBonnes = choisir([2, 3]);
     const formesBonnes = melanger(['bande', 'tarte', 'brownie', 'tarte-tournee']).slice(0, nbBonnes);
     const cartes = [];
@@ -2091,8 +2091,8 @@
     /* Manches 1-3 : même dénominateur (on compare les numérateurs).
        Manches 4-5 : fractions UNITAIRES (plus le dénominateur est grand, plus
        la part est petite — le cas contre-intuitif visé par le programme).
-       Une manche d'ÉGALITÉ est garantie par partie : son numéro est tiré au
-       début et mémorisé dans l'état du jeu. */
+       Une manche d’ÉGALITÉ est garantie par partie : son numéro est tiré au
+       début et mémorisé dans l’état du jeu. */
     if (!etat.memoire.mancheEgalite) etat.memoire.mancheEgalite = nombreAleatoire(1, cfg.nbQuestions);
     const egalite = etat.index === etat.memoire.mancheEgalite;
     const unitaire = etat.index >= 4;
@@ -2185,8 +2185,8 @@
     zone.appendChild(reponses);
 
     /* LA PREUVE PAR SUPERPOSITION (note du backlog : « parts superposables »).
-       Les deux parts se posent l'une au-dessus de l'autre, alignées à gauche,
-       à la même échelle : on VOIT laquelle dépasse — ou qu'aucune ne dépasse. */
+       Les deux parts se posent l’une au-dessus de l’autre, alignées à gauche,
+       à la même échelle : on VOIT laquelle dépasse — ou qu’aucune ne dépasse. */
     function montrerSuperposition() {
       const bloc = document.createElement('div');
       bloc.className = 'zone-superposition';
@@ -2223,7 +2223,7 @@
 
   function genererCalculer(zone, cfg) {
     /* Les types de manche sont tirés UNE fois par partie puis consommés dans
-       l'ordre : deux additions, une soustraction, deux compléments — mélangés
+       l’ordre : deux additions, une soustraction, deux compléments — mélangés
        (CHARTE §13), donc jamais le même déroulé deux parties de suite. */
     if (!etat.memoire.typesCalcul) {
       etat.memoire.typesCalcul = melanger(['addition', 'soustraction', 'complement', 'addition', 'complement']);
@@ -2360,8 +2360,8 @@
         const juste = nSaisi === manque;
         saisie.marquer(juste, true);
         // La bouteille se remplit entièrement à la validation : le complément
-        // (la vraie valeur, pas la réponse de l'enfant) monte dans une AUTRE
-        // couleur jusqu'au bouchon, pour VOIR que a/d + manque/d = d/d = 1.
+        // (la vraie valeur, pas la réponse de l’enfant) monte dans une AUTRE
+        // couleur jusqu’au bouchon, pour VOIR que a/d + manque/d = d/d = 1.
         bouteille.animerComplement(a, d, () => {
           const legende = document.createElement('p');
           legende.className = 'legende';
@@ -2384,7 +2384,7 @@
 </script>
 <script>
   /* Bouton « ← Menu » : retour à la coquille avec confirmation (CHARTE §7).
-     Script isolé du moteur de jeu : il n'agit que sur les éléments statiques
+     Script isolé du moteur de jeu : il n’agit que sur les éléments statiques
      de la page. */
   (function () {
     var bouton = document.getElementById('bouton-menu');

@@ -1,24 +1,24 @@
 /*
- * Mayeutik — calcul des statuts d'acquisition (échelle LSU).
+ * Mayeutik — calcul des statuts d’acquisition (échelle LSU).
  *
  * Module PUR : aucune dépendance DOM ni stockage. Il reçoit des sessions
  * brutes (contrat de données v1, CHARTE.md section 11) et le référentiel,
  * et calcule les statuts À LA LECTURE — les statuts ne sont jamais stockés.
  *
- * Script classique (pas d'ESM) pour rester chargeable sans build ni serveur ;
- * expose l'espace de noms global `MayeutikStatuts`. L'enveloppe accepte aussi
+ * Script classique (pas d’ESM) pour rester chargeable sans build ni serveur ;
+ * expose l’espace de noms global `MayeutikStatuts`. L’enveloppe accepte aussi
  * `globalThis` pour permettre des tests unitaires sous Node.
  */
 (function (global) {
   'use strict';
 
   /*
-   * Seuils de l'échelle (CHARTE.md section 11). Ce sont des PARAMÈTRES de la
+   * Seuils de l’échelle (CHARTE.md section 11). Ce sont des PARAMÈTRES de la
    * coquille : on peut les ajuster ici sans toucher aux données des jeux.
    */
   const SEUILS = {
     tauxPartiel: 0.5,          // une session ≥ 50 % → au moins « Partiellement atteints »
-    tauxAtteint: 0.8,          // score minimal d'une session comptant pour « Atteints »
+    tauxAtteint: 0.8,          // score minimal d’une session comptant pour « Atteints »
     nbSessionsAtteint: 3,      // nombre de sessions ≥ tauxAtteint requises
     nbJoursDistinctsAtteint: 2, // ... réparties sur au moins N jours distincts
     tauxDepasse: 1.0,          // « Dépassés » : dernières sessions à 100 %...
@@ -45,7 +45,7 @@
     return session.score / session.total;
   }
 
-  /* Jour local (AAAA-MM-JJ) d'une date ISO — pour le critère « jours distincts ». */
+  /* Jour local (AAAA-MM-JJ) d’une date ISO — pour le critère « jours distincts ». */
   function jourLocal(iso) {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return null;
@@ -60,11 +60,11 @@
 
   /*
    * Bandes de lecture officielles (fiches Repères, PRODUIT.md) : quand une
-   * compétence en déclare dans le référentiel ET qu'une session d'évaluation
+   * compétence en déclare dans le référentiel ET qu’une session d’évaluation
    * existe, la bande de la DERNIÈRE évaluation prime sur les seuils
    * génériques. Format attendu dans le référentiel :
    *   "bandes": { "nonAtteints": [0, 4], "partiellement": [5, 6], "atteints": [7, 10] }
-   * (bornes incluses, sur le score brut). « Dépassés » n'est pas couvert par
+   * (bornes incluses, sur le score brut). « Dépassés » n’est pas couvert par
    * les bandes officielles : il reste calculé par les seuils génériques.
    */
   function statutDepuisBandes(bandes, session) {
@@ -77,7 +77,7 @@
   }
 
   /*
-   * Statut d'UNE compétence à partir de ses sessions (déjà filtrées par
+   * Statut d’UNE compétence à partir de ses sessions (déjà filtrées par
    * profil et par compétence).
    *
    * options :
@@ -106,7 +106,7 @@
     }
 
     // « Objectifs non atteints » : des sessions existent, mais aucune
-    // n'atteint 50 % (c'est la lecture cohérente avec le critère
+    // n’atteint 50 % (c’est la lecture cohérente avec le critère
     // « Partiellement » = au moins une session ≥ 50 %).
     const auMoinsUnePartielle = triees.some((s) => tauxReussite(s) >= SEUILS.tauxPartiel);
     if (!auMoinsUnePartielle) return PAR_ID['non-atteints'];
@@ -121,9 +121,9 @@
   }
 
   /*
-   * « Dépassés » : critères « atteints » remplis (vérifiés par l'appelant) +
+   * « Dépassés » : critères « atteints » remplis (vérifiés par l’appelant) +
    * les N dernières sessions de la variante la plus difficile sont à 100 %.
-   * Si une variante difficile est déclarée mais n'a jamais été jouée, la
+   * Si une variante difficile est déclarée mais n’a jamais été jouée, la
    * compétence ne peut pas être « Dépassés ».
    */
   function estDepassee(sessionsTriees, options) {
@@ -138,7 +138,7 @@
   }
 
   /*
-   * Analyse complète d'un profil : croise le référentiel et les sessions.
+   * Analyse complète d’un profil : croise le référentiel et les sessions.
    *
    * Retourne :
    *  - competences : une entrée par compétence du référentiel (filtrée par
@@ -161,12 +161,12 @@
     (referentiel.modules || []).forEach((module) => {
       // Entrées de BACKLOG (module planifié, sans fichier de jeu) : elles vivent
       // dans le référentiel pour le pilotage, mais ne peuvent produire aucune
-      // session. On les exclut de l'analyse pour ne pas polluer les radars et
-      // les recommandations d'axes « Non travaillé » qui ne progresseront jamais.
+      // session. On les exclut de l’analyse pour ne pas polluer les radars et
+      // les recommandations d’axes « Non travaillé » qui ne progresseront jamais.
       if (!module.fichier) return;
       // Un module adaptatif par niveau (CHARTE.md §15) déclare `niveaux` (tableau)
-      // en plus de `niveau` (niveau d'intro) : il compte pour CHACUN des niveaux
-      // qu'il couvre, pas seulement son niveau d'intro.
+      // en plus de `niveau` (niveau d’intro) : il compte pour CHACUN des niveaux
+      // qu’il couvre, pas seulement son niveau d’intro.
       const niveauxModule = module.niveaux || [module.niveau];
       if (filtreNiveau && niveauxModule.indexOf(filtreNiveau) === -1) return;
       (module.competences || []).forEach((comp) => {
@@ -212,8 +212,8 @@
   }
 
   /*
-   * « Lecture du résultat » d'UNE compétence (fiche détail, PRODUIT.md) :
-   * PAS une performance ponctuelle (« X bonnes réponses aujourd'hui »), mais
+   * « Lecture du résultat » d’UNE compétence (fiche détail, PRODUIT.md) :
+   * PAS une performance ponctuelle (« X bonnes réponses aujourd’hui »), mais
    * la place de la répétition dans le temps — sur combien de dernières
    * parties, et sur combien de jours distincts. Une session est « réussie »
    * au même seuil que celui qui compte pour le statut « Atteints ».
@@ -239,11 +239,11 @@
   }
 
   /*
-   * Courbe de progression temporelle d'UNE compétence (PRODUIT.md, complément
+   * Courbe de progression temporelle d’UNE compétence (PRODUIT.md, complément
    * du radar instantané) : taux de réussite regroupé par semaine. En dessous
    * de 3 semaines distinctes (données trop éparses pour une courbe
    * hebdomadaire lisible), on regroupe par session plutôt que par semaine.
-   * En dessous de 3 sessions au total, il n'y a pas de tendance à montrer.
+   * En dessous de 3 sessions au total, il n’y a pas de tendance à montrer.
    */
   function courbeProgression(sessions) {
     if (!sessions || sessions.length < 3) return { assezDeDonnees: false, points: [] };
@@ -281,7 +281,7 @@
   }
 
   /*
-   * Recommandations (PRODUIT.md) : d'abord les compétences « à consolider »
+   * Recommandations (PRODUIT.md) : d’abord les compétences « à consolider »
    * (Objectifs non atteints), puis « en cours » (Partiellement atteints),
    * chaque groupe trié de la plus ancienne à la plus récente dernière partie.
    */

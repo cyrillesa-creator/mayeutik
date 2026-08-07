@@ -11,6 +11,18 @@ const ok = (c, m, x) => { console.log((c ? 'OK   ' : '✗    ') + m, x === undef
 /* Extraction par ÉQUILIBRAGE des accolades : la fonction tient parfois sur une
    seule ligne (M01), et un `}` peut apparaître dans un littéral de gabarit —
    une regex paresseuse s'arrêterait trop tôt. */
+function extraireFonction(src, nom) {
+  const debut = src.indexOf('function ' + nom);
+  if (debut === -1) return null;
+  let i = src.indexOf('{', debut), niveau = 0, fin = -1;
+  for (let j = i; j < src.length; j++) {
+    if (src[j] === '{') niveau++;
+    else if (src[j] === '}') { niveau--; if (niveau === 0) { fin = j; break; } }
+  }
+  if (fin === -1) return null;
+  return new Function(src.slice(debut, fin + 1) + '; return ' + nom + ';')();
+}
+
 function extraireDeElision(src) {
   const debut = src.indexOf('function deElision');
   if (debut === -1) return null;
@@ -39,7 +51,7 @@ function donneesJSON(src) {
   for (const table of [json.especes, json.objets]) {
     for (const id of Object.keys(table)) {
       const e = table[id];
-      enonces.push('Combien ' + de(e.pluriel) + ' ' + (e.emoji || '') + ' as-tu comptées ?');
+      enonces.push('Combien ' + de(e.pluriel) + ' ' + (e.emoji || '') + ' dans le tableau ?');
     }
   }
   const mauvais = enonces.filter(t => violations(t, 'M39').length);
@@ -63,7 +75,7 @@ function donneesJSON(src) {
   const mauvais = enonces.filter(t => violations(t, 'M01').length);
   ok(mauvais.length === 0, `M01 : ${enonces.length} consignes produites sur les vrais univers, toutes correctes`, mauvais);
   // Épreuve de robustesse : un mot à voyelle ajouté demain doit s'élider seul.
-  ok(de('abeilles').startsWith("d'") && de('étoiles').startsWith("d'") && de('bonbons') === 'de bonbons',
+  ok(de('abeilles').startsWith('d\u2019') && de('étoiles').startsWith('d\u2019') && de('bonbons') === 'de bonbons',
     "M01 : un futur mot à voyelle s'élidera automatiquement",
     [de('abeilles'), de('étoiles'), de('bonbons')]);
 }
@@ -78,6 +90,52 @@ function donneesJSON(src) {
   const mauvais = enonces.filter(t => violations(t, 'M36').length);
   ok(mauvais.length === 0, 'M36 : les 4 libellés comptés produisent un énoncé correct', mauvais);
   console.log('     ex. : ' + enonces.join('  |  '));
+}
+
+// ---------- ACCORD : le participe suit le genre de la donnée ----------
+/* Le défaut typique : « Combien d’oiseaux as-tu comptéES ? ». On produit
+   l'énoncé pour CHAQUE espèce et on vérifie que la terminaison correspond au
+   genre déclaré — un masculin ajouté demain dans une table jusque-là toute
+   féminine ferait ressortir la faute ici. */
+for (const [nom, fichier, gabarit] of [
+  ['M39', 'M39-tableaux-diagrammes.html',
+    (de, ac, e) => 'Combien ' + de(e.pluriel) + ' ' + (e.emoji || '') + ' as-tu ' + ac('compté', e.genre) + ' ?'],
+  ['M01', 'M01-nombres-jusqu-9-cp.html',
+    (de, ac, e) => 'Combien ' + de(e.pluriel) + ' as-tu ' + ac('compté', e.genre) + ' ? Appuie sur le bon nombre.']
+]) {
+  const src = fs.readFileSync('/home/user/mayeutik/jeux/' + fichier, 'utf8');
+  const de = extraireDeElision(src);
+  const ac = extraireFonction(src, 'accordePluriel');
+  ok(!!ac, `${nom} : accordePluriel présent dans le fichier`);
+  ok(/as-tu '? *\+? *accordePluriel|as-tu \$\{accordePluriel/.test(src),
+    `${nom} : l'invite de comptage accorde le participe`);
+  const json = donneesJSON(src);
+  const especes = Object.values(json.especes || {});
+  ok(especes.every(e => e.genre === 'm' || e.genre === 'f'),
+    `${nom} : toutes les espèces déclarent un genre`,
+    especes.filter(e => !e.genre).map(e => e.singulier));
+  const mauvais = [];
+  especes.forEach(e => {
+    const t = gabarit(de, ac, e);
+    const feminin = /comptées/.test(t);
+    if (feminin !== (e.genre === 'f')) mauvais.push(t + '   (genre ' + e.genre + ')');
+    if (violations(t, nom).length) mauvais.push('élision : ' + t);
+  });
+  ok(mauvais.length === 0, `${nom} : ${especes.length} énoncés de comptage, élision ET accord corrects`, mauvais);
+  console.log('     ex. : ' + especes.slice(0, 2).map(e => gabarit(de, ac, e)).join('  |  '));
+}
+
+// ---------- TYPOGRAPHIE : apostrophe droite bannie des textes ----------
+{
+  const LETTRE = 'A-Za-zÀ-ÖØ-öø-ÿ';
+  const restes = [];
+  for (const f of fs.readdirSync('/home/user/mayeutik/jeux').filter(n => n.endsWith('.html'))) {
+    const src = fs.readFileSync('/home/user/mayeutik/jeux/' + f, 'utf8');
+    const re = new RegExp(`[${LETTRE}]'[${LETTRE}]`, 'g');
+    const m = src.match(re);
+    if (m) restes.push(f + ' : ' + m.slice(0, 3).join(', '));
+  }
+  ok(restes.length === 0, "Typographie : apostrophe typographique ’ partout dans les jeux", restes);
 }
 
 console.log(echecs === 0 ? '\nTOUT OK' : `\n${echecs} PROBLÈME(S)`);

@@ -9,11 +9,11 @@
  *
  * ATTENTION au format de mayeutik-profil-actif : les jeux (M01, M17, M36)
  * lisent la valeur brute de localStorage, sans JSON.parse. La coquille doit
- * donc y écrire l'id nu ("p1"), jamais une chaîne JSON ("\"p1\"").
+ * donc y écrire l’id nu ("p1"), jamais une chaîne JSON ("\"p1\"").
  *
  * La coquille ne fait que LIRE les sessions (ce sont les jeux qui les
  * écrivent) ; elle est en revanche seule responsable des profils.
- * Expose l'espace de noms global `MayeutikProfils`.
+ * Expose l’espace de noms global `MayeutikProfils`.
  */
 (function (global) {
   'use strict';
@@ -26,7 +26,7 @@
   /*
    * Cache mémoire = source de vérité pour la session en cours (CHARTE.md §9).
    * `null` = pas encore lu. invaliderCache() force une relecture : nécessaire
-   * au retour d'un jeu (le jeu a écrit de nouvelles sessions pendant que la
+   * au retour d’un jeu (le jeu a écrit de nouvelles sessions pendant que la
    * coquille était en cache de navigation).
    */
   let cache = { profils: null, profilActif: null, sessions: null };
@@ -74,8 +74,8 @@
   }
 
   /*
-   * Le premier profil créé prend l'id "p1" : c'est l'id par défaut qu'utilisent
-   * les jeux quand aucun profil n'existe, donc les sessions jouées AVANT la
+   * Le premier profil créé prend l’id "p1" : c’est l’id par défaut qu’utilisent
+   * les jeux quand aucun profil n’existe, donc les sessions jouées AVANT la
    * création du premier profil lui sont automatiquement rattachées.
    */
   function prochainId(profils) {
@@ -117,11 +117,11 @@
   }
 
   /*
-   * Modifie le prénom, le niveau et/ou l'icône d'un profil existant (id et
+   * Modifie le prénom, le niveau et/ou l’icône d’un profil existant (id et
    * date de création conservés). `icone` est optionnel (4ᵉ argument) : vaut
    * 'initiale' | 'initiales' | un emoji littéral ; omis (undefined), le
-   * champ existant n'est pas touché. Renvoie le profil mis à jour, ou null
-   * s'il n'existe pas. Écriture via le pattern « stockage sûr ».
+   * champ existant n’est pas touché. Renvoie le profil mis à jour, ou null
+   * s’il n’existe pas. Écriture via le pattern « stockage sûr ».
    */
   function modifierProfil(id, prenom, niveau, icone) {
     const profils = lireProfils();
@@ -162,7 +162,7 @@
 
   function definirProfilActif(id) {
     cache.profilActif = id;
-    ecrireBrut(CLE_PROFIL_ACTIF, id); // chaîne brute, cf. commentaire d'en-tête
+    ecrireBrut(CLE_PROFIL_ACTIF, id); // chaîne brute, cf. commentaire d’en-tête
   }
 
   function profilActif() {

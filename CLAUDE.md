@@ -34,17 +34,52 @@ ont déjà un, à reprendre tel quel :
 
 ```js
 function deElision(mot){
-  return /^[aeiouyàâäéèêëïîôöùûü]/i.test(mot) ? "d'" + mot : "de " + mot;
+  return /^[aeiouyàâäéèêëïîôöùûü]/i.test(mot) ? "d’" + mot : "de " + mot;
 }
 // `Combien ${deElision(libelle)} a ${solide.nom} ?`  et NON  `Combien de ${libelle} …`
 ```
 
-Vaut aussi pour l'article défini (`l'arbre` / `le camion` — cf.
-`nommerAvecArticle` dans M23) et pour l'accord en genre et en nombre des mots
-qui entourent la variable.
+Vaut aussi pour l'article défini (`l’arbre` / `le camion` — cf.
+`nommerAvecArticle` dans M23).
+
+## Langue : accord en genre et en nombre
+
+Même piège, même cause : un mot **accordable** placé près d'une variable doit
+être calculé à partir de la donnée, jamais figé. Défaut déjà rencontré :
+« Combien d’oiseaux as-tu **comptées** ? ».
+
+Cas à surveiller dans un gabarit :
+
+- **participe passé** avec le COD placé avant (« combien d’escargots as-tu
+  compt**és** ? » / « d’abeilles as-tu compt**ées** ? ») ;
+- **article et adjectif** qui encadrent la variable (`le`/`la`, `un`/`une`,
+  `tous`/`toutes`, `quel`/`quelle`) ;
+- **singulier / pluriel** quand la quantité est variable (`n > 1 ? pluriel :
+  singulier` — cf. M01 « Fais glisser exactement 1 escargot »).
+
+Toute table de données décrivant un nom commun porte donc un champ **`genre`**
+(`"m"` / `"f"`) et, quand les deux formes servent, `singulier` et `pluriel` :
+
+```js
+{"emoji":"🐌","singulier":"escargot","pluriel":"escargots","genre":"m"}
+
+function accordePluriel(base, genre){ return base + (genre === 'f' ? 'es' : 's'); }
+// `… as-tu ${accordePluriel('compté', espece.genre)} ?`
+```
+
+## Langue : contrôle et typographie
 
 À contrôler **à chaque fois qu'une série de questions est créée ou modifiée**,
 en générant les énoncés et en les relisant, pas seulement en lisant le gabarit :
-c'est la donnée qui révèle le défaut. Le script
-`scratchpad/lint_elision_runtime.js` fait ce balayage (chaînes littérales +
-énoncés produits à l'exécution).
+c'est la donnée qui révèle le défaut — un mot masculin ajouté demain dans une
+table qui n'en contenait aucun fait apparaître la faute.
+
+Deux outils versionnés :
+
+- `outils/lint-elision.js` — balaie les chaînes littérales de tous les jeux ;
+- `outils/verif-elision-gabarits.js` — applique les gabarits aux **vraies**
+  données et relit les énoncés produits (élision **et** accord).
+
+Typographie : **apostrophe typographique `’` partout** dans les textes affichés
+(et dans les chaînes JS qui les composent), jamais l'apostrophe droite `'`,
+réservée aux délimiteurs de chaîne et aux identifiants.

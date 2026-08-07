@@ -1,13 +1,13 @@
 /*
- * Mayeutik — radar (toile d'araignée) en SVG pur, sans librairie externe.
+ * Mayeutik — radar (toile d’araignée) en SVG pur, sans librairie externe.
  *
  * Utilisé par le tableau de bord parental (PRODUIT.md) :
  *  - radar de synthèse à 4 axes (les domaines) ;
  *  - radars détaillés par compétence (8 axes maximum par radar).
  *
- * Module d'affichage pur : il reçoit des axes déjà calculés (libellé +
+ * Module d’affichage pur : il reçoit des axes déjà calculés (libellé +
  * valeur radiale 0..4) et rend un élément SVG responsive. Aucune logique
- * métier ici. Expose l'espace de noms global `MayeutikRadar`.
+ * métier ici. Expose l’espace de noms global `MayeutikRadar`.
  */
 (function (global) {
   'use strict';
@@ -20,7 +20,7 @@
     return e;
   }
 
-  /* Point (x, y) pour l'axe i (sur n), à la distance d du centre. Axe 0 en haut. */
+  /* Point (x, y) pour l’axe i (sur n), à la distance d du centre. Axe 0 en haut. */
   function point(cx, cy, n, i, d) {
     const angle = -Math.PI / 2 + (i * 2 * Math.PI) / n;
     return { x: cx + d * Math.cos(angle), y: cy + d * Math.sin(angle) };
@@ -29,7 +29,7 @@
   /*
    * Enveloppe un libellé sur plusieurs lignes (découpe aux espaces), SANS
    * jamais tronquer : le texte complet est toujours présent. `maxLignes`
-   * borne le nombre de lignes ; si atteint, les mots restants s'accumulent
+   * borne le nombre de lignes ; si atteint, les mots restants s’accumulent
    * sur la dernière ligne (toujours pas de troncature).
    */
   function envelopper(texte, maxParLigne, maxLignes) {
@@ -47,7 +47,7 @@
     return lignes.length ? lignes : [''];
   }
 
-  /* ---------- Bulle d'aide (tooltip) : survol desktop + appui long tactile ---------- */
+  /* ---------- Bulle d’aide (tooltip) : survol desktop + appui long tactile ---------- */
 
   let infoBulleEl = null;
   function obtenirInfoBulle() {
@@ -83,7 +83,7 @@
   }
 
   /*
-   * Rend une cible (libellé ou point d'axe) porteuse d'une bulle d'aide :
+   * Rend une cible (libellé ou point d’axe) porteuse d’une bulle d’aide :
    *  - desktop : affichage au survol (mouseenter/mousemove), masquage à la sortie ;
    *  - tactile : appui long (~350 ms) SANS bloquer le défilement — les écouteurs
    *    sont passifs (aucun preventDefault) et un déplacement du doigt annule.
@@ -115,7 +115,7 @@
    *  - axes : [{ libelle, valeur, sousLibelle? }] — valeur dans [0, max]
    *  - max : valeur radiale maximale (défaut 4, échelle LSU)
    *  - onClicAxe(index) : rend les libellés cliquables (radar de synthèse)
-   *  - indexActif : index d'axe mis en évidence (domaine sélectionné)
+   *  - indexActif : index d’axe mis en évidence (domaine sélectionné)
    */
   function dessiner(options) {
     const axes = options.axes || [];
@@ -133,8 +133,8 @@
     });
 
     /*
-     * Bandes concentriques par niveau de l'échelle LSU (1..max), couleur
-     * PLATE par bande — dans l'esprit des radars des évaluations Repères
+     * Bandes concentriques par niveau de l’échelle LSU (1..max), couleur
+     * PLATE par bande — dans l’esprit des radars des évaluations Repères
      * (anneaux successifs, pas un dégradé continu). Les couleurs sont
      * exactement celles des badges de statut (index.html, .statut-*) :
      * .radar-bande-N reprend la même formule color-mix que .statut-* pour
@@ -142,7 +142,7 @@
      *
      * Dessinées de la plus grande (niveau max) à la plus petite (niveau 1) :
      * chaque bande plus petite recouvre le centre de la précédente, ce qui
-     * crée visuellement l'anneau par simple empilement (peintre), sans
+     * crée visuellement l’anneau par simple empilement (peintre), sans
      * calcul de découpe de forme annulaire.
      */
     for (let k = max; k >= 1; k--) {
@@ -167,7 +167,7 @@
 
       // Libellé COMPLET : enveloppé sur autant de lignes que nécessaire (jamais
       // tronqué), avec une police réduite pour les libellés longs afin de tenir
-      // dans l'espace tout en restant lisible.
+      // dans l’espace tout en restant lisible.
       const lignes = envelopper(axe.libelle, 16, 4);
       const longueurMax = lignes.reduce((m, l) => Math.max(m, l.length), 0);
       let taille = 10.5;
@@ -213,7 +213,7 @@
         class: 'radar-valeurs'
       }));
     } else if (n === 2) {
-      // Cas dégénéré (2 axes) : un segment plutôt qu'un polygone.
+      // Cas dégénéré (2 axes) : un segment plutôt qu’un polygone.
       svg.appendChild(el('line', {
         x1: ptsValeurs[0].x, y1: ptsValeurs[0].y,
         x2: ptsValeurs[1].x, y2: ptsValeurs[1].y,
@@ -235,8 +235,8 @@
   /*
    * Découpe une liste de compétences en radars de 8 axes maximum
    * (PRODUIT.md : « au-delà on scinde en plusieurs radars »). On regroupe
-   * par module pour que chaque radar reste lisible : les compétences d'un
-   * même module restent ensemble tant qu'elles tiennent dans la limite.
+   * par module pour que chaque radar reste lisible : les compétences d’un
+   * même module restent ensemble tant qu’elles tiennent dans la limite.
    */
   function scinderEnRadars(competences, maxAxes) {
     maxAxes = maxAxes || 8;
@@ -265,7 +265,7 @@
     return radars;
   }
 
-  /* Date courte (« 20 juil. ») à partir d'une date AAAA-MM-JJ (lundi de semaine ou jour de session). */
+  /* Date courte (« 20 juil. ») à partir d’une date AAAA-MM-JJ (lundi de semaine ou jour de session). */
   function formaterDateCourte(dateStr) {
     const d = new Date(dateStr + 'T00:00:00');
     if (isNaN(d.getTime())) return dateStr;
@@ -313,7 +313,7 @@
       svg.appendChild(el('path', { d: chemin, class: 'courbe-ligne' }));
     }
 
-    // N'affiche pas tous les libellés si les points sont nombreux (lisibilité).
+    // N’affiche pas tous les libellés si les points sont nombreux (lisibilité).
     const pas = n > 6 ? Math.ceil(n / 6) : 1;
     points.forEach((p, i) => {
       const c = xy(i, p.taux);

@@ -11,19 +11,19 @@
 <style>
   /* ================================================================
      Protections tactiles obligatoires (CHARTE §19)
-     Deux comportements natifs du navigateur parasitent l'usage tactile d'un
+     Deux comportements natifs du navigateur parasitent l’usage tactile d’un
      jeu : le zoom au double-tap (deux appuis rapprochés sont un geste NORMAL
      ici — remplir puis vider une case, corriger une saisie) et la sélection
-     native (surbrillance bleue, menu « copier / enregistrer l'image » au
-     maintien du doigt). On les neutralise à l'échelle de l'interface, une
-     bonne fois, plutôt qu'élément par élément.
+     native (surbrillance bleue, menu « copier / enregistrer l’image » au
+     maintien du doigt). On les neutralise à l’échelle de l’interface, une
+     bonne fois, plutôt qu’élément par élément.
      ================================================================ */
 
-  /* `touch-action` ne s'hérite PAS : le sélecteur universel est le seul moyen
-     de couvrir toute l'interface. `manipulation` supprime le zoom au
+  /* `touch-action` ne s’hérite PAS : le sélecteur universel est le seul moyen
+     de couvrir toute l’interface. `manipulation` supprime le zoom au
      double-tap tout en laissant le défilement et le pincement — les gestes à
      deux doigts pilotés en JS (rotation de la règle mobile de M23) restent
-     donc intacts, d'autant qu'ils déclarent eux-mêmes `touch-action:none`,
+     donc intacts, d’autant qu’ils déclarent eux-mêmes `touch-action:none`,
      plus spécifique que `*`. */
   * { touch-action: manipulation; }
 
@@ -31,7 +31,7 @@
      mises en page calculées au pixel (règles graduées, figures SVG). */
   html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
-  /* `user-select` et `-webkit-touch-callout`, eux, s'héritent : les poser sur
+  /* `user-select` et `-webkit-touch-callout`, eux, s’héritent : les poser sur
      body suffit à couvrir consignes, boutons, illustrations et éléments
      glissables. */
   body {
@@ -39,11 +39,11 @@
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
   }
-  /* Pas de « fantôme » d'image traîné à la souris par-dessus un glisser-déposer. */
+  /* Pas de « fantôme » d’image traîné à la souris par-dessus un glisser-déposer. */
   img, svg, canvas { -webkit-user-drag: none; }
 
-  /* Les champs de saisie gardent sélection, curseur et menu d'édition : les
-     en priver rendrait la correction d'une valeur impossible. La série en
+  /* Les champs de saisie gardent sélection, curseur et menu d’édition : les
+     en priver rendrait la correction d’une valeur impossible. La série en
      compte deux (décomposition m/dm/cm de M23, cellule manquante de M39). */
   input, textarea, select, [contenteditable="true"] {
     -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text;
@@ -225,19 +225,19 @@
   .traits-connexion{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
   .trait-connexion{ stroke-width:4; stroke-linecap:round; }
   /* Trait en cours de tracé : légèrement transparent et pointillé, pour se
-     distinguer d'un lien déjà établi tant que le doigt n'a pas relâché. */
+     distinguer d’un lien déjà établi tant que le doigt n’a pas relâché. */
   .trait-en-cours{ stroke-width:4; stroke-linecap:round; opacity:.75; stroke-dasharray:7 5; }
   /* Élément survolé pendant un tracé (carte ou étiquette, selon le sens du
-     geste) : l'enfant voit où son trait va se poser avant de relâcher. */
+     geste) : l’enfant voit où son trait va se poser avant de relâcher. */
   .etiquette-nombre.cible-survolee, .carte-etiquetage.cible-survolee{ transform:scale(1.06); border-color:var(--couleur-mandarine);
     box-shadow:0 0 0 3px color-mix(in srgb, var(--couleur-mandarine) 35%, transparent); }
   /* `touch-action:none` sur les deux colonnes : le tracé au doigt peut partir
-     d'une carte de gauche OU d'une étiquette de droite (règle générale pour
+     d’une carte de gauche OU d’une étiquette de droite (règle générale pour
      tout jeu reprenant cette logique de liaison bidirectionnelle), et le
      navigateur ne doit jamais le confondre avec un défilement (cf.
      gelerDefilement). */
   .carte-etiquetage, .etiquette-nombre{ touch-action:none; }
-  /* Élément d'où part le tracé en cours. */
+  /* Élément d’où part le tracé en cours. */
   .carte-etiquetage.trace-depart, .etiquette-nombre.trace-depart{ border-color:var(--couleur-mandarine); }
   .carte-etiquetage, .etiquette-nombre{
     min-height:3.6rem; border-radius:16px; border:2.5px solid var(--couleur-encre); background:#ffffff;
@@ -303,7 +303,7 @@
     touch-action:none; cursor:grab; user-select:none; border-radius:50%;
   }
   .bete-draggable.en-glisse{ cursor:grabbing; filter:drop-shadow(0 6px 6px rgba(43,43,43,.25)); }
-  /* Page figée le temps d'un glisser-déposer (cf. gelerDefilement). */
+  /* Page figée le temps d’un glisser-déposer (cf. gelerDefilement). */
   html.glisse-en-cours, html.glisse-en-cours body{ overflow:hidden; touch-action:none; overscroll-behavior:none; }
   .carte-parade{
     position:relative; width:4.2rem; height:4.2rem;
@@ -389,7 +389,7 @@
 
 <main id="ecran-jeu" hidden>
   <div class="entete-jeu">
-    <button class="bouton-retour" id="bouton-retour" aria-label="Retour à l'accueil">←</button>
+    <button class="bouton-retour" id="bouton-retour" aria-label="Retour à l’accueil">←</button>
     <div class="entete-jeu-titres">
       <h2 id="titre-jeu-courant"></h2>
       <div class="progression" id="progression-jeu"></div>
@@ -415,12 +415,12 @@
   "titre": "Le Jardin des Petites Bêtes",
   "sousTitre": "Compte, compare et range les habitants du jardin !",
   "especes": {
-    "coccinelle": {"emoji":"🐞","singulier":"coccinelle","pluriel":"coccinelles"},
-    "escargot": {"emoji":"🐌","singulier":"escargot","pluriel":"escargots"},
-    "papillon": {"emoji":"🦋","singulier":"papillon","pluriel":"papillons"},
-    "abeille": {"emoji":"🐝","singulier":"abeille","pluriel":"abeilles"},
-    "fleur": {"emoji":"🌸","singulier":"fleur","pluriel":"fleurs"},
-    "fraise": {"emoji":"🍓","singulier":"fraise","pluriel":"fraises"}
+    "coccinelle": {"emoji":"🐞","singulier":"coccinelle","pluriel":"coccinelles","genre":"f"},
+    "escargot": {"emoji":"🐌","singulier":"escargot","pluriel":"escargots","genre":"m"},
+    "papillon": {"emoji":"🦋","singulier":"papillon","pluriel":"papillons","genre":"m"},
+    "abeille": {"emoji":"🐝","singulier":"abeille","pluriel":"abeilles","genre":"f"},
+    "fleur": {"emoji":"🌸","singulier":"fleur","pluriel":"fleurs","genre":"f"},
+    "fraise": {"emoji":"🍓","singulier":"fraise","pluriel":"fraises","genre":"f"}
   },
   "universComparer": [
     {"contenant":"boîte","article":"la","emoji":"🍬","mot":"bonbons"},
@@ -435,7 +435,7 @@
   ],
   "especesAutantQue": ["fleur","fraise","coccinelle","papillon"],
   "messagesFeedback": {
-    "bravo": ["Bravo !", "Super !", "Génial !", "Bien joué !", "C'est ça !", "Trop fort !"],
+    "bravo": ["Bravo !", "Super !", "Génial !", "Bien joué !", "C’est ça !", "Trop fort !"],
     "rate": ["Presque !", "Essaie encore la prochaine fois !", "Pas cette fois, courage !", "Regarde bien."]
   },
   "jeux": [
@@ -444,7 +444,7 @@
     { "id": "comparer", "titre": "Plus, moins, autant", "icone": "⚖️", "couleur": "soleil", "description": "Choisis le bon contenant.", "nbQuestions": 6 },
     { "id": "constituer", "titre": "Le compte est juste", "icone": "🐝", "couleur": "corail", "description": "Fais glisser le bon nombre de bêtes.", "nbQuestions": 6 },
     { "id": "autant-que", "titre": "Autant que le modèle", "icone": "🌸", "couleur": "mandarine", "description": "Complète pour avoir autant, un de plus ou un de moins.", "nbQuestions": 6 },
-    { "id": "ranger", "titre": "La parade des escargots", "icone": "🐌", "couleur": "menthe", "description": "Range la parade dans l'ordre demandé, croissant ou décroissant !", "nbQuestions": 6 }
+    { "id": "ranger", "titre": "La parade des escargots", "icone": "🐌", "couleur": "menthe", "description": "Range la parade dans l’ordre demandé, croissant ou décroissant !", "nbQuestions": 6 }
   ]
 }
 </script>
@@ -467,7 +467,11 @@
     return copie;
   }
   const maj = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-  function deElision(mot) { return /^[aeiouyàâäéèêëïîôöùûü]/i.test(mot) ? `d'${mot}` : `de ${mot}`; }
+  function deElision(mot) { return /^[aeiouyàâäéèêëïîôöùûü]/i.test(mot) ? `d’${mot}` : `de ${mot}`; }
+  /* Accord du participe passé avec le COD placé AVANT le verbe : « combien
+     d’escargots as-tu comptés ? » mais « combien d’abeilles as-tu comptées ? ».
+     Le genre vient de la donnée (champ `genre`), jamais deviné du mot. */
+  function accordePluriel(base, genre) { return base + (genre === 'f' ? 'es' : 's'); }
 
   /* ---------- Étoiles : stockage sûr (mémoire + localStorage best-effort) ---------- */
 
@@ -603,7 +607,7 @@
     return contexteAudio;
   }
   /* ---------- Composant sonore partagé (CHARTE §5) ----------
-     Mêmes sons dans toute la série, générés à l'oscillateur : aucun fichier
+     Mêmes sons dans toute la série, générés à l’oscillateur : aucun fichier
      audio, donc aucune dépendance réseau. */
 
   /* Une note pure, avec une attaque douce et une extinction exponentielle —
@@ -633,10 +637,10 @@
     NOTES_BONNE_REPONSE.forEach((f, i) => jouerNote(ctx, f, t0 + i * 0.11, 0.11, 0.22));
   }
 
-  /* FIN DE NIVEAU PARFAITE (3 étoiles) : même famille sonore, pour qu'on la
-     reconnaisse, mais nettement plus ample — l'arpège monte deux notes plus
-     haut, puis se pose sur un accord tenu (~1.4 s en tout). C'est la durée et
-     l'accord final, plus que la hauteur, qui le rendent perceptiblement plus
+  /* FIN DE NIVEAU PARFAITE (3 étoiles) : même famille sonore, pour qu’on la
+     reconnaisse, mais nettement plus ample — l’arpège monte deux notes plus
+     haut, puis se pose sur un accord tenu (~1.4 s en tout). C’est la durée et
+     l’accord final, plus que la hauteur, qui le rendent perceptiblement plus
      marquant que la bonne réponse ponctuelle. */
   const NOTES_NIVEAU_PARFAIT = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
   const ACCORD_NIVEAU_PARFAIT = [523.25, 659.25, 783.99, 1046.5]; // do majeur tenu
@@ -647,8 +651,8 @@
     const t0 = ctx.currentTime;
     const pas = 0.1;
     NOTES_NIVEAU_PARFAIT.forEach((f, i) => jouerNote(ctx, f, t0 + i * pas, 0.12, 0.2));
-    // Accord final, plus doux que les notes de l'arpège pour ne pas saturer :
-    // quatre voix simultanées s'additionnent.
+    // Accord final, plus doux que les notes de l’arpège pour ne pas saturer :
+    // quatre voix simultanées s’additionnent.
     const tAccord = t0 + NOTES_NIVEAU_PARFAIT.length * pas + 0.04;
     ACCORD_NIVEAU_PARFAIT.forEach((f) => jouerNote(ctx, f, tAccord, 0.75, 0.12, 'triangle'));
   }
@@ -660,7 +664,7 @@
     [392.0, 293.66].forEach((f, i) => jouerNote(ctx, f, t0 + i * 0.17, 0.17, 0.22));
   }
 
-  /* Clic discret de manipulation (pose d'un jeton, d'un lien...). */
+  /* Clic discret de manipulation (pose d’un jeton, d’un lien...). */
   function sonTic() {
     let ctx;
     try { ctx = obtenirContexteAudio(); } catch (e) { return; }
@@ -683,20 +687,20 @@
      très mécanique. Or la plupart des appareils embarquent aussi des voix de
      bien meilleure facture, gratuites et DÉJÀ INSTALLÉES : « Enhanced » et
      « Premium » sur iOS/macOS, « Neural »/« Natural » sur Windows et Android.
-     On les repère à leur nom et on les préfère. Tout reste local : rien n'est
-     téléchargé, aucun service distant n'est appelé (cf. autonomie des jeux). */
+     On les repère à leur nom et on les préfère. Tout reste local : rien n’est
+     téléchargé, aucun service distant n’est appelé (cf. autonomie des jeux). */
   const VOIX_QUALITE = /(enhanced|premium|neural|natural|siri|wavenet|studio)/i;
   // Voix françaises réputées les plus agréables selon les plateformes, quand
-  // aucun marqueur de qualité n'apparaît dans le nom.
+  // aucun marqueur de qualité n’apparaît dans le nom.
   const VOIX_FR_SOIGNEES = /(am[ée]lie|thomas|audrey|aur[ée]lie|c[ée]line|marie)/i;
 
-  /* Débit légèrement ralenti : la consigne s'adresse à un enfant qui ne lit pas
-     encore, et un débit posé fait plus pour le naturel perçu que n'importe quel
+  /* Débit légèrement ralenti : la consigne s’adresse à un enfant qui ne lit pas
+     encore, et un débit posé fait plus pour le naturel perçu que n’importe quel
      autre réglage. La HAUTEUR reste à sa valeur naturelle (1) : la déplacer est
-     appliqué comme une transformation par-dessus la voix, et c'est le réglage
-     qui risque le plus de réintroduire le côté métallique qu'on cherche
-     justement à supprimer. Les deux valeurs sont ici pour être ajustées d'un
-     seul endroit si l'oreille en décide autrement. */
+     appliqué comme une transformation par-dessus la voix, et c’est le réglage
+     qui risque le plus de réintroduire le côté métallique qu’on cherche
+     justement à supprimer. Les deux valeurs sont ici pour être ajustées d’un
+     seul endroit si l’oreille en décide autrement. */
   const DEBIT_VOIX = 0.92;
   const HAUTEUR_VOIX = 1;
 
@@ -764,7 +768,7 @@
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(texte);
       u.lang = 'fr-FR';
-      // Aucune voix française trouvée : on s'en remet au navigateur via `lang`,
+      // Aucune voix française trouvée : on s’en remet au navigateur via `lang`,
       // exactement comme avant — la consigne reste lue, sans erreur.
       const voix = voixPreferee();
       if (voix) {
@@ -774,8 +778,8 @@
       u.rate = DEBIT_VOIX;
       u.pitch = HAUTEUR_VOIX;
       // Voix distante injoignable (hors ligne) : on relit UNE fois avec la
-      // meilleure voix embarquée. On ignore les erreurs d'interruption, qui
-      // signalent seulement qu'une lecture a été coupée par la suivante.
+      // meilleure voix embarquée. On ignore les erreurs d’interruption, qui
+      // signalent seulement qu’une lecture a été coupée par la suivante.
       if (voix && voix.localService === false) {
         u.onerror = (ev) => {
           const cause = ev && ev.error;
@@ -789,12 +793,12 @@
             u2.rate = DEBIT_VOIX;
             u2.pitch = HAUTEUR_VOIX;
             window.speechSynthesis.speak(u2);
-          } catch (e2) { /* on renonce : la consigne reste lisible à l'écran */ }
+          } catch (e2) { /* on renonce : la consigne reste lisible à l’écran */ }
         };
       }
       window.speechSynthesis.speak(u);
     } catch (e) {
-      // synthèse vocale indisponible : la consigne reste lisible à l'écran.
+      // synthèse vocale indisponible : la consigne reste lisible à l’écran.
     }
   }
   function creerBlocConsigne(texte, texteVoix) {
@@ -819,15 +823,15 @@
   /* ---------- Glisser-déposer tactile générique (constituer / ranger) ---------- */
 
   /* Gel du défilement pendant un glisser-déposer.
-     Le geste de l'enfant est lent et hésitant : le navigateur finit souvent par
-     l'interpréter comme un défilement, ce qui fait DÉFILER la page sous ses
+     Le geste de l’enfant est lent et hésitant : le navigateur finit souvent par
+     l’interpréter comme un défilement, ce qui fait DÉFILER la page sous ses
      doigts et, pire, lui envoie un `pointercancel` qui abandonne le geste en
      cours de route. On fige donc la page le temps du geste, et seulement ce
-     temps-là : hors glissement, le défilement reste entièrement normal (l'enfant
+     temps-là : hors glissement, le défilement reste entièrement normal (l’enfant
      doit pouvoir faire défiler pour voir un élément hors champ avant de le
      saisir).
      Le compteur autorise plusieurs glissements simultanés (deux doigts) sans que
-     le premier relâché ne dégèle pour l'autre. */
+     le premier relâché ne dégèle pour l’autre. */
   let glissementsEnCours = 0;
   let defilementGele = null;
 
@@ -839,7 +843,7 @@
     defilementGele = { x: window.scrollX, y: window.scrollY };
     document.documentElement.classList.add('glisse-en-cours');
     // Filet supplémentaire : certains navigateurs entament le défilement avant
-    // d'avoir pris en compte `touch-action`. Écouteur NON passif, sans quoi
+    // d’avoir pris en compte `touch-action`. Écouteur NON passif, sans quoi
     // preventDefault serait ignoré.
     document.addEventListener('touchmove', bloquerToucher, { passive: false });
   }
@@ -850,7 +854,7 @@
     document.documentElement.classList.remove('glisse-en-cours');
     document.removeEventListener('touchmove', bloquerToucher, { passive: false });
     // `overflow:hidden` peut avoir ramené la page en haut : on rétablit la
-    // position exacte qu'elle avait au début du geste.
+    // position exacte qu’elle avait au début du geste.
     if (defilementGele) {
       window.scrollTo(defilementGele.x, defilementGele.y);
       defilementGele = null;
@@ -858,10 +862,10 @@
   }
 
   /* Décide si un élément lâché « compte » comme déposé sur une cible.
-     Le pointeur seul ne suffit pas : l'enfant vise l'OBJET, pas son doigt, et
-     l'objet peut recouvrir largement le panier alors que le doigt est déjà
+     Le pointeur seul ne suffit pas : l’enfant vise l’OBJET, pas son doigt, et
+     l’objet peut recouvrir largement le panier alors que le doigt est déjà
      quelques pixels en dehors. On accepte donc le dépôt si le doigt est dans la
-     cible OU si l'objet la recouvre franchement. Renvoie un score (0 = pas
+     cible OU si l’objet la recouvre franchement. Renvoie un score (0 = pas
      déposé) pour pouvoir départager plusieurs cibles voisines. */
   const PART_RECOUVREMENT_MIN = 0.3;
 
@@ -909,10 +913,10 @@
         element.style.left = (ev.clientX - decalX) + 'px';
         element.style.top = (ev.clientY - decalY) + 'px';
       };
-      /* Fin du geste — quelle qu'en soit la cause. Un `pointercancel` (le
-         navigateur reprend la main) ou une capture perdue laissaient l'objet
-         EN L'AIR, en `position:fixed`, jamais déposé : c'est ce qui donnait
-         l'impression qu'il « refusait de se fixer » dans le panier. On termine
+      /* Fin du geste — quelle qu’en soit la cause. Un `pointercancel` (le
+         navigateur reprend la main) ou une capture perdue laissaient l’objet
+         EN L’AIR, en `position:fixed`, jamais déposé : c’est ce qui donnait
+         l’impression qu’il « refusait de se fixer » dans le panier. On termine
          donc toujours de la même façon, et on dépose à la dernière position
          connue du doigt. */
       const terminer = (ev) => {
@@ -925,8 +929,8 @@
         element.removeEventListener('pointerup', terminer);
         element.removeEventListener('pointercancel', terminer);
         element.removeEventListener('lostpointercapture', terminer);
-        // Position réellement occupée par l'objet au moment du lâcher : elle
-        // disparaît dès qu'on lui rend sa mise en page normale, il faut donc la
+        // Position réellement occupée par l’objet au moment du lâcher : elle
+        // disparaît dès qu’on lui rend sa mise en page normale, il faut donc la
         // relever AVANT.
         const rectLache = element.getBoundingClientRect();
         element.classList.remove('en-glisse');
@@ -954,10 +958,10 @@
     return etat.index <= 3 ? { min: 1, max: 5 } : { min: 1, max: 9 };
   }
 
-  /* ---------- Écran d'accueil ---------- */
+  /* ---------- Écran d’accueil ---------- */
 
-  /* Remonte en haut à chaque changement d'écran (CHARTE §17) : sans cela, le
-     nouvel écran hérite du défilement de l'écran précédent — l'enfant qui
+  /* Remonte en haut à chaque changement d’écran (CHARTE §17) : sans cela, le
+     nouvel écran hérite du défilement de l’écran précédent — l’enfant qui
      vient de valider en bas de page se retrouverait au milieu de la manche
      suivante. Repositionnement instantané (jamais « smooth » : un glissement
      animé pendant une transition est parasite). */
@@ -965,12 +969,12 @@
     try {
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     } catch (e) {
-      window.scrollTo(0, 0); // navigateurs sans l'API à options
+      window.scrollTo(0, 0); // navigateurs sans l’API à options
     }
   }
 
-  /* Navigation automatique après un délai (CHARTE §20) : 2 s après l'affichage
-     du bouton « Suivant », on avance sans attendre le clic de l'enfant. Un
+  /* Navigation automatique après un délai (CHARTE §20) : 2 s après l’affichage
+     du bouton « Suivant », on avance sans attendre le clic de l’enfant. Un
      clic manuel ou une sortie du jeu annulent ce minuteur. */
   const DELAI_AUTO_SUIVANT = 2000;
   let minuteurAutoSuivant = null;
@@ -986,8 +990,8 @@
     clearTimeout(minuteurAutoSuivant);
   }
 
-  /* Correction après une MAUVAISE réponse (CHARTE §18) : ce que l'enfant a
-     répondu en rouge, ce qu'il fallait répondre en vert. N'est jamais appelée
+  /* Correction après une MAUVAISE réponse (CHARTE §18) : ce que l’enfant a
+     répondu en rouge, ce qu’il fallait répondre en vert. N’est jamais appelée
      sur une bonne réponse (elle brouillerait la récompense). */
   function afficherCorrection(zone, donnee, attendue) {
     const bloc = document.createElement('p');
@@ -1087,7 +1091,7 @@
   }
 
   /* `correction` (facultatif) = { donnee, attendue } : affiché uniquement en cas
-     d'erreur, sous le message de feedback (CHARTE §18). */
+     d’erreur, sous le message de feedback (CHARTE §18). */
   function validerReponse(estCorrecte, correction, messageErreur) {
     if (etat.verrouille) return;
     etat.verrouille = true;
@@ -1116,7 +1120,7 @@
     enregistrerEtoiles(cfg.id, etoilesGagnees);
     const dureeSecondes = Math.max(0, Math.round((Date.now() - etat.demarreLe) / 1000));
     enregistrerSession(cfg.id, etat.score, cfg.nbQuestions, dureeSecondes);
-    // Résultat parfait : un son plus ample que celui d'une bonne réponse
+    // Résultat parfait : un son plus ample que celui d’une bonne réponse
     // ponctuelle, pour souligner ce qui est rare (CHARTE §5).
     if (etoilesGagnees === 3) sonNiveauParfait();
 
@@ -1144,7 +1148,7 @@
 
     const accueilBtn = document.createElement('button');
     accueilBtn.className = 'bouton-secondaire';
-    accueilBtn.textContent = "Retour à l'accueil";
+    accueilBtn.textContent = "Retour à l’accueil";
     accueilBtn.addEventListener('click', retourAccueil);
 
     boutons.appendChild(rejouer);
@@ -1200,9 +1204,9 @@
     const scene = document.createElement('div');
     scene.className = 'zone-jardin';
     const positions = positionsGrille(n);
-    // Aucun compteur affiché : le "pop" de chaque bête confirme juste qu'elle
+    // Aucun compteur affiché : le "pop" de chaque bête confirme juste qu’elle
     // est déjà comptée (pour ne pas la recompter), mais le total ne doit
-    // jamais apparaître avant que l'enfant ne le saisisse lui-même.
+    // jamais apparaître avant que l’enfant ne le saisisse lui-même.
     let compte = 0;
 
     const zonePave = document.createElement('div');
@@ -1230,7 +1234,7 @@
 
     function afficherPaveNumerique() {
       zonePave.innerHTML = '';
-      const consigne2 = `Combien ${deElision(espece.pluriel)} as-tu comptées ? Appuie sur le bon nombre.`;
+      const consigne2 = `Combien ${deElision(espece.pluriel)} as-tu ${accordePluriel('compté', espece.genre)} ? Appuie sur le bon nombre.`;
       zonePave.appendChild(creerBlocConsigne(consigne2, consigne2));
       const pave = document.createElement('div');
       pave.className = 'pave-numerique';
@@ -1348,8 +1352,8 @@
       if (g.droiteId !== null && g.droiteId !== droiteId) deconnecter(gaucheId);
       if (d.gaucheId !== null && d.gaucheId !== gaucheId) deconnecter(d.gaucheId);
       // Refaire le MÊME lien ne passe par aucune des deux déconnexions
-      // ci-dessus : sans ce nettoyage, l'ancien trait resterait orphelin dans le
-      // SVG et un second se dessinerait par-dessus. C'est le cas dès qu'on
+      // ci-dessus : sans ce nettoyage, l’ancien trait resterait orphelin dans le
+      // SVG et un second se dessinerait par-dessus. C’est le cas dès qu’on
       // relie deux fois la même paire, et à chaque révélation de la solution
       // (CHARTE §18), qui rappelle connecter() sur les paires déjà justes.
       if (g.ligne) { g.ligne.remove(); g.ligne = null; }
@@ -1368,11 +1372,11 @@
        depuis une carte de gauche vers son étiquette, ou depuis une étiquette
        de droite vers sa carte (règle générale à reprendre dans tout futur jeu
        suivant cette même logique de liaison) :
-         - le TAP SÉQUENTIEL (toucher un élément, puis celui d'en face) ;
-         - le TRACÉ CONTINU (glisser sans relâcher jusqu'à l'élément visé),
+         - le TAP SÉQUENTIEL (toucher un élément, puis celui d’en face) ;
+         - le TRACÉ CONTINU (glisser sans relâcher jusqu’à l’élément visé),
            avec un trait qui suit le doigt en temps réel.
-       Le geste se décide au relâchement : en dessous de SEUIL_TRACE_PX, c'est un
-       appui simple et on retombe sur la sélection ; au-delà, c'est un tracé. */
+       Le geste se décide au relâchement : en dessous de SEUIL_TRACE_PX, c’est un
+       appui simple et on retombe sur la sélection ; au-delà, c’est un tracé. */
     const SEUIL_TRACE_PX = 8;
     let trace = null; // { cote: 'gauche'|'droite', id, ligne, cible }
 
@@ -1392,7 +1396,7 @@
       if (trace && trace.cible) trace.cible.classList.remove('cible-survolee');
       if (trace) trace.cible = btn;
       if (btn) btn.classList.add('cible-survolee');
-      // Un tracé parti de la droite n'a pas de couleur propre avant de savoir
+      // Un tracé parti de la droite n’a pas de couleur propre avant de savoir
       // quelle carte il va rejoindre : il emprunte celle de la carte survolée.
       if (trace && trace.cote === 'droite' && trace.ligne) {
         const idCible = btn ? Number(btn.dataset.gaucheId) : NaN;
@@ -1427,8 +1431,8 @@
       connecter(idASelectionner, droiteId);
     }
 
-    /* Attache le geste de tracé à un élément d'un des deux côtés ; `cibleSelecteur`
-       cible les éléments d'en face parmi lesquels chercher un relâchement valide. */
+    /* Attache le geste de tracé à un élément d’un des deux côtés ; `cibleSelecteur`
+       cible les éléments d’en face parmi lesquels chercher un relâchement valide. */
     function attacherGlisser(btn, cote, id, cibleSelecteur, couleurDepart) {
       let departX = 0, departY = 0;
       btn.addEventListener('pointerdown', (e) => {
@@ -1472,7 +1476,7 @@
           if (cote === 'gauche') selectionner(id); else relierDepuisSelection(id);
           return;
         }
-        // Relâché en dehors d'une cible valide : le tracé est simplement
+        // Relâché en dehors d’une cible valide : le tracé est simplement
         // abandonné, sans liaison ni sélection en suspens.
         if (!cible) return;
         if (selectionGaucheId !== null) {
@@ -1502,8 +1506,8 @@
       btn.appendChild(carte.type === 'de' ? creerDe(carte.n) : creerMiniCollection(carte.especeId, carte.n));
       gauches[carte.id] = { n: carte.n, couleur: carte.couleur, btn, droiteId: null, ligne: null };
 
-      // `click` ne sert plus qu'au clavier (detail === 0) : au doigt/à la
-      // souris, c'est `pointerup` (dans attacherGlisser) qui tranche entre
+      // `click` ne sert plus qu’au clavier (detail === 0) : au doigt/à la
+      // souris, c’est `pointerup` (dans attacherGlisser) qui tranche entre
       // appui simple et tracé, sinon un tracé terminé ailleurs déclencherait
       // aussi une sélection parasite.
       btn.addEventListener('click', (e) => { if (e.detail === 0) selectionner(carte.id); });
@@ -1531,9 +1535,9 @@
     zoneMatch.appendChild(colDroite);
     zone.appendChild(zoneMatch);
 
-    // Rien n'est corrigé au fur et à mesure : l'enfant peut refaire ses
-    // liens tant qu'il n'a pas appuyé sur Valider (cf. CHARTE.md — la
-    // correction groupée laisse le droit à l'essai-erreur sans pénaliser
+    // Rien n’est corrigé au fur et à mesure : l’enfant peut refaire ses
+    // liens tant qu’il n’a pas appuyé sur Valider (cf. CHARTE.md — la
+    // correction groupée laisse le droit à l’essai-erreur sans pénaliser
     // chaque lien pris isolément).
     const boutonValider = document.createElement('button');
     boutonValider.type = 'button';
@@ -1755,7 +1759,7 @@
     const espece = donnees.especes[especeId];
 
     const phraseRelation = relation === 'autant' ? 'AUTANT de' : relation === 'plus-un' ? 'UN DE PLUS que' : 'UN DE MOINS que';
-    zone.appendChild(creerBlocConsigne(`Touche pour qu'il y ait ${phraseRelation} le modèle !`));
+    zone.appendChild(creerBlocConsigne(`Touche pour qu’il y ait ${phraseRelation} le modèle !`));
 
     const rangeeModele = document.createElement('div');
     rangeeModele.className = 'rangee-modele';
@@ -1783,7 +1787,7 @@
     const collCible = document.createElement('div');
     collCible.className = 'collection-cible';
     collCible.style.gridTemplateColumns = `repeat(${colonnes}, 1fr)`;
-    // La boîte « à toi » est dimensionnée dès le départ à la taille qu'elle
+    // La boîte « à toi » est dimensionnée dès le départ à la taille qu’elle
     // aura une fois le bon compte atteint (même vide) : si le résultat prend
     // deux lignes, elle les réserve tout de suite, pour que les boutons
     // ajouter/retirer ne se déplacent jamais en cours de jeu (règle générale :
@@ -1847,7 +1851,7 @@
       // CHARTE §18 : la collection construite vire au vert ou au rouge, et le
       // nombre attendu est rappelé sous le feedback.
       collCible.classList.add(estCorrecte ? 'contenant-correct' : 'contenant-incorrect');
-      // Piège fréquent : reproduire le modèle au lieu d'appliquer la relation
+      // Piège fréquent : reproduire le modèle au lieu d’appliquer la relation
       // demandée (+1 / -1). Le message pointe alors vers la consigne plutôt
       // que de simplement rappeler le compte attendu.
       const messageErreur = !estCorrecte && compte === modele
@@ -1987,8 +1991,8 @@
       }
       /* Réponse fausse : on applique le standard de la série (CHARTE §18) —
          chaque case passe au vert ou au rouge selon SON contenu, puis la
-         solution vient s'y ranger d'elle-même, tout en vert. La manche est
-         validée (donc comptée) et l'enfant passe à la suivante : le même
+         solution vient s’y ranger d’elle-même, tout en vert. La manche est
+         validée (donc comptée) et l’enfant passe à la suivante : le même
          classement ne lui est plus reproposé à corriger sur place. */
       Object.values(elements).forEach((e) => { e.style.pointerEvents = 'none'; });
       boutonValider.disabled = true;
@@ -2024,8 +2028,8 @@
 </script>
 <script>
   /* Bouton « ← Menu » : retour à la coquille avec confirmation (CHARTE §7).
-     Script isolé du moteur de jeu : il n'agit que sur les éléments statiques
-     de la page (le « ← Menu » ne s'affiche que sur l'écran d'accueil). */
+     Script isolé du moteur de jeu : il n’agit que sur les éléments statiques
+     de la page (le « ← Menu » ne s’affiche que sur l’écran d’accueil). */
   (function () {
     var bouton = document.getElementById('bouton-menu');
     var modale = document.getElementById('modale-menu');

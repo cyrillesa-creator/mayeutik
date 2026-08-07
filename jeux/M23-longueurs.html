@@ -11,19 +11,19 @@
 <style>
   /* ================================================================
      Protections tactiles obligatoires (CHARTE §19)
-     Deux comportements natifs du navigateur parasitent l'usage tactile d'un
+     Deux comportements natifs du navigateur parasitent l’usage tactile d’un
      jeu : le zoom au double-tap (deux appuis rapprochés sont un geste NORMAL
      ici — remplir puis vider une case, corriger une saisie) et la sélection
-     native (surbrillance bleue, menu « copier / enregistrer l'image » au
-     maintien du doigt). On les neutralise à l'échelle de l'interface, une
-     bonne fois, plutôt qu'élément par élément.
+     native (surbrillance bleue, menu « copier / enregistrer l’image » au
+     maintien du doigt). On les neutralise à l’échelle de l’interface, une
+     bonne fois, plutôt qu’élément par élément.
      ================================================================ */
 
-  /* `touch-action` ne s'hérite PAS : le sélecteur universel est le seul moyen
-     de couvrir toute l'interface. `manipulation` supprime le zoom au
+  /* `touch-action` ne s’hérite PAS : le sélecteur universel est le seul moyen
+     de couvrir toute l’interface. `manipulation` supprime le zoom au
      double-tap tout en laissant le défilement et le pincement — les gestes à
      deux doigts pilotés en JS (rotation de la règle mobile de M23) restent
-     donc intacts, d'autant qu'ils déclarent eux-mêmes `touch-action:none`,
+     donc intacts, d’autant qu’ils déclarent eux-mêmes `touch-action:none`,
      plus spécifique que `*`. */
   * { touch-action: manipulation; }
 
@@ -31,7 +31,7 @@
      mises en page calculées au pixel (règles graduées, figures SVG). */
   html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
-  /* `user-select` et `-webkit-touch-callout`, eux, s'héritent : les poser sur
+  /* `user-select` et `-webkit-touch-callout`, eux, s’héritent : les poser sur
      body suffit à couvrir consignes, boutons, illustrations et éléments
      glissables. */
   body {
@@ -39,11 +39,11 @@
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
   }
-  /* Pas de « fantôme » d'image traîné à la souris par-dessus un glisser-déposer. */
+  /* Pas de « fantôme » d’image traîné à la souris par-dessus un glisser-déposer. */
   img, svg, canvas { -webkit-user-drag: none; }
 
-  /* Les champs de saisie gardent sélection, curseur et menu d'édition : les
-     en priver rendrait la correction d'une valeur impossible. La série en
+  /* Les champs de saisie gardent sélection, curseur et menu d’édition : les
+     en priver rendrait la correction d’une valeur impossible. La série en
      compte deux (décomposition m/dm/cm de M23, cellule manquante de M39). */
   input, textarea, select, [contenteditable="true"] {
     -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text;
@@ -83,7 +83,7 @@
   }
   .puce-palier.actif{ background:var(--couleur-mandarine); border-color:var(--couleur-mandarine); color:#ffffff; }
   /* Palier verrouillé (CHARTE §15) : au-delà du niveau du profil actif, tant
-     que son paquet cadeau n'a pas été ouvert une première fois. */
+     que son paquet cadeau n’a pas été ouvert une première fois. */
   .puce-palier.verrouille{ opacity:.5; cursor:not-allowed; }
   .note-palier{ text-align:center; font-size:.82rem; opacity:.7; margin:-.3rem 0 .8rem; }
 
@@ -117,9 +117,9 @@
   .bloc-bonus h3{ text-align:center; font-size:1rem; color:color-mix(in srgb, var(--couleur-soleil) 55%, black 25%); margin-bottom:.15rem; }
   .bloc-bonus .note-palier{ margin:.1rem 0 .7rem; }
 
-  /* Paquet cadeau : première révélation d'un palier bonus (CHARTE §15,
+  /* Paquet cadeau : première révélation d’un palier bonus (CHARTE §15,
      pattern générique "paquet cadeau" — cf. section « Palier bonus »).
-     Recouvre grille-bonus tant que l'enfant n'a pas cliqué dessus. */
+     Recouvre grille-bonus tant que l’enfant n’a pas cliqué dessus. */
   .paquet-cadeau{
     display:flex; flex-direction:column; align-items:center; gap:.7rem;
     width:100%; border:none; background:transparent; padding:1rem .5rem; cursor:pointer; min-height:44px;
@@ -298,9 +298,9 @@
   .regle-zone.selectionnee{ background:color-mix(in srgb, var(--couleur-soleil) 45%, transparent); border-radius:4px; }
 
   /* Variante « grande » : fenêtre de graduations agrandie et recentrée,
-     réservée à l'exercice d'encadrement (genererEncadrer) — chaque zone
-     cliquable entre deux graduations doit être une cible tactile d'au
-     moins 44px (CHARTE), ce qu'une règle de 20 cm affichée en entier ne
+     réservée à l’exercice d’encadrement (genererEncadrer) — chaque zone
+     cliquable entre deux graduations doit être une cible tactile d’au
+     moins 44px (CHARTE), ce qu’une règle de 20 cm affichée en entier ne
      permet pas. Ticks, étiquettes et zones plus grands en conséquence. */
   .regle-graduee-grande{ height:92px; border-radius:14px; border-width:3px; }
   .regle-graduee-grande .regle-tick{ height:16px; width:3px; }
@@ -328,12 +328,12 @@
     border:2px solid #5B3F28; }
 
   /* ---- Report indirect (arbres figuratifs : tronc + feuillage) ----
-     Jusqu'à 4 arbres côte à côte : sur un écran étroit (iPhone SE...), 4 ×
+     Jusqu’à 4 arbres côte à côte : sur un écran étroit (iPhone SE...), 4 ×
      min-width + les gaps peuvent dépasser la largeur du cadre. `gap` réduit
-     via clamp() pour que le cas courant (jusqu'à 4 arbres) tienne SANS
+     via clamp() pour que le cas courant (jusqu’à 4 arbres) tienne SANS
      défiler sur les petits écrans, et `overflow-x:auto` en filet de
      sécurité : si un cas extrême ne tient toujours pas, le contenu défile
-     À L'INTÉRIEUR du cadre blanc plutôt que de déborder par-dessus. */
+     À L’INTÉRIEUR du cadre blanc plutôt que de déborder par-dessus. */
   .comparaison-report{ display:flex; justify-content:center; align-items:flex-end;
     gap:clamp(.5rem, 3vw, 1.8rem); margin:1rem 0; min-height:9.5rem;
     overflow-x:auto; padding:var(--encadrement-place) calc(.1rem + var(--encadrement-place)); }
@@ -349,14 +349,14 @@
 
   /* ---- Distances sur le sentier, depuis le repère « lac » ----
      Les repères (.clairiere-btn) sont positionnés en % de la piste, plafonnés
-     via calc()/min() dans le JS pour ne jamais s'approcher du bord droit ;
+     via calc()/min() dans le JS pour ne jamais s’approcher du bord droit ;
      overflow-x:auto reste un filet de sécurité supplémentaire. */
   /* Les clairières débordent volontairement sous la piste (bottom négatif) :
-     la réserve basse doit couvrir ce débordement ET l'encadrement de feedback,
+     la réserve basse doit couvrir ce débordement ET l’encadrement de feedback,
      sinon le contour du bas est rogné.
      `box-sizing:content-box` est indispensable ici : sous le `border-box`
      global, la marge intérieure serait prise SUR les 3rem de la piste au lieu
-     de s'y ajouter — les repères, plus hauts qu'elle, déborderaient alors par
+     de s’y ajouter — les repères, plus hauts qu’elle, déborderaient alors par
      le haut. Avec content-box, `height` reste la hauteur de la piste et la
      réserve vient autour. */
   .sentier{ position:relative; box-sizing:content-box; margin:1.1rem .5rem 1.8rem; height:3rem; overflow-x:auto;
@@ -372,7 +372,7 @@
   .mini-lac{ display:block; width:2.2rem; height:1.5rem; border-radius:50%;
     background:radial-gradient(ellipse at 38% 32%, #8FD3F4, #1E88E5); border:2px solid #0B5D8A; }
 
-  /* Clairière : vue semi-aérienne — herbe claire cernée d'un anneau de 6
+  /* Clairière : vue semi-aérienne — herbe claire cernée d’un anneau de 6
      arbres, disposés en cercle par rotation régulière à 60° (--i = 0..5). */
   .mini-clairiere{ position:relative; display:block; width:2.3rem; height:2.3rem; }
   .mini-clairiere-herbe{ position:absolute; inset:26%; border-radius:50%;
@@ -383,7 +383,7 @@
 
   /* ---- Palier CP : « Le Bois » — lisière (vocabulaire, texte à trou) ----
      Objets concrets colorés (pas de lettre abstraite ni de pastille rapportée
-     à côté d'un dessin identique) : pour la corde/le chemin/la branche, la
+     à côté d’un dessin identique) : pour la corde/le chemin/la branche, la
      couleur est directement celle de la barre. Pour le champignon et la
      cabane, la couleur est intégrée AU DESSIN lui-même (chapeau, toit) via
      creerLisiereChampignon/creerLisiereCabane — cf. plus bas dans le JS. */
@@ -400,10 +400,10 @@
 
   /* Comparaison distance (cabane/champignon) : repère + deux objets en FLUX
      FLEXBOX normal (plus de positionnement absolu en %), avec un `gap`
-     garanti entre chaque paire d'éléments — deux objets flexbox ne peuvent
+     garanti entre chaque paire d’éléments — deux objets flexbox ne peuvent
      structurellement jamais se chevaucher, quelle que soit leur taille
      effective (icônes agrandies comprises), contrairement à un calcul de
-     position qui pourrait se tromper selon la largeur réelle de l'écran.
+     position qui pourrait se tromper selon la largeur réelle de l’écran.
      Marge basse généreuse pour laisser la place aux dessins sans chevaucher
      le QCM en dessous ; overflow-x:auto en filet de sécurité supplémentaire. */
   .lisiere-sentier{ margin:1.1rem .5rem 4.4rem; }
@@ -415,8 +415,8 @@
   .lisiere-point{ display:flex; flex-direction:column; align-items:center; gap:.15rem; flex-shrink:0; min-width:48px; }
 
   /* Clairière (repère fixe des questions de distance) : vue semi-aérienne —
-     herbe claire cernée d'un anneau de 6 arbres stylisés, plutôt qu'un
-     soleil/nuage qui n'évoque pas une clairière. Anneau construit en CSS pur
+     herbe claire cernée d’un anneau de 6 arbres stylisés, plutôt qu’un
+     soleil/nuage qui n’évoque pas une clairière. Anneau construit en CSS pur
      par rotation régulière à 60° (--i = 0..5). */
   .lisiere-mini-clairiere{ position:relative; display:block; width:2.9rem; height:2.9rem; }
   .lisiere-mini-clairiere-herbe{ position:absolute; inset:24%; border-radius:50%;
@@ -453,12 +453,12 @@
 
   /* ---- Palier CP : « Le Bois » — balade (ranger 5 bâtons en pyramide) ----
      5 « étagères » EMPILÉES verticalement, chaque bâton posé À PLAT et
-     ANCRÉ À GAUCHE sur la même ligne (seule l'extrémité droite varie avec
-     la longueur) : les longueurs se comparent d'un coup d'œil, sans geste
+     ANCRÉ À GAUCHE sur la même ligne (seule l’extrémité droite varie avec
+     la longueur) : les longueurs se comparent d’un coup d'œil, sans geste
      préalable. Glisser un bâton vers une autre rangée ÉCHANGE leur place —
      le DOM des 5 rangées ne bouge jamais pendant le geste, seule la valeur
      affichée (largeur de la barre) est échangée — cf. commentaire dans
-     genererOrdonnerBatons (js) : sous Chromium, reparenter l'élément capturé
+     genererOrdonnerBatons (js) : sous Chromium, reparenter l’élément capturé
      PENDANT le glisser fait perdre la capture du pointeur et casse le
      pointerup final. Une fois trié, les bouts droits dessinent une diagonale
      nette (effet pyramide). */
@@ -475,15 +475,15 @@
     background-size:12px 12px, 100% 100%;
     border:2px solid #6D4C33; }
 
-  /* Transition d'ÉCHANGE : un « fantôme » CLONÉ de chaque barre impliquée
+  /* Transition d’ÉCHANGE : un « fantôme » CLONÉ de chaque barre impliquée
      (donc de largeur IDENTIQUE, figée — jamais de transition sur width/
      height/scale) glisse en pure TRANSLATION verticale de sa rangée de
-     départ vers sa rangée d'arrivée, pendant que les vraies barres —
+     départ vers sa rangée d’arrivée, pendant que les vraies barres —
      déjà mises à jour à leur valeur finale — restent invisibles le temps du
      geste (cf. echanger()/animerEchangeBatons() dans le JS). Les deux
      bâtons se croisent ainsi visiblement, quelle que soit la proximité de
      leurs longueurs. position:fixed + coordonnées écran (getBoundingClientRect)
-     : le fantôme n'a pas besoin d'un ancêtre positionné particulier. */
+     : le fantôme n’a pas besoin d’un ancêtre positionné particulier. */
   .baton-fantome{ position:fixed; margin:0; pointer-events:none; z-index:80; transition:transform .25s ease; will-change:transform; }
   @media (prefers-reduced-motion:reduce){ .baton-fantome{ transition:none; } }
 
@@ -495,15 +495,15 @@
      visible PAR-TRANSPARENCE une fois la règle glissée dessus (sinon elle la
      cache entièrement, cf. bug ergonomie). Les graduations/chiffres reçoivent
      une opacité propre plus élevée (et un léger halo pour les chiffres) afin
-     de rester lisibles malgré l'opacité globale réduite de la règle. */
+     de rester lisibles malgré l’opacité globale réduite de la règle. */
   .regle-graduee.regle-glissable{ position:absolute; top:8px; touch-action:none; cursor:grab; opacity:.68; }
   .regle-graduee.regle-glissable .regle-tick{ opacity:.95; }
   .regle-graduee.regle-glissable .regle-tick-forte{ opacity:1; }
   .regle-graduee.regle-glissable .regle-label,
   .regle-graduee.regle-glissable .regle-unite{ opacity:1; text-shadow:0 0 3px #fff, 0 0 3px #fff; }
 
-  /* Règle FIXE mais semi-transparente (palier CE2, mini-jeu « L'exploration ») :
-     même traitement d'opacité que la règle déplaçable ci-dessus, sans le
+  /* Règle FIXE mais semi-transparente (palier CE2, mini-jeu « L’exploration ») :
+     même traitement d’opacité que la règle déplaçable ci-dessus, sans le
      positionnement/glissement (cette règle reste dans le flux normal). */
   .regle-graduee.regle-graduee-semi-transparente{ opacity:.68; }
   .regle-graduee.regle-graduee-semi-transparente .regle-tick{ opacity:.95; }
@@ -516,8 +516,8 @@
      Même langage visuel que la lisière du CP (pastille + barre colorées,
      jamais de désignation abstraite), dupliqué sous un préfixe dédié
      (« foret- ») plutôt que réutilisé tel quel : garde CP et CE1 découplés,
-     un ajustement de taille/espacement sur l'un ne risque pas de casser
-     l'autre (cf. leçon des corrections de recouvrement du palier CP). */
+     un ajustement de taille/espacement sur l’un ne risque pas de casser
+     l’autre (cf. leçon des corrections de recouvrement du palier CP). */
   .foret-comparaison{ display:flex; flex-direction:column; gap:1rem; margin:.9rem 0; overflow-x:auto; }
   .foret-rangee{ display:flex; align-items:center; gap:.6rem; min-height:44px; }
   .foret-pastille{ width:1.3rem; height:1.3rem; border-radius:50%; border:2px solid rgba(0,0,0,.35); flex-shrink:0; }
@@ -528,7 +528,7 @@
   /* ---- Palier CE1 : « La Forêt » — ranger 5 arbres en pyramide, À 90° par
      rapport aux bâtons du CP : COLONNES côte à côte (gauche → droite) au
      lieu de rangées empilées, ANCRAGE EN BAS (comme des arbres plantés sur
-     le sol) au lieu d'un ancrage à gauche. Même mécanique d'échange par
+     le sol) au lieu d’un ancrage à gauche. Même mécanique d’échange par
      paire (glisser vers une autre colonne) et même transition en pure
      TRANSLATION (translateX ici, jamais de changement de taille pendant le
      geste) que genererOrdonnerBatons/echanger — cf. commentaire JS de
@@ -546,7 +546,7 @@
   @media (prefers-reduced-motion:reduce){ .arbre-fantome{ transition:none; } }
 
   /* ---- Palier CE2 : « Forêt amazonienne » — classement des unités ----
-     Tableau à 5 colonnes d'unité réparties sur DEUX RANGÉES (3 puis 2)
+     Tableau à 5 colonnes d’unité réparties sur DEUX RANGÉES (3 puis 2)
      avec une marge verticale généreuse entre elles : les zones de dépôt
      ne se chevauchent jamais et restent des cibles tactiles confortables
      même sur un écran de téléphone étroit. */
@@ -560,7 +560,7 @@
     background:color-mix(in srgb, var(--couleur-menthe) 8%, white); display:flex; align-items:center; justify-content:center; }
   /* Bloc SOLIDAIRE nombre + image + nom : les 3 éléments empilés forment
      UNE SEULE vignette déplaçable (jamais 3 cibles séparées). Le nombre
-     n'affiche jamais l'unité (elle est la colonne cible). */
+     n’affiche jamais l’unité (elle est la colonne cible). */
   .decouverte-plateau{ display:flex; justify-content:center; gap:.8rem; flex-wrap:wrap; margin-top:1.2rem; padding-top:.8rem;
     border-top:2px dashed color-mix(in srgb, var(--couleur-soleil) 45%, white); min-height:6.8rem; }
   .decouverte-vignette{ width:5rem; min-height:6.4rem; border-radius:14px; background:#ffffff;
@@ -584,9 +584,9 @@
   .rangerunites-slot.incorrect{ border-style:solid; border-color:var(--couleur-corail); background:color-mix(in srgb, var(--couleur-corail) 22%, transparent); }
   .rangerunites-slot{ min-height:3.8rem; border-radius:14px; border:2.5px dashed color-mix(in srgb, var(--couleur-encre) 25%, white);
     background:color-mix(in srgb, var(--couleur-menthe) 8%, white); display:flex; align-items:center; justify-content:center; }
-  /* Largeur FIXE (pas en %) : la taille de l'étiquette ne doit pas changer
-     selon qu'elle est dans la pioche ou déposée dans un emplacement, alors
-     que ces deux conteneurs n'ont pas la même boîte (l'emplacement a une
+  /* Largeur FIXE (pas en %) : la taille de l’étiquette ne doit pas changer
+     selon qu’elle est dans la pioche ou déposée dans un emplacement, alors
+     que ces deux conteneurs n’ont pas la même boîte (l’emplacement a une
      bordure en pointillés, pas la pioche). */
   .unite-etiquette{ box-sizing:border-box; width:8.4rem; max-width:100%; display:flex; align-items:center; justify-content:center; min-height:3.6rem;
     padding:.4rem .6rem; border-radius:14px; background:#ffffff; border:2.5px solid color-mix(in srgb, var(--couleur-encre) 18%, white);
@@ -594,14 +594,14 @@
     color:var(--couleur-mandarine); user-select:none; touch-action:none; cursor:grab; }
   .unite-etiquette.unite-etiquette-glisse{ z-index:10; cursor:grabbing; box-shadow:0 6px 14px rgba(0,0,0,.18); }
 
-  /* Exercice 3 « QCM d'unités » : illustration de l'animal + définition
+  /* Exercice 3 « QCM d’unités » : illustration de l’animal + définition
      révélée après validation. */
   .qcm-animal-image{ width:6rem; height:6rem; margin:.6rem auto; }
   .qcm-animal-definition{ margin-top:.8rem; padding-top:.7rem; border-top:2px dashed color-mix(in srgb, var(--couleur-soleil) 45%, white); }
 
-  /* ---- Périmètre CE2 « L'arpentage » — polygones irréguliers dont on
+  /* ---- Périmètre CE2 « L’arpentage » — polygones irréguliers dont on
      additionne les côtés. Les étiquettes de longueur portent un halo blanc
-     (paint-order) pour rester lisibles où qu'elles tombent, y compris sur le
+     (paint-order) pour rester lisibles où qu’elles tombent, y compris sur le
      remplissage de la figure ou par-dessus un trait. */
   .arpentage-scene{ overflow-x:auto; margin:.9rem 0; }
   .arpentage-scene svg{ display:block; margin:0 auto; }
@@ -621,7 +621,7 @@
   /* ---- Périmètre CE2 « La cartographie » — étapes A/B : la figure SVG dont
      le contour se déplie charnière par charnière en un segment posé sur une
      droite (rotations pures, longueurs des côtés préservées pendant toute
-     l'animation), puis mesuré à la règle glissée dessous. */
+     l’animation), puis mesuré à la règle glissée dessous. */
   .cartographie-scene{ overflow-x:auto; margin:.9rem 0; padding:.3rem 0; }
   .cartographie-scene svg{ display:block; }
   /* La règle qui vient SE POSER sur le segment déplié pour le mesurer
@@ -642,11 +642,11 @@
   .regle-graduee.regle-mobile .regle-label-haut,
   .regle-graduee.regle-mobile .regle-unite{ opacity:1; text-shadow:0 0 3px #fff, 0 0 3px #fff; }
   .regle-graduee.regle-mobile.regle-mobile-accrochee{ border-color:var(--couleur-menthe); }
-  /* Double décimètre : barres de mesure COURTES, pour dégager de l'espace
+  /* Double décimètre : barres de mesure COURTES, pour dégager de l’espace
      entre les deux séries de chiffres — elles-mêmes en police un peu plus
      grande, donc plus lisibles. La seconde échelle (bord du haut, numérotée
      à rebours) est en corail pour la distinguer au premier coup d'œil de
-     l'échelle principale, en encre. */
+     l’échelle principale, en encre. */
   .regle-mobile .regle-tick{ height:7px; }
   .regle-mobile .regle-tick-forte{ height:11px; }
   .regle-mobile .regle-label{ bottom:12px; font-size:.78rem; }
@@ -704,7 +704,7 @@
 
 <main id="ecran-jeu" hidden>
   <div class="entete-jeu">
-    <button class="bouton-retour" id="bouton-retour" aria-label="Retour à l'accueil">←</button>
+    <button class="bouton-retour" id="bouton-retour" aria-label="Retour à l’accueil">←</button>
     <div class="entete-jeu-titres">
       <h2 id="titre-jeu-courant"></h2>
       <div class="progression" id="progression-jeu"></div>
@@ -728,11 +728,11 @@
 <script type="application/json" id="donnees-jeu">
 {
   "titre": "Longueurs",
-  "sousTitre": "Pars à l'aventure dans la Forêt aux Cent Arbres !",
+  "sousTitre": "Pars à l’aventure dans la Forêt aux Cent Arbres !",
   "messagesFeedback": {
-    "bravo": ["Bravo !", "Super !", "Génial !", "Bien joué !", "C'est ça !", "Trop fort !"],
-    "rate": ["Pas tout à fait : regarde bien la bonne réponse.", "Ce n'est pas ça, la bonne réponse est indiquée.", "Pas cette fois, courage !"],
-    "rateProche": ["Presque ! Il s'en fallait de peu.", "Tout près ! Regarde la bonne réponse.", "Presque : tu y étais !"]
+    "bravo": ["Bravo !", "Super !", "Génial !", "Bien joué !", "C’est ça !", "Trop fort !"],
+    "rate": ["Pas tout à fait : regarde bien la bonne réponse.", "Ce n’est pas ça, la bonne réponse est indiquée.", "Pas cette fois, courage !"],
+    "rateProche": ["Presque ! Il s’en fallait de peu.", "Tout près ! Regarde la bonne réponse.", "Presque : tu y étais !"]
   },
   "estimationsCP": [
     { "texte": "Une fourmi mesure plutôt…", "options": ["2 cm", "20 cm", "1 m"], "bonne": "2 cm" },
@@ -746,7 +746,7 @@
     "CP": {
       "sousTitre": "Une balade dans le Bois, entre lisière et cabane ! 🌲",
       "miniJeux": [
-        { "id": "vocabulaire-longueurs-cp", "titre": "L'orée du bois", "icone": "🌲", "couleur": "menthe", "description": "Trouve les bons mots : long, court, près, loin.", "type": "vocabulaire-cp", "nbTours": 6 },
+        { "id": "vocabulaire-longueurs-cp", "titre": "L’orée du bois", "icone": "🌲", "couleur": "menthe", "description": "Trouve les bons mots : long, court, près, loin.", "type": "vocabulaire-cp", "nbTours": 6 },
         { "id": "comparer-longueurs-cp", "titre": "En balade", "icone": "🥾", "couleur": "mandarine", "description": "Compare des longueurs, puis range 5 bâtons.", "type": "balade-cp", "nbTours": 5 },
         { "id": "mesurer-longueurs-cp", "titre": "La cabane", "icone": "🛖", "couleur": "soleil", "description": "Estime des tailles, puis mesure avec la règle.", "type": "cabane-cp", "nbTours": 6, "capCm": 16 }
       ]
@@ -761,10 +761,10 @@
     "CE2": {
       "sousTitre": "À la découverte de la forêt amazonienne ! 🌴",
       "miniJeux": [
-        { "id": "unites-decouverte-ce2", "titre": "Découverte : du microscopique à l'immensité", "icone": "🔍", "couleur": "corail", "description": "Classe des unités, puis associe chaque animal à sa taille.", "type": "decouverte-ce2", "nbTours": 5 },
-        { "id": "calculs-mesure-ce2", "titre": "L'exploration", "icone": "🛶", "couleur": "soleil", "description": "Calcule des conversions et mesure à la règle, en cm et en mm.", "type": "exploration-ce2", "nbTours": 6, "capCm": 20 },
+        { "id": "unites-decouverte-ce2", "titre": "Découverte : du microscopique à l’immensité", "icone": "🔍", "couleur": "corail", "description": "Classe des unités, puis associe chaque animal à sa taille.", "type": "decouverte-ce2", "nbTours": 5 },
+        { "id": "calculs-mesure-ce2", "titre": "L’exploration", "icone": "🛶", "couleur": "soleil", "description": "Calcule des conversions et mesure à la règle, en cm et en mm.", "type": "exploration-ce2", "nbTours": 6, "capCm": 20 },
         { "id": "perimetre-ce2", "titre": "La cartographie", "icone": "🗺️", "couleur": "mandarine", "description": "Compare des tours au compas, déplie des contours et mesure le périmètre au double décimètre.", "type": "perimetre", "nbTours": 7, "capCm": 16 },
-        { "id": "perimetre-calcul-ce2", "titre": "L'arpentage", "icone": "📏", "couleur": "menthe", "description": "Additionne les côtés pour trouver le périmètre, même quand une longueur manque.", "type": "perimetre-calcul", "nbTours": 7 }
+        { "id": "perimetre-calcul-ce2", "titre": "L’arpentage", "icone": "📏", "couleur": "menthe", "description": "Additionne les côtés pour trouver le périmètre, même quand une longueur manque.", "type": "perimetre-calcul", "nbTours": 7 }
       ]
     }
   }
@@ -829,12 +829,12 @@
   /* ---------- Palier bonus : révélation "paquet cadeau" (CHARTE §15, pattern
      générique réutilisable — cf. section « Palier bonus » du standard
      "Modules adaptatifs par niveau"). Une clé par module (comme les
-     étoiles), un indicateur par PROFIL puis par PALIER CIBLE à l'intérieur :
+     étoiles), un indicateur par PROFIL puis par PALIER CIBLE à l’intérieur :
      { [profilId]: { [palierCible]: true } }. Un module à 3 paliers (CP/CE1/
      CE2) a DEUX transitions bonus possibles (CP→CE1 puis CE1→CE2) : sans
-     l'indexation par palier cible, ouvrir le premier paquet marquait le
+     l’indexation par palier cible, ouvrir le premier paquet marquait le
      profil comme "déjà révélé" pour le module entier, et le second paquet
-     (CE1→CE2) n'apparaissait plus jamais — bug corrigé ici.
+     (CE1→CE2) n’apparaissait plus jamais — bug corrigé ici.
      Stockage sûr (mémoire + localStorage best-effort, CHARTE §9). ---------- */
   const CLE_BONUS_REVELE = 'mayeutik-m23-bonus-revele';
   let memoireBonusRevele = null;
@@ -910,12 +910,12 @@
       return null;
     }
   }
-  /* Lancement paramétré (CHARTE §16) : `?palier=ce1` dans l'URL — le niveau
-     du POINT D'ENTRÉE cliqué dans la coquille (ex. carte affichée dans une
+  /* Lancement paramétré (CHARTE §16) : `?palier=ce1` dans l’URL — le niveau
+     du POINT D’ENTRÉE cliqué dans la coquille (ex. carte affichée dans une
      section de niveau du menu, cf. js/app.js) prime sur le niveau du profil
      actif. Insensible à la casse ; absent, invalide, ou ne correspondant à
      aucun palier du module -> null, retombe silencieusement sur le
-     comportement par défaut (jamais d'erreur visible). */
+     comportement par défaut (jamais d’erreur visible). */
   function palierDepuisURL() {
     try {
       const brut = new URLSearchParams(window.location.search).get('palier');
@@ -975,7 +975,7 @@
   }
 
   /*
-   * Maîtrise locale d'un palier (CHARTE §15) : heuristique SIMPLIFIÉE propre à ce
+   * Maîtrise locale d’un palier (CHARTE §15) : heuristique SIMPLIFIÉE propre à ce
    * jeu, pas le calcul officiel LSU (qui reste propriété de la coquille, cf.
    * js/statuts.js). Un mini-jeu est considéré « maîtrisé » si sa DERNIÈRE
    * session enregistrée atteint au moins 80 %. Le palier est maîtrisé quand
@@ -1034,7 +1034,7 @@
     return contexteAudio;
   }
   /* ---------- Composant sonore partagé (CHARTE §5) ----------
-     Mêmes sons dans toute la série, générés à l'oscillateur : aucun fichier
+     Mêmes sons dans toute la série, générés à l’oscillateur : aucun fichier
      audio, donc aucune dépendance réseau. */
 
   /* Une note pure, avec une attaque douce et une extinction exponentielle —
@@ -1064,10 +1064,10 @@
     NOTES_BONNE_REPONSE.forEach((f, i) => jouerNote(ctx, f, t0 + i * 0.11, 0.11, 0.22));
   }
 
-  /* FIN DE NIVEAU PARFAITE (3 étoiles) : même famille sonore, pour qu'on la
-     reconnaisse, mais nettement plus ample — l'arpège monte deux notes plus
-     haut, puis se pose sur un accord tenu (~1.4 s en tout). C'est la durée et
-     l'accord final, plus que la hauteur, qui le rendent perceptiblement plus
+  /* FIN DE NIVEAU PARFAITE (3 étoiles) : même famille sonore, pour qu’on la
+     reconnaisse, mais nettement plus ample — l’arpège monte deux notes plus
+     haut, puis se pose sur un accord tenu (~1.4 s en tout). C’est la durée et
+     l’accord final, plus que la hauteur, qui le rendent perceptiblement plus
      marquant que la bonne réponse ponctuelle. */
   const NOTES_NIVEAU_PARFAIT = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
   const ACCORD_NIVEAU_PARFAIT = [523.25, 659.25, 783.99, 1046.5]; // do majeur tenu
@@ -1078,8 +1078,8 @@
     const t0 = ctx.currentTime;
     const pas = 0.1;
     NOTES_NIVEAU_PARFAIT.forEach((f, i) => jouerNote(ctx, f, t0 + i * pas, 0.12, 0.2));
-    // Accord final, plus doux que les notes de l'arpège pour ne pas saturer :
-    // quatre voix simultanées s'additionnent.
+    // Accord final, plus doux que les notes de l’arpège pour ne pas saturer :
+    // quatre voix simultanées s’additionnent.
     const tAccord = t0 + NOTES_NIVEAU_PARFAIT.length * pas + 0.04;
     ACCORD_NIVEAU_PARFAIT.forEach((f) => jouerNote(ctx, f, tAccord, 0.75, 0.12, 'triangle'));
   }
@@ -1091,7 +1091,7 @@
     [392.0, 293.66].forEach((f, i) => jouerNote(ctx, f, t0 + i * 0.17, 0.17, 0.22));
   }
 
-  /* Clic discret de manipulation (pose d'un jeton, d'un lien...). */
+  /* Clic discret de manipulation (pose d’un jeton, d’un lien...). */
   function sonTic() {
     let ctx;
     try { ctx = obtenirContexteAudio(); } catch (e) { return; }
@@ -1114,20 +1114,20 @@
      très mécanique. Or la plupart des appareils embarquent aussi des voix de
      bien meilleure facture, gratuites et DÉJÀ INSTALLÉES : « Enhanced » et
      « Premium » sur iOS/macOS, « Neural »/« Natural » sur Windows et Android.
-     On les repère à leur nom et on les préfère. Tout reste local : rien n'est
-     téléchargé, aucun service distant n'est appelé (cf. autonomie des jeux). */
+     On les repère à leur nom et on les préfère. Tout reste local : rien n’est
+     téléchargé, aucun service distant n’est appelé (cf. autonomie des jeux). */
   const VOIX_QUALITE = /(enhanced|premium|neural|natural|siri|wavenet|studio)/i;
   // Voix françaises réputées les plus agréables selon les plateformes, quand
-  // aucun marqueur de qualité n'apparaît dans le nom.
+  // aucun marqueur de qualité n’apparaît dans le nom.
   const VOIX_FR_SOIGNEES = /(am[ée]lie|thomas|audrey|aur[ée]lie|c[ée]line|marie)/i;
 
-  /* Débit légèrement ralenti : la consigne s'adresse à un enfant qui ne lit pas
-     encore, et un débit posé fait plus pour le naturel perçu que n'importe quel
+  /* Débit légèrement ralenti : la consigne s’adresse à un enfant qui ne lit pas
+     encore, et un débit posé fait plus pour le naturel perçu que n’importe quel
      autre réglage. La HAUTEUR reste à sa valeur naturelle (1) : la déplacer est
-     appliqué comme une transformation par-dessus la voix, et c'est le réglage
-     qui risque le plus de réintroduire le côté métallique qu'on cherche
-     justement à supprimer. Les deux valeurs sont ici pour être ajustées d'un
-     seul endroit si l'oreille en décide autrement. */
+     appliqué comme une transformation par-dessus la voix, et c’est le réglage
+     qui risque le plus de réintroduire le côté métallique qu’on cherche
+     justement à supprimer. Les deux valeurs sont ici pour être ajustées d’un
+     seul endroit si l’oreille en décide autrement. */
   const DEBIT_VOIX = 0.92;
   const HAUTEUR_VOIX = 1;
 
@@ -1195,7 +1195,7 @@
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(texte);
       u.lang = 'fr-FR';
-      // Aucune voix française trouvée : on s'en remet au navigateur via `lang`,
+      // Aucune voix française trouvée : on s’en remet au navigateur via `lang`,
       // exactement comme avant — la consigne reste lue, sans erreur.
       const voix = voixPreferee();
       if (voix) {
@@ -1205,8 +1205,8 @@
       u.rate = DEBIT_VOIX;
       u.pitch = HAUTEUR_VOIX;
       // Voix distante injoignable (hors ligne) : on relit UNE fois avec la
-      // meilleure voix embarquée. On ignore les erreurs d'interruption, qui
-      // signalent seulement qu'une lecture a été coupée par la suivante.
+      // meilleure voix embarquée. On ignore les erreurs d’interruption, qui
+      // signalent seulement qu’une lecture a été coupée par la suivante.
       if (voix && voix.localService === false) {
         u.onerror = (ev) => {
           const cause = ev && ev.error;
@@ -1220,12 +1220,12 @@
             u2.rate = DEBIT_VOIX;
             u2.pitch = HAUTEUR_VOIX;
             window.speechSynthesis.speak(u2);
-          } catch (e2) { /* on renonce : la consigne reste lisible à l'écran */ }
+          } catch (e2) { /* on renonce : la consigne reste lisible à l’écran */ }
         };
       }
       window.speechSynthesis.speak(u);
     } catch (e) {
-      // synthèse vocale indisponible : la consigne reste lisible à l'écran.
+      // synthèse vocale indisponible : la consigne reste lisible à l’écran.
     }
   }
   function creerBlocConsigne(texte, texteVoix) {
@@ -1248,14 +1248,14 @@
   }
 
   /* ================================================================
-     Primitives d'affichage réutilisées par plusieurs mini-jeux
+     Primitives d’affichage réutilisées par plusieurs mini-jeux
      ================================================================ */
 
-  /* Règle graduée virtuelle : ticks, étiquettes, barre d'objet mesuré (optionnelle),
+  /* Règle graduée virtuelle : ticks, étiquettes, barre d’objet mesuré (optionnelle),
      zones cliquables entre deux graduations entières (mode « encadrer »).
      `uniteDebut` (défaut 0) et `pxUnite` (défaut : calcul automatique via
-     pxParUniteRegle) permettent d'afficher une FENÊTRE agrandie centrée sur
-     une plage d'unités plutôt que toute la règle depuis 0 — cf.
+     pxParUniteRegle) permettent d’afficher une FENÊTRE agrandie centrée sur
+     une plage d’unités plutôt que toute la règle depuis 0 — cf.
      genererEncadrer, dont les zones tactiles (44px CHARTE) seraient sinon
      bien trop étroites sur une règle de 20 cm affichée en entier. Les
      positions restent relatives à `uniteDebut` (left = (i - uniteDebut) *
@@ -1270,9 +1270,9 @@
      centrées sur leur trait (`translateX(-50%)`) : posée à gauche = 0, la
      moitié du « 0 » sortait de la règle, que `overflow:hidden` rognait net.
      La marge décale toute la graduation vers la droite — la première étiquette
-     tient alors entière, sans rien changer à l'échelle ni aux distances entre
+     tient alors entière, sans rien changer à l’échelle ni aux distances entre
      graduations. Dimensionnée pour la plus large des premières étiquettes
-     possibles (fenêtre d'encadrement démarrant à deux chiffres, en grande
+     possibles (fenêtre d’encadrement démarrant à deux chiffres, en grande
      taille), et partagée par la règle fixe ET le double décimètre mobile. */
   const MARGE_REGLE_ZERO_PX = 16;
   function construireRegle(options) {
@@ -1347,7 +1347,7 @@
     return valeurs;
   }
   // Comme nombresDistincts, mais garantit un écart minimal entre valeurs
-  // triées : nécessaire pour les éléments positionnés en absolu le long d'un
+  // triées : nécessaire pour les éléments positionnés en absolu le long d’un
   // sentier (axe distance), où deux valeurs trop proches produiraient des
   // cibles tactiles qui se chevauchent (zones de 44px minimum, CHARTE §accessibilité).
   function valeursEspacees(n, min, max, ecartMin) {
@@ -1360,19 +1360,19 @@
     return melanger(valeurs);
   }
 
-  /* Niveau 1 — « L'orée du bois » (vocabulaire long/court/près/loin), en
+  /* Niveau 1 — « L’orée du bois » (vocabulaire long/court/près/loin), en
      texte à trou : des objets CONCRETS du bois, jamais de désignation
-     abstraite « objet A »/« objet B ». Chaque famille d'objet est déclinée
+     abstraite « objet A »/« objet B ». Chaque famille d’objet est déclinée
      en 3 couleurs ; les couleurs sont combinées deux à deux (C(3,2) = 3
-     paires par famille) pour fournir les deux objets comparés d'une
+     paires par famille) pour fournir les deux objets comparés d’une
      question (ex. « la corde rouge » / « la corde verte »). 5 familles × 3
      paires = 15 gabarits (> 6 manches par partie, CHARTE §13), un tirage
-     sans redondance par partie via construireSequenceJeu. Pour l'axe
+     sans redondance par partie via construireSequenceJeu. Pour l’axe
      distance, le repère fixe est toujours « la clairière » (cf.
-     genererLisiereCP) : elle n'a donc pas besoin de déclinaison couleur.
+     genererLisiereCP) : elle n’a donc pas besoin de déclinaison couleur.
      Pas d'« arbre » ici : en langage courant, un arbre se qualifie par
      « grand »/« petit », jamais par « long »/« court » — la « branche »
-     couvre l'axe longueur à sa place. */
+     couvre l’axe longueur à sa place. */
   const FAMILLES_LISIERE = [
     { nom: 'corde', genre: 'f', axe: 'longueur', icone: '🪢', couleurs: [
       { id: 'rouge', nom: 'rouge', hex: '#E5484D' },
@@ -1418,10 +1418,10 @@
   /* Niveau 2 — « En balade » (comparaison) : les 5 gabarits officiels du
      programme, chacun dans les deux sens (grand/petit, proche/loin…) = 10
      combinaisons (> 4 manches par partie), un tirage sans redondance par
-     partie. La 5ᵉ et dernière manche est toujours l'ordonnancement des
+     partie. La 5ᵉ et dernière manche est toujours l’ordonnancement des
      bâtons (cf. genererBaladeCP), pas tirée de cette banque.
      Les consignes ne sont plus figées ici : elles sont générées par
-     construireConsigneBalade (cf. plus bas) pour garantir l'accord de genre
+     construireConsigneBalade (cf. plus bas) pour garantir l’accord de genre
      et nommer explicitement le repère de distance (« du lac »). */
   const GABARITS_BALADE = [
     { axe: 'hauteur', nom: 'arbre', genre: 'm', cible: 'max' },
@@ -1447,36 +1447,36 @@
 
   /* Palier CE1 — « La Forêt » : banque « quelle unité choisir ? » (mini-jeu
      « La lisière de la forêt », et réutilisée comme un des sous-types de « La règle du
-     garde forestier »). Formulation déclarative (« La hauteur… s'exprime
-     en… ») plutôt qu'interrogative directe sur l'unité, avec « distance »
+     garde forestier »). Formulation déclarative (« La hauteur… s’exprime
+     en… ») plutôt qu’interrogative directe sur l’unité, avec « distance »
      réservé aux trajets et « hauteur »/« largeur »/« longueur » aux objets
      mesurés — cohérent avec le contexte de chaque item.
-     ARTICLE INDÉFINI obligatoire (« la hauteur D'UN sapin », jamais « du
-     sapin ») : la question porte sur la grandeur réelle TYPIQUE de l'espèce,
+     ARTICLE INDÉFINI obligatoire (« la hauteur D’UN sapin », jamais « du
+     sapin ») : la question porte sur la grandeur réelle TYPIQUE de l’espèce,
      pas sur le pictogramme affiché à côté, qui ne respecte aucune échelle —
-     tous les items y sont dessinés à la même taille. L'article défini
+     tous les items y sont dessinés à la même taille. L’article défini
      désignerait ce dessin-là. 12 items (> 2× les
      6 manches par partie, CHARTE §13), un tirage sans redondance par
      partie (etat.uniteVues, comme genererEstimation). */
   const OBJETS_UNITES_CE1 = [
-    { texte: "La hauteur d'un chêne s'exprime en…", icone: '🌳', unite: 'm' },
-    { texte: "La hauteur d'un sapin s'exprime en…", icone: '🌲', unite: 'm' },
-    { texte: "La largeur d'un pont de bois s'exprime en…", icone: '🌉', unite: 'm' },
-    { texte: "La longueur d'une chaussure de marche s'exprime en…", icone: '🥾', unite: 'cm' },
-    { texte: "La longueur d'un lapin s'exprime en…", icone: '🐇', unite: 'cm' },
-    { texte: "La largeur d'un champignon s'exprime en…", icone: '🍄', unite: 'cm' },
-    { texte: "La longueur d'une pomme de pin s'exprime en…", icone: '🌰', unite: 'cm' },
-    { texte: "La longueur d'une boussole s'exprime en…", icone: '🧭', unite: 'cm' },
-    { texte: "La distance pour traverser toute la forêt s'exprime en…", icone: '🥾', unite: 'km' },
-    { texte: "La distance jusqu'au village voisin s'exprime en…", icone: '🏘️', unite: 'km' },
-    { texte: "La distance d'un sentier de randonnée s'exprime en…", icone: '🛤️', unite: 'km' },
-    { texte: "La distance d'un bout à l'autre de la forêt s'exprime en…", icone: '🧭', unite: 'km' }
+    { texte: "La hauteur d’un chêne s’exprime en…", icone: '🌳', unite: 'm' },
+    { texte: "La hauteur d’un sapin s’exprime en…", icone: '🌲', unite: 'm' },
+    { texte: "La largeur d’un pont de bois s’exprime en…", icone: '🌉', unite: 'm' },
+    { texte: "La longueur d’une chaussure de marche s’exprime en…", icone: '🥾', unite: 'cm' },
+    { texte: "La longueur d’un lapin s’exprime en…", icone: '🐇', unite: 'cm' },
+    { texte: "La largeur d’un champignon s’exprime en…", icone: '🍄', unite: 'cm' },
+    { texte: "La longueur d’une pomme de pin s’exprime en…", icone: '🌰', unite: 'cm' },
+    { texte: "La longueur d’une boussole s’exprime en…", icone: '🧭', unite: 'cm' },
+    { texte: "La distance pour traverser toute la forêt s’exprime en…", icone: '🥾', unite: 'km' },
+    { texte: "La distance jusqu’au village voisin s’exprime en…", icone: '🏘️', unite: 'km' },
+    { texte: "La distance d’un sentier de randonnée s’exprime en…", icone: '🛤️', unite: 'km' },
+    { texte: "La distance d’un bout à l’autre de la forêt s’exprime en…", icone: '🧭', unite: 'km' }
   ];
 
   /* Palier CE1 — « La Forêt » : familles pour la comparaison chiffrée
      (mini-jeu « La règle du garde forestier », sous-type comparaison).
-     Chaque famille précise son unité (m/cm/km), l'adjectif approprié
-     (grand/petit pour une hauteur d'arbre, long/court pour une distance),
+     Chaque famille précise son unité (m/cm/km), l’adjectif approprié
+     (grand/petit pour une hauteur d’arbre, long/court pour une distance),
      et exactement 2 couleurs (jamais de désignation abstraite « objet
      A »/« objet B »). 3 familles (> 2× le nombre de tirages probable de ce
      sous-type par partie), un tirage sans redondance par partie
@@ -1528,8 +1528,8 @@
     return carte;
   }
 
-  /* Remonte en haut à chaque changement d'écran (CHARTE §17) : sans cela, le
-     nouvel écran hérite du défilement de l'écran précédent — l'enfant qui
+  /* Remonte en haut à chaque changement d’écran (CHARTE §17) : sans cela, le
+     nouvel écran hérite du défilement de l’écran précédent — l’enfant qui
      vient de valider en bas de page se retrouverait au milieu de la manche
      suivante. Repositionnement instantané (jamais « smooth » : un glissement
      animé pendant une transition est parasite). */
@@ -1537,12 +1537,12 @@
     try {
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     } catch (e) {
-      window.scrollTo(0, 0); // navigateurs sans l'API à options
+      window.scrollTo(0, 0); // navigateurs sans l’API à options
     }
   }
 
-  /* Navigation automatique après un délai (CHARTE §20) : 2 s après l'affichage
-     du bouton « Suivant », on avance sans attendre le clic de l'enfant. Un
+  /* Navigation automatique après un délai (CHARTE §20) : 2 s après l’affichage
+     du bouton « Suivant », on avance sans attendre le clic de l’enfant. Un
      clic manuel ou une sortie du jeu annulent ce minuteur. */
   const DELAI_AUTO_SUIVANT = 2000;
   let minuteurAutoSuivant = null;
@@ -1558,8 +1558,8 @@
     clearTimeout(minuteurAutoSuivant);
   }
 
-  /* Correction après une MAUVAISE réponse (CHARTE §18) : ce que l'enfant a
-     répondu en rouge, ce qu'il fallait répondre en vert. N'est jamais appelée
+  /* Correction après une MAUVAISE réponse (CHARTE §18) : ce que l’enfant a
+     répondu en rouge, ce qu’il fallait répondre en vert. N’est jamais appelée
      sur une bonne réponse (elle brouillerait la récompense). */
   function afficherCorrection(zone, donnee, attendue) {
     const bloc = document.createElement('p');
@@ -1580,10 +1580,10 @@
   }
 
   /* Révélation du bon rangement après une erreur de tri (CHARTE §18) : on
-     marque d'abord en rouge les places occupées par le mauvais élément (et en
-     vert celles déjà bonnes), puis la bande se remet d'elle-même dans l'ordre
-     attendu, tout en vert — l'enfant voit à la fois SON erreur et la réponse.
-     `ordre` est muté en place : c'est le modèle que `rendreCase` relit. */
+     marque d’abord en rouge les places occupées par le mauvais élément (et en
+     vert celles déjà bonnes), puis la bande se remet d’elle-même dans l’ordre
+     attendu, tout en vert — l’enfant voit à la fois SON erreur et la réponse.
+     `ordre` est muté en place : c’est le modèle que `rendreCase` relit. */
   function revelerRangement(cases, ordre, attendu, rendreCase) {
     cases.forEach((caseDiv, i) => {
       caseDiv.classList.remove('case-selectionnee');
@@ -1600,9 +1600,9 @@
     }, 900);
   }
 
-  /* Révélation de la bonne répartition d'un glisser-déposer (CHARTE §18) :
-     chaque emplacement passe au vert s'il contenait déjà le bon élément, au
-     rouge sinon ; après une pause, l'élément attendu vient de lui-même s'y
+  /* Révélation de la bonne répartition d’un glisser-déposer (CHARTE §18) :
+     chaque emplacement passe au vert s’il contenait déjà le bon élément, au
+     rouge sinon ; après une pause, l’élément attendu vient de lui-même s’y
      placer et tout passe au vert. `depots` = [{ el, attendu }], `elements` =
      la liste complète des étiquettes/vignettes (attribut data-unite). */
   function revelerDepots(depots, elements) {
@@ -1621,7 +1621,7 @@
     }, 900);
   }
 
-  /* Marquage d'un choix parmi des vignettes illustrées (arbres, brindilles,
+  /* Marquage d’un choix parmi des vignettes illustrées (arbres, brindilles,
      clairières) : vert sur la bonne, rouge sur celle qui a été touchée à tort
      (CHARTE §18). Sur une bonne réponse, seule la vignette choisie verdit. */
   function marquerChoix(boutons, choisi, correct, attendu) {
@@ -1641,7 +1641,7 @@
     rangee.innerHTML = '';
     const niveauProfil = niveauDuProfilActif();
     /* Verrouillage des onglets (CHARTE §15) : un palier au-delà du niveau du
-       profil actif reste verrouillé tant que son paquet cadeau n'a pas été
+       profil actif reste verrouillé tant que son paquet cadeau n’a pas été
        ouvert une première fois — sinon le sélecteur de palier contournerait
        entièrement la mécanique de déblocage qui protège le bloc bonus plus
        bas sur la même page. Niveau absent ou non couvert par ce module :
@@ -1669,8 +1669,8 @@
       .forEach((cfg) => grille.appendChild(construireCarteJeu(cfg)));
 
     /* Palier bonus (CHARTE §15) : uniquement si le palier courant est maîtrisé
-       ET qu'un palier suivant existe. Première apparition du bonus pour ce
-       profil : habillé en « paquet cadeau » tant qu'il n'a pas été ouvert
+       ET qu’un palier suivant existe. Première apparition du bonus pour ce
+       profil : habillé en « paquet cadeau » tant qu’il n’a pas été ouvert
        (cf. ouvrirPaquetCadeau) ; ensuite affiché normalement à chaque visite. */
     const suivant = palierSuivant(etatPalierAffiche);
     const blocBonus = document.getElementById('bloc-bonus');
@@ -1701,7 +1701,7 @@
 
   /* Ouverture du paquet cadeau (une seule fois par profil ET par palier
      cible, cf. marquerBonusRevele) : confettis + petite animation
-     d'explosion douce, puis le contenu du palier bonus est révélé
+     d’explosion douce, puis le contenu du palier bonus est révélé
      normalement. */
   function ouvrirPaquetCadeau(profilId, palierCible, paquetCadeau, grilleBonus) {
     if (paquetCadeau.disabled) return;
@@ -1731,7 +1731,7 @@
     etat = { miniJeuId, cfg: trouve.cfg, palier: trouve.palier, index: 0, score: 0, verrouille: false, demarreLe: Date.now(), dernierSousType: null };
     // Tirage SANS REDONDANCE dans une banque plus large que le nombre de
     // manches (CHARTE §13) : précalculé une seule fois au démarrage de la
-    // partie plutôt que redessiné à chaque manche, pour garantir qu'aucun
+    // partie plutôt que redessiné à chaque manche, pour garantir qu’aucun
     // gabarit ne revient deux fois dans la même partie.
     etat.sequence = construireSequenceJeu(trouve.cfg);
     document.getElementById('ecran-accueil').hidden = true;
@@ -1769,16 +1769,16 @@
     remonterEnHaut();
   }
 
-  /* « Presque » ne se dit QUE d'une réponse voisine de la bonne : appliqué à
+  /* « Presque » ne se dit QUE d’une réponse voisine de la bonne : appliqué à
      un résultat complètement faux, le mot sonne faux et brouille le repère que
-     l'enfant se construit sur son propre écart. On compare donc les deux
-     valeurs quand elles sont chiffrées : voisines = écart d'une unité, ou de
+     l’enfant se construit sur son propre écart. On compare donc les deux
+     valeurs quand elles sont chiffrées : voisines = écart d’une unité, ou de
      moins de 10 % de la valeur attendue (une mesure à 34 mm au lieu de 36 est
-     « presque », 3 m au lieu de 300 cm ne l'est pas). Les réponses non
+     « presque », 3 m au lieu de 300 cm ne l’est pas). Les réponses non
      chiffrées (unité à choisir, objet à désigner…) ne sont jamais « presque » :
-     on y est juste ou on n'y est pas.
+     on y est juste ou on n’y est pas.
      `correction.nombres = [donnee, attendue]` permet de fournir directement
-     les valeurs quand le texte affiché ne s'y prête pas. */
+     les valeurs quand le texte affiché ne s’y prête pas. */
   function extraireNombre(texte) {
     if (typeof texte === 'number') return texte;
     if (typeof texte !== 'string') return null;
@@ -1807,7 +1807,7 @@
   }
 
   /* `correction` (facultatif) = { donnee, attendue } : affiché uniquement en cas
-     d'erreur, sous le message de feedback (CHARTE §18). */
+     d’erreur, sous le message de feedback (CHARTE §18). */
   function validerTour(estCorrecte, boutonAValider, correction) {
     if (etat.verrouille) return;
     etat.verrouille = true;
@@ -1843,7 +1843,7 @@
     enregistrerEtoiles(cfg.id, etoilesGagnees);
     const dureeSecondes = Math.max(0, Math.round((Date.now() - etat.demarreLe) / 1000));
     enregistrerSession(cfg.id, etat.score, cfg.nbTours, dureeSecondes);
-    // Résultat parfait : un son plus ample que celui d'une bonne réponse
+    // Résultat parfait : un son plus ample que celui d’une bonne réponse
     // ponctuelle, pour souligner ce qui est rare (CHARTE §5).
     if (etoilesGagnees === 3) sonNiveauParfait();
 
@@ -1871,7 +1871,7 @@
 
     const accueilBtn = document.createElement('button');
     accueilBtn.className = 'bouton-secondaire';
-    accueilBtn.textContent = "Retour à l'accueil";
+    accueilBtn.textContent = "Retour à l’accueil";
     accueilBtn.addEventListener('click', retourAccueil);
 
     boutons.appendChild(rejouer);
@@ -1888,16 +1888,16 @@
   }
 
   /* ================================================================
-     Palier CP — Niveau 1 : « L'orée du bois » (vocabulaire, texte à trou)
+     Palier CP — Niveau 1 : « L’orée du bois » (vocabulaire, texte à trou)
      Phrase à trou comparant deux objets CONCRETS de même famille mais de
      couleurs différentes (ex. « la corde rouge » / « la corde verte »),
-     jamais de désignation abstraite. L'enfant clique le mot manquant parmi
-     un QCM de 2 choix, tous deux ACCORDÉS en genre avec l'objet tiré (ex.
+     jamais de désignation abstraite. L’enfant clique le mot manquant parmi
+     un QCM de 2 choix, tous deux ACCORDÉS en genre avec l’objet tiré (ex.
      « longue »/« courte » pour une corde, « long »/« court » pour un
      chemin ; « près »/« loin » sont invariables).
      ================================================================ */
 
-  // Ce qu'on ÉNONCE d'une couleur : par défaut la teinte seule (« rouge »),
+  // Ce qu’on ÉNONCE d’une couleur : par défaut la teinte seule (« rouge »),
   // mais certaines familles précisent la partie colorée (« au toit vert »
   // plutôt que « verte », qui laisserait croire que toute la cabane est verte).
   function libelleCouleur(couleur) {
@@ -1912,11 +1912,11 @@
     return mot; // « près »/« loin » : invariables
   }
 
-  // Article défini + nom, avec élision (« l'arbre ») et majuscule optionnelle
+  // Article défini + nom, avec élision (« l’arbre ») et majuscule optionnelle
   // (début de phrase) : évite toute désignation par lettre/numéro abstraite.
   function nommerAvecArticle(nom, genre, majuscule) {
     const commenceVoyelle = /^[aâàeéèêëiîïoôöuûü]/i.test(nom);
-    if (commenceVoyelle) return (majuscule ? 'L' : 'l') + '\'' + nom;
+    if (commenceVoyelle) return (majuscule ? 'L' : 'l') + '’' + nom;
     const art = genre === 'f' ? 'la' : 'le';
     return (majuscule ? art.charAt(0).toUpperCase() + art.slice(1) : art) + ' ' + nom;
   }
@@ -1938,20 +1938,20 @@
 
   // Écart visuel (px) ajouté par unité de distance ENTRE deux objets déjà
   // ordonnés dans la piste flexbox (cf. genererLisiereCP) : purement indicatif
-  // pour donner une idée de « plus loin »/« plus près », vient S'AJOUTER au
-  // gap flexbox garanti — contrairement à l'ancien positionnement en % de la
+  // pour donner une idée de « plus loin »/« plus près », vient S’AJOUTER au
+  // gap flexbox garanti — contrairement à l’ancien positionnement en % de la
   // piste, deux objets flexbox ne peuvent structurellement jamais se
   // chevaucher, quelle que soit leur taille effective (icônes agrandies
-  // comprises), sans dépendre d'un calcul de position exact. Plafonné
-  // (MARGE_DISTANCE_MAX_PX) pour qu'un grand écart de distance (jusqu'à 14
-  // sur l'échelle 2-16) ne pousse pas le second objet hors du cadre sur un
-  // écran étroit — l'indice visuel reste présent mais borné.
+  // comprises), sans dépendre d’un calcul de position exact. Plafonné
+  // (MARGE_DISTANCE_MAX_PX) pour qu’un grand écart de distance (jusqu’à 14
+  // sur l’échelle 2-16) ne pousse pas le second objet hors du cadre sur un
+  // écran étroit — l’indice visuel reste présent mais borné.
   const PX_PAR_UNITE_DISTANCE_LISIERE = 9;
   const MARGE_DISTANCE_MAX_PX = 36;
 
   // Clairière (repère fixe des questions de distance) : une clairière
-  // reconnaissable — herbe claire cernée d'un anneau d'arbres — plutôt qu'un
-  // soleil/nuage qui n'évoque pas un lieu en forêt.
+  // reconnaissable — herbe claire cernée d’un anneau d’arbres — plutôt qu’un
+  // soleil/nuage qui n’évoque pas un lieu en forêt.
   function creerLisiereMiniClairiere() {
     const mini = document.createElement('span');
     mini.className = 'lisiere-mini-clairiere';
@@ -2050,7 +2050,7 @@
       // directs de la même rangée flexbox (flux normal, plus de
       // positionnement absolu) : le gap CSS garanti empêche tout
       // chevauchement quelle que soit la taille effective des dessins, et une
-      // marge supplémentaire proportionnelle à l'écart de distance donne un
+      // marge supplémentaire proportionnelle à l’écart de distance donne un
       // indice visuel du « plus loin »/« plus près » en plus du texte.
       const repere = document.createElement('div');
       repere.className = 'lisiere-repere';
@@ -2126,9 +2126,9 @@
   function celuiCelle(genre) { return genre === 'f' ? 'celle' : 'celui'; }
 
   // Contraction « de » + article défini (« de + le » → « du », etc.), pour
-  // nommer le repère de distance sans faute d'accord quel que soit son genre.
+  // nommer le repère de distance sans faute d’accord quel que soit son genre.
   function complementDe(nom, genre) {
-    if (/^[aâàeéèêëiîïoôöuûü]/i.test(nom)) return 'de l\'' + nom;
+    if (/^[aâàeéèêëiîïoôöuûü]/i.test(nom)) return 'de l’' + nom;
     return (genre === 'f' ? 'de la ' : 'du ') + nom;
   }
 
@@ -2170,7 +2170,7 @@
     return arbre;
   }
 
-  // Clairière vue de façon semi-aérienne : une herbe claire cernée d'un
+  // Clairière vue de façon semi-aérienne : une herbe claire cernée d’un
   // anneau de 6 arbres, construit en CSS pur (rotation régulière à 60°).
   function creerMiniClairiere() {
     const mini = document.createElement('span');
@@ -2252,7 +2252,7 @@
       const piste = document.createElement('div'); piste.className = 'sentier-piste';
       // La distance maximale possible vient de valeursEspacees(n, 2, 20, 3)
       // ci-dessus : convertir en % de la largeur RÉELLE de la piste (plutôt
-      // qu'en px fixes) évite tout débordement du cadre blanc sur mobile.
+      // qu’en px fixes) évite tout débordement du cadre blanc sur mobile.
       const DISTANCE_MAX_BALADE = 20;
       const boutons = [];
       valeurs.forEach((distance, i) => {
@@ -2277,24 +2277,24 @@
   /*
    * Ranger 5 bâtons en pyramide, sur 5 « étagères » (rangées) FIXES : chaque
    * bâton est posé À PLAT et ANCRÉ À GAUCHE sur la même ligne verticale
-   * (seule l'extrémité droite varie avec sa longueur), pour permettre à
-   * l'enfant de comparer les longueurs d'un coup d'œil, sans avoir à les
-   * déplacer d'abord. Glisser un bâton vers une autre rangée ÉCHANGE leur
+   * (seule l’extrémité droite varie avec sa longueur), pour permettre à
+   * l’enfant de comparer les longueurs d’un coup d'œil, sans avoir à les
+   * déplacer d’abord. Glisser un bâton vers une autre rangée ÉCHANGE leur
    * place — modifiable autant de fois que nécessaire avant « Valider »
    * (pas de validation automatique à chaque échange). Une fois trié, les
    * bouts droits dessinent une diagonale nette (effet pyramide).
    *
-   * Le sens du tri (du plus court en haut au plus long en bas, ou l'inverse)
+   * Le sens du tri (du plus court en haut au plus long en bas, ou l’inverse)
    * est tiré au hasard à chaque partie et explicité dans la consigne.
    *
-   * Le DOM n'est JAMAIS reparenté pendant le geste : seule la VALEUR (et donc
+   * Le DOM n’est JAMAIS reparenté pendant le geste : seule la VALEUR (et donc
    * la largeur affichée) de chaque rangée est échangée, les 5 boutons restant
-   * toujours à leur position DOM d'origine. Cette leçon vient du réordonnancement
+   * toujours à leur position DOM d’origine. Cette leçon vient du réordonnancement
    * des profils de la coquille (cf. js/app.js, activerReordonnerProfils) : sous
-   * Chromium, reparenter l'élument capturé PENDANT le glisser fait perdre la
+   * Chromium, reparenter l’élument capturé PENDANT le glisser fait perdre la
    * capture du pointeur et casse le pointerup final.
    *
-   * Double interaction, pour l'accessibilité tactile : glisser un bâton vers
+   * Double interaction, pour l’accessibilité tactile : glisser un bâton vers
    * une autre rangée (drag natif), OU toucher un bâton puis une autre rangée
    * pour les échanger (tap-tap, sans glisser).
    */
@@ -2312,7 +2312,7 @@
       : 'le plus long tout en haut et le plus court tout en bas';
     zone.appendChild(creerBlocConsigne(
       'Range les bâtons en pyramide : ' + sens + '.',
-      'Fais glisser un bâton vers une autre rangée pour échanger leur place, jusqu\'à ce qu\'ils soient rangés avec ' + sens + '. Tu peux aussi toucher un bâton, puis une autre rangée, pour les échanger.'
+      'Fais glisser un bâton vers une autre rangée pour échanger leur place, jusqu’à ce qu’ils soient rangés avec ' + sens + '. Tu peux aussi toucher un bâton, puis une autre rangée, pour les échanger.'
     ));
 
     const bande = document.createElement('div');
@@ -2336,7 +2336,7 @@
 
     // Fantôme = CLONE de la vraie barre (donc largeur/couleur/hauteur
     // identiques, JAMAIS retouchées) positionné en coordonnées écran, qui ne
-    // fait que translater : c'est la position qui change, jamais la taille.
+    // fait que translater : c’est la position qui change, jamais la taille.
     function creerFantomeBaton(barreOriginale, rect) {
       const fantome = barreOriginale.cloneNode(true);
       fantome.classList.add('baton-fantome');
@@ -2371,7 +2371,7 @@
 
       if (preferesMouvementReduit) return;
 
-      // Compteur d'animations en cours (deux échanges rapprochés peuvent
+      // Compteur d’animations en cours (deux échanges rapprochés peuvent
       // partager une rangée : la première minuterie ne doit pas la rétablir
       // alors que la seconde animation court encore).
       const masquer = (el) => {
@@ -2412,9 +2412,9 @@
 
       // Tout se décide sur `pointerup`, jamais sur `click` : cf. le commentaire
       // détaillé de genererTriArbresCE1 (un glissement terminé sur une autre
-      // rangée envoie le `click` à l'ancêtre commun, si bien qu'un verrou
+      // rangée envoie le `click` à l’ancêtre commun, si bien qu’un verrou
       // « ignorer le prochain clic » finissait par manger le tap suivant).
-      // `click` ne sert plus qu'au clavier (detail === 0).
+      // `click` ne sert plus qu’au clavier (detail === 0).
       function activer() {
         if (etat.verrouille) return;
         if (selection === null) {
@@ -2487,7 +2487,7 @@
      Palier CP — Niveau 3 : « La cabane » (mesure)
      Alterne (sans répéter deux fois de suite, cf. dernierSousType) : estimer
      un ordre de grandeur, mesurer avec la règle déjà positionnée, ou glisser
-     la règle pour l'aligner avant de mesurer.
+     la règle pour l’aligner avant de mesurer.
      ================================================================ */
 
   function genererCabaneCP(zone, cfg) {
@@ -2502,9 +2502,9 @@
 
   /*
    * Règle DÉPLAÇABLE : contrairement à genererMesurer (règle déjà en place),
-   * ici la planche à mesurer est fixe et la règle démarre décalée — l'enfant
+   * ici la planche à mesurer est fixe et la règle démarre décalée — l’enfant
    * doit la glisser pour aligner son zéro avec le début de la planche avant
-   * que le QCM de lecture n'apparaisse (alignement requis, pas seulement
+   * que le QCM de lecture n’apparaisse (alignement requis, pas seulement
    * décoratif).
    */
   function genererMesurerGlisser(zone, cfg) {
@@ -2565,9 +2565,9 @@
     zone.appendChild(zoneReponse);
 
     const TOLERANCE_PX = 8;
-    // Le zéro n'est plus au bord de la règle mais MARGE_REGLE_ZERO_PX plus
-    // loin (place réservée à l'étiquette « 0 ») : c'est lui, et non le bord de
-    // l'élément, qu'il faut aligner sur le début de la planche.
+    // Le zéro n’est plus au bord de la règle mais MARGE_REGLE_ZERO_PX plus
+    // loin (place réservée à l’étiquette « 0 ») : c’est lui, et non le bord de
+    // l’élément, qu’il faut aligner sur le début de la planche.
     function estAlignee() {
       return Math.abs(positionRegle + MARGE_REGLE_ZERO_PX - positionPlanche) <= TOLERANCE_PX;
     }
@@ -2597,8 +2597,8 @@
           if (!correct) grille.children[indexCorrect].classList.add('correct');
           // Les distracteurs sont voisins de la bonne valeur (±1 à ±3 cm) :
           // on transmet les deux nombres pour que « Presque ! » ne sorte que
-          // sur un écart d'une unité — le marquage vert/rouge des options fait
-          // déjà office de correction, d'où `afficher: false`.
+          // sur un écart d’une unité — le marquage vert/rouge des options fait
+          // déjà office de correction, d’où `afficher: false`.
           validerTour(correct, btn, correct ? null : {
             afficher: false, nombres: [Number(opt), Number(optionsMelangees[indexCorrect])]
           });
@@ -2643,7 +2643,7 @@
   }
 
   /*
-   * Règle déjà positionnée sous l'objet à mesurer (QCM de lecture directe) :
+   * Règle déjà positionnée sous l’objet à mesurer (QCM de lecture directe) :
    * palier CP, « La cabane », sous-type mesure-fixe.
    */
   function genererMesurer(zone, cfg) {
@@ -2651,7 +2651,7 @@
     const longueur = nombreAleatoire(3, cap - 2);
     zone.appendChild(creerBlocConsigne(
       'Lis la règle : quelle est la longueur de cette brindille ?',
-      'Regarde où s\'arrête la brindille sur la règle graduée, et choisis la bonne longueur en centimètres.'
+      'Regarde où s’arrête la brindille sur la règle graduée, et choisis la bonne longueur en centimètres.'
     ));
     zone.appendChild(construireRegle({ longueurUnites: cap, objetLongueur: longueur, unite: 'cm' }));
 
@@ -2678,8 +2678,8 @@
         if (!correct) grille.children[indexCorrect].classList.add('correct');
         // Les distracteurs sont voisins de la bonne valeur (±1 à ±3 cm) :
         // on transmet les deux nombres pour que « Presque ! » ne sorte que
-        // sur un écart d'une unité — le marquage vert/rouge des options fait
-        // déjà office de correction, d'où `afficher: false`.
+        // sur un écart d’une unité — le marquage vert/rouge des options fait
+        // déjà office de correction, d’où `afficher: false`.
         validerTour(correct, btn, correct ? null : {
           afficher: false, nombres: [Number(opt), Number(optionsMelangees[indexCorrect])]
         });
@@ -2691,20 +2691,20 @@
 
   /* ================================================================
      Palier CE1 — « La Forêt »
-     Niveau 1 : « La lisière de la forêt » (unités-conversion-ce1) — choisir l'unité la
-     mieux adaptée à l'objet mesuré, puis convertir une longueur donnée
+     Niveau 1 : « La lisière de la forêt » (unités-conversion-ce1) — choisir l’unité la
+     mieux adaptée à l’objet mesuré, puis convertir une longueur donnée
      comme une somme m+cm (ou km/m) en un nombre total de cm, saisi au pavé
      numérique diégétique.
      Niveau 2 : « La règle du garde forestier » (comparer-ranger-ce1) —
      alterne SANS les regrouper par bloc les trois familles de questions :
      unités/conversion (mêmes fonctions que la lisière), comparaison
-     chiffrée + tri de 5 arbres, et encadrement d'une mesure entre deux
+     chiffrée + tri de 5 arbres, et encadrement d’une mesure entre deux
      entiers de cm.
      ================================================================ */
 
   // Pavé numérique diégétique (réutilisé du pattern déjà établi dans
   // jeux/M99-boss-des-tables.html et jeux/M01-nombres-jusqu-9-cp.html) :
-  // écran + grille 3×4, jusqu'à `maxChiffres` chiffres, touches C (effacer)
+  // écran + grille 3×4, jusqu’à `maxChiffres` chiffres, touches C (effacer)
   // et ✓ (valider). onValider reçoit la valeur saisie en nombre entier.
   function creerPave(onValider, maxChiffres) {
     const conteneur = document.createElement('div');
@@ -2806,7 +2806,7 @@
 
   // Dispatcher « unités/conversion » : partagé par le mini-jeu « La lisière de la forêt »
   // ET par un des sous-types de « La règle du garde forestier » (même
-  // contenu, cf. spécification CE1). Clé d'anti-répétition dédiée
+  // contenu, cf. spécification CE1). Clé d’anti-répétition dédiée
   // (dernierSousTypeUnites) pour ne pas entrer en collision avec la
   // rotation à 4 sous-types de genererComparerRangerCE1.
   function genererUnitesConversionCE1(zone) {
@@ -2818,12 +2818,12 @@
     else genererConversionCE1(zone);
   }
 
-  // Sous-type « comparaison chiffrée » : deux instances COLORÉES d'une même
+  // Sous-type « comparaison chiffrée » : deux instances COLORÉES d’une même
   // famille (jamais de désignation abstraite), chacune avec sa vraie mesure
-  // affichée (renforce la lecture de l'unité), à comparer via un texte à
+  // affichée (renforce la lecture de l’unité), à comparer via un texte à
   // trou QCM — même mécanique que le niveau 1 du palier CP (accorderMot,
   // nommerAvecArticle), avec le vocabulaire adapté (grand/petit pour une
-  // hauteur d'arbre, long/court pour une distance).
+  // hauteur d’arbre, long/court pour une distance).
   function genererComparaisonCE1(zone) {
     if (!etat.comparaisonVues) etat.comparaisonVues = [];
     let dispo = FAMILLES_COMPARAISON_CE1.filter((f) => etat.comparaisonVues.indexOf(f.nom) === -1);
@@ -2896,7 +2896,7 @@
    * Sous-type « tri de 5 arbres » : VERSION ALTERNATIVE, À 90°, du tri des
    * 5 bâtons du palier CP (cf. genererOrdonnerBatons) — colonnes CÔTE À
    * CÔTE (gauche → droite) au lieu de rangées empilées, ancrées EN BAS
-   * (comme des arbres plantés sur le sol) au lieu d'un ancrage à gauche.
+   * (comme des arbres plantés sur le sol) au lieu d’un ancrage à gauche.
    * Même geste (échange par paire, DOM des 5 colonnes jamais reparenté
    * pendant le geste) et même transition en pure TRANSLATION — translateX
    * ici — via un fantôme cloné de taille figée (cf. echanger() du CP).
@@ -2915,7 +2915,7 @@
       : 'le plus grand à gauche et le plus petit à droite';
     zone.appendChild(creerBlocConsigne(
       'Range les arbres en pyramide : ' + sens + '.',
-      'Fais glisser un arbre vers une autre colonne pour échanger leur place, jusqu\'à ce qu\'ils soient rangés avec ' + sens + '. Tu peux aussi toucher un arbre, puis une autre colonne, pour les échanger.'
+      'Fais glisser un arbre vers une autre colonne pour échanger leur place, jusqu’à ce qu’ils soient rangés avec ' + sens + '. Tu peux aussi toucher un arbre, puis une autre colonne, pour les échanger.'
     ));
 
     const bande = document.createElement('div');
@@ -2957,8 +2957,8 @@
       const rectJ = contenuJ.getBoundingClientRect();
 
       // Les fantômes sont clonés AVANT la permutation du modèle : chacun porte
-      // donc l'arbre qui était là, et part de sa vraie place vers sa nouvelle —
-      // cloné après, il aurait montré chaque arbre s'éloignant de la place où
+      // donc l’arbre qui était là, et part de sa vraie place vers sa nouvelle —
+      // cloné après, il aurait montré chaque arbre s’éloignant de la place où
       // il allait atterrir.
       const fantomeI = preferesMouvementReduit ? null : creerFantomeArbre(contenuI, rectI);
       const fantomeJ = preferesMouvementReduit ? null : creerFantomeArbre(contenuJ, rectJ);
@@ -2968,8 +2968,8 @@
 
       if (preferesMouvementReduit) return;
 
-      // Compteur d'animations EN COURS par colonne : deux échanges rapprochés
-      // partageant une colonne ne doivent pas se rendre visible l'un l'autre
+      // Compteur d’animations EN COURS par colonne : deux échanges rapprochés
+      // partageant une colonne ne doivent pas se rendre visible l’un l’autre
       // avant terme (la première minuterie rétablirait une colonne encore en
       // pleine seconde animation).
       const masquer = (el) => {
@@ -3011,11 +3011,11 @@
 
       // Sélection au doigt : tout est décidé sur `pointerup`, JAMAIS sur
       // `click`. Un glissement se terminant sur une AUTRE colonne fait partir
-      // le `click` du navigateur vers l'ancêtre commun des deux boutons, et non
-      // vers celui d'origine : un verrou « ignorer le prochain clic » n'y était
-      // donc jamais consommé et mangeait le tap SUIVANT de l'enfant — le
+      // le `click` du navigateur vers l’ancêtre commun des deux boutons, et non
+      // vers celui d’origine : un verrou « ignorer le prochain clic » n’y était
+      // donc jamais consommé et mangeait le tap SUIVANT de l’enfant — le
       // classement paraissait bloqué une prise sur deux. Le `click` ne sert
-      // plus qu'au clavier (detail === 0), qui n'émet aucun événement pointeur.
+      // plus qu’au clavier (detail === 0), qui n’émet aucun événement pointeur.
       function activer() {
         if (etat.verrouille) return;
         if (selection === null) {
@@ -3090,7 +3090,7 @@
   // Dispatcher de « La règle du garde forestier » : alterne SANS regrouper
   // par bloc les 4 sous-types (unités/conversion — mêmes fonctions que la
   // lisière —, comparaison chiffrée, tri des 5 arbres, encadrement), via la
-  // même règle d'anti-répétition immédiate que les autres mini-jeux à
+  // même règle d’anti-répétition immédiate que les autres mini-jeux à
   // sous-types de ce fichier (dernierSousType).
   function genererComparerRangerCE1(zone, cfg) {
     const types = ['unites', 'comparaison', 'tri-arbres', 'encadrer'];
@@ -3104,7 +3104,7 @@
   }
 
   function genererEstimation(zone, banque) {
-    // Cette banque n'est qu'un sous-type parmi d'autres (garde forestier CE1,
+    // Cette banque n’est qu’un sous-type parmi d’autres (garde forestier CE1,
     // cabane CP) : elle peut être tirée plusieurs fois dans la même partie.
     // Sans garde de distinction, une banque de 4 à 6 items aurait un risque
     // de répétition élevé sur 2-3 tirages (CHARTE §13). On épuise la banque
@@ -3139,23 +3139,23 @@
      Mini-jeu : « Entre deux graduations » (encadrer, CE1)
      ================================================================ */
 
-  // Fenêtre agrandie de la règle (cf. construireRegle) : nombre d'unités
+  // Fenêtre agrandie de la règle (cf. construireRegle) : nombre d’unités
   // affichées et taille de chaque unité en px, choisis pour que chaque zone
   // cliquable (entre deux graduations) soit une cible tactile confortable
   // (44px CHARTE) sans avoir besoin de faire défiler horizontalement sur un
   // écran de téléphone. px fixé à une taille tactile confortable ; le
-  // NOMBRE d'unités affichées s'adapte, lui, à la largeur RÉELLEMENT
+  // NOMBRE d’unités affichées s’adapte, lui, à la largeur RÉELLEMENT
   // disponible (mesurée sur `zone` au moment du rendu, cf. genererEncadrer)
-  // plutôt qu'à un seuil de viewport fixe : sur un écran large, la fenêtre
-  // par défaut (6 unités) s'affiche telle quelle ; sur un écran étroit, la
+  // plutôt qu’à un seuil de viewport fixe : sur un écran large, la fenêtre
+  // par défaut (6 unités) s’affiche telle quelle ; sur un écran étroit, la
   // fenêtre se réduit (jamais en dessous de 3, pour garder un vrai choix
   // entre plusieurs graduations) plutôt que de rétrécir les zones sous 44px
-  // ou d'imposer un défilement horizontal.
+  // ou d’imposer un défilement horizontal.
   const LARGEUR_FENETRE_ENCADREMENT_MAX = 6;
   const LARGEUR_FENETRE_ENCADREMENT_MIN = 3;
   const PX_UNITE_ENCADREMENT = 48;
   // cf. construireRegle : largeur totale = unités × px + 24 + la marge réservée
-  // à l'étiquette « 0 ».
+  // à l’étiquette « 0 ».
   const MARGE_REGLE_PX = 24 + MARGE_REGLE_ZERO_PX;
 
   function genererEncadrer(zone, cfg) {
@@ -3171,7 +3171,7 @@
 
     let zoneSelectionnee = null;
     let regleActuelle = null;
-    // Fenêtre affichée (nombre d'unités visibles + décalage depuis 0) : une
+    // Fenêtre affichée (nombre d’unités visibles + décalage depuis 0) : une
     // première estimation est faite à partir de zone.clientWidth (rapide,
     // correcte dans la grande majorité des cas), puis AJUSTÉE si besoin
     // après le premier rendu réel (cf. plus bas) — la mesure a priori ne
@@ -3228,7 +3228,7 @@
     rerendreRegle();
     // Vérification post-rendu : si la règle déborde malgré tout de sa zone
     // de défilement (scrollWidth > clientWidth), la fenêtre est réduite
-    // d'une unité et la règle reconstruite, jusqu'à ce qu'elle tienne ou
+    // d’une unité et la règle reconstruite, jusqu’à ce qu’elle tienne ou
     // que la largeur minimale (3 unités) soit atteinte.
     while (largeurFenetre > LARGEUR_FENETRE_ENCADREMENT_MIN && regleActuelle.scrollWidth > regleActuelle.clientWidth + 2) {
       largeurFenetre -= 1;
@@ -3242,8 +3242,8 @@
      Palier CE2 — « À la découverte de la forêt amazonienne »
      Univers distinct du Bois (CP) et de la Forêt (CE1) : progression
      narrative Bois → Forêt → Taïga côté échelle des distances, mais le CE2
-     élargit à l'échelle des UNITÉS elles-mêmes (mm → km), d'où une
-     Amazonie plutôt qu'une Taïga — cohérente avec l'esprit d'exploration à
+     élargit à l’échelle des UNITÉS elles-mêmes (mm → km), d’où une
+     Amazonie plutôt qu’une Taïga — cohérente avec l’esprit d’exploration à
      grande échelle attendu à ce niveau.
      Illustrations SVG reprises telles quelles depuis la référence fournie
      (fourmi/grenouille/toucan/jaguar/fleuve Amazone) — même style, mêmes
@@ -3321,9 +3321,9 @@
     '<circle cx="55" cy="56" r="6.5" fill="#4a9e4a"/>' +
     '</svg>';
 
-  /* Mini-jeu 1 — « Découverte : du microscopique à l'immensité » : les 5
+  /* Mini-jeu 1 — « Découverte : du microscopique à l’immensité » : les 5
      éléments à classer, du plus petit au plus grand. `taille` est un
-     NOMBRE SEUL (jamais d'unité écrite dessus dans la vignette : l'unité
+     NOMBRE SEUL (jamais d’unité écrite dessus dans la vignette : l’unité
      est la colonne cible, cf. genererClassementDecouverteCE2) — tailles
      approximatives réelles (fourmi ~8 mm, petite grenouille ~5 cm, toucan
      ~5 dm, jaguar ~2 m, fleuve Amazone ~6400 km). */
@@ -3405,52 +3405,52 @@
     '<line x1="43" y1="48" x2="53" y2="52" stroke="#8a3a1a" stroke-width="1.6"/>' +
     '</svg>';
 
-  /* Sous-exercice 3 « QCM d'unités » : illustration de l'animal + QCM
-     combinant VALEUR ET UNITÉ (jamais l'unité seule). Les quatre options
-     d'un item portent TOUJOURS la MÊME valeur et ne diffèrent que par
-     l'unité : la question porte sur l'ordre de grandeur, pas sur un calcul,
-     et l'enfant n'a donc qu'un seul critère à trancher. Après validation (bonne ou mauvaise réponse), une
-     courte définition de l'animal est révélée. 5 items (correspond
+  /* Sous-exercice 3 « QCM d’unités » : illustration de l’animal + QCM
+     combinant VALEUR ET UNITÉ (jamais l’unité seule). Les quatre options
+     d’un item portent TOUJOURS la MÊME valeur et ne diffèrent que par
+     l’unité : la question porte sur l’ordre de grandeur, pas sur un calcul,
+     et l’enfant n’a donc qu’un seul critère à trancher. Après validation (bonne ou mauvaise réponse), une
+     courte définition de l’animal est révélée. 5 items (correspond
      exactement aux 3 questions tirées sans redondance par partie, CHARTE
      §13 — bank à étoffer si de nouveaux items sont ajoutés plus tard),
      tirage sans redondance par partie (etat.animalVues). */
   const ANIMAUX_QCM_CE2 = [
     {
       id: 'paresseux', nom: 'Paresseux', svg: SVG_PARESSEUX,
-      texte: "Quelle est la taille d'un paresseux ?",
+      texte: "Quelle est la taille d’un paresseux ?",
       bonne: '5 à 7 dm', options: ['5 à 7 dm', '5 à 7 mm', '5 à 7 cm', '5 à 7 m'],
       definition: "Le paresseux vit accroché aux branches et se déplace très lentement : il mesure environ 5 à 7 dm et pèse entre 4 et 8 kg."
     },
     {
       id: 'anaconda', nom: 'Anaconda vert', svg: SVG_ANACONDA,
-      texte: "Quelle est la taille d'un anaconda vert ?",
+      texte: "Quelle est la taille d’un anaconda vert ?",
       bonne: '5 à 6 m', options: ['5 à 6 m', '5 à 6 cm', '5 à 6 dm', '5 à 6 km'],
-      definition: "L'anaconda vert est l'un des plus grands serpents du monde : il peut dépasser 5 à 6 m de long et peser plus de 100 kg."
+      definition: "L’anaconda vert est l’un des plus grands serpents du monde : il peut dépasser 5 à 6 m de long et peser plus de 100 kg."
     },
     {
       id: 'singe-ecureuil', nom: 'Singe écureuil', svg: SVG_SINGE_ECUREUIL,
-      texte: "Quelle est la taille d'un singe écureuil (sans la queue) ?",
+      texte: "Quelle est la taille d’un singe écureuil (sans la queue) ?",
       bonne: '25 à 35 cm', options: ['25 à 35 cm', '25 à 35 mm', '25 à 35 dm', '25 à 35 m'],
-      definition: "Le singe écureuil est un petit singe léger d'environ 25 à 35 cm, avec une longue queue touffue presque aussi longue que son corps."
+      definition: "Le singe écureuil est un petit singe léger d’environ 25 à 35 cm, avec une longue queue touffue presque aussi longue que son corps."
     },
     {
       id: 'dauphin-rose', nom: 'Dauphin rose', svg: SVG_DAUPHIN_ROSE,
-      texte: "Quelle est la taille d'un dauphin rose de l'Amazone ?",
+      texte: "Quelle est la taille d’un dauphin rose de l’Amazone ?",
       bonne: '2 à 3 m', options: ['2 à 3 m', '2 à 3 cm', '2 à 3 dm', '2 à 3 km'],
-      definition: "Le dauphin rose de l'Amazone, aussi appelé boto, est le plus grand dauphin d'eau douce du monde : environ 2 à 3 m pour 100 à 150 kg."
+      definition: "Le dauphin rose de l’Amazone, aussi appelé boto, est le plus grand dauphin d’eau douce du monde : environ 2 à 3 m pour 100 à 150 kg."
     },
     {
       id: 'fourmi-amazone', nom: 'Fourmi amazone', svg: SVG_FOURMI_AMAZONE,
-      texte: "Quelle est la taille d'une fourmi amazone ?",
+      texte: "Quelle est la taille d’une fourmi amazone ?",
       bonne: '5 à 7 mm', options: ['5 à 7 mm', '5 à 7 cm', '5 à 7 dm', '5 à 7 m'],
-      definition: "La fourmi amazone a un thorax roux et de puissantes mandibules recourbées, comme deux petits sabres, pour un corps d'environ 5 à 7 mm."
+      definition: "La fourmi amazone a un thorax roux et de puissantes mandibules recourbées, comme deux petits sabres, pour un corps d’environ 5 à 7 mm."
     }
   ];
 
   /* Dispatcher du mini-jeu 1 : ORDRE FIXE des trois exercices (dérogation
      explicite à la randomisation habituelle du fichier, CHARTE §13) — 1)
      ranger les unités, 2) classement (étiquettes à placer), 3) QCM
-     d'unités (3 manches). Le contenu ALÉATOIRE à l'intérieur de chaque
+     d’unités (3 manches). Le contenu ALÉATOIRE à l’intérieur de chaque
      exercice reste inchangé (ordre de mélange des étiquettes/vignettes,
      tirage sans redondance des questions QCM). Dispatché sur etat.index
      (position dans la partie), pas sur un tirage aléatoire. */
@@ -3499,8 +3499,8 @@
     zone.appendChild(definitionEl);
   }
 
-  /* Unités dans l'ORDRE CROISSANT canonique (référence pour la correction
-     de l'exercice 1 « ranger les unités »). */
+  /* Unités dans l’ORDRE CROISSANT canonique (référence pour la correction
+     de l’exercice 1 « ranger les unités »). */
   const ORDRE_UNITES_CE2 = ['mm', 'cm', 'dm', 'm', 'km'];
 
   /*
@@ -3508,17 +3508,17 @@
    * colonnes — colonne de GAUCHE la pioche des 5 étiquettes (mm/cm/dm/m/km)
    * EN DÉSORDRE, colonne de DROITE les 5 emplacements de réponse pré-
    * marqués en pointillés. Glisser-poser depuis la pioche vers un
-   * emplacement : même mécanique que l'exercice « classement » ci-dessous
+   * emplacement : même mécanique que l’exercice « classement » ci-dessous
    * (déposer sur un emplacement déjà occupé ÉCHANGE les deux étiquettes,
-   * l'occupante reprenant la place de départ de l'étiquette déplacée,
-   * plutôt que d'être éjectée). Bouton « Valider » (activé une fois les 5
+   * l’occupante reprenant la place de départ de l’étiquette déplacée,
+   * plutôt que d’être éjectée). Bouton « Valider » (activé une fois les 5
    * emplacements remplis) pour la correction finale — pas de validation
    * automatique à chaque dépôt.
    */
   function genererRangerUnitesCE2(zone) {
     zone.appendChild(creerBlocConsigne(
-      'Range les unités dans l\'ordre, de la plus petite à la plus grande.',
-      'Fais glisser chaque étiquette de la colonne de gauche vers un emplacement de la colonne de droite, de la plus petite unité en haut jusqu\'à la plus grande en bas. Valide quand les 5 emplacements sont remplis.'
+      'Range les unités dans l’ordre, de la plus petite à la plus grande.',
+      'Fais glisser chaque étiquette de la colonne de gauche vers un emplacement de la colonne de droite, de la plus petite unité en haut jusqu’à la plus grande en bas. Valide quand les 5 emplacements sont remplis.'
     ));
 
     const colonnes = document.createElement('div');
@@ -3563,7 +3563,7 @@
     function rendreDeplacable(etiquette) {
       let enGlissement = false;
       let departX = 0, departY = 0;
-      let origine = null; // parent DE DÉPART du geste : là où retourne l'occupante évincée (swap)
+      let origine = null; // parent DE DÉPART du geste : là où retourne l’occupante évincée (swap)
       etiquette.addEventListener('pointerdown', (e) => {
         if (etat.verrouille) return;
         if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -3627,24 +3627,24 @@
   }
 
   /*
-   * Exercice 2 « Classement » : tableau de 5 colonnes d'unité
+   * Exercice 2 « Classement » : tableau de 5 colonnes d’unité
    * (mm/cm/dm/m/km) réparties sur DEUX RANGÉES très espacées (3 puis 2)
    * pour que les zones de dépôt ne se chevauchent jamais et restent
    * confortables au doigt sur mobile. 5 vignettes À GLISSER, chacune un
    * bloc SOLIDAIRE de 3 éléments empilés (nombre seul, image SVG, nom) —
-   * jamais l'unité écrite dessus, elle EST la colonne cible. Glisser-poser
+   * jamais l’unité écrite dessus, elle EST la colonne cible. Glisser-poser
    * réel (pointerdown/pointermove/pointerup, translateX/Y pendant le
    * geste) : déposer sur une colonne déjà occupée ÉCHANGE les deux
-   * vignettes (l'occupante reprend la place de départ de la vignette
-   * déplacée) plutôt que de l'éjecter vers le plateau. L'état (qui est où)
+   * vignettes (l’occupante reprend la place de départ de la vignette
+   * déplacée) plutôt que de l’éjecter vers le plateau. L’état (qui est où)
    * est lu directement dans le DOM à la validation, jamais dans une
    * structure parallèle qui pourrait se
    * désynchroniser.
    */
   function genererClassementDecouverteCE2(zone) {
     zone.appendChild(creerBlocConsigne(
-      "Fais glisser chaque vignette vers la bonne colonne d'unité.",
-      "Regarde le nombre et l'image de chaque vignette, puis fais-la glisser dans la colonne de l'unité qui convient. Valide quand les 5 vignettes sont placées."
+      "Fais glisser chaque vignette vers la bonne colonne d’unité.",
+      "Regarde le nombre et l’image de chaque vignette, puis fais-la glisser dans la colonne de l’unité qui convient. Valide quand les 5 vignettes sont placées."
     ));
 
     const grille = document.createElement('div');
@@ -3684,7 +3684,7 @@
     function rendreDeplacable(v) {
       let enGlissement = false;
       let departX = 0, departY = 0;
-      let origine = null; // parent DE DÉPART du geste : là où retourne l'occupante évincée (swap)
+      let origine = null; // parent DE DÉPART du geste : là où retourne l’occupante évincée (swap)
       v.addEventListener('pointerdown', (e) => {
         if (etat.verrouille) return;
         if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -3710,8 +3710,8 @@
         });
         if (cible) {
           // ÉCHANGE : la vignette déjà présente dans la colonne cible reprend
-          // la place D'OÙ VIENT la vignette déplacée (son parent de départ,
-          // qu'il s'agisse du plateau ou d'une autre colonne) — jamais
+          // la place D’OÙ VIENT la vignette déplacée (son parent de départ,
+          // qu’il s’agisse du plateau ou d’une autre colonne) — jamais
           // éjectée vers le plateau sans raison.
           const occupante = cible.firstElementChild;
           if (occupante && occupante !== v) origine.appendChild(occupante);
@@ -3758,12 +3758,12 @@
   }
 
   /* ================================================================
-     Mini-jeu 2 — « L'exploration » (calculs de conversions et mesure à la
+     Mini-jeu 2 — « L’exploration » (calculs de conversions et mesure à la
      règle, CE2) : alterne SANS regrouper par bloc les calculs procéduraux
      (fidèles aux exemples officiels du programme, saisis au pavé
      numérique diégétique) et la mesure à la règle graduée semi-transparente
      (réponse en cm OU en mm en alternance, explicitement précisé dans
-     l'énoncé).
+     l’énoncé).
      ================================================================ */
 
   function genererExplorationCE2(zone, cfg) {
@@ -3873,8 +3873,8 @@
         ? 'Mesure ce segment. Donne ta réponse en MILLIMÈTRES.'
         : 'Mesure ce segment. Donne ta réponse en CENTIMÈTRES.',
       demanderMm
-        ? 'Regarde où s\'arrête le segment sur la règle, en centimètres, puis convertis ta mesure en millimètres.'
-        : 'Regarde où s\'arrête le segment sur la règle graduée, et choisis la bonne longueur en centimètres.'
+        ? 'Regarde où s’arrête le segment sur la règle, en centimètres, puis convertis ta mesure en millimètres.'
+        : 'Regarde où s’arrête le segment sur la règle graduée, et choisis la bonne longueur en centimètres.'
     ));
     const regle = construireRegle({ longueurUnites: cap, objetLongueur: longueurCm, unite: 'cm' });
     regle.querySelector('.regle-graduee').classList.add('regle-graduee-semi-transparente');
@@ -3907,8 +3907,8 @@
           if (!correct) grille.children[indexCorrect].classList.add('correct');
           // Les distracteurs sont voisins de la bonne valeur (±1 à ±3 cm) :
           // on transmet les deux nombres pour que « Presque ! » ne sorte que
-          // sur un écart d'une unité — le marquage vert/rouge des options fait
-          // déjà office de correction, d'où `afficher: false`.
+          // sur un écart d’une unité — le marquage vert/rouge des options fait
+          // déjà office de correction, d’où `afficher: false`.
           validerTour(correct, btn, correct ? null : {
             afficher: false, nombres: [Number(opt), Number(optionsMelangees[indexCorrect])]
           });
@@ -3953,13 +3953,13 @@
 
   /* ================================================================
      Mini-jeu 3 : « La cartographie » (périmètre, CE2, ex-M31 fusionné)
-     Progression fixe sur les manches d'une partie, dans l'ordre même de
-     l'apprentissage officiel :
+     Progression fixe sur les manches d’une partie, dans l’ordre même de
+     l’apprentissage officiel :
        manches 1 et 2 → COMPARER le périmètre de deux polygones SANS règle
          graduée, en reportant chaque côté AU COMPAS sur une droite (texte
          officiel : « comparer le périmètre de plusieurs polygones sans
          règle graduée, en utilisant un compas ») ;
-       manche 3 → étape A, démonstration ANIMÉE : le contour d'une VRAIE
+       manche 3 → étape A, démonstration ANIMÉE : le contour d’une VRAIE
          figure (rectangle/triangle dessiné en SVG) se déplie charnière par
          charnière en un segment droit, sur lequel la règle vient se poser
          pour le mesurer (regardée, pas manipulée) ;
@@ -3968,8 +3968,8 @@
          étape B (manches 4 et 6), dépliage ACTIF côté par côté (figures
            variées : rectangle, triangle, figure en L) puis lecture du
            périmètre à la règle ;
-         étape C (manches 5 et 7), mesure SANS dépliage d'un rectangle avec
-           une règle mobile graduée sur ses deux bords qu'on glisse ET qu'on
+         étape C (manches 5 et 7), mesure SANS dépliage d’un rectangle avec
+           une règle mobile graduée sur ses deux bords qu’on glisse ET qu’on
            pivote à 90° (pincement à deux doigts, accroche magnétique), avec
            repli « deux règles indépendantes » en cas de geste trop difficile.
      ================================================================ */
@@ -3984,11 +3984,11 @@
   }
 
   /* Échelle et longueur de règle des exercices de dépliage. Les deux sont
-     liées : le contour déplié doit tenir ENTIER à l'écran pour être mesuré
+     liées : le contour déplié doit tenir ENTIER à l’écran pour être mesuré
      sans faire défiler, donc périmètre × PX ≤ largeur utile (~300 px sur
-     mobile). C'est ce plafond qui fixe la taille apparente des figures — on
+     mobile). C’est ce plafond qui fixe la taille apparente des figures — on
      resserre donc les périmètres (10 à 12 cm) pour pouvoir agrandir
-     franchement l'échelle, et donc les figures elles-mêmes. */
+     franchement l’échelle, et donc les figures elles-mêmes. */
   const PX_DEPLIAGE = 22;
   const CAP_DEPLIAGE = 13;
 
@@ -4010,7 +4010,7 @@
       };
     }
     if (type === 'triangle') {
-      // Côtés [a, b, c] dans l'ordre du parcours (base a, puis b, puis c) :
+      // Côtés [a, b, c] dans l’ordre du parcours (base a, puis b, puis c) :
       // triangles valides (inégalité triangulaire) de périmètre 10 à 12 cm.
       const [a, b, c] = choisir([[4, 3, 3], [4, 4, 3], [3, 4, 4], [4, 4, 4], [5, 4, 3], [3, 3, 4]]);
       // Sommet C par intersection de cercles : |CA| = c, |CB| = b.
@@ -4035,10 +4035,10 @@
    * Moteur de dépliage GÉOMÉTRIQUE du contour (démonstration, étape A) :
    * la figure est dessinée en SVG, chaque côté est un segment coloré, et
    * le dépliage redresse la chaîne charnière par charnière — à chaque
-   * étape, tout le reste du contour PIVOTE d'un bloc autour du sommet
-   * courant jusqu'à ce que le côté suivant se pose sur la droite du bas.
+   * étape, tout le reste du contour PIVOTE d’un bloc autour du sommet
+   * courant jusqu’à ce que le côté suivant se pose sur la droite du bas.
    * Uniquement des ROTATIONS : les longueurs des côtés sont préservées à
-   * chaque instant de l'animation (c'est tout l'argument pédagogique : le
+   * chaque instant de l’animation (c’est tout l’argument pédagogique : le
    * contour déplié a la MÊME longueur que le contour de la figure).
    *
    * Rend { el, restantes(), etapeSuivante(onFini), toutDeplier(onFini),
@@ -4046,7 +4046,7 @@
    * charnière et appelle onFini(toutEstDeplie) (dépliage actif, étape B),
    * `toutDeplier` les enchaîne toutes (démonstration, étape A).
    * `poserRegleSurSegment` fait GLISSER une règle semi-transparente (sans
-   * barre interne : le segment déplié EST l'objet mesuré, visible par
+   * barre interne : le segment déplié EST l’objet mesuré, visible par
    * transparence) depuis le bord de la scène jusque SUR le segment, son
    * zéro aligné avec le début de la ligne (même échelle px/cm que le
    * dessin), comme une main qui pose une vraie règle pour mesurer.
@@ -4066,7 +4066,7 @@
     }
 
     // Pré-calcule les étapes : pour chaque charnière j (le premier côté est
-    // déjà posé sur la droite), l'angle qui ramène le côté j à l'horizontale.
+    // déjà posé sur la droite), l’angle qui ramène le côté j à l’horizontale.
     const etapes = [];
     let courant = base.map((p) => p.slice());
     for (let j = 1; j < nbSegments; j++) {
@@ -4080,7 +4080,7 @@
     }
     const finalPts = courant;
 
-    // Dimensionne le viewBox en échantillonnant TOUTE l'animation : pendant
+    // Dimensionne le viewBox en échantillonnant TOUTE l’animation : pendant
     // une rotation, le bout de chaîne balaie des arcs qui montent bien
     // au-dessus de la figure — sans cela, les arcs seraient rognés.
     let minX = 0, maxX = 0, minY = 0, maxY = 0;
@@ -4095,10 +4095,10 @@
       for (let t = 0.1; t < 1; t += 0.1) etendre(appliquerRotation(e.depart, e.pivot, e.delta * t));
     });
     const MARGE = 8;
-    /* Marge GAUCHE élargie : le zéro d'une règle n'est pas son bord gauche, il
-       est en retrait de la bordure plus la marge réservée à l'étiquette « 0 ».
+    /* Marge GAUCHE élargie : le zéro d’une règle n’est pas son bord gauche, il
+       est en retrait de la bordure plus la marge réservée à l’étiquette « 0 ».
        Poser la règle sur le segment demande donc au moins ce retrait de place
-       À GAUCHE de l'origine du segment. Avec les 8 px de marge commune, la
+       À GAUCHE de l’origine du segment. Avec les 8 px de marge commune, la
        règle aurait dû se placer à un `left` négatif — elle était alors calée à
        0 et son zéro tombait 11 px après le début du trait, soit un demi-
        centimètre de fausse mesure à 22 px/cm. On réserve la place ici, une
@@ -4124,10 +4124,10 @@
     droite.setAttribute('stroke-dasharray', '6 5');
     svg.appendChild(droite);
 
-    // La « clairière » d'origine, en couleur CLAIRE : elle reste affichée
+    // La « clairière » d’origine, en couleur CLAIRE : elle reste affichée
     // pendant tout le dépliage ET pendant la mesure, comme mémoire de la
-    // forme dont on est parti — l'enfant voit ainsi en permanence que la
-    // ligne droite qu'il mesure est bien le contour de CETTE figure-là.
+    // forme dont on est parti — l’enfant voit ainsi en permanence que la
+    // ligne droite qu’il mesure est bien le contour de CETTE figure-là.
     const fond = document.createElementNS(SVGNS, 'polygon');
     fond.setAttribute('points', base.map((p) => (p[0] + ox) + ',' + (p[1] + oy)).join(' '));
     fond.style.fill = 'color-mix(in srgb, var(--couleur-menthe) 22%, white)';
@@ -4195,7 +4195,7 @@
 
     function poserRegleSurSegment(cap, onFini) {
       // Règle SANS objetLongueur : pas de barre interne dupliquée, le
-      // segment déplié (visible par transparence) est l'objet mesuré.
+      // segment déplié (visible par transparence) est l’objet mesuré.
       // `pxUnite` force la MÊME échelle que le dessin (sans quoi la règle
       // se dimensionnerait toute seule et la mesure serait fausse) et lui
       // donne au passage sa variante « grande », mieux lisible.
@@ -4212,7 +4212,7 @@
       const origineX = base[0][0] + ox;
       const cibleY = base[0][1] + oy - 18;
 
-      // Retrait du zéro dans la règle : bordure + marge de l'étiquette « 0 ».
+      // Retrait du zéro dans la règle : bordure + marge de l’étiquette « 0 ».
       const retraitZero = 3 + MARGE_REGLE_ZERO_PX;
       regle.style.left = (origineX - retraitZero) + 'px';
       regle.style.top = cibleY + 'px';
@@ -4222,10 +4222,10 @@
 
       /* CALAGE EXACT PAR MESURE. Le calcul ci-dessus suppose une épaisseur de
          bordure ; la mesure, elle, ne suppose rien. On compare la position
-         réelle à l'écran du trait « 0 » et celle de l'origine du segment, puis
-         on corrige l'écart résiduel — la coïncidence est alors exacte au pixel
+         réelle à l’écran du trait « 0 » et celle de l’origine du segment, puis
+         on corrige l’écart résiduel — la coïncidence est alors exacte au pixel
          quelle que soit la variante de règle utilisée. À faire AVANT la
-         translation d'entrée, qui fausserait les rectangles mesurés. */
+         translation d’entrée, qui fausserait les rectangles mesurés. */
       const tickZero = regle.querySelector('.regle-tick');
       if (tickZero) {
         const xZero = tickZero.getBoundingClientRect().left;
@@ -4239,7 +4239,7 @@
         return;
       }
       // La règle ARRIVE sur le segment : départ décalé en bas à droite,
-      // puis glissement (transform seul) jusqu'à la position de mesure.
+      // puis glissement (transform seul) jusqu’à la position de mesure.
       regle.style.transform = 'translate(80px, 46px)';
       regle.style.opacity = '0';
       void regle.offsetWidth;
@@ -4263,12 +4263,12 @@
   /*
    * Un bloc « polygone à reporter au compas » : le polygone dessiné en SVG
    * (côtés colorés et tactiles), une droite pointillée en dessous, et un
-   * COMPAS animé qui, à chaque côté touché, vient prendre l'écartement de
+   * COMPAS animé qui, à chaque côté touché, vient prendre l’écartement de
    * ce côté puis le reporte bout à bout sur la droite. Aucune graduation
    * nulle part : on ne compare que des longueurs reportées, conformément au
    * texte officiel (« sans règle graduée, en utilisant un compas »).
-   * `largeurCommune` est imposée par l'appelant pour que les droites des
-   * deux polygones démarrent au MÊME x à l'écran, sans quoi la comparaison
+   * `largeurCommune` est imposée par l’appelant pour que les droites des
+   * deux polygones démarrent au MÊME x à l’écran, sans quoi la comparaison
    * visuelle des deux reports serait faussée.
    */
   function creerBlocCompas(lettre, figure, PX, largeurCommune, onTousReportes) {
@@ -4356,8 +4356,8 @@
     const ENCRE = 'color-mix(in srgb, var(--couleur-encre) 80%, white)';
     function dessinerCompas(L) {
       while (gCompas.firstChild) gCompas.removeChild(gCompas.firstChild);
-      // Branches de longueur FIXE : l'angle d'ouverture suit l'écartement,
-      // comme un vrai compas (plus le côté est long, plus il s'ouvre).
+      // Branches de longueur FIXE : l’angle d’ouverture suit l’écartement,
+      // comme un vrai compas (plus le côté est long, plus il s’ouvre).
       const R = Math.max(48, L * 0.72);
       const h = Math.sqrt(Math.max(1, R * R - (L / 2) * (L / 2)));
       const cx = L / 2, cy = -h;
@@ -4417,7 +4417,7 @@
       const dx = c.P2[0] - c.P1[0], dy = c.P2[1] - c.P1[1];
       const L = Math.hypot(dx, dy);
       const angleDepart = Math.atan2(dy, dx) * 180 / Math.PI;
-      // On tourne par le plus court chemin jusqu'à l'horizontale.
+      // On tourne par le plus court chemin jusqu’à l’horizontale.
       let dA = -angleDepart;
       while (dA > 180) dA -= 360;
       while (dA <= -180) dA += 360;
@@ -4429,9 +4429,9 @@
       }
       poser(c.P1[0], c.P1[1], angleDepart);
 
-      // 1. le compas se pose sur le côté et en prend l'écartement…
+      // 1. le compas se pose sur le côté et en prend l’écartement…
       animer(preferesMouvementReduit ? 0 : 280, (p) => { gCompas.style.opacity = String(p); }, () => {
-        // 2. …il se déplace jusqu'à la droite en se redressant…
+        // 2. …il se déplace jusqu’à la droite en se redressant…
         animer(preferesMouvementReduit ? 0 : 480, (p) => {
           const doux = p * (2 - p);
           poser(c.P1[0] + (xArrivee - c.P1[0]) * doux,
@@ -4447,8 +4447,8 @@
           gReports.appendChild(seg);
           xCourant += L;
           // Côté DÉJÀ reporté : on change tout à la fois (épaisseur, couleur
-          // et style de trait) plutôt que la seule opacité, pour qu'un coup
-          // d'œil suffise à voir ce qu'il reste à faire — un trait fin, gris
+          // et style de trait) plutôt que la seule opacité, pour qu’un coup
+          // d'œil suffise à voir ce qu’il reste à faire — un trait fin, gris
           // et pointillé ne peut pas être confondu avec un côté à reporter.
           c.trait.setAttribute('stroke-width', '3');
           c.trait.setAttribute('stroke-dasharray', '5 4');
@@ -4472,10 +4472,10 @@
 
   /*
    * Manches 1 et 2 — COMPARER deux polygones au compas, sans règle graduée.
-   * L'enfant reporte chaque côté de chaque polygone sur une droite, puis
-   * compare les deux longueurs obtenues à l'œil : c'est le report, pas la
+   * L’enfant reporte chaque côté de chaque polygone sur une droite, puis
+   * compare les deux longueurs obtenues à l'œil : c’est le report, pas la
    * mesure, qui tranche. Les deux périmètres sont volontairement PROCHES
-   * (1 à 4 cm d'écart) pour qu'on ne puisse pas conclure sans reporter.
+   * (1 à 4 cm d’écart) pour qu’on ne puisse pas conclure sans reporter.
    */
   /*
    * Un polygone à comparer au compas. Contrairement aux figures du dépliage,
@@ -4489,7 +4489,7 @@
       const [L, l] = choisir([[3, 3], [4, 3], [5, 3], [4, 4]]);
       return { nom: 'rectangle', pts: [[0, l], [L, l], [L, 0], [0, 0], [0, l]], cotes: [L, l, L, l] };
     }
-    // Triangles à côtés ≥ 3 cm respectant l'inégalité triangulaire.
+    // Triangles à côtés ≥ 3 cm respectant l’inégalité triangulaire.
     const [a, b, c] = choisir([[3, 3, 4], [3, 4, 4], [4, 4, 4], [4, 4, 5], [3, 5, 5],
       [4, 5, 5], [5, 5, 5], [4, 5, 6], [5, 4, 6]]);
     const x = (a * a + c * c - b * b) / (2 * a);
@@ -4508,7 +4508,7 @@
       if (ecart >= 1 && ecart <= 4) figureB = candidate;
     }
     if (!figureB) {
-      // Repli (jamais atteint en pratique) : un rectangle d'écart garanti.
+      // Repli (jamais atteint en pratique) : un rectangle d’écart garanti.
       const l = 3;
       const L = Math.max(3, Math.round(perim(figureA) / 2) - l + choisir([-1, 1]));
       figureB = {
@@ -4525,7 +4525,7 @@
 
     zone.appendChild(creerBlocConsigne(
       'Touche les côtés des formes ci-dessous pour les reporter au compas et comparer les périmètres des deux clairières.',
-      'Touche un côté d\'une clairière : le compas vient en prendre l\'écartement, puis le reporte sur la ligne du dessous. Quand tous les côtés des deux clairières sont reportés, compare les deux lignes obtenues.'
+      'Touche un côté d’une clairière : le compas vient en prendre l’écartement, puis le reporte sur la ligne du dessous. Quand tous les côtés des deux clairières sont reportés, compare les deux lignes obtenues.'
     ));
 
     // Largeur commune aux deux scènes : les deux droites de report doivent
@@ -4579,10 +4579,10 @@
   /*
    * Étape A — démonstration ANIMÉE (regardée, pas manipulée) : la clairière
    * (rectangle ou triangle, dessinée en SVG) déplie toute seule son contour
-   * charnière par charnière jusqu'à la ligne droite, puis la règle VIENT SE
-   * POSER sur le segment pour le mesurer et conclure « le périmètre, c'est
+   * charnière par charnière jusqu’à la ligne droite, puis la règle VIENT SE
+   * POSER sur le segment pour le mesurer et conclure « le périmètre, c’est
    * la longueur du contour déplié ». Le bouton « Continuer » ne se débloque
-   * qu'une fois l'animation terminée, et valide toujours (observation, pas
+   * qu’une fois l’animation terminée, et valide toujours (observation, pas
    * un exercice noté).
    */
   function genererPerimetreDemo(zone, cfg) {
@@ -4591,9 +4591,9 @@
     const total = figure.cotes.reduce((a, b) => a + b, 0);
 
     zone.appendChild(creerBlocConsigne(
-      'Regarde bien : le périmètre, c\'est la longueur du contour… une fois déplié !',
-      'Regarde l\'animation : le contour de la clairière en forme de ' + figure.nom +
-        ' se déplie, côté après côté, jusqu\'à former une seule ligne droite. La règle vient alors la mesurer : c\'est le périmètre.'
+      'Regarde bien : le périmètre, c’est la longueur du contour… une fois déplié !',
+      'Regarde l’animation : le contour de la clairière en forme de ' + figure.nom +
+        ' se déplie, côté après côté, jusqu’à former une seule ligne droite. La règle vient alors la mesurer : c’est le périmètre.'
     ));
 
     const depliage = creerDepliageCartographie(figure, PX_DEPLIAGE);
@@ -4605,7 +4605,7 @@
     zone.appendChild(legende);
 
     const boutonContinuer = document.createElement('button');
-    boutonContinuer.type = 'button'; boutonContinuer.className = 'bouton-principal'; boutonContinuer.textContent = 'J\'ai compris, continuer';
+    boutonContinuer.type = 'button'; boutonContinuer.className = 'bouton-principal'; boutonContinuer.textContent = 'J’ai compris, continuer';
     boutonContinuer.disabled = true;
     zone.appendChild(boutonContinuer);
     boutonContinuer.addEventListener('click', () => validerTour(true, boutonContinuer));
@@ -4649,8 +4649,8 @@
         if (!correct) grille.children[indexCorrect].classList.add('correct');
         // Les distracteurs sont voisins de la bonne valeur (±1 à ±3 cm) :
         // on transmet les deux nombres pour que « Presque ! » ne sorte que
-        // sur un écart d'une unité — le marquage vert/rouge des options fait
-        // déjà office de correction, d'où `afficher: false`.
+        // sur un écart d’une unité — le marquage vert/rouge des options fait
+        // déjà office de correction, d’où `afficher: false`.
         validerTour(correct, btn, correct ? null : {
           afficher: false, nombres: [Number(opt), Number(optionsMelangees[indexCorrect])]
         });
@@ -4661,10 +4661,10 @@
   }
 
   /*
-   * Étape B — dépliage ACTIF : cette fois c'est l'enfant qui déroule le
+   * Étape B — dépliage ACTIF : cette fois c’est l’enfant qui déroule le
    * contour, un côté à la fois (tap sur le bouton OU sur la figure), sur
    * une figure variée (rectangle, triangle ou figure en L). Une fois la
-   * ligne toute droite, la règle vient se poser dessus et l'enfant lit le
+   * ligne toute droite, la règle vient se poser dessus et l’enfant lit le
    * périmètre (QCM, comme les lectures de règle du mini-jeu 2).
    */
   function genererPerimetreDepliageActif(zone, cfg) {
@@ -4675,7 +4675,7 @@
     zone.appendChild(creerBlocConsigne(
       'À toi ! Déplie le contour côté par côté, puis mesure le périmètre.',
       'Touche le bouton, ou la figure, pour déplier le contour de la clairière en forme de ' + figure.nom +
-        ', un côté à la fois. Quand la ligne est toute droite, la règle vient se poser dessus : lis sa longueur, c\'est le périmètre.'
+        ', un côté à la fois. Quand la ligne est toute droite, la règle vient se poser dessus : lis sa longueur, c’est le périmètre.'
     ));
 
     const depliage = creerDepliageCartographie(figure, PX_DEPLIAGE);
@@ -4696,7 +4696,7 @@
       depliage.poserRegleSurSegment(cap, () => {
         const legende = document.createElement('p');
         legende.className = 'legende';
-        legende.textContent = 'La ligne est toute droite et la règle est posée ! Combien mesure-t-elle ? C\'est le périmètre de la clairière.';
+        legende.textContent = 'La ligne est toute droite et la règle est posée ! Combien mesure-t-elle ? C’est le périmètre de la clairière.';
         zoneLecture.appendChild(legende);
         construireQCMPerimetre(zoneLecture, total, cap, 5);
       });
@@ -4717,18 +4717,18 @@
   }
 
   /*
-   * Composant réutilisable : règle mobile qu'on peut GLISSER (translation,
+   * Composant réutilisable : règle mobile qu’on peut GLISSER (translation,
    * 1 doigt/pointeur) et FAIRE PIVOTER (pincement/rotation à deux doigts,
    * 2 pointeurs simultanés suivis par pointerId). La règle SUIT les doigts
-   * en continu pendant le geste ; accroche magnétique : dès que l'angle
-   * passe à moins de 12° d'un multiple de 90°, l'AFFICHAGE se verrouille
+   * en continu pendant le geste ; accroche magnétique : dès que l’angle
+   * passe à moins de 12° d’un multiple de 90°, l’AFFICHAGE se verrouille
    * sur cet angle exact (bordure menthe en retour visuel) au lieu de
-   * rester à la valeur approximative des doigts — et c'est cet angle
+   * rester à la valeur approximative des doigts — et c’est cet angle
    * affiché qui est retenu quand le geste se termine dans la fenêtre
    * magnétique. `onAngleAccroche(angle)` est notifié à chaque nouvelle
    * accroche (90/270 = verticale : sert à débloquer la mesure du côté
    * vertical). `angleInitial` fige la règle dans une orientation (repli
-   * « deux règles indépendantes », qui n'a pas besoin de pivoter).
+   * « deux règles indépendantes », qui n’a pas besoin de pivoter).
    */
   function creerRegleMobile(cap, angleInitial, onAngleAccroche, depart) {
     const PX = 16;
@@ -4736,12 +4736,12 @@
     regle.className = 'regle-graduee regle-mobile';
     regle.style.width = (cap * PX + 24 + MARGE_REGLE_ZERO_PX) + 'px';
     // Double décimètre : une graduation sur CHACUN des deux bords longs,
-    // comme une vraie règle d'écolier. L'enfant lit sur le bord qui touche
-    // le côté mesuré, sans avoir à retourner la règle — utile ici puisqu'elle
-    // pivote pour passer d'un côté horizontal à un côté vertical.
+    // comme une vraie règle d’écolier. L’enfant lit sur le bord qui touche
+    // le côté mesuré, sans avoir à retourner la règle — utile ici puisqu’elle
+    // pivote pour passer d’un côté horizontal à un côté vertical.
     // Comme sur les règles du commerce, la SECONDE échelle est numérotée en
-    // SENS INVERSE (cap → 0 de gauche à droite) et d'une autre couleur, pour
-    // qu'on ne confonde jamais les deux séries de chiffres.
+    // SENS INVERSE (cap → 0 de gauche à droite) et d’une autre couleur, pour
+    // qu’on ne confonde jamais les deux séries de chiffres.
     for (let i = 0; i <= cap; i++) {
       const forte = i % 2 === 0;
       ['', ' regle-tick-haut'].forEach((bord) => {
@@ -4767,8 +4767,8 @@
 
     const X0 = (depart && depart.x) || 20, Y0 = (depart && depart.y) || 20;
     let x = X0, y = Y0;
-    let angleLogique = angleInitial || 0;   // l'angle « vrai » des doigts
-    let angleAffiche = angleInitial || 0;   // l'angle rendu (aimanté ou libre)
+    let angleLogique = angleInitial || 0;   // l’angle « vrai » des doigts
+    let angleAffiche = angleInitial || 0;   // l’angle rendu (aimanté ou libre)
     let dernierAccroche = angleInitial || 0;
     function normaliser360(a) { return ((a % 360) + 360) % 360; }
     function accrocher(a) {
@@ -4777,7 +4777,7 @@
       for (let i = 0; i < paliers.length; i++) {
         if (Math.abs(n - paliers[i]) <= 12) return paliers[i] % 360;
       }
-      return null; // pas assez proche d'un multiple de 90° : rotation libre
+      return null; // pas assez proche d’un multiple de 90° : rotation libre
     }
     /* Empreinte réelle de la règle une fois TOURNÉE, exprimée depuis son
        origine de transformation (0 50%). À 0° elle est large et plate, à 90°
@@ -4787,7 +4787,7 @@
       const W = regle.offsetWidth, H = regle.offsetHeight;
       const a = angleAffiche * Math.PI / 180;
       const cos = Math.cos(a), sin = Math.sin(a);
-      // Coins de la boîte, ramenés à l'origine de transformation (0, H/2).
+      // Coins de la boîte, ramenés à l’origine de transformation (0, H/2).
       const coins = [[0, -H / 2], [W, -H / 2], [W, H / 2], [0, H / 2]];
       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
       coins.forEach((pt) => {
@@ -4800,14 +4800,14 @@
     }
 
     /* Contrainte de position. La règle DOIT pouvoir déborder de la scène :
-       pour mesurer un côté qui va jusqu'au bord, son zéro doit se poser sur ce
+       pour mesurer un côté qui va jusqu’au bord, son zéro doit se poser sur ce
        bord, et le reste de la règle passe forcément au-delà. Mais la scène est
        en `overflow:hidden` : une règle entièrement sortie devient invisible ET
-       insaisissable, et l'enfant est bloqué.
-       On n'enferme donc pas la règle — on exige seulement qu'il en reste
+       insaisissable, et l’enfant est bloqué.
+       On n’enferme donc pas la règle — on exige seulement qu’il en reste
        toujours de quoi la reprendre au doigt : au moins un quart de sa
        longueur, et jamais moins que PRISE_MIN_PX dans chaque direction. Le
-       geste ne s'arrête qu'à cette limite-là, sans à-coup (on rogne la valeur,
+       geste ne s’arrête qu’à cette limite-là, sans à-coup (on rogne la valeur,
        on ne la réinitialise jamais). */
     const PRISE_MIN_PX = 56;      // largeur de prise confortable au doigt
     const PART_VISIBLE_MIN = 0.25; // ...ou un quart de la dimension concernée
@@ -4824,7 +4824,7 @@
       // rester entièrement visible en épaisseur, pas davantage).
       const visibleX = Math.min(largeur, Math.max(largeur * PART_VISIBLE_MIN, PRISE_MIN_PX));
       const visibleY = Math.min(hauteur, Math.max(hauteur * PART_VISIBLE_MIN, PRISE_MIN_PX));
-      // Bord gauche de l'empreinte = x + e.minX ; bord haut = y + H/2 + e.minY.
+      // Bord gauche de l’empreinte = x + e.minX ; bord haut = y + H/2 + e.minY.
       const bornerAxe = (bord, taille, dispo, visible) => {
         const min = visible - taille;      // débordement maximal par la gauche/le haut
         const max = dispo - visible;       // ...par la droite/le bas
@@ -4840,8 +4840,8 @@
       regle.style.transform = 'translate(' + x + 'px,' + y + 'px) rotate(' + angleAffiche + 'deg)';
     }
 
-    // La règle que l'on saisit passe devant l'autre : sans cela, en mode
-    // « 2 règles », celle du dessous resterait sous les doigts de l'enfant.
+    // La règle que l’on saisit passe devant l’autre : sans cela, en mode
+    // « 2 règles », celle du dessous resterait sous les doigts de l’enfant.
     let compteurPremierPlan = 0;
     regle.addEventListener('pointerdown', () => {
       compteurPremierPlan = (window.__mayeutikZRegle = (window.__mayeutikZRegle || 0) + 1);
@@ -4854,7 +4854,7 @@
 
     /* Filet de sécurité : remet la règle à son point de départ. Utilisé par le
        bouton « Recentrer la règle », et rejoué à chaque redimensionnement /
-       rotation de l'écran — sans quoi une règle valide en portrait pourrait se
+       rotation de l’écran — sans quoi une règle valide en portrait pourrait se
        retrouver hors cadre en paysage. */
     function reinitialiser() {
       x = X0; y = Y0;
@@ -4912,9 +4912,9 @@
       function relever(e) {
         pointeurs.delete(e.pointerId);
         if (pointeurs.size < 2 && rotationDepart) {
-          // Fin du geste de rotation : la règle reste où l'AFFICHAGE l'a
-          // laissée (l'angle exact si l'aimant a accroché), et le prochain
-          // geste repartira de là — pas de l'angle brut des doigts.
+          // Fin du geste de rotation : la règle reste où l’AFFICHAGE l’a
+          // laissée (l’angle exact si l’aimant a accroché), et le prochain
+          // geste repartira de là — pas de l’angle brut des doigts.
           rotationDepart = null;
           angleLogique = angleAffiche;
         }
@@ -4955,15 +4955,15 @@
   /*
    * Étape C — mesure SANS dépliage, côté par côté, avec une règle mobile
    * (rectangle uniquement : les côtés restent horizontaux/verticaux à
-   * l'écran, ce qui rend le pivot à 90° réellement nécessaire pour passer
-   * d'un côté horizontal à un côté vertical). L'enfant glisse la règle sur
+   * l’écran, ce qui rend le pivot à 90° réellement nécessaire pour passer
+   * d’un côté horizontal à un côté vertical). L’enfant glisse la règle sur
    * le côté horizontal pour mesurer la longueur (L), doit la faire PIVOTER
    * à 90° (pincement à deux doigts, accroche magnétique) pour débloquer la
    * mesure de la largeur (l) — ou bascule sur le repli « deux règles
    * indépendantes » (perpendiculaires, sans geste de rotation) si le
-   * pincement s'avère trop difficile. Une question « as-tu vraiment besoin
+   * pincement s’avère trop difficile. Une question « as-tu vraiment besoin
    * de mesurer les 4 côtés ? » précède la saisie du périmètre total, pour
-   * amener l'enfant à réaliser qu'il suffit de L et l (jamais de formule
+   * amener l’enfant à réaliser qu’il suffit de L et l (jamais de formule
    * enseignée).
    */
   function genererPerimetreReglesMobiles(zone, cfg) {
@@ -4974,7 +4974,7 @@
 
     zone.appendChild(creerBlocConsigne(
       'Mesure ce rectangle avec ta règle mobile, sans le déplier.',
-      'Fais glisser la règle sur le côté horizontal pour mesurer la longueur. Pince avec deux doigts pour la faire pivoter à 90°, puis mesure le côté vertical. Si c\'est trop difficile à tourner, un bouton te donne deux règles déjà orientées.'
+      'Fais glisser la règle sur le côté horizontal pour mesurer la longueur. Pince avec deux doigts pour la faire pivoter à 90°, puis mesure le côté vertical. Si c’est trop difficile à tourner, un bouton te donne deux règles déjà orientées.'
     ));
 
     const scene = document.createElement('div');
@@ -5018,7 +5018,7 @@
 
     // Déblocage ÉVÉNEMENTIEL de la question « largeur » : il faut À LA FOIS
     // avoir répondu à la longueur ET avoir tourné la règle à la verticale
-    // (ou basculé sur le repli 2 règles) — dans n'importe quel ordre.
+    // (ou basculé sur le repli 2 règles) — dans n’importe quel ordre.
     function majQuestionLargeur() {
       if (!longueurRepondue || !largeurDebloquee || questionLargeurAffichee) return;
       questionLargeurAffichee = true;
@@ -5041,8 +5041,8 @@
         conteneurRegles.appendChild(regle.el);
       } else {
         // Positions de départ DISJOINTES : posées au même endroit, la règle
-        // verticale masquerait la moitié de l'horizontale et l'enfant ne
-        // verrait qu'une seule règle.
+        // verticale masquerait la moitié de l’horizontale et l’enfant ne
+        // verrait qu’une seule règle.
         const rH = creerRegleMobile(cap, 0, null, { x: 12, y: 14 });
         const rV = creerRegleMobile(cap, 90, null, { x: 250, y: 96 });
         reglesActives.push(rH, rV);
@@ -5063,9 +5063,9 @@
       rendreRegles();
     });
     // En dehors de `scene` : les éléments POSITIONNÉS (la règle mobile,
-    // absolute) peuplent une couche d'empilement au-dessus des éléments en
-    // flux normal même sans z-index explicite, quel que soit l'ordre DOM —
-    // un bouton en flux normal À L'INTÉRIEUR de `scene` se ferait donc
+    // absolute) peuplent une couche d’empilement au-dessus des éléments en
+    // flux normal même sans z-index explicite, quel que soit l’ordre DOM —
+    // un bouton en flux normal À L’INTÉRIEUR de `scene` se ferait donc
     // recouvrir (intercepter les clics) par la règle malgré son ordre DOM
     // plus tardif. En le sortant de `scene`, aucun risque de chevauchement.
     zone.appendChild(boutonRepli);
@@ -5122,7 +5122,7 @@
       zone.appendChild(zoneAstuce);
       const legende = document.createElement('p');
       legende.className = 'legende';
-      legende.textContent = 'As-tu vraiment besoin de mesurer les 4 côtés d\'un rectangle ?';
+      legende.textContent = 'As-tu vraiment besoin de mesurer les 4 côtés d’un rectangle ?';
       zoneAstuce.appendChild(legende);
       const grille = document.createElement('div');
       grille.className = 'grille-options';
@@ -5154,19 +5154,19 @@
   }
 
   /* ================================================================
-     Mini-jeu 4 : « L'arpentage » (périmètre par ADDITION des côtés, CE2)
+     Mini-jeu 4 : « L’arpentage » (périmètre par ADDITION des côtés, CE2)
      Prolongement du mini-jeu 3 : ici on ne mesure plus, on CALCULE. Les
      figures sont des polygones irréguliers rectilignes (tous les angles
      droits), ce qui garantit des côtés de longueur entière et un tracé
      parfaitement lisible.
        manches 1 à 3 → toutes les longueurs sont écrites sur la figure ;
-         il n'y a plus qu'à les additionner. Difficulté croissante par le
+         il n’y a plus qu’à les additionner. Difficulté croissante par le
          NOMBRE de côtés : 4, puis 6, puis 8.
        manches 4 et 5 → deux longueurs manquent (« ? ») sur une figure en L :
          chacune se déduit en additionnant les deux côtés opposés qui la
          composent, avant de pouvoir faire le total.
-       manches 6 et 7 → problème de la clôture : le contour du terrain n'est
-         PAS fermé (un côté est le portail d'entrée, avec son chemin vers la
+       manches 6 et 7 → problème de la clôture : le contour du terrain n’est
+         PAS fermé (un côté est le portail d’entrée, avec son chemin vers la
          maison) et ne doit donc pas être compté dans la longueur de clôture.
      ================================================================ */
 
@@ -5181,7 +5181,7 @@
       return [[0, 0], [L, 0], [L, H], [0, H]];
     }
     if (nbCotes === 6) {
-      // Forme en L : rectangle L×H amputé d'un coin (w × h) en haut à droite.
+      // Forme en L : rectangle L×H amputé d’un coin (w × h) en haut à droite.
       const L = nombreAleatoire(6, 10);
       const H = nombreAleatoire(5, 8);
       const w = nombreAleatoire(2, L - 2);
@@ -5222,13 +5222,13 @@
   }
 
   /*
-   * Dessine un polygone d'arpentage et écrit une étiquette au milieu de
-   * chaque côté, POUSSÉE VERS L'EXTÉRIEUR : on oriente la normale de chaque
-   * côté d'après le sens de parcours du polygone (aire signée), ce qui place
-   * correctement les étiquettes y compris dans les creux d'une forme en L,
+   * Dessine un polygone d’arpentage et écrit une étiquette au milieu de
+   * chaque côté, POUSSÉE VERS L’EXTÉRIEUR : on oriente la normale de chaque
+   * côté d’après le sens de parcours du polygone (aire signée), ce qui place
+   * correctement les étiquettes y compris dans les creux d’une forme en L,
    * en U ou en T. `etiquettes[i]` vaut null pour ne rien écrire.
-   * `options.coteOuvert` (facultatif) est l'indice du côté à NE PAS tracer :
-   * c'est l'entrée du terrain, dessinée en portail ouvert avec son chemin.
+   * `options.coteOuvert` (facultatif) est l’indice du côté à NE PAS tracer :
+   * c’est l’entrée du terrain, dessinée en portail ouvert avec son chemin.
    */
   /* Distance à laquelle une étiquette de longueur se pose de son côté, avant
      tout ajustement. */
@@ -5240,20 +5240,20 @@
   /*
    * Sur une figure procédurale, rien ne garantit que deux étiquettes ne se
    * chevauchent pas : deux côtés courts perpendiculaires (2 cm chacun, par
-   * exemple) ont leurs milieux à quelques pixels du sommet qu'ils partagent.
+   * exemple) ont leurs milieux à quelques pixels du sommet qu’ils partagent.
    * On les écarte donc APRÈS coup, à partir des dimensions réelles du texte.
    *
-   * L'écartement se fait le long de la droite qui JOINT LES DEUX ÉTIQUETTES,
+   * L’écartement se fait le long de la droite qui JOINT LES DEUX ÉTIQUETTES,
    * et non le long de la normale de chaque côté : sur un angle rentrant, la
-   * normale extérieure d'un côté pointe vers l'étiquette voisine, si bien que
-   * « repousser vers l'extérieur » rapprochait encore les deux nombres. On
-   * borne ensuite le déplacement pour qu'une étiquette reste près de son côté
+   * normale extérieure d’un côté pointe vers l’étiquette voisine, si bien que
+   * « repousser vers l’extérieur » rapprochait encore les deux nombres. On
+   * borne ensuite le déplacement pour qu’une étiquette reste près de son côté
    * et toujours du bon côté du trait (jamais rejetée dans la figure).
    */
   function ecarterEtiquettes(svg, etiquettes, largeur, hauteur) {
     if (etiquettes.length < 2) return;
     const PAS = 3;                 // écartement appliqué par passe, à chacune
-    const DEPLACEMENT_MAX = 34;    // au-delà, l'étiquette ne se rattache plus à son côté
+    const DEPLACEMENT_MAX = 34;    // au-delà, l’étiquette ne se rattache plus à son côté
     const MARGE_INTERIEURE = OFFSET_ETIQUETTE * 0.6; // distance mini au trait
 
     const boite = (e) => {
@@ -5276,7 +5276,7 @@
         ox += e.nx * (MARGE_INTERIEURE - projection);
         oy += e.ny * (MARGE_INTERIEURE - projection);
       }
-      // ...ni s'éloigner au point de ne plus désigner son propre côté.
+      // ...ni s’éloigner au point de ne plus désigner son propre côté.
       const d = Math.hypot(ox, oy);
       if (d > DEPLACEMENT_MAX) { ox = ox / d * DEPLACEMENT_MAX; oy = oy / d * DEPLACEMENT_MAX; }
       e.ox = ox; e.oy = oy;
@@ -5322,7 +5322,7 @@
       svg.setAttribute('height', (maxY - minY).toFixed(1));
     };
 
-    // getBBox n'a de sens qu'une fois le SVG dans le document. On rejoue le
+    // getBBox n’a de sens qu’une fois le SVG dans le document. On rejoue le
     // calcul quand les polices sont prêtes : la largeur du texte change avec
     // la fonte réellement utilisée, et un placement calculé sur la fonte de
     // repli redeviendrait faux.
@@ -5351,7 +5351,7 @@
     svg.setAttribute('aria-hidden', 'true');
     wrap.appendChild(svg);
 
-    // Sens de parcours : l'aire signée donne le côté « extérieur ».
+    // Sens de parcours : l’aire signée donne le côté « extérieur ».
     let aire = 0;
     for (let i = 0; i < ecran.length; i++) {
       const p = ecran[i], q = ecran[(i + 1) % ecran.length];
@@ -5381,7 +5381,7 @@
       const dx = q[0] - p[0], dy = q[1] - p[1];
       const norme = Math.hypot(dx, dy) || 1;
       // Normale extérieure : rotation de 90° du côté, dans le sens qui
-      // s'éloigne de l'intérieur du polygone.
+      // s’éloigne de l’intérieur du polygone.
       const nx = (dy / norme) * sens, ny = (-dx / norme) * sens;
       const t = document.createElementNS(SVGNS, 'text');
       t.setAttribute('x', (p[0] + dx / 2 + nx * OFFSET_ETIQUETTE).toFixed(1));
@@ -5409,8 +5409,8 @@
       const dx = q[0] - p[0], dy = q[1] - p[1];
       const norme = Math.hypot(dx, dy) || 1;
       const ux = dx / norme, uy = dy / norme;              // le long du côté
-      const nx = (dy / norme) * sens, ny = (-dx / norme) * sens; // vers l'extérieur
-      // Deux battants OUVERTS : ils pivotent vers l'extérieur depuis chaque
+      const nx = (dy / norme) * sens, ny = (-dx / norme) * sens; // vers l’extérieur
+      // Deux battants OUVERTS : ils pivotent vers l’extérieur depuis chaque
       // montant, laissant le passage libre entre eux.
       const battant = norme * 0.32;
       [[p, 1], [q, -1]].forEach(([base, signe]) => {
@@ -5501,7 +5501,7 @@
 
   /* Manches 4 et 5 — deux longueurs manquent sur une figure en L : les deux
      GRANDS côtés, chacun égal à la somme des deux côtés opposés qui lui font
-     face. L'enfant doit les déduire avant de pouvoir faire le total. */
+     face. L’enfant doit les déduire avant de pouvoir faire le total. */
   function genererArpentageManquants(zone) {
     const pts = polygoneArpentage(6);
     const cotes = cotesDuPolygone(pts);
@@ -5514,7 +5514,7 @@
 
     zone.appendChild(creerBlocConsigne(
       'Deux longueurs manquent : déduis-les, puis calcule le périmètre.',
-      'Sur cette parcelle, deux côtés ne sont pas mesurés : ils sont marqués d\'un point d\'interrogation. Retrouve chacun en additionnant les côtés qui lui font face, puis additionne les six côtés pour trouver le périmètre.'
+      'Sur cette parcelle, deux côtés ne sont pas mesurés : ils sont marqués d’un point d’interrogation. Retrouve chacun en additionnant les côtés qui lui font face, puis additionne les six côtés pour trouver le périmètre.'
     ));
     zone.appendChild(creerSceneArpentage(pts, etiquettes));
     const aide = document.createElement('p');
@@ -5524,11 +5524,11 @@
     creerSaisiePerimetre(zone, total, 'Quel est le périmètre de cette parcelle, en centimètres ?');
   }
 
-  /* Manches 6 et 7 — problème : la clôture entoure le terrain SAUF l'entrée.
-     Toutes les longueurs sont données, y compris celle du portail : c'est à
-     l'enfant de comprendre qu'il ne faut pas la compter. */
+  /* Manches 6 et 7 — problème : la clôture entoure le terrain SAUF l’entrée.
+     Toutes les longueurs sont données, y compris celle du portail : c’est à
+     l’enfant de comprendre qu’il ne faut pas la compter. */
   /* Problème de clôture : un jardin se mesure en MÈTRES, pas en centimètres —
-     une clôture de 30 cm n'a aucun sens et casse la vraisemblance du problème.
+     une clôture de 30 cm n’a aucun sens et casse la vraisemblance du problème.
      Les longueurs tirées (2 à 11) sont directement lisibles comme des mètres :
      un jardin de 9 m sur 7 m avec un portail de 2 m est réaliste, et les
      nombres restent additionnables de tête au CE2. */
@@ -5547,12 +5547,12 @@
 
     zone.appendChild(creerBlocConsigne(
       'Quelle est la longueur de la clôture qui entoure la maison ?',
-      'La clôture fait tout le tour du terrain, sauf à l\'entrée : le portail est ouvert, et un chemin mène à la maison. Additionne les côtés clôturés, en mètres — celui du portail ne compte pas.'
+      'La clôture fait tout le tour du terrain, sauf à l’entrée : le portail est ouvert, et un chemin mène à la maison. Additionne les côtés clôturés, en mètres — celui du portail ne compte pas.'
     ));
     zone.appendChild(creerSceneArpentage(pts, cotes.map((c) => c + ' ' + UNITE_CLOTURE), { coteOuvert: portail }));
     const aide = document.createElement('p');
     aide.className = 'legende';
-    aide.textContent = 'Le côté du portail (' + cotes[portail] + ' ' + UNITE_CLOTURE + ') n\'est pas clôturé : ne le compte pas.';
+    aide.textContent = 'Le côté du portail (' + cotes[portail] + ' ' + UNITE_CLOTURE + ') n’est pas clôturé : ne le compte pas.';
     zone.appendChild(aide);
     creerSaisiePerimetre(zone, reponse, 'Quelle longueur de clôture faut-il, en mètres ?', UNITE_CLOTURE);
   }
@@ -5567,8 +5567,8 @@
 </script>
 <script>
   /* Bouton « ← Menu » : retour à la coquille avec confirmation (CHARTE §7).
-     Script isolé du moteur de jeu : il n'agit que sur les éléments statiques
-     de la page (le « ← Menu » ne s'affiche que sur l'écran d'accueil). */
+     Script isolé du moteur de jeu : il n’agit que sur les éléments statiques
+     de la page (le « ← Menu » ne s’affiche que sur l’écran d’accueil). */
   (function () {
     var bouton = document.getElementById('bouton-menu');
     var modale = document.getElementById('modale-menu');

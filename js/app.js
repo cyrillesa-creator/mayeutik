@@ -1,7 +1,7 @@
 /*
  * Mayeutik — interface de la coquille.
  *
- * Trois vues, routées par le hash de l'URL :
+ * Trois vues, routées par le hash de l’URL :
  *   #profils : choix / création du profil (côté enfant, ludique)
  *   #accueil : index des jeux par niveau × domaine × thème (côté enfant)
  *   #parent  : tableau de bord parental (sobre, informatif)
@@ -18,7 +18,7 @@
 
   let referentiel = null;
 
-  /* État d'interface uniquement (jamais persisté). */
+  /* État d’interface uniquement (jamais persisté). */
   const etat = {
     recherche: '',
     profilEnEdition: null,       // id du profil en cours de modification (#modifier-profil)
@@ -35,16 +35,16 @@
    * indépendamment) — persistant le temps de la SESSION de navigation dans la
    * coquille, PAS dans le stockage persistant localStorage.
    *
-   * Pourquoi sessionStorage plutôt qu'une simple variable mémoire : ouvrir un
+   * Pourquoi sessionStorage plutôt qu’une simple variable mémoire : ouvrir un
    * jeu quitte la page de la coquille (les jeux sont des fichiers HTML séparés)
    * et y revenir la RECHARGE — une variable JS serait alors perdue. sessionStorage
-   * survit à ce rechargement tant que l'onglet reste ouvert, et est effacé à la
-   * fermeture de l'onglet (donc non persistant, comme demandé).
+   * survit à ce rechargement tant que l’onglet reste ouvert, et est effacé à la
+   * fermeture de l’onglet (donc non persistant, comme demandé).
    *
-   * La valeur stockée est préfixée par l'id du profil (périmètre) : si le
-   * profil actif change par un autre chemin, la sélection ne s'applique plus
+   * La valeur stockée est préfixée par l’id du profil (périmètre) : si le
+   * profil actif change par un autre chemin, la sélection ne s’applique plus
    * → retour au défaut (« Mon niveau »). Il est en outre réinitialisé
-   * explicitement à l'accès à l'écran des profils.
+   * explicitement à l’accès à l’écran des profils.
    */
   const CLE_NIVEAUX = 'mayeutik-nav-filtre-niveaux';
   const CLE_DOMAINE = 'mayeutik-nav-filtre-domaine';
@@ -53,8 +53,8 @@
   let memoireDomaine = null;
 
   // Niveau du profil désigné par cet id (indépendant du profil ACTIF courant,
-  // utile pour calculer le défaut « Mon niveau » sans dépendre de l'ordre
-  // d'appel dans vueAccueil).
+  // utile pour calculer le défaut « Mon niveau » sans dépendre de l’ordre
+  // d’appel dans vueAccueil).
   function niveauDuProfilId(profilId) {
     if (!profilId) return null;
     const p = P.lireProfils().find((pp) => pp.id === profilId);
@@ -62,7 +62,7 @@
   }
 
   // Défaut « Mon niveau » : uniquement le niveau du profil, ou TOUS les
-  // niveaux du référentiel si le profil n'a pas de niveau renseigné (rien à
+  // niveaux du référentiel si le profil n’a pas de niveau renseigné (rien à
   // filtrer dans ce cas).
   function niveauxParDefaut(profilId) {
     const n = niveauDuProfilId(profilId);
@@ -91,7 +91,7 @@
   }
 
   // Filtre de domaine : sélection MULTIPLE, même principe que les niveaux
-  // (CHARTE §16 : un seul point d'entrée générique pour ce type de filtre).
+  // (CHARTE §16 : un seul point d’entrée générique pour ce type de filtre).
   // Défaut = TOUS les domaines du référentiel (pas de « mon domaine » propre
   // au profil, contrairement au niveau).
   function domainesParDefaut() {
@@ -119,12 +119,12 @@
   }
 
   /*
-   * Registre CENTRAL des filtres de navigation. Chaque filtre s'y enregistre
+   * Registre CENTRAL des filtres de navigation. Chaque filtre s’y enregistre
    * avec : sa clé sessionStorage, la remise à zéro de son repli mémoire, et un
    * prédicat « diffère-t-il de son état par défaut ? ». Tout NOUVEAU filtre
-   * (par thème, par type de module…) n'a qu'à ajouter une entrée ici pour
+   * (par thème, par type de module…) n’a qu’à ajouter une entrée ici pour
    * hériter AUTOMATIQUEMENT des deux resets — bouton manuel « Réinitialiser les
-   * filtres » ET retour à l'écran de choix du profil — sans risque d'oubli.
+   * filtres » ET retour à l’écran de choix du profil — sans risque d’oubli.
    */
   const FILTRES_NAVIGATION = [
     {
@@ -149,9 +149,9 @@
     }
   ];
 
-  // Remet TOUS les filtres à leur état par défaut, d'un seul coup. Point d'entrée
+  // Remet TOUS les filtres à leur état par défaut, d’un seul coup. Point d’entrée
   // UNIQUE partagé par le bouton « Réinitialiser les filtres » et par le reset
-  // automatique déclenché à l'accès à l'écran de choix du profil (cf. vueProfils).
+  // automatique déclenché à l’accès à l’écran de choix du profil (cf. vueProfils).
   function reinitialiserFiltres() {
     FILTRES_NAVIGATION.forEach(function (f) {
       f.reinitMemoire();
@@ -159,7 +159,7 @@
     });
   }
 
-  // Au moins un filtre s'écarte-t-il de son état par défaut ?
+  // Au moins un filtre s’écarte-t-il de son état par défaut ?
   // (sert à activer/griser le bouton de réinitialisation).
   function filtresModifies(profilId) {
     return FILTRES_NAVIGATION.some(function (f) { return f.estModifie(profilId); });
@@ -203,11 +203,11 @@
    * #modifier-profil) : une lettre, deux initiales, ou un emoji au choix.
    * `profil.icone` vaut 'initiale' | 'initiales' | un emoji littéral ; toute
    * valeur absente/inconnue retombe sur 'initiale' (défaut sensé pour les
-   * profils existants qui n'ont pas encore fait ce choix).
+   * profils existants qui n’ont pas encore fait ce choix).
    */
   const EMOJIS_PROFIL = ['😀', '😎', '🤓', '🥳', '🥰', '😺', '🐶', '🦊', '🐼', '🦁', '🐵', '🦄', '🐧', '🐢', '🦋', '🐙'];
   /*
-   * Initiales d'un prénom, avec une règle double :
+   * Initiales d’un prénom, avec une règle double :
    *  - prénom COMPOSÉ (tiret) : une lettre par partie, ex. « Jean-Philippe »
    *    → « JP » (pas les deux premières lettres de la première partie) ;
    *  - prénom SIMPLE : première lettre en MAJUSCULE + deuxième en minuscule,
@@ -230,10 +230,10 @@
     if (icone === 'initiales') return initialesProfil(prenom);
     return prenom.charAt(0).toUpperCase();
   }
-  // Construit un avatar dont le contenu respecte le choix d'icône du profil
+  // Construit un avatar dont le contenu respecte le choix d’icône du profil
   // (lettre / initiales / emoji — cf. contenuIcone), avec une classe de taille
-  // optionnelle. Point d'entrée commun à l'icône d'en-tête (grande, coin haut
-  // droit de l'accueil) et à l'icône affichée dans la liste des profils
+  // optionnelle. Point d’entrée commun à l’icône d’en-tête (grande, coin haut
+  // droit de l’accueil) et à l’icône affichée dans la liste des profils
   // (taille standard), pour une cohérence visuelle entre les deux écrans.
   function avatarAvecIcone(profil, classeTaille) {
     const indice = Math.max(0, P.lireProfils().findIndex((p) => p.id === profil.id));
@@ -244,24 +244,24 @@
     classes.push(CLASSES_AVATAR[indice % CLASSES_AVATAR.length]);
     return h('span', { class: classes.join(' '), texte: contenu });
   }
-  // Icône « en tête » (grande, coin supérieur droit de l'accueil).
+  // Icône « en tête » (grande, coin supérieur droit de l’accueil).
   function avatarEnTete(profil) {
     return avatarAvecIcone(profil, 'avatar-entete');
   }
   // Icône dans la liste des profils (#profils) : taille standard, mais
-  // reflète le choix d'icône plutôt que toujours la seule initiale brute
-  // (cohérence visuelle avec l'icône affichée ensuite en haut à droite de
-  // l'accueil).
+  // reflète le choix d’icône plutôt que toujours la seule initiale brute
+  // (cohérence visuelle avec l’icône affichée ensuite en haut à droite de
+  // l’accueil).
   function avatarListeProfils(profil) {
     return avatarAvecIcone(profil, null);
   }
 
   /*
-   * Sélecteur d'icône de profil (lettre / initiales / emoji), partagé entre
+   * Sélecteur d’icône de profil (lettre / initiales / emoji), partagé entre
    * création et modification de profil (CHARTE §16 : un seul composant
    * générique plutôt que deux implémentations dupliquées). `obtenirPrenom`
-   * est rappelé à chaque rendu pour que l'aperçu suive le prénom en cours de
-   * saisie ; `iconeInitiale` fixe la sélection de départ. Renvoie l'élément à
+   * est rappelé à chaque rendu pour que l’aperçu suive le prénom en cours de
+   * saisie ; `iconeInitiale` fixe la sélection de départ. Renvoie l’élément à
    * insérer dans le formulaire, la sélection courante (`obtenirIcone`) et une
    * fonction à rappeler quand le prénom change (`rafraichir`).
    */
@@ -307,10 +307,10 @@
   /*
    * Niveaux couverts par un module (CHARTE.md §15, modules adaptatifs par
    * niveau) : un module adaptatif déclare `niveaux` (tableau) en plus de
-   * `niveau` (niveau d'intro, conservé pour compatibilité) ; un module
-   * classique n'a que `niveau`. Point d'entrée UNIQUE pour tout filtrage par
-   * niveau, afin qu'un module multi-niveaux apparaisse pour chacun des
-   * niveaux qu'il couvre plutôt que pour son seul niveau d'intro.
+   * `niveau` (niveau d’intro, conservé pour compatibilité) ; un module
+   * classique n’a que `niveau`. Point d’entrée UNIQUE pour tout filtrage par
+   * niveau, afin qu’un module multi-niveaux apparaisse pour chacun des
+   * niveaux qu’il couvre plutôt que pour son seul niveau d’intro.
    */
   function niveauxModule(m) {
     return m.niveaux || [m.niveau];
@@ -322,7 +322,7 @@
    * JOUABLE (fichier renseigné — les entrées de backlog sans jeu ne comptent
    * pas, même critère que modulesFiltres) couvrant au moins un des niveaux
    * sélectionnés. Ordre = celui du référentiel (referentiel.domaines), pas
-   * l'ordre d'apparition dans les modules. Recalculé à chaque rendu de
+   * l’ordre d’apparition dans les modules. Recalculé à chaque rendu de
    * vueAccueil, donc à chaque changement de niveau (cf. le pattern de
    * reconstruction complète de la vue).
    */
@@ -341,10 +341,10 @@
   }
 
   /*
-   * Pictogrammes par compétence, dans l'esprit des pictogrammes des fiches
-   * Repères : un symbole simple par domaine du programme, pour repérer d'un
+   * Pictogrammes par compétence, dans l’esprit des pictogrammes des fiches
+   * Repères : un symbole simple par domaine du programme, pour repérer d’un
    * coup d'œil la liste de compétences et le radar détaillé. Un seul emoji
-   * par domaine (pas de dépendance externe, pas de jeu d'icônes par thème).
+   * par domaine (pas de dépendance externe, pas de jeu d’icônes par thème).
    */
   const PICTO_DOMAINE = {
     'Nombres et calcul': '🔢',
@@ -361,11 +361,11 @@
    * tactile, via Pointer Events, écouteurs délégués sur `liste`) : on appuie
    * sur une poignée ⠿ et on maintient un court instant (retour visuel : la
    * ligne se soulève), puis on glisse verticalement pour réordonner — les
-   * lignes traversées se décalent en direct. Le DOM n'est réordonné qu'au
-   * relâchement (le déplacement pendant le glisser n'est que visuel, via
+   * lignes traversées se décalent en direct. Le DOM n’est réordonné qu’au
+   * relâchement (le déplacement pendant le glisser n’est que visuel, via
    * transform) : reparenter la ligne captée EN COURS de glisser fait perdre
-   * la capture du pointeur dans Chromium, d'où ce choix. Chaque ligne porte
-   * `data-profil-id` pour reconstituer l'ordre final (P.reordonnerProfils).
+   * la capture du pointeur dans Chromium, d’où ce choix. Chaque ligne porte
+   * `data-profil-id` pour reconstituer l’ordre final (P.reordonnerProfils).
    */
   function activerReordonnerProfils(liste) {
     const DELAI_APPUI_MS = 180;
@@ -439,9 +439,9 @@
   /* ---------- Vue : choix / création de profil (enfant) ---------- */
 
   function vueProfils(conteneur) {
-    // Accéder à l'écran de sélection du profil réinitialise le filtre de niveau :
-    // au retour sur l'écran de choix des jeux, le filtre par défaut (niveau du
-    // profil) sera réappliqué, sans mémoire de l'état précédent.
+    // Accéder à l’écran de sélection du profil réinitialise le filtre de niveau :
+    // au retour sur l’écran de choix des jeux, le filtre par défaut (niveau du
+    // profil) sera réappliqué, sans mémoire de l’état précédent.
     reinitialiserFiltres();
 
     const profils = P.lireProfils();
@@ -482,8 +482,8 @@
     vue.appendChild(liste);
 
     // Création (prénom, niveau, icône). Le prénom et le niveau restent seuls
-    // obligatoires (minimisation RGPD) ; l'icône est un choix de confort visuel
-    // au même titre que sur l'écran de modification (creerSelecteurIcone).
+    // obligatoires (minimisation RGPD) ; l’icône est un choix de confort visuel
+    // au même titre que sur l’écran de modification (creerSelecteurIcone).
     const champPrenom = h('input', { type: 'text', maxlength: '30', placeholder: 'Prénom',
       'aria-label': 'Prénom' });
     const champNiveau = h('select', { 'aria-label': 'Niveau' },
@@ -508,7 +508,7 @@
     conteneur.appendChild(vue);
   }
 
-  /* ---------- Vue : modification / suppression d'un profil ---------- */
+  /* ---------- Vue : modification / suppression d’un profil ---------- */
 
   // Où revenir après #modifier-profil : origine 'parent' -> tableau de bord,
   // sinon (par défaut) -> écran de sélection des profils (comportement historique).
@@ -538,17 +538,17 @@
         return opt;
       }));
 
-    // Sélecteur d'icône de profil : lettre / initiales / emoji au choix. État
-    // local (comme prénom/classe) : rien n'est écrit tant que « Enregistrer »
-    // n'est pas cliqué. La prévisualisation suit le prénom en cours de saisie.
+    // Sélecteur d’icône de profil : lettre / initiales / emoji au choix. État
+    // local (comme prénom/classe) : rien n’est écrit tant que « Enregistrer »
+    // n’est pas cliqué. La prévisualisation suit le prénom en cours de saisie.
     const selecteurIcone = creerSelecteurIcone(() => champPrenom.value, profil.icone);
     champPrenom.addEventListener('input', selecteurIcone.rafraichir);
 
     const boutonEnregistrer = h('button', { class: 'bouton-principal', texte: 'Enregistrer',
       onclick: () => {
         if (!champPrenom.value.trim()) { champPrenom.focus(); return; }
-        // Met à jour le profil : si c'est le profil actif et que sa classe
-        // change, l'écran de choix des jeux ré-appliquera le filtre au nouveau
+        // Met à jour le profil : si c’est le profil actif et que sa classe
+        // change, l’écran de choix des jeux ré-appliquera le filtre au nouveau
         // niveau (niveau recalculé à chaque rendu depuis profilActif()).
         P.modifierProfil(profil.id, champPrenom.value, champNiveau.value, selecteurIcone.obtenirIcone());
         retourApresEditionProfil();
@@ -577,8 +577,8 @@
 
   /*
    * Modale de confirmation de suppression : deux boutons nettement différenciés
-   * (« Annuler » mis en avant, « Supprimer définitivement » en couleur d'alerte).
-   * Ton bienveillant mais message clair sur l'irréversibilité (CHARTE.md).
+   * (« Annuler » mis en avant, « Supprimer définitivement » en couleur d’alerte).
+   * Ton bienveillant mais message clair sur l’irréversibilité (CHARTE.md).
    */
   function ouvrirModaleSuppression(profil) {
     const conteneur = document.getElementById('application');
@@ -597,10 +597,10 @@
         h('button', { class: 'bouton-modale-danger', texte: 'Supprimer définitivement',
           onclick: () => {
             // Retire le profil + toutes ses sessions ; réassigne le profil actif
-            // (profil restant, ou « aucun profil actif » si c'était le dernier).
+            // (profil restant, ou « aucun profil actif » si c’était le dernier).
             P.supprimerProfil(profil.id);
             fermer();
-            retourApresEditionProfil(); // hashchange -> rendre() (écran d'origine)
+            retourApresEditionProfil(); // hashchange -> rendre() (écran d’origine)
           } })
       ])
     ]);
@@ -615,12 +615,12 @@
     const recherche = normaliser(etat.recherche.trim());
     return (referentiel.modules || []).filter((m) => {
       // Entrées de BACKLOG (module planifié, sans fichier de jeu) : présentes
-      // dans le référentiel pour le pilotage, jamais proposées à l'enfant —
+      // dans le référentiel pour le pilotage, jamais proposées à l’enfant —
       // une carte sans jeu associé ne mènerait nulle part.
       if (!m.fichier) return false;
-      // Union des niveaux cochés : un module correspond dès qu'il couvre AU
+      // Union des niveaux cochés : un module correspond dès qu’il couvre AU
       // MOINS UN des niveaux sélectionnés. Un module adaptatif (§15) compte
-      // pour CHACUN des niveaux qu'il couvre.
+      // pour CHACUN des niveaux qu’il couvre.
       if (!niveauxModule(m).some((n) => niveauxSelectionnes.indexOf(n) !== -1)) return false;
       // Union des domaines cochés (sélection multiple, un domaine par module).
       if (domainesSelectionnes.indexOf(m.domaine) === -1) return false;
@@ -635,13 +635,13 @@
   const COULEURS_CARTES = ['carte-mandarine', 'carte-menthe', 'carte-soleil', 'carte-corail'];
 
   /*
-   * `niveauContexte` : le niveau du POINT D'ENTRÉE depuis lequel cette carte
+   * `niveauContexte` : le niveau du POINT D’ENTRÉE depuis lequel cette carte
    * est affichée (section de niveau du menu, ou seul niveau du filtre actif —
    * cf. rendreListeJeux), quand il est sans ambiguïté. Transmis en paramètre
-   * d'URL `palier` (lancement paramétré, CHARTE §16) pour qu'un module
+   * d’URL `palier` (lancement paramétré, CHARTE §16) pour qu’un module
    * adaptatif (§15) démarre sur CE niveau-là plutôt que sur celui,
    * potentiellement différent, du profil actif — ex. un profil CE2 cliquant
-   * sur une carte de la section CE1 doit voir le module s'ouvrir sur CE1.
+   * sur une carte de la section CE1 doit voir le module s’ouvrir sur CE1.
    */
   function carteJeu(module, indice, niveauContexte) {
     const badges = [
@@ -657,9 +657,9 @@
       href += '?palier=' + encodeURIComponent(niveauContexte.toLowerCase());
     }
     // Un module adaptatif (§15) peut proposer un descriptif DISTINCT par
-    // palier (univers narratif différent d'un niveau à l'autre, ex. M23
-    // Bois/Forêt/Amazonie) via `descriptionsParNiveau`. On l'utilise quand le
-    // niveau du point d'entrée est connu, sinon on retombe sur `description`.
+    // palier (univers narratif différent d’un niveau à l’autre, ex. M23
+    // Bois/Forêt/Amazonie) via `descriptionsParNiveau`. On l’utilise quand le
+    // niveau du point d’entrée est connu, sinon on retombe sur `description`.
     const description = (module.descriptionsParNiveau && niveauContexte
       && module.descriptionsParNiveau[niveauContexte]) || module.description || '';
     return h('a', { class: 'carte-jeu ' + COULEURS_CARTES[indice % COULEURS_CARTES.length],
@@ -673,7 +673,7 @@
     ]);
   }
 
-  // Libellé compact du bouton fermé du menu Niveau, pour que l'état actif soit
+  // Libellé compact du bouton fermé du menu Niveau, pour que l’état actif soit
   // visible sans avoir à rouvrir le menu (ex. « Mon niveau », « Tous les
   // niveaux », « CP, CE2 », « 3 niveaux »).
   function libelleNiveauxSelectionnes(niveauxSelectionnes, niveauProfil, niveauxDisponibles) {
@@ -686,7 +686,7 @@
   }
 
   // Libellé compact du bouton fermé du menu Domaine (même principe que le
-  // menu Niveau ci-dessus, sans le cas particulier « Mon niveau » — il n'y a
+  // menu Niveau ci-dessus, sans le cas particulier « Mon niveau » — il n’y a
   // pas de domaine par défaut propre au profil).
   function libelleDomainesSelectionnes(domainesSelectionnes, domainesDisponibles) {
     if (domainesSelectionnes.length === domainesDisponibles.length) return 'Tous les domaines';
@@ -701,8 +701,8 @@
     const idProfil = profil ? profil.id : null;
 
     // Filtres « niveaux affichés » et « domaines affichés » : lus depuis
-    // l'état de session (persistent au retour d'un jeu, réinitialisés à
-    // l'accès à l'écran des profils — cf. reinitialiserFiltres dans vueProfils).
+    // l’état de session (persistent au retour d’un jeu, réinitialisés à
+    // l’accès à l’écran des profils — cf. reinitialiserFiltres dans vueProfils).
     const niveauxDisponibles = referentiel.niveaux || [];
     const niveauxSelectionnes = niveauProfil ? lireNiveauxSelectionnes(idProfil) : niveauxDisponibles;
 
@@ -710,9 +710,9 @@
 
     // Icône du joueur (petite, choix libre — cf. #modifier-profil) + chevron,
     // en haut à droite : taille fixe et réduite, donc un positionnement absolu
-    // reste sûr ici (contrairement à l'ancienne capsule avec le prénom en toutes
+    // reste sûr ici (contrairement à l’ancienne capsule avec le prénom en toutes
     // lettres, dont la largeur variable pouvait chevaucher le titre). Le titre
-    // « Mayeutik » reste centré en grand, comme à l'origine.
+    // « Mayeutik » reste centré en grand, comme à l’origine.
     vue.appendChild(h('button', { class: 'icone-joueur',
       'aria-label': profil ? 'Changer de joueur (' + profil.prenom + ')' : 'Choisir un joueur',
       onclick: () => { location.hash = '#profils'; } },
@@ -731,13 +731,13 @@
     // Filtre par niveau : DEUX contrôles complémentaires, synchronisés (même
     // source de vérité `niveauxSelectionnes`, ré-affichés ensemble à chaque
     // rendu) :
-    //  - un bouton coloré à droite, raccourci à un clic pour le cas d'usage le
+    //  - un bouton coloré à droite, raccourci à un clic pour le cas d’usage le
     //    plus courant (bascule Mon niveau ↔ Tous les niveaux) ;
     //  - un menu déroulant à gauche pour la sélection multiple fine (ex. « CP +
     //    CE2 » pour une fratrie à niveaux non contigus), simplifié dans sa
     //    présentation (plus de raccourcis internes, désormais redondants avec
     //    le bouton coloré) mais gardant sa fonction de sélection multiple.
-    // (Sans niveau sur le profil, tout est affiché et ces contrôles n'ont pas lieu d'être.)
+    // (Sans niveau sur le profil, tout est affiché et ces contrôles n’ont pas lieu d’être.)
     if (niveauProfil) {
       function choisirNiveaux(niveaux, fermerMenu) {
         ecrireNiveauxSelectionnes(idProfil, niveaux);
@@ -790,10 +790,10 @@
     // Corrige une sélection devenue invalide suite à un changement de niveau :
     // les domaines qui ne sont plus disponibles sont retirés ; si plus AUCUN
     // domaine sélectionné ne reste disponible, on retombe sur « tous les
-    // domaines disponibles » pour ce(s) niveau(x) plutôt que d'afficher une
+    // domaines disponibles » pour ce(s) niveau(x) plutôt que d’afficher une
     // liste de jeux vide sans explication. La correction est aussi PERSISTÉE
-    // (pas seulement corrigée à l'affichage) : l'état interne ne doit jamais
-    // garder un domaine fantôme invisible d'un niveau précédent.
+    // (pas seulement corrigée à l’affichage) : l’état interne ne doit jamais
+    // garder un domaine fantôme invisible d’un niveau précédent.
     const domainesSelectionnesBrutes = lireDomainesSelectionnes(idProfil);
     const domainesSelectionnesValides = domainesSelectionnesBrutes.filter((d) => domainesDisponibles.indexOf(d) !== -1);
     const domainesSelectionnes = domainesSelectionnesValides.length ? domainesSelectionnesValides : domainesDisponibles.slice();
@@ -841,7 +841,7 @@
     vue.appendChild(h('div', { class: 'rangee-filtre-multi' }, [menuDomaines, boutonDomainesRapide]));
 
     // Bouton « Réinitialiser les filtres » : remet niveau + domaine au défaut
-    // en une action (via le point d'entrée central). Grisé s'il n'y a rien à
+    // en une action (via le point d’entrée central). Grisé s’il n’y a rien à
     // réinitialiser, pour éviter une action inutile.
     const boutonReset = h('button', { class: 'bouton-reset-filtres', type: 'button',
       texte: '↺ Réinitialiser les filtres',
@@ -866,10 +866,10 @@
         return;
       }
       // On regroupe par niveau (avec un titre de section) dès que PLUSIEURS
-      // niveaux peuvent coexister à l'écran (2 niveaux cochés, « tous les
+      // niveaux peuvent coexister à l’écran (2 niveaux cochés, « tous les
       // niveaux », ou profil sans niveau). Sinon, une seule grille (tout au
       // même niveau, le badge de niveau reste visible sur chaque carte).
-      // Les groupes sont limités aux niveaux SÉLECTIONNÉS (dans l'ordre du
+      // Les groupes sont limités aux niveaux SÉLECTIONNÉS (dans l’ordre du
       // référentiel) : un module adaptatif qui déborde sur un niveau non
       // coché (ex. CP+CE2 cochés, module couvrant aussi CE1) ne doit pas
       // faire apparaître une section CE1 fantôme.
@@ -878,9 +878,9 @@
       const groupes = grouperParNiveau
         ? niveauxAGrouper.map((n) => [n, modules.filter((m) => niveauxModule(m).indexOf(n) !== -1)]).filter(([, l]) => l.length)
         : [[null, modules]];
-      // Niveau du point d'entrée transmis aux cartes (lancement paramétré,
+      // Niveau du point d’entrée transmis aux cartes (lancement paramétré,
       // CHARTE §16) : celui de la section quand on regroupe par niveau, ou
-      // l'unique niveau filtré quand une seule grille est affichée (le cas
+      // l’unique niveau filtré quand une seule grille est affichée (le cas
       // ambigu — plusieurs niveaux visibles sans regroupement — ne se
       // produit jamais, cf. grouperParNiveau ci-dessus).
       const niveauContextePourLien = niveauxSelectionnes.length === 1 ? niveauxSelectionnes[0] : null;
@@ -896,7 +896,7 @@
     conteneur.appendChild(vue);
   }
 
-  /* Accès parent volontairement à l'écart : petit lien discret en pied de page. */
+  /* Accès parent volontairement à l’écart : petit lien discret en pied de page. */
   function piedEnfant() {
     return h('div', { class: 'pied-enfant' }, [
       h('button', { class: 'lien-parent', texte: 'Espace parents',
@@ -911,11 +911,11 @@
   }
 
   /*
-   * Légende de l'échelle LSU (couleurs/niveaux), réutilisée telle quelle sous
+   * Légende de l’échelle LSU (couleurs/niveaux), réutilisée telle quelle sous
    * chaque graphique du tableau de bord (radar de synthèse, chaque radar
-   * détaillé, courbe de progression) plutôt qu'une seule fois en haut de
+   * détaillé, courbe de progression) plutôt qu’une seule fois en haut de
    * page — mêmes couleurs, mêmes libellés à chaque fois. `compacte` réduit
-   * l'encombrement pour les emplacements répétés sous les graphiques.
+   * l’encombrement pour les emplacements répétés sous les graphiques.
    */
   function legendeEchelle(compacte) {
     return h('div', { class: 'legende-echelle' + (compacte ? ' legende-echelle-compacte' : '') },
@@ -941,7 +941,7 @@
     });
     // Boutons (pas des div) : cliquables/focusables au clavier, font défiler
     // vers la liste complète des compétences plus bas — jamais de filtrage,
-    // la liste reste toujours entière à l'arrivée.
+    // la liste reste toujours entière à l’arrivée.
     const bloc = (classe, nombre, libelle) => h('button', { type: 'button', class: 'bloc-bandeau ' + classe,
       'aria-label': 'Voir la liste des compétences (' + nombre + ' ' + libelle.toLowerCase() + ')',
       onclick: onClicWidget }, [
@@ -956,19 +956,19 @@
   }
 
   /*
-   * Bibliothèque de conseils « Pour l'accompagner » (fiche détail), bienveillante
-   * et générique — pas d'IA générative nécessaire. Clé par thème du référentiel
+   * Bibliothèque de conseils « Pour l’accompagner » (fiche détail), bienveillante
+   * et générique — pas d’IA générative nécessaire. Clé par thème du référentiel
    * quand un conseil précis existe, sinon repli par domaine, sinon message
    * générique.
    */
   const CONSEILS_THEME = {
     'Fractions': 'Encouragez à dessiner ou à découper avant de comparer les fractions : le sens vient avant le calcul.',
-    'Nombres jusqu\'à 9': 'Manipulez des objets concrets (jetons, doigts) avant de passer aux chiffres seuls.',
+    'Nombres jusqu’à 9': 'Manipulez des objets concrets (jetons, doigts) avant de passer aux chiffres seuls.',
     'Solides': 'Proposez de manipuler de vrais objets (boîtes, balles, dés) pour retrouver les solides de la leçon.',
     'Tables de multiplication': 'Privilégiez des séances courtes et régulières plutôt que de longues révisions : la fluence se construit par petites doses répétées.'
   };
   const CONSEILS_DOMAINE = {
-    'Nombres et calcul': 'Encouragez la manipulation concrète (jetons, doigts) avant l\'écriture chiffrée, et laissez le temps de poser la démarche à voix haute avant de chercher le résultat.',
+    'Nombres et calcul': 'Encouragez la manipulation concrète (jetons, doigts) avant l’écriture chiffrée, et laissez le temps de poser la démarche à voix haute avant de chercher le résultat.',
     'Grandeurs et mesures': 'Reliez la notion à des mesures réelles du quotidien (cuisine, bricolage, trajets).',
     'Espace et géométrie': 'Encouragez à dessiner, plier ou manipuler des formes avant de décrire ou comparer.',
     'Organisation et gestion de données': 'Repérez ensemble des tableaux et des graphiques du quotidien (météo, résultats sportifs) pour donner du sens à la lecture de données.'
@@ -976,7 +976,7 @@
   function conseilAccompagnement(c, module) {
     const theme = module && module.theme;
     return (theme && CONSEILS_THEME[theme]) || CONSEILS_DOMAINE[c.domaine] ||
-      'Valorisez les progrès, même petits : la régularité compte plus que la performance d\'un jour.';
+      'Valorisez les progrès, même petits : la régularité compte plus que la performance d’un jour.';
   }
 
   function blocFiche(titre, texte) {
@@ -991,7 +991,7 @@
   }
 
   /*
-   * Fiche détail d'une compétence : ouverte depuis un axe du radar détaillé ou
+   * Fiche détail d’une compétence : ouverte depuis un axe du radar détaillé ou
    * une ligne de la liste des compétences (côté parent). Reformule la logique
    * des fiches de restitution Repères pour une progression CONTINUE (jamais de
    * « score du jour ») — cf. PRODUIT.md, section « Tableau de bord parental ».
@@ -1113,7 +1113,7 @@
 
     /* Bandeau de synthèse : à consolider / en cours / maîtrisées (au-dessus du radar).
        Cliquer un widget fait défiler vers la liste complète des compétences plus bas
-       (jamais de filtrage : la liste reste entière à l'arrivée). */
+       (jamais de filtrage : la liste reste entière à l’arrivée). */
     vue.appendChild(bandeauSynthese(analyse.competences, () => {
       const cible = document.getElementById('section-detail-competences');
       if (cible) cible.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1125,7 +1125,7 @@
     const cadreSynthese = h('div', { class: 'cadre-radar' });
     const nomsDomaines = analyse.domaines.map((d) => d.nom);
     if (etat.domaineParent === null || nomsDomaines.indexOf(etat.domaineParent) === -1) {
-      // Par défaut : le premier domaine où l'enfant a déjà joué, sinon le premier.
+      // Par défaut : le premier domaine où l’enfant a déjà joué, sinon le premier.
       const avecActivite = analyse.domaines.find((d) => d.valeur > 0);
       etat.domaineParent = (avecActivite || analyse.domaines[0] || {}).nom || null;
     }
@@ -1165,7 +1165,7 @@
           axes: radar.competences.map((c) => ({
             libelle: pictoCompetence(c) + ' ' + c.libelle,
             valeur: c.statut.valeurRadar,
-            // Bulle d'aide : libellé complet + statut LSU (ex. « … — Atteints »).
+            // Bulle d’aide : libellé complet + statut LSU (ex. « … — Atteints »).
             infoBulle: c.libelle + ' — ' + c.statut.libelle
           })),
           max: 4,
@@ -1198,7 +1198,7 @@
     }
     vue.appendChild(sectionDetail);
 
-    /* Recommandations : à consolider puis en cours, les plus anciennes d'abord. */
+    /* Recommandations : à consolider puis en cours, les plus anciennes d’abord. */
     const sectionRecos = h('div', { class: 'section-parent' });
     sectionRecos.appendChild(h('h2', { texte: 'À travailler en priorité' }));
     const recos = S.recommandations(analyse, 5);
@@ -1223,7 +1223,7 @@
     }
     vue.appendChild(sectionRecos);
 
-    /* Historique récent, sessions d'évaluation distinguées. */
+    /* Historique récent, sessions d’évaluation distinguées. */
     const sectionHistorique = h('div', { class: 'section-parent' });
     sectionHistorique.appendChild(h('h2', { texte: 'Dernières parties' }));
     const sessions = P.sessionsDuProfil(profilId)
@@ -1246,8 +1246,8 @@
     }
     vue.appendChild(sectionHistorique);
 
-    /* Gestion des profils : côté parent. La suppression n'est accessible que
-     * depuis l'écran de modification du profil (#modifier-profil), jamais
+    /* Gestion des profils : côté parent. La suppression n’est accessible que
+     * depuis l’écran de modification du profil (#modifier-profil), jamais
      * directement depuis cette liste. */
     const sectionProfils = h('div', { class: 'section-parent' });
     sectionProfils.appendChild(h('h2', { texte: 'Profils' }));
@@ -1269,7 +1269,7 @@
     }
     vue.appendChild(sectionProfils);
 
-    /* Outil de dev replié, tout en bas — n'apparaît jamais côté enfant. */
+    /* Outil de dev replié, tout en bas — n’apparaît jamais côté enfant. */
     vue.appendChild(sectionOutilsDev(profilId, profil));
 
     conteneur.appendChild(vue);
@@ -1281,7 +1281,7 @@
    * Seul endroit où la coquille ÉCRIT `mayeutik-sessions` (partout ailleurs
    * elle ne fait que lire : ce sont les jeux qui écrivent). Cet outil de dev
    * fabrique des sessions réalistes, conformes au contrat v1, pour visualiser
-   * le radar à différents niveaux d'acquisition sans jouer des dizaines de
+   * le radar à différents niveaux d’acquisition sans jouer des dizaines de
    * parties. Les sessions injectées sont indiscernables de vraies parties :
    * à réserver à un profil de test.
    */
@@ -1289,7 +1289,7 @@
     try {
       window.localStorage.setItem('mayeutik-sessions', JSON.stringify(sessions));
     } catch (e) {
-      // stockage indisponible : l'injection ne survivra pas au rechargement.
+      // stockage indisponible : l’injection ne survivra pas au rechargement.
     }
     P.invaliderCache();
   }
@@ -1316,7 +1316,7 @@
     const maintenant = Date.now();
     const sessions = [];
     const alea = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
-    // Une session datée d'il y a `ilYaJours` jours, à une heure plausible.
+    // Une session datée d’il y a `ilYaJours` jours, à une heure plausible.
     function pousser(moduleId, competenceId, score, total, ilYaJours, type) {
       const s = {
         profilId,
@@ -1336,7 +1336,7 @@
         const cible = tirerPondere(PRESETS_DEMO[presetId].poids);
         const T = 6;
         // Chaque branche fabrique le motif MINIMAL garantissant le statut visé
-        // d'après les seuils de MayeutikStatuts (cf. js/statuts.js).
+        // d’après les seuils de MayeutikStatuts (cf. js/statuts.js).
         if (cible === 'non-atteints') {
           pousser(module.id, comp.id, alea(0, 2), T, alea(5, 20));
           if (Math.random() < 0.5) pousser(module.id, comp.id, alea(1, 2), T, alea(2, 4));
@@ -1416,7 +1416,7 @@
     else if (route === '#profils') vueProfils(conteneur);
     else if (route === '#modifier-profil') vueModifierProfil(conteneur);
     else vueAccueil(conteneur);
-    /* Chaque vue s'affiche positionnée tout en haut (CHARTE §17) : sans cela,
+    /* Chaque vue s’affiche positionnée tout en haut (CHARTE §17) : sans cela,
        la nouvelle vue hériterait du défilement de la précédente. Instantané,
        jamais « smooth » (un glissement animé pendant une transition est
        parasite). Ne concerne QUE les changements de vue : le scrollIntoView

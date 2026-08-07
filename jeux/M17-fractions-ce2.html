@@ -11,19 +11,19 @@
 <style>
   /* ================================================================
      Protections tactiles obligatoires (CHARTE §19)
-     Deux comportements natifs du navigateur parasitent l'usage tactile d'un
+     Deux comportements natifs du navigateur parasitent l’usage tactile d’un
      jeu : le zoom au double-tap (deux appuis rapprochés sont un geste NORMAL
      ici — remplir puis vider une case, corriger une saisie) et la sélection
-     native (surbrillance bleue, menu « copier / enregistrer l'image » au
-     maintien du doigt). On les neutralise à l'échelle de l'interface, une
-     bonne fois, plutôt qu'élément par élément.
+     native (surbrillance bleue, menu « copier / enregistrer l’image » au
+     maintien du doigt). On les neutralise à l’échelle de l’interface, une
+     bonne fois, plutôt qu’élément par élément.
      ================================================================ */
 
-  /* `touch-action` ne s'hérite PAS : le sélecteur universel est le seul moyen
-     de couvrir toute l'interface. `manipulation` supprime le zoom au
+  /* `touch-action` ne s’hérite PAS : le sélecteur universel est le seul moyen
+     de couvrir toute l’interface. `manipulation` supprime le zoom au
      double-tap tout en laissant le défilement et le pincement — les gestes à
      deux doigts pilotés en JS (rotation de la règle mobile de M23) restent
-     donc intacts, d'autant qu'ils déclarent eux-mêmes `touch-action:none`,
+     donc intacts, d’autant qu’ils déclarent eux-mêmes `touch-action:none`,
      plus spécifique que `*`. */
   * { touch-action: manipulation; }
 
@@ -31,7 +31,7 @@
      mises en page calculées au pixel (règles graduées, figures SVG). */
   html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
-  /* `user-select` et `-webkit-touch-callout`, eux, s'héritent : les poser sur
+  /* `user-select` et `-webkit-touch-callout`, eux, s’héritent : les poser sur
      body suffit à couvrir consignes, boutons, illustrations et éléments
      glissables. */
   body {
@@ -39,11 +39,11 @@
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
   }
-  /* Pas de « fantôme » d'image traîné à la souris par-dessus un glisser-déposer. */
+  /* Pas de « fantôme » d’image traîné à la souris par-dessus un glisser-déposer. */
   img, svg, canvas { -webkit-user-drag: none; }
 
-  /* Les champs de saisie gardent sélection, curseur et menu d'édition : les
-     en priver rendrait la correction d'une valeur impossible. La série en
+  /* Les champs de saisie gardent sélection, curseur et menu d’édition : les
+     en priver rendrait la correction d’une valeur impossible. La série en
      compte deux (décomposition m/dm/cm de M23, cellule manquante de M39). */
   input, textarea, select, [contenteditable="true"] {
     -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text;
@@ -92,7 +92,7 @@
 
   h1, h2, h3 { font-weight: 700; margin: 0 0 0.4rem; }
 
-  /* ---------- Écran d'accueil ---------- */
+  /* ---------- Écran d’accueil ---------- */
 
   #ecran-accueil {
     max-width: 640px;
@@ -306,9 +306,9 @@
 
   /* La droite ne défile JAMAIS horizontalement : un enfant qui doit faire
      glisser la page pour voir « 1 » perd le sens même de la droite graduée
-     (voir d'un coup d'œil où se situe la fraction entre 0 et 1). Elle tient
-     donc toujours dans la largeur disponible ; c'est la TAILLE des repères qui
-     s'adapte au dénominateur, pas la longueur de la droite. */
+     (voir d’un coup d'œil où se situe la fraction entre 0 et 1). Elle tient
+     donc toujours dans la largeur disponible ; c’est la TAILLE des repères qui
+     s’adapte au dénominateur, pas la longueur de la droite. */
   .droite-scroll {
     width: 100%;
     overflow: visible;
@@ -359,7 +359,7 @@
     font-size: 1.5rem;
     color: var(--couleur-mandarine);
   }
-  /* Chaque repère est une BANDE tactile pleine hauteur, large d'un intervalle
+  /* Chaque repère est une BANDE tactile pleine hauteur, large d’un intervalle
      (largeur posée en ligne par le JS) : les bandes sont jointives, donc un
      appui approximatif tombe toujours sur le repère le plus proche — pas de
      zone morte entre deux cibles, même avec un dénominateur 12. La pastille
@@ -451,7 +451,7 @@
   }
   .slot-ordre.rempli { border-style: solid; background: color-mix(in srgb, var(--couleur-soleil) 30%, white); }
   /* Étiquette posée dans une case : elle reste MOBILE (glisser vers une autre
-     case pour échanger, appuyer pour la reprendre) tant que le rangement n'est
+     case pour échanger, appuyer pour la reprendre) tant que le rangement n’est
      pas validé. */
   .etiquette-ordre {
     display: flex; align-items: center; justify-content: center;
@@ -633,7 +633,7 @@
   }
 
   /* Filet de sécurité CSS : même si lancerConfettis() était appelée malgré
-     tout, aucune particule ne s'affiche ni ne s'anime avec le mouvement réduit. */
+     tout, aucune particule ne s’affiche ni ne s’anime avec le mouvement réduit. */
   @media (prefers-reduced-motion: reduce) {
     .confetti { display: none; animation: none; }
   }
@@ -645,7 +645,7 @@
 
 <div id="confettis-conteneur" aria-hidden="true"></div>
 
-<!-- ---------- Écran d'accueil ---------- -->
+<!-- ---------- Écran d’accueil ---------- -->
 <main id="ecran-accueil">
   <div class="barre-accueil">
     <button type="button" class="bouton-menu" id="bouton-menu">← Menu</button>
@@ -660,7 +660,7 @@
 <!-- ---------- Écran de jeu ---------- -->
 <main id="ecran-jeu" hidden>
   <div class="entete-jeu">
-    <button class="bouton-retour" id="bouton-retour" aria-label="Retour à l'accueil">←</button>
+    <button class="bouton-retour" id="bouton-retour" aria-label="Retour à l’accueil">←</button>
     <div class="entete-jeu-titres">
       <h2 id="titre-jeu-courant"></h2>
       <div class="progression" id="progression-jeu"></div>
@@ -694,14 +694,14 @@
   },
   "denominateursAutorises": [2, 3, 4, 5, 6, 8, 10, 12],
   "messagesFeedback": {
-    "bravo": ["Bravo !", "Super !", "Génial !", "Exact, bien joué !", "C'est ça !", "Parfait !", "Trop fort !"],
+    "bravo": ["Bravo !", "Super !", "Génial !", "Exact, bien joué !", "C’est ça !", "Parfait !", "Trop fort !"],
     "rate": ["Pas tout à fait...", "Essaie encore la prochaine fois !", "Presque !", "Pas cette fois, courage !"]
   },
   "jeux": [
     { "id": "decouverte", "titre": "Découverte", "icone": "🔎", "couleur": "mandarine", "description": "Observe une forme partagée et trouve la fraction représentée.", "nbQuestions": 6, "consigneLire": "Quelle fraction est représentée ?" },
     { "id": "droite", "titre": "Droite graduée", "icone": "📏", "couleur": "menthe", "description": "Place et lis des fractions sur une droite graduée.", "nbQuestions": 6, "consigneLire": "Quelle fraction indique le repère ?", "consignePlacer": "Place la fraction sur la droite." },
     { "id": "egales", "titre": "Fractions égales", "icone": "🟰", "couleur": "soleil", "description": "Retrouve la fraction qui représente la même quantité.", "nbQuestions": 6, "consigne": "Quelle fraction est égale à celle-ci ?" },
-    { "id": "comparer", "titre": "Comparer", "icone": "⚖️", "couleur": "corail", "description": "Range les fractions de la plus petite à la plus grande.", "nbQuestions": 6, "consigne": "Touche les fractions dans l'ordre, de la plus petite à la plus grande." },
+    { "id": "comparer", "titre": "Comparer", "icone": "⚖️", "couleur": "corail", "description": "Range les fractions de la plus petite à la plus grande.", "nbQuestions": 6, "consigne": "Touche les fractions dans l’ordre, de la plus petite à la plus grande." },
     { "id": "calculer-facile", "titre": "Calculer (facile)", "icone": "➕", "couleur": "mandarine", "description": "Additionne et soustrais des fractions de même dénominateur.", "nbQuestions": 6, "niveauCalcul": "facile" },
     { "id": "calculer-difficile", "titre": "Calculer (difficile)", "icone": "🧮", "couleur": "menthe", "description": "Additionne et soustrais des fractions avec de plus grands dénominateurs.", "nbQuestions": 6, "niveauCalcul": "difficile" }
   ]
@@ -738,10 +738,10 @@
   /* ---------- Étoiles : stockage sûr (mémoire + localStorage best-effort) ---------- */
 
   // La variable en mémoire est toujours la source de vérité pour la session
-  // en cours. localStorage n'est qu'une tentative de persistance en plus :
+  // en cours. localStorage n’est qu’une tentative de persistance en plus :
   // il est absent/bloqué dans certains environnements (Safari en navigation
   // privée, artefacts Claude en iframe sandboxée, etc.), et y accéder peut
-  // lever une exception rien qu'en le lisant — jamais en dehors d'un try/catch.
+  // lever une exception rien qu’en le lisant — jamais en dehors d’un try/catch.
   let memoireEtoiles = null;
 
   function lireEtoiles() {
@@ -825,9 +825,9 @@
     return memoireSessions;
   }
 
-  // Écrit une session brute à la fin d'un mini-jeu TERMINÉ (jamais pour une
+  // Écrit une session brute à la fin d’un mini-jeu TERMINÉ (jamais pour une
   // partie abandonnée). `competence` = id du mini-jeu (granularité fine).
-  // Aucune intelligence ici (pas de statut, pas de recommandation) : c'est le
+  // Aucune intelligence ici (pas de statut, pas de recommandation) : c’est le
   // rôle de la coquille, jamais des jeux, conformément au contrat v1.
   function enregistrerSession(competence, score, total, duree) {
     const profilId = lireProfilActif();
@@ -843,7 +843,7 @@
     });
 
     // Plafond : au maximum les 500 dernières sessions par profil. On parcourt
-    // à l'envers (du plus récent au plus ancien) et on supprime les sessions
+    // à l’envers (du plus récent au plus ancien) et on supprime les sessions
     // de CE profil qui dépassent le plafond ; les autres profils ne sont
     // jamais comptés ni touchés.
     let compteur = 0;
@@ -900,7 +900,7 @@
     return contexteAudio;
   }
   /* ---------- Composant sonore partagé (CHARTE §5) ----------
-     Mêmes sons dans toute la série, générés à l'oscillateur : aucun fichier
+     Mêmes sons dans toute la série, générés à l’oscillateur : aucun fichier
      audio, donc aucune dépendance réseau. */
 
   /* Une note pure, avec une attaque douce et une extinction exponentielle —
@@ -930,10 +930,10 @@
     NOTES_BONNE_REPONSE.forEach((f, i) => jouerNote(ctx, f, t0 + i * 0.11, 0.11, 0.22));
   }
 
-  /* FIN DE NIVEAU PARFAITE (3 étoiles) : même famille sonore, pour qu'on la
-     reconnaisse, mais nettement plus ample — l'arpège monte deux notes plus
-     haut, puis se pose sur un accord tenu (~1.4 s en tout). C'est la durée et
-     l'accord final, plus que la hauteur, qui le rendent perceptiblement plus
+  /* FIN DE NIVEAU PARFAITE (3 étoiles) : même famille sonore, pour qu’on la
+     reconnaisse, mais nettement plus ample — l’arpège monte deux notes plus
+     haut, puis se pose sur un accord tenu (~1.4 s en tout). C’est la durée et
+     l’accord final, plus que la hauteur, qui le rendent perceptiblement plus
      marquant que la bonne réponse ponctuelle. */
   const NOTES_NIVEAU_PARFAIT = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
   const ACCORD_NIVEAU_PARFAIT = [523.25, 659.25, 783.99, 1046.5]; // do majeur tenu
@@ -944,8 +944,8 @@
     const t0 = ctx.currentTime;
     const pas = 0.1;
     NOTES_NIVEAU_PARFAIT.forEach((f, i) => jouerNote(ctx, f, t0 + i * pas, 0.12, 0.2));
-    // Accord final, plus doux que les notes de l'arpège pour ne pas saturer :
-    // quatre voix simultanées s'additionnent.
+    // Accord final, plus doux que les notes de l’arpège pour ne pas saturer :
+    // quatre voix simultanées s’additionnent.
     const tAccord = t0 + NOTES_NIVEAU_PARFAIT.length * pas + 0.04;
     ACCORD_NIVEAU_PARFAIT.forEach((f) => jouerNote(ctx, f, tAccord, 0.75, 0.12, 'triangle'));
   }
@@ -957,7 +957,7 @@
     [392.0, 293.66].forEach((f, i) => jouerNote(ctx, f, t0 + i * 0.17, 0.17, 0.22));
   }
 
-  /* Clic discret de manipulation (pose d'un jeton, d'un lien...). */
+  /* Clic discret de manipulation (pose d’un jeton, d’un lien...). */
   function sonTic() {
     let ctx;
     try { ctx = obtenirContexteAudio(); } catch (e) { return; }
@@ -1007,7 +1007,7 @@
   }
 
   function creerQuadrillage(denom, numRempli) {
-    // Grille la plus carrée possible (distincte visuellement d'une bande), y compris pour les dénominateurs premiers.
+    // Grille la plus carrée possible (distincte visuellement d’une bande), y compris pour les dénominateurs premiers.
     const colonnes = Math.ceil(Math.sqrt(denom));
     const lignes = Math.ceil(denom / colonnes);
     const cont = document.createElement('div');
@@ -1089,10 +1089,10 @@
 
   const configJeux = donnees.jeux;
 
-  /* ---------- Écran d'accueil ---------- */
+  /* ---------- Écran d’accueil ---------- */
 
-  /* Remonte en haut à chaque changement d'écran (CHARTE §17) : sans cela, le
-     nouvel écran hérite du défilement de l'écran précédent — l'enfant qui
+  /* Remonte en haut à chaque changement d’écran (CHARTE §17) : sans cela, le
+     nouvel écran hérite du défilement de l’écran précédent — l’enfant qui
      vient de valider en bas de page se retrouverait au milieu de la manche
      suivante. Repositionnement instantané (jamais « smooth » : un glissement
      animé pendant une transition est parasite). */
@@ -1100,12 +1100,12 @@
     try {
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     } catch (e) {
-      window.scrollTo(0, 0); // navigateurs sans l'API à options
+      window.scrollTo(0, 0); // navigateurs sans l’API à options
     }
   }
 
-  /* Navigation automatique après un délai (CHARTE §20) : 2 s après l'affichage
-     du bouton « Suivant », on avance sans attendre le clic de l'enfant. Un
+  /* Navigation automatique après un délai (CHARTE §20) : 2 s après l’affichage
+     du bouton « Suivant », on avance sans attendre le clic de l’enfant. Un
      clic manuel ou une sortie du jeu annulent ce minuteur. */
   const DELAI_AUTO_SUIVANT = 2000;
   let minuteurAutoSuivant = null;
@@ -1121,8 +1121,8 @@
     clearTimeout(minuteurAutoSuivant);
   }
 
-  /* Correction après une MAUVAISE réponse (CHARTE §18) : ce que l'enfant a
-     répondu en rouge, ce qu'il fallait répondre en vert. N'est jamais appelée
+  /* Correction après une MAUVAISE réponse (CHARTE §18) : ce que l’enfant a
+     répondu en rouge, ce qu’il fallait répondre en vert. N’est jamais appelée
      sur une bonne réponse (elle brouillerait la récompense). */
   function afficherCorrection(zone, donnee, attendue) {
     const bloc = document.createElement('p');
@@ -1252,7 +1252,7 @@
     enregistrerEtoiles(cfg.id, etoilesGagnees);
     const dureeSecondes = Math.max(0, Math.round((Date.now() - etat.demarreLe) / 1000));
     enregistrerSession(cfg.id, etat.score, cfg.nbQuestions, dureeSecondes);
-    // Résultat parfait : un son plus ample que celui d'une bonne réponse
+    // Résultat parfait : un son plus ample que celui d’une bonne réponse
     // ponctuelle, pour souligner ce qui est rare (CHARTE §5).
     if (etoilesGagnees === 3) sonNiveauParfait();
 
@@ -1280,7 +1280,7 @@
 
     const accueilBtn = document.createElement('button');
     accueilBtn.className = 'bouton-secondaire';
-    accueilBtn.textContent = "Retour à l'accueil";
+    accueilBtn.textContent = "Retour à l’accueil";
     accueilBtn.addEventListener('click', retourAccueil);
 
     boutons.appendChild(rejouer);
@@ -1369,8 +1369,8 @@
         const style = getComputedStyle(cont);
         const margeParDefaut = parseFloat(style.paddingLeft) || 0; // 1.8rem, quelle que soit la taille de police
         const dispo = cont.clientWidth + 2 * margeParDefaut;       // largeur brute, marges comprises
-        // C'est la BANDE tactile (plus large que la pastille, plafonnée à
-        // 3.4rem par le CSS) qui déborde le plus aux extrémités : c'est donc
+        // C’est la BANDE tactile (plus large que la pastille, plafonnée à
+        // 3.4rem par le CSS) qui déborde le plus aux extrémités : c’est donc
         // sa demi-largeur qui fixe la marge à réserver.
         const bandeMax = 3.4 * parseFloat(getComputedStyle(document.documentElement).fontSize);
         const bande = Math.min(bandeMax, dispo / d);
@@ -1381,7 +1381,7 @@
     }
     // La piste interne (position:relative) devient le repère à 100% pour les
     // graduations : leurs positions en pourcentage restent donc bien à
-    // l'intérieur de la marge réservée par .droite-graduee, et ne sont jamais
+    // l’intérieur de la marge réservée par .droite-graduee, et ne sont jamais
     // rognées par le défilement horizontal du conteneur.
     const piste = document.createElement('div');
     piste.className = 'piste-graduation';
@@ -1493,12 +1493,12 @@
   /* ---------- Mini-jeu 3 : Fractions égales ---------- */
 
   function trouverPaireEquivalente() {
-    // L'espace de fractions de BASE valides est en réalité restreint (15
+    // L’espace de fractions de BASE valides est en réalité restreint (15
     // fractions distinctes possibles avec ce jeu de dénominateurs) : on garde
     // la trace des bases déjà affichées dans cette partie et on les rejette
     // — sinon la même fraction de base pourrait réapparaître avec juste une
     // équivalente différente, ce qui reste perçu comme la même question par
-    // l'enfant (CHARTE §13, sans redondance tant que l'espace n'est pas épuisé).
+    // l’enfant (CHARTE §13, sans redondance tant que l’espace n’est pas épuisé).
     if (!etat.egalesVues) etat.egalesVues = [];
     for (let tentative = 0; tentative < 60; tentative++) {
       const d0 = choisir(D);
@@ -1618,7 +1618,7 @@
 
     const aide = document.createElement('p');
     aide.className = 'legende-petite';
-    aide.textContent = 'Tu peux déplacer une étiquette d\'une case à l\'autre, ou la toucher pour la retirer.';
+    aide.textContent = 'Tu peux déplacer une étiquette d’une case à l’autre, ou la toucher pour la retirer.';
 
     function majValider() {
       boutonValider.disabled = contenu.some((v) => v === null);
@@ -1626,9 +1626,9 @@
 
     /* Une étiquette posée dans un slot : elle se DÉPLACE (glisser-déposer vers
        une autre case, qui échange les deux contenus) et se REPREND (simple
-       appui, l'étiquette retourne dans la pioche). Rien n'est validé tant que
-       l'enfant n'a pas appuyé sur « Valider » : il peut se reprendre autant de
-       fois qu'il veut, ce que l'ancien enchaînement automatique interdisait. */
+       appui, l’étiquette retourne dans la pioche). Rien n’est validé tant que
+       l’enfant n’a pas appuyé sur « Valider » : il peut se reprendre autant de
+       fois qu’il veut, ce que l’ancien enchaînement automatique interdisait. */
     function creerEtiquette(idxFraction) {
       const f = fractions[idxFraction];
       const etq = document.createElement('div');
@@ -1660,7 +1660,7 @@
         etq.style.transform = '';
         etq.classList.remove('etiquette-glisse');
         const rangDepart = Number(etq.parentElement.dataset.rang);
-        if (!aBouge) { retirer(rangDepart); return; } // appui simple : on reprend l'étiquette
+        if (!aBouge) { retirer(rangDepart); return; } // appui simple : on reprend l’étiquette
         const cible = slots.findIndex((s) => {
           const r = s.getBoundingClientRect();
           return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
@@ -1720,19 +1720,19 @@
       rangeeCartes.appendChild(carte);
     });
 
-    // Les slots aussi acceptent le dépôt d'une étiquette venue d'une autre
-    // case : le geste est intercepté par l'étiquette elle-même (ci-dessus),
+    // Les slots aussi acceptent le dépôt d’une étiquette venue d’une autre
+    // case : le geste est intercepté par l’étiquette elle-même (ci-dessus),
     // mais un appui sur une case VIDE avec une carte en attente ne fait rien —
-    // c'est la carte de la pioche qui reste le point d'entrée.
+    // c’est la carte de la pioche qui reste le point d’entrée.
     boutonValider.addEventListener('click', () => {
       if (etat.verrouille || contenu.some((v) => v === null)) return;
       const estCorrecte = contenu.every((v, i) => v === ordreCorrect[i]);
       boutonValider.disabled = true;
       boutonValider.hidden = true;
       aide.hidden = true;
-      // CHARTE §18 : d'abord SON rangement, chaque case en vert ou en rouge
-      // selon qu'elle est bien placée ; puis, après une pause, la solution
-      // vient s'y écrire — en VERT, jamais en rouge.
+      // CHARTE §18 : d’abord SON rangement, chaque case en vert ou en rouge
+      // selon qu’elle est bien placée ; puis, après une pause, la solution
+      // vient s’y écrire — en VERT, jamais en rouge.
       slots.forEach((s, i) => {
         s.classList.add(contenu[i] === ordreCorrect[i] ? 'correct' : 'incorrect');
       });
@@ -1766,12 +1766,12 @@
     // Programme CE2 (BO n°41, rentrée 2025) : addition/soustraction à
     // dénominateur identique uniquement. La conversion entre dénominateurs
     // différents relève du CM. La difficulté vient donc de la taille du
-    // dénominateur, pas d'une conversion : facile = petits dénominateurs
+    // dénominateur, pas d’une conversion : facile = petits dénominateurs
     // (≤ 5), difficile = grands dénominateurs (6, 8, 10 ou 12).
     const candidatsD = niveau === 'facile' ? D.filter((x) => x <= 5) : D.filter((x) => x >= 6);
 
-    // Le plus petit dénominateur candidat (ex. d=2 pour « facile ») n'admet
-    // parfois qu'un seul calcul valide : on garde la trace des calculs déjà
+    // Le plus petit dénominateur candidat (ex. d=2 pour « facile ») n’admet
+    // parfois qu’un seul calcul valide : on garde la trace des calculs déjà
     // tirés dans cette partie et on les rejette, pour éviter de reposer
     // exactement le même calcul deux fois dans les 6 manches (CHARTE §13).
     if (!etat.calculsVus) etat.calculsVus = [];
@@ -1889,7 +1889,7 @@
       if (etat.verrouille) return;
       const total = rempli.filter(Boolean).length;
       const estCorrecte = total === calc.resultat.n;
-      // CHARTE §18 : la bande que l'enfant a construite prend la couleur de SA
+      // CHARTE §18 : la bande que l’enfant a construite prend la couleur de SA
       // réponse — verte si elle est juste, rouge sinon. Elle ne doit jamais
       // verdir sur une erreur : le vert est réservé à la bonne réponse, montrée
       // séparément ci-dessous.
@@ -1904,9 +1904,9 @@
         compteur.textContent = '';
         afficherCorrection(compteur, total + '/' + dGrand, calc.resultat.n + '/' + dGrand);
         // Le mini-jeu se joue sur une BANDE : la correction doit donc être
-        // graphique elle aussi, sinon l'enfant doit traduire mentalement un
+        // graphique elle aussi, sinon l’enfant doit traduire mentalement un
         // écart de nombres en écart de cases. On montre la bande attendue,
-        // sous celle qu'il a construite, à la même échelle.
+        // sous celle qu’il a construite, à la même échelle.
         const bonne = document.createElement('div');
         bonne.className = 'bande-correction';
         const titre = document.createElement('p');
@@ -1931,8 +1931,8 @@
 </script>
 <script>
   /* Bouton « ← Menu » : retour à la coquille avec confirmation (CHARTE §7).
-     Script isolé du moteur de jeu : il n'agit que sur les éléments statiques
-     de la page (le « ← Menu » ne s'affiche que sur l'écran d'accueil). */
+     Script isolé du moteur de jeu : il n’agit que sur les éléments statiques
+     de la page (le « ← Menu » ne s’affiche que sur l’écran d’accueil). */
   (function () {
     var bouton = document.getElementById('bouton-menu');
     var modale = document.getElementById('modale-menu');
