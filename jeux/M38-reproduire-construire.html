@@ -1,0 +1,2025 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>L’atelier de montage — Mayeutik</title>
+<!-- ============================================================
+     JEU M38 — Reproduire et construire (CP, CE1, CE2)
+     Backlog : pilotage/backlog.json — sous-thème « La géométrie plane »
+     Univers : l’atelier de MONTAGE du vitrail. Carton quadrillé au CP,
+     papier pointé au CE1, papier uni au CE2 : le support se dénude à
+     mesure que l’enfant s’affranchit des repères, et LA COULEUR REVIENT —
+     après le tri de M34 et le plan désaturé de M35, chaque pièce achevée
+     se remplit de verre.
+
+     Troisième et dernier verbe du sous-thème : on PRODUIT.
+     Ce que le module fait : reproduire un modèle, compléter une figure
+     amorcée, construire d’après un énoncé. Ce qu’il ne fait pas : juger
+     si une figure est bien un carré (M34), ni vérifier un alignement ou
+     un angle douteux (M35). Les instruments réapparaissent, mais comme
+     MOYENS au service d’une production — leur maniement s’apprend en M35,
+     il se mobilise ici.
+
+     LE GESTE : on ne simule jamais un crayon suivi à main levée le long
+     d’une réglette. L’enfant POSE DES POINTS et les segments naissent
+     entre eux. C’est l’équivalent honnête sur écran : la décision
+     géométrique est préservée, la motricité fine du tracé — qui appartient
+     au papier — n’est pas caricaturée.
+
+     L’ÉCHELLE EST VIRTUELLE ET ASSUMÉE. 7 unités ne sont pas 7 cm réels :
+     ce qui compte est la procédure et le rapport interne entre 7 et 3.
+     L’unité vaut 14 px, la même qu’au compas gradué de M35-CE2 et qu’au
+     double-décimètre de M23, pour qu’un enfant qui enchaîne les modules
+     n’y voie pas deux tailles différentes. Aucun texte du module ne
+     prononce une grandeur réelle.
+     ============================================================ -->
+<style>
+:root{
+  color-scheme: light only;
+  --ciel:#EAF2FC; --carte:#FFFFFF; --encre:#1D3354; --encre2:#41577A;
+  --mandarine:#FF8A3D; --mandarine-f:#E5701F;
+  --menthe:#2EC4A6; --menthe-t:#0B8A70; --corail:#FF5D5D; --corail-t:#D93636; --soleil:#FFC93C;
+  /* L’atelier de montage : carton clair, mine de plomb, plomb du vitrail. */
+  --calque:#FBF7F0; --mine:#33404F; --trait:#5A6B7D; --plomb:#4A5666;
+  --r:20px; --ombre:0 4px 0 rgba(29,51,84,.12);
+  font-size:16px;
+}
+
+/* ---------- Protections tactiles (CHARTE §19) ----------
+   `touch-action` ne s’hérite PAS : le sélecteur universel est le seul moyen
+   de couvrir toute l’interface. `pan-y` préserve le défilement vertical —
+   critique ici, où la pose d’un point et le défilement de la page se
+   disputent le même geste. Les instruments, eux, déclarent `none` sur
+   eux-mêmes ET sur leurs enfants (§19 autorise le plus spécifique). */
+*{ box-sizing:border-box; touch-action:pan-y; -webkit-tap-highlight-color:transparent; }
+html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; background:var(--ciel); color-scheme:light only; }
+html,body{margin:0; padding:0; min-height:100%;}
+body{
+  -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none;
+  -webkit-touch-callout:none;
+  font-family:'Fredoka', ui-rounded, 'Segoe UI', system-ui, sans-serif;
+  background:var(--ciel); color:var(--encre);
+  background-image:radial-gradient(rgba(29,51,84,.05) 1.5px, transparent 1.5px);
+  background-size:26px 26px;
+  display:flex; justify-content:center;
+}
+img, svg{ -webkit-user-drag:none; }
+#app{width:100%; max-width:520px; min-height:100dvh; display:flex; flex-direction:column; padding:10px 14px 18px;}
+
+header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-height:54px;}
+#btnBack{
+  width:42px; height:42px; border-radius:14px; border:none; flex:none;
+  background:var(--carte); color:var(--encre); font-size:20px; font-weight:700;
+  box-shadow:var(--ombre); cursor:pointer;
+}
+#btnBack:active{transform:translateY(2px);}
+#hdrTitle{font-weight:600; font-size:1.15rem; flex:1; line-height:1.1;}
+#dots{display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end; max-width:46%;}
+.dot{width:10px; height:10px; border-radius:50%; background:#C9D6E8;}
+.dot.ok{background:var(--menthe);} .dot.ko{background:var(--corail);} .dot.cur{background:var(--mandarine);}
+
+/* ---------- Accueil ---------- */
+#home h1{font-size:1.7rem; margin:4px 0 2px; font-weight:700;}
+#home .sub{color:var(--encre2); margin:0 0 12px; font-size:.95rem;}
+.rangee-paliers{display:flex; justify-content:center; gap:8px; margin:6px 0 8px; flex-wrap:wrap;}
+.puce-palier{
+  min-height:40px; padding:6px 18px; border-radius:999px; font-family:inherit;
+  font-weight:700; font-size:.92rem; cursor:pointer;
+  border:2.5px solid color-mix(in srgb, var(--encre) 22%, white); background:var(--carte); color:var(--encre);
+}
+.puce-palier.actif{background:var(--mandarine); border-color:var(--mandarine); color:#fff;}
+.puce-palier.verrouille{opacity:.5; cursor:not-allowed;}
+.note-palier{text-align:center; font-size:.82rem; color:var(--encre2); opacity:.85; margin:0 0 12px;}
+.cards{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.card{
+  background:var(--carte); border:none; border-radius:var(--r); padding:16px 12px 14px;
+  box-shadow:var(--ombre); cursor:pointer; text-align:center; font-family:inherit; color:var(--encre);
+  display:flex; flex-direction:column; align-items:center; gap:6px; transition:transform .08s;
+}
+.card:active{transform:translateY(3px);}
+.card .ico{font-size:2rem; line-height:1;}
+.card .nom{font-weight:600; font-size:1.02rem;}
+.card .det{font-size:.78rem; color:var(--encre2);}
+.card .stars{font-size:.85rem; letter-spacing:2px; min-height:1.1em;}
+
+.bloc-bonus{
+  margin-top:18px; border-radius:var(--r); padding:14px 12px;
+  border:3px dashed var(--soleil); background:color-mix(in srgb, var(--soleil) 14%, white);
+}
+.bloc-bonus h3{text-align:center; font-size:1rem; margin:0 0 2px; color:color-mix(in srgb, var(--soleil) 55%, black 30%);}
+.bloc-bonus .note-palier{margin:2px 0 10px;}
+.paquet-cadeau{
+  display:flex; flex-direction:column; align-items:center; gap:.7rem;
+  width:100%; border:none; background:transparent; padding:1rem .5rem; cursor:pointer;
+  min-height:44px; font-family:inherit;
+}
+.paquet-cadeau-boite{
+  position:relative; width:5.6rem; height:4.6rem; border-radius:14px;
+  background:linear-gradient(180deg, var(--corail), color-mix(in srgb, var(--corail) 70%, black 15%));
+  border:3px solid color-mix(in srgb, var(--corail) 55%, black 20%);
+  box-shadow:0 5px 0 color-mix(in srgb, var(--corail) 50%, black 25%);
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.paquet-cadeau:active .paquet-cadeau-boite{transform:translateY(3px);}
+.paquet-cadeau-ruban-v{position:absolute; left:50%; top:0; bottom:0; width:14px; margin-left:-7px; background:var(--soleil);}
+.paquet-cadeau-ruban-h{position:absolute; top:50%; left:0; right:0; height:14px; margin-top:-7px; background:var(--soleil);}
+.paquet-cadeau-noeud{position:absolute; left:50%; top:-1rem; transform:translateX(-50%); font-size:1.9rem; line-height:1;}
+.paquet-cadeau-texte{font-weight:700; font-size:.88rem; text-align:center; color:color-mix(in srgb, var(--encre) 85%, white);}
+@keyframes paquet-cadeau-pop{
+  0%{transform:scale(1) rotate(0deg); opacity:1;}
+  35%{transform:scale(1.18) rotate(-5deg); opacity:1;}
+  100%{transform:scale(.25) rotate(10deg); opacity:0;}
+}
+.paquet-cadeau.paquet-cadeau-ouverture .paquet-cadeau-boite{animation:paquet-cadeau-pop .45s ease forwards;}
+.paquet-cadeau.paquet-cadeau-ouverture .paquet-cadeau-texte{opacity:0; transition:opacity .2s ease;}
+@media (prefers-reduced-motion:reduce){
+  .paquet-cadeau.paquet-cadeau-ouverture .paquet-cadeau-boite{animation:none; opacity:0;}
+}
+
+/* ---------- Jeu ---------- */
+#qText{
+  font-size:1.08rem; font-weight:700; text-align:center; margin:6px 4px 2px;
+  line-height:1.35; display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;
+}
+.sous-consigne{text-align:center; font-size:.85rem; color:var(--encre2); margin:2px 0 8px; line-height:1.35;}
+.btn-voix{
+  border:none; background:var(--carte); box-shadow:var(--ombre); border-radius:12px;
+  min-width:40px; min-height:40px; font-size:1.05rem; cursor:pointer; font-family:inherit; padding:0 10px;
+}
+.btn-voix:active{transform:translateY(2px);}
+
+/* Le panneau de vitrail : cumulatif, il s’illumine d’une pièce par manche
+   réussie et se retrouve en grand sur l’écran de fin. */
+#vitrail{background:var(--calque); border:2px solid #E2D8C8; border-radius:14px; padding:4px; margin-bottom:8px;}
+#vitrail svg{display:block; width:100%; height:auto;}
+
+.plan{background:var(--calque); border:2px solid #E2D8C8; border-radius:var(--r); box-shadow:var(--ombre); padding:6px; margin-bottom:10px;}
+.plan svg{display:block; width:100%; height:auto;}
+
+/* Le support : quadrillage, papier pointé, papier uni. */
+.maille{stroke:#D9CDBA; stroke-width:1;}
+.noeud{fill:#C6B79F;}
+.cadre-zone{fill:none; stroke:#C6B79F; stroke-width:1.6; stroke-dasharray:6 6;}
+.etiquette-zone{font-size:11px; fill:var(--encre2); opacity:.8;}
+
+/* Le modèle et l’amorce : trait de plomb, jamais coloré — la couleur est
+   la récompense de ce que l’enfant a produit lui-même. */
+.modele{fill:rgba(90,107,125,.10); stroke:var(--plomb); stroke-width:2.6; stroke-linejoin:round;}
+.modele-cercle{fill:none; stroke:var(--plomb); stroke-width:2.6;}
+.amorce{fill:none; stroke:var(--plomb); stroke-width:3.4; stroke-linecap:round; stroke-linejoin:round;}
+
+/* Le chantier : ce que l’enfant pose. */
+.segment{fill:none; stroke:var(--mandarine); stroke-width:3.4; stroke-linecap:round; stroke-linejoin:round;}
+.sommet{fill:var(--mandarine); stroke:#fff; stroke-width:2;}
+.sommet.fixe{fill:var(--plomb);}
+.sommet.premier{fill:#fff; stroke:var(--mandarine); stroke-width:3.4;}
+.piece-faite{stroke:var(--plomb); stroke-width:3; stroke-linejoin:round;}
+.cercle-fait{fill:none; stroke:var(--mandarine); stroke-width:3.2;}
+.cible-pose{fill:transparent; cursor:pointer;}
+.attendu{fill:none; stroke:var(--menthe-t); stroke-width:3; stroke-dasharray:7 5; stroke-linejoin:round;}
+.sommet-attendu{fill:var(--menthe-t);}
+.sommet-faux{fill:var(--corail);}
+
+/* L’INSTRUMENT — recopié de M35 sans changement de comportement. */
+.posable, .posable *{touch-action:none;}
+.posable{cursor:grab;}
+.posable.saisi{cursor:grabbing;}
+.posable .corps{fill:rgba(120,140,160,.30); stroke:var(--trait); stroke-width:2.4;}
+.posable .bord{stroke:var(--mine); stroke-width:3.4; stroke-linecap:round;}
+.posable .grad{stroke:var(--mine); stroke-width:1.4;}
+.posable .grad-txt{font-size:9px; fill:var(--mine);}
+.posable .poignee{fill:var(--mandarine); stroke:#fff; stroke-width:2.5;}
+.posable .poignee-halo{fill:rgba(255,138,61,.20);}
+.posable .poignee-fleche{fill:none; stroke:#fff; stroke-width:2.2; stroke-linecap:round;}
+/* Les ancres de l’instrument : c’est en posant un point CONTRE une
+   graduation que l’enfant devient exact sur papier uni. */
+/* Les ancres tombent EXACTEMENT sur le bord de lecture de l’instrument,
+   un trait sombre de 3,4 px : sans cerne blanc elles y disparaissent. */
+.ancre{fill:var(--mandarine); stroke:#fff; stroke-width:1.6; pointer-events:none;}
+/* Le pochoir : un carton à glisser, reconnaissable au premier coup d’œil. */
+.pochoir-corps{fill:rgba(255,138,61,.22);}
+.pochoir-bord{stroke:var(--mandarine); stroke-width:3; stroke-linejoin:round; stroke-dasharray:8 5;}
+.pochoir-prise circle{fill:var(--mandarine); opacity:.85;}
+.pochoir-prise path{stroke:#fff; stroke-width:2.4; stroke-linecap:round;}
+
+.barre-outils{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:0 0 10px;}
+.outil{
+  border:2.5px solid #C9D6E8; background:var(--carte); border-radius:12px;
+  min-height:44px; padding:6px 12px; font-family:inherit; font-weight:700; font-size:.85rem;
+  color:var(--encre); cursor:pointer; display:flex; align-items:center; gap:6px;
+}
+.outil.on{border-color:var(--mandarine); background:#FFF3E9;}
+.outil:disabled{opacity:.45; cursor:default;}
+
+#feedback{
+  text-align:center; font-weight:700; margin-top:12px; min-height:2.4em;
+  font-size:1rem; line-height:1.35; padding:0 6px;
+}
+#feedback.bon{color:var(--menthe-t);} #feedback.mauvais{color:var(--corail-t);}
+#feedback .correction-attendue{color:var(--menthe-t);}
+
+#btnValider, #btnNext{
+  display:none; margin:12px auto 0; border:none; border-radius:18px;
+  padding:13px 34px; font-family:inherit; font-size:1.05rem; font-weight:700; color:#fff; cursor:pointer;
+}
+#btnValider{background:var(--menthe); box-shadow:0 4px 0 var(--menthe-t);}
+#btnNext{background:var(--mandarine); box-shadow:0 4px 0 var(--mandarine-f);}
+#btnValider:active, #btnNext:active{transform:translateY(3px);}
+#btnValider:disabled{opacity:.45; box-shadow:none;}
+
+/* Fin */
+#end{text-align:center; padding-top:4vh;}
+#endStars{font-size:3.4rem; letter-spacing:8px; margin:10px 0;}
+#endStars span{display:inline-block; animation:pop .5s backwards;}
+#endStars span:nth-child(2){animation-delay:.25s;} #endStars span:nth-child(3){animation-delay:.5s;}
+@keyframes pop{0%{transform:scale(0)}70%{transform:scale(1.35)}100%{transform:scale(1)}}
+#endMsg{font-size:1.3rem; font-weight:700;}
+#endScore{color:var(--encre2); margin:6px 0 14px;}
+#endVitrail{background:var(--calque); border:2px solid #E2D8C8; border-radius:var(--r); padding:6px; margin:0 0 18px;}
+#endVitrail svg{display:block; width:100%; height:auto;}
+#end .actions-fin{display:flex; gap:12px; justify-content:center;}
+#end .actions-fin button{
+  border:none; border-radius:18px; padding:13px 26px; font-family:inherit;
+  font-size:1.05rem; font-weight:700; cursor:pointer; box-shadow:var(--ombre); min-height:44px;
+}
+#bRejouer{background:var(--mandarine); color:#fff; box-shadow:0 4px 0 var(--mandarine-f);}
+#bMenu{background:var(--carte); color:var(--encre);}
+
+/* Retour coquille (CHARTE §7) */
+.barre-accueil{display:flex; margin:0 0 8px;}
+.bouton-menu{
+  min-height:44px; border-radius:14px; padding:0 14px; cursor:pointer; font-family:inherit;
+  border:2px solid color-mix(in srgb, var(--encre) 25%, white);
+  background:var(--carte); color:var(--encre); font-weight:600; font-size:.95rem;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.bouton-menu:active{transform:translateY(2px);}
+.modale-fond{
+  position:fixed; inset:0; z-index:1000; padding:1.2rem;
+  background:color-mix(in srgb, var(--encre) 55%, transparent);
+  display:flex; align-items:center; justify-content:center;
+}
+.modale-boite{
+  background:var(--carte); border-radius:20px; padding:22px 18px; max-width:20rem; width:100%;
+  text-align:center; box-shadow:0 12px 34px rgba(29,51,84,.3);
+}
+.modale-boite p{font-size:1.05rem; font-weight:600; margin:0 0 18px;}
+.modale-boutons{display:flex; gap:10px; justify-content:center; flex-wrap:wrap;}
+.modale-boutons button{
+  border:none; border-radius:16px; padding:12px 20px; font-family:inherit;
+  font-size:1rem; font-weight:700; cursor:pointer; min-height:44px;
+}
+.modale-boutons .m-rester{background:var(--carte); color:var(--encre); border:2px solid var(--encre);}
+.modale-boutons .m-revenir{background:var(--mandarine); color:#fff;}
+
+#confettis-conteneur{position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:999;}
+.confetti{position:absolute; top:-12px; width:9px; height:14px; border-radius:2px;
+  animation-name:chute-confetti; animation-timing-function:ease-in; animation-fill-mode:forwards;}
+@keyframes chute-confetti{ to{ transform:translateY(105vh) rotate(340deg); opacity:.75; } }
+@media (prefers-reduced-motion:reduce){ .confetti{display:none; animation:none;} }
+
+[hidden]{display:none !important;}
+@media (prefers-color-scheme: dark){
+  html, body{background:var(--ciel) !important; color:var(--encre) !important;}
+  .card, .plan, .outil, #btnBack, .puce-palier, .btn-voix, #vitrail, #endVitrail{background:var(--carte) !important; color:var(--encre) !important;}
+  .plan, #vitrail, #endVitrail{background:var(--calque) !important;}
+  .puce-palier.actif{background:var(--mandarine) !important; color:#fff !important;}
+}
+@media (prefers-reduced-motion:reduce){ *{animation:none !important;} }
+</style>
+</head>
+<body>
+<div id="confettis-conteneur" aria-hidden="true"></div>
+<div class="modale-fond" id="modale-menu" hidden>
+  <div class="modale-boite" role="dialog" aria-modal="true" aria-labelledby="modale-menu-texte">
+    <p id="modale-menu-texte">Revenir au menu principal ? Ta partie en cours sera perdue.</p>
+    <div class="modale-boutons">
+      <button type="button" class="m-rester" id="modale-menu-rester">Rester</button>
+      <button type="button" class="m-revenir" id="modale-menu-revenir">Revenir au menu</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <button id="btnBack" hidden aria-label="Retour">←</button>
+    <div id="hdrTitle">L’atelier de montage</div>
+    <div id="dots"></div>
+  </header>
+
+  <main>
+    <section id="home">
+      <div class="barre-accueil"><button type="button" class="bouton-menu" id="bouton-menu">← Menu</button></div>
+      <h1>L’atelier de montage</h1>
+      <p class="sub" id="sous-titre-accueil"></p>
+      <div class="rangee-paliers" id="rangee-paliers"></div>
+      <p class="note-palier" id="note-palier"></p>
+      <div class="cards" id="grille-jeux"></div>
+      <div class="bloc-bonus" id="bloc-bonus" hidden>
+        <h3>🎁 Un aperçu du palier suivant</h3>
+        <p class="note-palier" id="note-bonus"></p>
+        <button type="button" class="paquet-cadeau" id="paquet-cadeau" hidden>
+          <span class="paquet-cadeau-boite" aria-hidden="true">
+            <span class="paquet-cadeau-ruban-v"></span>
+            <span class="paquet-cadeau-ruban-h"></span>
+            <span class="paquet-cadeau-noeud">🎀</span>
+          </span>
+          <span class="paquet-cadeau-texte">Ouvre ton cadeau !</span>
+        </button>
+        <div class="cards" id="grille-bonus" hidden></div>
+      </div>
+    </section>
+
+    <section id="game" hidden>
+      <div id="qText"></div>
+      <p class="sous-consigne" id="sousConsigne"></p>
+      <div id="vitrail" hidden><svg id="vitrailSvg" viewBox="0 0 400 62"></svg></div>
+      <div class="barre-outils" id="barreOutils" hidden></div>
+      <div class="plan" id="plan"><svg id="scene" viewBox="0 0 400 374"></svg></div>
+      <button id="btnValider" type="button">Vérifier ✓</button>
+      <p id="feedback"></p>
+      <button id="btnNext" type="button">Suivant ➜</button>
+    </section>
+
+    <section id="end" hidden>
+      <div id="endStars"></div>
+      <div id="endMsg"></div>
+      <div id="endScore"></div>
+      <div id="endVitrail" hidden><svg id="endVitrailSvg" viewBox="0 0 400 150"></svg></div>
+      <div class="actions-fin">
+        <button id="bRejouer">Rejouer</button>
+        <button id="bMenu">Menu</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+
+/* ============================================================
+   CONSTANTES
+   ============================================================ */
+/* L’unité virtuelle. 14 px : le centimètre du double-décimètre de M23 et
+   de l’écartement gradué de M35-CE2. Voir l’en-tête : on ne prétend jamais
+   qu’il s’agit d’une grandeur réelle. */
+const PX_PAR_UNITE = 14;
+/* La maille du quadrillage vaut deux unités : les deux échelles du module
+   restent commensurables, même si l’enfant ne compte jamais en unités sur
+   un quadrillage. */
+const MAILLE = 26;
+const AIMANT_ANCRE = 13;        // rayon d’accrochage sur une graduation
+const SEUIL_GLISSEMENT = 8;     // au-delà, le geste est un défilement (§19)
+const TOL_UNI = 0.03;           // 3 % de la longueur de référence
+const TOL_ESQUISSE = 0.12;      // mode « à main levée » du CE2
+const TOL_GRILLE = 2;           // sur quadrillage l’aimantation rend exact
+const PTS_MANCHE = 1;
+const DELAI_REVELATION = 900;   // CHARTE §18
+const DELAI_AUTO_SUIVANT = 2000;
+
+const TAU = Math.PI * 2;
+const radians = (d) => d * Math.PI / 180;
+const dist = (a, b) => Math.hypot(a[0]-b[0], a[1]-b[1]);
+const milieu = (a, b) => [(a[0]+b[0])/2, (a[1]+b[1])/2];
+const entre = (a, b) => a + Math.random() * (b - a);
+const pioche = (t) => t[Math.floor(Math.random()*t.length)];
+function melanger(t){
+  const c = [...t];
+  for (let i = c.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [c[i], c[j]] = [c[j], c[i]]; }
+  return c;
+}
+/* Le verre coloré, repris de M34 : c’est le même vitrail d’un module à
+   l’autre. */
+const VERRES = ['#FF8A3D','#5AB4DC','#2EC4A6','#FFC93C','#FF5D5D','#9B5DE5','#4D96FF','#F76BA4'];
+
+/* ============================================================
+   ZONES ET SUPPORTS
+   ------------------------------------------------------------
+   Un support sait dessiner son fond et aimanter un point. Trois
+   implémentations, et rien d’autre dans le reste du fichier ne teste le
+   type de papier : c’est une donnée de la manche, pas un `if` dispersé.
+   ============================================================ */
+function zone(x0, y0, nx, ny){ return {x0, y0, nx, ny, pas:MAILLE,
+  l:nx*MAILLE, h:ny*MAILLE, x1:x0 + nx*MAILLE, y1:y0 + ny*MAILLE}; }
+/* Avec modèle : le modèle en haut, le panneau de travail en dessous. Un
+   téléphone en portrait n’offre pas la largeur pour les mettre côte à
+   côte, et l’empilement garde les deux quadrillages au même pas. */
+const ZONE_MODELE  = zone(24, 16, 13, 4);
+const ZONE_TRAVAIL = zone(24, 156, 13, 7);
+/* Sans modèle, le panneau occupe tout le plan. */
+const ZONE_PLEINE  = zone(24, 20, 13, 10);
+const HAUTEUR_AVEC_MODELE = 356;
+const HAUTEUR_PLEINE = 300;
+
+const versScene = (z, gx, gy) => [z.x0 + gx*z.pas, z.y0 + gy*z.pas];
+
+const SUPPORTS = {
+  quadrille: {
+    nom:'quadrillé', aimanteGrille:true,
+    fond(z){
+      let s = '';
+      for (let i = 0; i <= z.nx; i++) s += `<line class="maille" x1="${z.x0+i*z.pas}" y1="${z.y0}" x2="${z.x0+i*z.pas}" y2="${z.y1}"/>`;
+      for (let j = 0; j <= z.ny; j++) s += `<line class="maille" x1="${z.x0}" y1="${z.y0+j*z.pas}" x2="${z.x1}" y2="${z.y0+j*z.pas}"/>`;
+      return s;
+    }
+  },
+  pointe: {
+    /* Papier POINTÉ : le programme le nomme explicitement à côté du
+       quadrillé. L’aimantation y est identique — c’est le regard qui
+       travaille davantage, les lignes ne guidant plus l’œil d’un nœud à
+       l’autre. */
+    nom:'pointé', aimanteGrille:true,
+    fond(z){
+      let s = '';
+      for (let i = 0; i <= z.nx; i++)
+        for (let j = 0; j <= z.ny; j++) s += `<circle class="noeud" cx="${z.x0+i*z.pas}" cy="${z.y0+j*z.pas}" r="1.9"/>`;
+      return s;
+    }
+  },
+  uni: {
+    /* Papier UNI : plus aucun repère. L’exactitude ne vient plus du
+       support mais de l’INSTRUMENT — c’est en posant un point contre une
+       graduation que l’enfant devient juste. */
+    nom:'uni', aimanteGrille:false,
+    fond(z){ return `<rect class="cadre-zone" x="${z.x0}" y="${z.y0}" width="${z.l}" height="${z.h}" rx="8"/>`; }
+  }
+};
+
+function aimanterPoint(p, sup, z, ancres){
+  if (sup.aimanteGrille) {
+    const gx = Math.round((p[0] - z.x0) / z.pas), gy = Math.round((p[1] - z.y0) / z.pas);
+    if (gx < 0 || gy < 0 || gx > z.nx || gy > z.ny) return null;
+    return versScene(z, gx, gy);
+  }
+  if (p[0] < z.x0 - 4 || p[0] > z.x1 + 4 || p[1] < z.y0 - 4 || p[1] > z.y1 + 4) return null;
+  let meilleur = null, d0 = AIMANT_ANCRE;
+  (ancres || []).forEach(a => { const d = dist(p, a); if (d < d0) { d0 = d; meilleur = a; } });
+  return meilleur || p;
+}
+
+/* ============================================================
+   COMPARAISON DE FIGURES
+   ------------------------------------------------------------
+   Une solution est une LISTE de contours. On en accepte plusieurs par
+   manche : le carré dont un seul côté est tracé en admet deux, une de
+   chaque côté du segment, et refuser l’une serait mathématiquement faux.
+   ============================================================ */
+const centre = (pts) => {
+  const n = pts.length;
+  return [pts.reduce((s,p)=>s+p[0],0)/n, pts.reduce((s,p)=>s+p[1],0)/n];
+};
+/* Un contour ne dépend ni du sommet de départ ni du sens de parcours :
+   commencer le carré par un autre coin, ou tourner dans l’autre sens, est
+   le même carré. */
+function memeContour(a, b, tol){
+  if (a.length !== b.length) return false;
+  const n = a.length;
+  for (const sens of [a, [a[0], ...a.slice(1).reverse()]])
+    for (let d = 0; d < n; d++)
+      if (sens.every((p, i) => dist(p, b[(i + d) % n]) <= tol)) return true;
+  return false;
+}
+/* Appariement bijectif des contours posés et des contours attendus. Les
+   assemblages n’en comptent jamais plus de quatre : l’essai exhaustif est
+   à la fois simple et suffisant. */
+function memeAssemblage(poses, attendus, tol){
+  if (poses.length !== attendus.length) return false;
+  const pris = new Array(attendus.length).fill(false);
+  const rec = (i) => {
+    if (i === poses.length) return true;
+    for (let j = 0; j < attendus.length; j++) {
+      if (pris[j] || !memeContour(poses[i], attendus[j], tol)) continue;
+      pris[j] = true;
+      if (rec(i + 1)) return true;
+      pris[j] = false;
+    }
+    return false;
+  };
+  return rec(0);
+}
+const decaler = (contours, d) => contours.map(c => c.map(p => [p[0]+d[0], p[1]+d[1]]));
+const tousLesPoints = (contours) => contours.reduce((s, c) => s.concat(c), []);
+
+function figureAcceptee(poses, solutions, tol, libre){
+  for (const sol of solutions) {
+    if (poses.length !== sol.length) continue;
+    /* Invariance par TRANSLATION seulement, et seulement là où elle a un
+       sens : en reproduction et en construction libre, poser la pièce à
+       gauche ou à droite est également juste ; en complétion, l’amorce
+       fixe la position, il n’y a rien à recaler. Jamais d’invariance par
+       rotation : le texte CP impose que les côtés suivent le quadrillage.  */
+    let d = [0, 0];
+    if (libre) {
+      const cp = centre(tousLesPoints(poses)), cs = centre(tousLesPoints(sol));
+      d = [cs[0]-cp[0], cs[1]-cp[1]];
+    }
+    if (memeAssemblage(decaler(poses, d), sol, tol)) return true;
+  }
+  return false;
+}
+function cercleAccepte(pose, attendus, tol){
+  return attendus.some(a => dist(pose.c, a.c) <= tol
+    && (a.rLibre ? (pose.r >= a.rMin && pose.r <= a.rMax) : Math.abs(pose.r - a.r) <= tol));
+}
+
+/* ============================================================
+   MOTEUR D’OBJETS POSABLES (repris de M35, inchangé)
+   ------------------------------------------------------------
+   Le corps translate, une POIGNÉE en bout fait tourner. Jamais de rotation
+   à deux doigts — indécouvrable pour un enfant et incompatible avec le
+   défilement de la page. La conversion écran → SVG passe par l’inverse de
+   getScreenCTM() : un delta de pixels serait faux dès que le viewBox est
+   mis à l’échelle, ce qui est le cas sur tout téléphone.
+
+   AJOUT PROPRE À M38 : l’instrument publie des ANCRES, ses graduations
+   exprimées dans le repère de la scène. Sur papier uni, elles sont ce qui
+   rend la précision atteignable — poser un point contre le trait du 7,
+   exactement comme sur la table de l’atelier.
+   ============================================================ */
+function versSVG(svg, clientX, clientY){
+  const pt = svg.createSVGPoint();
+  pt.x = clientX; pt.y = clientY;
+  const m = svg.getScreenCTM();
+  if (!m) return {x:clientX, y:clientY};
+  const q = pt.matrixTransform(m.inverse());
+  return {x:q.x, y:q.y};
+}
+function creerPosable(hote, spec){
+  /* `hote` peut être un groupe : la conversion écran → SVG, elle, vise
+     toujours l’élément <svg> racine. */
+  const svg = hote.ownerSVGElement || hote;
+  let x = spec.x, y = spec.y, a = spec.angle || 0;
+  const g = document.createElementNS(NS, 'g');
+  g.setAttribute('class', 'posable');
+  const po = spec.poignee;
+  g.innerHTML = spec.corps
+    + (po ? `<circle class="poignee-halo" cx="${po[0]}" cy="${po[1]}" r="24"/>`
+          + `<circle class="poignee" cx="${po[0]}" cy="${po[1]}" r="11"/>`
+          + `<path class="poignee-fleche" d="M ${po[0]-5} ${po[1]-1.5} a 5 5 0 1 1 1.7 3.6"/>` : '');
+  hote.appendChild(g);
+
+  const etat = () => ({x, y, angle:a});
+  function appliquer(){
+    g.setAttribute('transform', `translate(${x.toFixed(2)},${y.toFixed(2)}) rotate(${(a*180/Math.PI).toFixed(2)})`);
+    if (spec.surChangement) spec.surChangement(etat(), g);
+  }
+  /* Les ancres locales de l’habillage, transportées dans le repère de la
+     scène par la transformation courante. */
+  function ancres(){
+    const co = Math.cos(a), si = Math.sin(a);
+    return (spec.ancresLocales || []).map(p => [x + p[0]*co - p[1]*si, y + p[0]*si + p[1]*co]);
+  }
+
+  let mode = null, depart = null;
+  const surDown = (e) => {
+    if (g.dataset.verrouille === '1') return;
+    const p = versSVG(svg, e.clientX, e.clientY);
+    const surPoignee = /^poignee/.test(e.target.getAttribute('class') || '');
+    mode = surPoignee ? 'rot' : 'trans';
+    depart = mode === 'trans'
+      ? {dx: p.x - x, dy: p.y - y}
+      : {a0: a, ang0: Math.atan2(p.y - y, p.x - x)};
+    try { g.setPointerCapture(e.pointerId); } catch (err) {}
+    g.classList.add('saisi');
+    e.preventDefault(); e.stopPropagation();
+  };
+  const surMove = (e) => {
+    if (!mode) return;
+    const p = versSVG(svg, e.clientX, e.clientY);
+    if (mode === 'trans') { x = p.x - depart.dx; y = p.y - depart.dy; }
+    else a = depart.a0 + (Math.atan2(p.y - y, p.x - x) - depart.ang0);
+    appliquer();
+    e.preventDefault(); e.stopPropagation();
+  };
+  const surUp = (e) => {
+    mode = null; g.classList.remove('saisi');
+    try { g.releasePointerCapture(e.pointerId); } catch (err) {}
+    e.stopPropagation();
+  };
+  g.addEventListener('pointerdown', surDown);
+  g.addEventListener('pointermove', surMove);
+  g.addEventListener('pointerup', surUp);
+  g.addEventListener('pointercancel', surUp);
+
+  appliquer();
+  return {
+    g, etat, ancres,
+    verrouiller(){ g.dataset.verrouille = '1'; g.style.cursor = 'default'; }
+  };
+}
+
+/* ---- Habillages. Corps ET poignée vont ensemble : un instrument sans
+   poignée ne peut être que translaté, donc jamais orienté, donc jamais
+   posé. ---- */
+const REGLE_GRADUEE = (nbUnites) => {
+  const L = nbUnites * PX_PAR_UNITE;
+  let g = '', anc = [];
+  for (let u = 0; u <= nbUnites; u++) {
+    const px = -L/2 + u*PX_PAR_UNITE;
+    g += `<line class="grad" x1="${px}" y1="0" x2="${px}" y2="${u % 5 === 0 ? 13 : 8}"/>`;
+    if (u % 5 === 0) g += `<text class="grad-txt" x="${px}" y="24" text-anchor="middle">${u}</text>`;
+    anc.push([px, 0]);
+  }
+  return {
+    corps: `<rect class="corps" x="${-L/2}" y="0" width="${L}" height="30" rx="4"/>`
+         + `<line class="bord" x1="${-L/2}" y1="0" x2="${L/2}" y2="0"/>` + g,
+    poignee: [L/2 - 26, 46],
+    ancresLocales: anc,
+    /* Encombrement sous l’origine, poignée et son halo compris : sans lui,
+       l’instrument se gare à cheval sur le bord et arrive tronqué. */
+    encombrement: 74, demiLargeur: L/2
+  };
+};
+const EQUERRE_GRADUEE = (nbUnites) => {
+  const L = nbUnites * PX_PAR_UNITE;
+  let g = '', anc = [];
+  for (let u = 0; u <= nbUnites; u++) {
+    const d = u*PX_PAR_UNITE;
+    g += `<line class="grad" x1="${d}" y1="0" x2="${d}" y2="6"/>`
+       + `<line class="grad" x1="0" y1="${d}" x2="6" y2="${d}"/>`;
+    anc.push([d, 0], [0, d]);
+  }
+  return {
+    corps: `<path class="corps" d="M 0 0 L ${L} 0 L 0 ${L} Z"/>`
+         + `<line class="bord" x1="0" y1="0" x2="${L}" y2="0"/>`
+         + `<line class="bord" x1="0" y1="0" x2="0" y2="${L}"/>` + g,
+    poignee: [L*0.36, L*0.36],
+    ancresLocales: anc,
+    encombrement: L + 6, demiLargeur: L/2
+  };
+};
+
+/* ============================================================
+   FIGURES — décrites en MAILLES (CP, CE1) ou en UNITÉS (CE2 uni)
+   ============================================================ */
+const carre = (c) => [[0,0],[c,0],[c,c],[0,c]];
+const rectangle = (l, h) => [[0,0],[l,0],[l,h],[0,h]];
+const triangleRect = (a, b) => [[0,0],[a,0],[0,b]];
+const triangle = (a, b, sx, sy) => [[0,0],[a,0],[sx,sy]];
+/* Carré posé de biais : son côté est le vecteur (p, q). p=q donne 45°,
+   (2,1) et (3,1) les pentes que le CE1 doit apprendre à compter. */
+const carreOblique = (p, q) => [[0,0],[p,q],[p-q,q+p],[-q,p]];
+const rectangleOblique = (p, q, k) => [[0,0],[p,q],[p-k*q,q+k*p],[-k*q,k*p]];
+
+const translater = (c, dx, dy) => c.map(p => [p[0]+dx, p[1]+dy]);
+const versSceneContour = (z, c) => c.map(p => versScene(z, p[0], p[1]));
+const bbox = (pts) => ({
+  x0:Math.min(...pts.map(p=>p[0])), x1:Math.max(...pts.map(p=>p[0])),
+  y0:Math.min(...pts.map(p=>p[1])), y1:Math.max(...pts.map(p=>p[1]))
+});
+/* Place un assemblage décrit en mailles dans une zone, à une position
+   tirée au sort mais entièrement contenue. */
+function poserDansZone(z, contours, gx, gy){
+  const b = bbox(tousLesPoints(contours));
+  const dx = (gx === undefined ? Math.round(entre(0, Math.max(0, z.nx - (b.x1-b.x0)))) : gx) - b.x0;
+  const dy = (gy === undefined ? Math.round(entre(0, Math.max(0, z.ny - (b.y1-b.y0)))) : gy) - b.y0;
+  return contours.map(c => versSceneContour(z, translater(c, dx, dy)));
+}
+
+/* ============================================================
+   STOCKAGE (CHARTE §9, §11, §15)
+   ============================================================ */
+const CLE_STOCKAGE = 'mayeutik-m38-montage-etoiles';
+let memoireEtoiles = null;
+function lireEtoiles(){
+  if (memoireEtoiles === null) {
+    memoireEtoiles = {};
+    try { const b = localStorage.getItem(CLE_STOCKAGE); if (b) memoireEtoiles = JSON.parse(b); } catch(e){ memoireEtoiles = {}; }
+  }
+  return memoireEtoiles;
+}
+function enregistrerEtoiles(id, v){
+  const t = lireEtoiles(); t[id] = Math.max(t[id] || 0, v); memoireEtoiles = t;
+  try { localStorage.setItem(CLE_STOCKAGE, JSON.stringify(t)); } catch(e){}
+}
+const CLE_BONUS_REVELE = 'mayeutik-m38-bonus-revele';
+let memoireBonus = null;
+function lireBonus(){
+  if (memoireBonus === null) {
+    memoireBonus = {};
+    try { const b = localStorage.getItem(CLE_BONUS_REVELE); if (b) memoireBonus = JSON.parse(b); } catch(e){ memoireBonus = {}; }
+  }
+  return memoireBonus;
+}
+function bonusDejaRevele(pid, cible){
+  const e = lireBonus()[pid];
+  return !!(e && typeof e === 'object' && e[cible]);
+}
+function marquerBonusRevele(pid, cible){
+  const t = lireBonus();
+  if (!t[pid] || typeof t[pid] !== 'object') t[pid] = {};
+  t[pid][cible] = true; memoireBonus = t;
+  try { localStorage.setItem(CLE_BONUS_REVELE, JSON.stringify(t)); } catch(e){}
+}
+const CLE_PROFILS = 'mayeutik-profils', CLE_PROFIL_ACTIF = 'mayeutik-profil-actif';
+const ORDRE_PALIERS = ['CP','CE1','CE2'];
+function lireProfilActifId(){ try { return localStorage.getItem(CLE_PROFIL_ACTIF) || 'p1'; } catch(e){ return 'p1'; } }
+function niveauDuProfilActif(){
+  try {
+    const b = localStorage.getItem(CLE_PROFILS);
+    if (!b) return null;
+    const a = JSON.parse(b).find(p => p.id === lireProfilActifId());
+    return (a && a.niveau) || null;
+  } catch(e){ return null; }
+}
+function parametreURL(n){ try { return new URLSearchParams(location.search).get(n); } catch(e){ return null; } }
+function palierDepuisURL(){
+  const b = parametreURL('palier');
+  if (!b) return null;
+  const M = b.toUpperCase();
+  return CONTENU.paliers[M] ? M : null;
+}
+function palierParDefaut(){
+  const u = palierDepuisURL(); if (u) return u;
+  const n = niveauDuProfilActif();
+  if (n && CONTENU.paliers[n]) return n;
+  return ORDRE_PALIERS.find(x => CONTENU.paliers[x]) || ORDRE_PALIERS[0];
+}
+const CLE_SESSIONS = 'mayeutik-sessions', MODULE_ID = 'M38', MAX_SESSIONS = 500;
+let memoireSessions = null;
+function lireSessions(){
+  if (memoireSessions === null) {
+    memoireSessions = [];
+    try { const b = localStorage.getItem(CLE_SESSIONS); if (b) memoireSessions = JSON.parse(b); } catch(e){ memoireSessions = []; }
+  }
+  return memoireSessions;
+}
+function enregistrerSession(comp, score, total, duree){
+  const pid = lireProfilActifId(), t = lireSessions();
+  t.push({profilId:pid, module:MODULE_ID, competence:comp, score, total, date:new Date().toISOString(), duree});
+  let n = 0;
+  for (let i = t.length - 1; i >= 0; i--) if (t[i].profilId === pid) { n++; if (n > MAX_SESSIONS) t.splice(i, 1); }
+  memoireSessions = t;
+  try { localStorage.setItem(CLE_SESSIONS, JSON.stringify(t)); } catch(e){}
+}
+const SEUIL_MAITRISE = 0.8;
+function palierMaitrise(nom){
+  const p = CONTENU.paliers[nom];
+  if (!p) return false;
+  const pid = lireProfilActifId();
+  const s = lireSessions().filter(x => x.profilId === pid && x.module === MODULE_ID);
+  return p.miniJeux.every(mj => {
+    const l = s.filter(x => x.competence === mj.id);
+    if (!l.length) return false;
+    const d = l[l.length - 1];
+    return d.total > 0 && d.score / d.total >= SEUIL_MAITRISE;
+  });
+}
+function palierSuivant(nom){
+  const i = ORDRE_PALIERS.indexOf(nom);
+  if (i === -1 || i === ORDRE_PALIERS.length - 1) return null;
+  const s = ORDRE_PALIERS[i+1];
+  return CONTENU.paliers[s] ? s : null;
+}
+
+/* ============================================================
+   SONS (§5), CONFETTIS (§4), VOIX
+   ============================================================ */
+let actx = null;
+function jouerNote(f, d, dur, vol, forme){
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = forme || 'sine'; o.frequency.value = f;
+    const t = actx.currentTime + d;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(actx.destination);
+    o.start(t); o.stop(t + dur + 0.02);
+  } catch(e){}
+}
+const N_BON = [523.25, 659.25, 783.99, 1046.5];
+const N_PARFAIT = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
+function sonBonneReponse(){ N_BON.forEach((f,i) => jouerNote(f, i*0.11, 0.11, 0.22)); }
+function sonNiveauParfait(){
+  const p = 0.1;
+  N_PARFAIT.forEach((f,i) => jouerNote(f, i*p, 0.12, 0.2));
+  N_BON.forEach(f => jouerNote(f, N_PARFAIT.length*p + 0.04, 0.75, 0.12, 'triangle'));
+}
+function sonErreur(){ [392.0, 293.66].forEach((f,i) => jouerNote(f, i*0.17, 0.17, 0.22)); }
+function sonClic(){ jouerNote(660, 0, 0.05, 0.12); }
+const COULEURS = ['#FF8A3D','#2EC4A6','#FFC93C','#5AB4DC','#FF5D5D'];
+function lancerConfettis(nb){
+  const c = $('confettis-conteneur');
+  if (!c) return;
+  for (let i = 0; i < (nb||30); i++) {
+    const p = document.createElement('span');
+    p.className = 'confetti';
+    p.style.left = Math.random()*100 + '%';
+    p.style.background = COULEURS[i % COULEURS.length];
+    p.style.animationDuration = (1.1 + Math.random()*0.9) + 's';
+    p.style.animationDelay = (Math.random()*0.35) + 's';
+    c.appendChild(p);
+    p.addEventListener('animationend', () => p.remove());
+    setTimeout(() => p.remove(), 2600);
+  }
+}
+function voixFrancaises(){
+  try { return (speechSynthesis.getVoices() || []).filter(v => /^fr/i.test(v.lang)); } catch(e){ return []; }
+}
+function lireAVoixHaute(t){
+  try {
+    if (!window.speechSynthesis) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(t);
+    u.lang = 'fr-FR'; u.rate = 0.95;
+    const l = voixFrancaises().filter(v => v.localService);
+    const v = l[0] || voixFrancaises()[0];
+    if (v) u.voice = v;
+    speechSynthesis.speak(u);
+  } catch(e){}
+}
+function stopperVoix(){ try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch(e){} }
+
+/* ============================================================
+   GÉNÉRATEURS DE MANCHES
+   ------------------------------------------------------------
+   Une manche décrit ce qu’il y a À PRODUIRE, jamais comment le dessiner :
+   support, modèle éventuel, amorce éventuelle, solutions acceptables,
+   instruments disponibles. Tout le rendu en découle.
+   ============================================================ */
+function mancheBase(o){
+  return Object.assign({
+    mode:'poser', support:'quadrille', libre:true,
+    modele:null, modeleCercles:null, amorce:null,
+    solutions:[], cercles:null, instruments:[], sous:'', enonce:null
+  }, o);
+}
+
+/* ---- CP : reproduire ---- */
+const FIGURES_CP = [
+  () => carre(3), () => carre(2), () => rectangle(4, 2), () => rectangle(3, 2),
+  () => triangleRect(3, 3), () => triangleRect(4, 2)
+];
+function qCpReproduire(){
+  const liste = [];
+  /* Trois manches au POCHOIR d’abord : « l’élève trace des figures simples
+     à l’aide de gabarits et de pochoirs » est la porte d’entrée du texte.
+     Le pochoir se translate seulement — sur un quadrillage où les côtés
+     suivent les lignes, le faire tourner n’aurait aucun sens. */
+  for (let i = 0; i < 3; i++) {
+    const f = pioche(FIGURES_CP)();
+    const sol = poserDansZone(ZONE_TRAVAIL, [f]);
+    liste.push(mancheBase({
+      mode:'pochoir', support: i < 2 ? 'quadrille' : 'pointe',
+      modele:poserDansZone(ZONE_MODELE, [f]),
+      pochoir:f, solutions:[sol],
+      q:'Fais la même pièce.',
+      sous:'Glisse le pochoir sur ton panneau, puis appuie sur « Déposer ».'
+    }));
+  }
+  for (let i = 0; i < 2; i++) {
+    const f = pioche(FIGURES_CP)();
+    liste.push(mancheBase({
+      support: i === 0 ? 'quadrille' : 'pointe',
+      modele:poserDansZone(ZONE_MODELE, [f]),
+      solutions:[poserDansZone(ZONE_TRAVAIL, [f])],
+      q:'Fais la même pièce.',
+      sous:'Touche les nœuds du carton pour poser les coins, puis reviens sur le premier pour fermer.'
+    }));
+  }
+  return liste;
+}
+
+/* ---- CP : compléter ---- */
+function qCpCompleter(){
+  const liste = [];
+  /* Les deux cas sont donnés mot pour mot par le programme. */
+  for (let i = 0; i < 3; i++) {
+    /* Le rectangle demandé ne doit JAMAIS sortir carré : l’inclusion
+       carré ⊂ rectangle est hors programme au cycle 2, et M34 l’évite
+       activement — un « complète ce rectangle » dont la solution est un
+       carré rouvrirait la question par la bande. */
+    const l = 4 + Math.floor(entre(0, 2)), h = 2 + Math.floor(entre(0, 2));
+    const c = poserDansZone(ZONE_PLEINE, [rectangle(l, h)])[0];
+    liste.push(mancheBase({
+      support: i < 2 ? 'quadrille' : 'pointe', libre:false, zone:'pleine',
+      amorce:[[c[3], c[0], c[1]]],           // deux côtés consécutifs déjà tracés
+      sommetsFixes:[c[3], c[0], c[1]],
+      solutions:[[c]],
+      q:'Complète ce rectangle.',
+      sous:'Deux côtés sont déjà posés : place le coin qui manque, puis ferme la pièce.'
+    }));
+  }
+  for (let i = 0; i < 2; i++) {
+    const cote = 3;
+    const base = poserDansZone(ZONE_PLEINE, [carre(cote)], undefined, 3)[0];
+    const a = base[0], b = base[1];
+    const dx = b[0]-a[0], dy = b[1]-a[1];
+    /* Un seul côté tracé laisse DEUX carrés possibles, un de chaque côté
+       du segment. Les refuser reviendrait à valider une géométrie fausse :
+       les deux sont acceptés, sans commentaire — l’enfant a construit un
+       carré, c’est ce qui était demandé. */
+    const haut = [a, b, [b[0]-dy, b[1]+dx], [a[0]-dy, a[1]+dx]];
+    const bas  = [a, b, [b[0]+dy, b[1]-dx], [a[0]+dy, a[1]-dx]];
+    liste.push(mancheBase({
+      support:'quadrille', libre:false, zone:'pleine',
+      amorce:[[a, b]], sommetsFixes:[a, b],
+      solutions:[[haut], [bas]],
+      q:'Complète ce carré.',
+      sous:'Un seul côté est tracé. Place les deux coins qui manquent, puis ferme la pièce.'
+    }));
+  }
+  return melanger(liste);
+}
+
+/* ---- CP : assembler ---- */
+function qCpAssembler(){
+  /* Les pièces d’un vitrail se JOIGNENT : elles partagent un côté entier et
+     ne se chevauchent jamais. Deux modèles d’une première version étaient
+     fautifs — deux triangles qui se recouvraient, et un triangle accroché
+     au carré par un seul point, ce qui ne fait pas un assemblage. */
+  const modeles = [
+    () => [rectangle(4,2), translater(rectangle(4,2), 0, 2)],
+    () => [carre(2), translater(carre(2), 2, 0), translater(rectangle(4,2), 0, 2)],
+    /* Un rectangle coupé en deux triangles par sa diagonale : la relation
+       même que M34 faisait DÉCRIRE en `cp-relations`, et qu’on produit ici. */
+    () => [[[0,0],[4,0],[4,3]], [[0,0],[4,3],[0,3]]],
+    () => [carre(3), [[0,3],[3,3],[0,5]]],
+    () => [rectangle(3,2), translater(carre(2), 3, 0), translater(rectangle(5,2), 0, 2)]
+  ];
+  return melanger(modeles).map((f, i) => {
+    const contours = f();
+    return mancheBase({
+      support: i < 3 ? 'quadrille' : 'pointe',
+      modele:poserDansZone(ZONE_MODELE, contours, 0, 0),
+      solutions:[poserDansZone(ZONE_TRAVAIL, contours, 1, 1)],
+      q:'Monte ce petit vitrail.',
+      sous:'Les pièces se touchent : un coin déjà posé sert aussi à la pièce voisine.'
+    });
+  });
+}
+
+/* ---- CE1 : reproduire, avec des côtés obliques ---- */
+function qCe1Reproduire(){
+  /* Progression lente : 45° d’abord, puis les pentes 2/1 et 3/1. C’est le
+     vrai saut du CE1 et le point de décrochage du sous-thème. */
+  const suite = [
+    {f:() => carreOblique(1,1), s:'quadrille'},
+    {f:() => carreOblique(2,2), s:'quadrille'},
+    {f:() => carreOblique(2,1), s:'quadrille'},
+    {f:() => rectangleOblique(2,1,2), s:'pointe'},
+    {f:() => carreOblique(3,1), s:'pointe'}
+  ];
+  return suite.map(({f, s}) => {
+    const c = [f()];
+    return mancheBase({
+      support:s,
+      modele:poserDansZone(ZONE_MODELE, c),
+      solutions:[poserDansZone(ZONE_TRAVAIL, c)],
+      q:'Fais la même pièce.',
+      sous:'Le côté est en biais : compte les déplacements, tant de côté et tant vers le haut.'
+    });
+  });
+}
+
+/* ---- CE1 : compléter, jusqu’au papier uni ---- */
+function sommetsAngleDroit(z, a, b){
+  /* Tous les nœuds du quadrillage qui voient le segment sous un angle
+     droit. Il y en a TOUJOURS au moins deux — les deux coins du rectangle
+     dont [a b] est la diagonale — et prétendre le contraire produirait une
+     correction fausse : on les accepte donc tous, exactement comme les
+     deux carrés du CP. C’est le lieu du cercle de diamètre [a b], que le
+     cycle 2 n’étudie pas mais dont l’équerre fait apparaître les points
+     entiers un à un. */
+  const cands = [];
+  for (let i = 0; i <= z.nx; i++) for (let j = 0; j <= z.ny; j++) {
+    const c = versScene(z, i, j);
+    if (dist(c, a) < 4 || dist(c, b) < 4) continue;
+    const u = [a[0]-c[0], a[1]-c[1]], v = [b[0]-c[0], b[1]-c[1]];
+    if (Math.abs(u[0]*v[0] + u[1]*v[1]) < 1e-6) cands.push(c);
+  }
+  return cands;
+}
+function qCe1Completer(){
+  const liste = [];
+  /* Deux côtés de l’angle droit tracés : il ne reste qu’à fermer
+     l’hypoténuse. C’est le cas d’entrée, volontairement facile. */
+  for (let i = 0; i < 2; i++) {
+    const t = poserDansZone(ZONE_PLEINE, [triangleRect(3 + i, 3)])[0];
+    liste.push(mancheBase({
+      support: i === 0 ? 'quadrille' : 'pointe', libre:false, zone:'pleine',
+      amorce:[[t[1], t[0], t[2]]], sommetsFixes:[t[1], t[0], t[2]],
+      solutions:[[t]],
+      q:'Ferme ce triangle rectangle.',
+      sous:'Les deux côtés de l’angle droit sont tracés : il ne manque que l’hypoténuse.'
+    }));
+  }
+  /* L’hypoténuse est tracée : il faut PLACER le sommet de l’angle droit.
+     Nettement plus dur, et l’équerre y devient utile. */
+  {
+    let item = null;
+    for (let essai = 0; essai < 200 && !item; essai++) {
+      const dx = 2 + Math.floor(entre(0, 4)), dy = 2 + Math.floor(entre(0, 3));
+      const gx = Math.floor(entre(0, ZONE_PLEINE.nx - dx)), gy = Math.floor(entre(0, ZONE_PLEINE.ny - dy));
+      const a = versScene(ZONE_PLEINE, gx, gy), b = versScene(ZONE_PLEINE, gx + dx, gy + dy);
+      const c = sommetsAngleDroit(ZONE_PLEINE, a, b);
+      /* On écarte les tirages qui en offriraient une nuée : deux ou trois
+         nœuds font un exercice, huit en feraient une loterie. */
+      if (c.length >= 2 && c.length <= 3) item = {a, b, c};
+    }
+    if (item) liste.push(mancheBase({
+      support:'quadrille', libre:false, zone:'pleine',
+      amorce:[[item.a, item.b]], sommetsFixes:[item.a, item.b],
+      solutions:item.c.map(c => [[item.a, item.b, c]]),
+      instruments:['equerre'],
+      q:'Place le sommet de l’angle droit.',
+      sous:'L’hypoténuse est tracée. Pose l’équerre pour trouver un nœud d’où le segment se voit à angle droit.'
+    }));
+  }
+  /* Premier passage au PAPIER UNI : plus d’aimantation, l’instrument
+     devient le seul moyen d’être exact. */
+  for (let i = 0; i < 2; i++) {
+    const l = (5 + i) * PX_PAR_UNITE, h = 3 * PX_PAR_UNITE;
+    const x0 = ZONE_PLEINE.x0 + 40, y0 = ZONE_PLEINE.y0 + 50;
+    const c = [[x0,y0],[x0+l,y0],[x0+l,y0+h],[x0,y0+h]];
+    liste.push(mancheBase({
+      support:'uni', libre:false, zone:'pleine',
+      amorce:[[c[3], c[0], c[1]]], sommetsFixes:[c[3], c[0], c[1]],
+      solutions:[[c]],
+      instruments:['regle','equerre'],
+      q:'Complète ce rectangle sur le papier uni.',
+      sous:'Plus de repères : pose la règle et place le coin contre une graduation.'
+    }));
+  }
+  return liste;
+}
+
+/* ---- CE1 : construire d’après un énoncé ---- */
+function qCe1Construire(){
+  const z = ZONE_PLEINE;
+  const cx = z.x0 + z.l/2, cy = z.y0 + z.h/2;
+  const items = [
+    () => {
+      const l = 7*PX_PAR_UNITE, h = 4*PX_PAR_UNITE;
+      const c = [[cx-l/2,cy-h/2],[cx+l/2,cy-h/2],[cx+l/2,cy+h/2],[cx-l/2,cy+h/2]];
+      return mancheBase({
+        support:'uni', libre:true, zone:'pleine',
+        solutions:[[c]],
+        cercles:[{c:c[0], rLibre:true, rMin:1.5*PX_PAR_UNITE, rMax:3.5*PX_PAR_UNITE},
+                 {c:c[1], rLibre:true, rMin:1.5*PX_PAR_UNITE, rMax:3.5*PX_PAR_UNITE},
+                 {c:c[2], rLibre:true, rMin:1.5*PX_PAR_UNITE, rMax:3.5*PX_PAR_UNITE},
+                 {c:c[3], rLibre:true, rMin:1.5*PX_PAR_UNITE, rMax:3.5*PX_PAR_UNITE}],
+        instruments:['regle','equerre'], compas:'passant',
+        q:'Un rectangle, et dans un de ses coins, un cercle.',
+        enonce:'Construis un rectangle, puis un cercle centré sur un de ses coins.',
+        sous:'Pose d’abord les quatre coins du rectangle, ferme-le, puis prends le compas.'
+      });
+    },
+    () => {
+      const c0 = 5*PX_PAR_UNITE;
+      const c = [[cx-c0/2,cy-c0/2],[cx+c0/2,cy-c0/2],[cx+c0/2,cy+c0/2],[cx-c0/2,cy+c0/2]];
+      return mancheBase({
+        support:'uni', libre:true, zone:'pleine',
+        solutions:[[c]],
+        cercles:[{c:[cx,cy], rLibre:true, rMin:1.5*PX_PAR_UNITE, rMax:3*PX_PAR_UNITE}],
+        instruments:['regle','equerre'], compas:'passant',
+        q:'Un carré, et un cercle en son milieu.',
+        enonce:'Construis un carré, puis un cercle centré au milieu du carré.',
+        sous:'Ferme d’abord le carré. Le centre du cercle est au croisement des diagonales.'
+      });
+    },
+    () => {
+      const a = 6*PX_PAR_UNITE, b = 4*PX_PAR_UNITE;
+      const s = [cx - a/2, cy + b/2];
+      const c = [s, [s[0]+a, s[1]], [s[0], s[1]-b]];
+      return mancheBase({
+        support:'uni', libre:true, zone:'pleine',
+        solutions:[[c]],
+        instruments:['regle','equerre'],
+        q:'Un triangle rectangle.',
+        enonce:'Construis un triangle rectangle. Les deux côtés de l’angle droit mesurent 6 et 4.',
+        sous:'Pose l’équerre pour l’angle droit, la règle pour les longueurs.'
+      });
+    }
+  ];
+  return melanger(items).map(f => f());
+}
+
+/* ---- CE2 : reproduire, à main levée ou à la règle ---- */
+function qCe2Reproduire(){
+  const suite = [
+    () => [carre(3)], () => [rectangle(5,3)], () => [carreOblique(2,1)],
+    () => [rectangle(3,2), translater(carre(2), 3, 0)], () => [carreOblique(2,2)]
+  ];
+  return melanger(suite).map(f => {
+    const c = f();
+    return mancheBase({
+      support:'quadrille', esquissePossible:true,
+      modele:poserDansZone(ZONE_MODELE, c),
+      solutions:[poserDansZone(ZONE_TRAVAIL, c)],
+      q:'Reproduis cette pièce.',
+      sous:'Choisis ta façon de faire : le croquis rapide, ou le tracé exact.'
+    });
+  });
+}
+
+/* ---- CE2 : construire sur papier uni, aux mesures données ---- */
+function qCe2ConstruireUni(){
+  const z = ZONE_PLEINE;
+  const cx = z.x0 + z.l/2, cy = z.y0 + z.h/2;
+  const U = PX_PAR_UNITE;
+  /* Les trois exemples de réussite du programme, mot pour mot. */
+  const rect = () => {
+    const l = 7*U, h = 3*U;
+    const c = [[cx-l/2,cy-h/2],[cx+l/2,cy-h/2],[cx+l/2,cy+h/2],[cx-l/2,cy+h/2]];
+    return mancheBase({
+      support:'uni', libre:true, zone:'pleine', solutions:[[c]],
+      instruments:['regle','equerre'],
+      q:'Un rectangle de longueur 7 et de largeur 3.',
+      enonce:'Construis un rectangle de longueur 7 et de largeur 3.',
+      /* Le vocabulaire longueur / largeur, introduit dans M34, se
+         réinvestit ici : intervertir les deux produit une figure fausse. */
+      sous:'La longueur est le grand côté, la largeur le petit. Pose la règle et compte les graduations.'
+    });
+  };
+  const carreCercle = () => {
+    const c0 = 6*U;
+    const c = [[cx-c0/2,cy-c0/2],[cx+c0/2,cy-c0/2],[cx+c0/2,cy+c0/2],[cx-c0/2,cy+c0/2]];
+    return mancheBase({
+      support:'uni', libre:true, zone:'pleine', solutions:[[c]],
+      cercles:c.map(s => ({c:s, r:4*U})),
+      instruments:['regle','equerre'], compas:'rayon', rayonDemande:4,
+      q:'Un carré de côté 6, et un cercle de rayon 4 centré sur un de ses sommets.',
+      enonce:'Construis un carré de côté 6, puis un cercle de rayon 4 centré sur un de ses sommets.',
+      sous:'Ferme d’abord le carré, puis règle l’écartement du compas sur 4.'
+    });
+  };
+  const triRect = () => {
+    const a = 10*U, b = 4*U;
+    const s = [cx - a/2, cy + b/2];
+    const c = [s, [s[0]+a, s[1]], [s[0], s[1]-b]];
+    return mancheBase({
+      support:'uni', libre:true, zone:'pleine', solutions:[[c]],
+      instruments:['regle','equerre'],
+      q:'Un triangle rectangle dont les côtés de l’angle droit mesurent 10 et 4.',
+      enonce:'Construis un triangle rectangle dont les côtés de l’angle droit mesurent 10 et 4.',
+      sous:'L’équerre donne l’angle droit, la règle les deux longueurs.'
+    });
+  };
+  return [rect(), carreCercle(), triRect()];
+}
+
+/* ---- CE2 : la rosace ----
+   Géométrie RECOPIÉE de M34 (`construireRosace`) : la charte impose des
+   fichiers autonomes, donc duplication assumée — toute retouche là-bas est
+   à reporter ici. L’enfant construit ce qu’il a appris à nommer en M34 et
+   à vérifier en M35, en trois étapes cumulatives.
+   ============================================================ */
+function geometrieRosace(){
+  const R = 108, cx = ZONE_PLEINE.x0 + ZONE_PLEINE.l/2, cy = ZONE_PLEINE.y0 + ZONE_PLEINE.h/2, n = 6;
+  const hex = [], pointes = [];
+  for (let i = 0; i < n; i++) {
+    const th = -Math.PI/2 + i * TAU / n;
+    hex.push([cx + Math.cos(th) * R * 0.42, cy + Math.sin(th) * R * 0.42]);
+  }
+  for (let i = 0; i < n; i++) {
+    const th = -Math.PI/2 + (i + 0.5) * TAU / n;
+    pointes.push([cx + Math.cos(th) * R * 0.93, cy + Math.sin(th) * R * 0.93]);
+  }
+  /* Le pétale de M34 : le sommet de l’hexagone, un point de gonfle, la
+     pointe, le sommet suivant. La gonfle se DÉDUIT — l’enfant ne pose que
+     la pointe. */
+  const petale = (i) => {
+    const a = hex[i], b = hex[(i+1) % n], loin = pointes[i];
+    return [a, [(a[0]+loin[0])/2 - (b[1]-a[1])*0.16, (a[1]+loin[1])/2 + (b[0]-a[0])*0.16], loin, b];
+  };
+  return {R, cx, cy, hex, pointes, petale};
+}
+function qCe2Rosace(){
+  const g = geometrieRosace();
+  const U = PX_PAR_UNITE;
+  const rayonCm = Math.round(g.R / U);
+  return [
+    mancheBase({
+      support:'uni', libre:false, zone:'pleine',
+      solutions:[], cercles:[{c:[g.cx, g.cy], r:rayonCm * U}],
+      compas:'rayon', rayonDemande:rayonCm, centreImpose:[g.cx, g.cy],
+      q:'Trace le grand cercle de la rosace.',
+      enonce:'Trace le cercle de rayon ' + rayonCm + ', centré sur le point marqué.',
+      sous:'Règle l’écartement du compas, puis touche le centre.'
+    }),
+    mancheBase({
+      support:'uni', libre:false, zone:'pleine',
+      guideCercle:{c:[g.cx, g.cy], r:g.R*0.42},
+      decor:{cercles:[{c:[g.cx, g.cy], r:rayonCm*U}]},
+      solutions:[[g.hex]], tolAngulaire:true, nbPointsAttendu:6,
+      q:'Pose les six sommets de l’hexagone.',
+      enonce:'Place les six sommets de l’hexagone du centre, régulièrement répartis.',
+      sous:'Les points glissent sur le cercle de construction : c’est leur écartement qui compte. Au sixième, la pièce se ferme toute seule.'
+    }),
+    mancheBase({
+      support:'uni', libre:false, zone:'pleine',
+      guideCercle:{c:[g.cx, g.cy], r:g.R*0.93},
+      decor:{cercles:[{c:[g.cx, g.cy], r:rayonCm*U}], contours:[g.hex]},
+      petalesDe:g, solutions:[[g.pointes]], tolAngulaire:true, nbPointsAttendu:6,
+      q:'Pose les six pointes des pétales.',
+      enonce:'Place les six pointes des pétales, une entre chaque paire de sommets.',
+      sous:'Chaque pointe se place face au milieu d’un côté de l’hexagone.'
+    })
+  ];
+}
+
+/* ============================================================
+   CONTENU PÉDAGOGIQUE PAR PALIER (CHARTE §15)
+   ============================================================ */
+const CONTENU = {
+  sousTitre: 'Reproduis, complète, construis — et le vitrail se remplit de couleur.',
+  paliers: {
+    CP: {
+      sousTitre: 'Sur le carton quadrillé : la même pièce, puis les pièces qui manquent.',
+      miniJeux: [
+        {id:'cp-reproduire', titre:'La même pièce', icone:'🔷', description:'Refais le modèle.', gen:qCpReproduire},
+        {id:'cp-completer', titre:'La pièce inachevée', icone:'🧩', description:'Ferme la figure.', gen:qCpCompleter},
+        {id:'cp-assembler', titre:'Le petit vitrail', icone:'🪟', description:'Monte l’assemblage.', gen:qCpAssembler}
+      ]
+    },
+    CE1: {
+      sousTitre: 'Les côtés partent en biais, et le papier uni fait son entrée.',
+      miniJeux: [
+        {id:'ce1-reproduire', titre:'Le modèle oblique', icone:'📐', description:'Compte les biais.', gen:qCe1Reproduire},
+        {id:'ce1-completer', titre:'Le plan à finir', icone:'🧩', description:'Jusqu’au papier uni.', gen:qCe1Completer},
+        {id:'ce1-construire', titre:'La commande du client', icone:'📜', description:'Plus de modèle.', gen:qCe1Construire}
+      ]
+    },
+    CE2: {
+      sousTitre: 'Le croquis ou le tracé exact, l’énoncé du maître verrier, et la rosace.',
+      miniJeux: [
+        {id:'ce2-reproduire', titre:'Croquis ou tracé', icone:'✏️', description:'À toi de choisir.', gen:qCe2Reproduire},
+        {id:'ce2-construire-uni', titre:'L’énoncé du maître verrier', icone:'📜', description:'Aux mesures données.', gen:qCe2ConstruireUni},
+        {id:'ce2-rosace', titre:'La rosace', icone:'🌹', description:'Le bouquet final.', gen:qCe2Rosace}
+      ]
+    }
+  }
+};
+
+/* ============================================================
+   ÉTAT DE PARTIE
+   ============================================================ */
+const ecrans = {home:$('home'), game:$('game'), end:$('end')};
+let etatPalierAffiche = palierParDefaut();
+let miniJeuCourant = null, file = [], pos = 0, score = 0, total = 0, demarreLe = 0;
+let verrouille = false, vitrail = [];
+let minuteurAuto = null, minuteurRevel = null;
+
+function remonterEnHaut(){
+  try { scrollTo({top:0, left:0, behavior:'auto'}); } catch(e){ scrollTo(0,0); }
+}
+function montreEcran(n){
+  desarmerAutoSuivant(); stopperVoix();
+  Object.values(ecrans).forEach(e => e.hidden = true);
+  ecrans[n].hidden = false;
+  $('btnBack').hidden = (n === 'home');
+  if (n === 'home') $('dots').innerHTML = '';
+  remonterEnHaut();
+}
+function retourAccueil(){
+  desarmerAutoSuivant(); stopperVoix();
+  montreEcran('home'); construireAccueil();
+}
+$('btnBack').addEventListener('click', retourAccueil);
+
+function armerAutoSuivant(){
+  clearTimeout(minuteurAuto);
+  const b = $('btnNext');
+  minuteurAuto = setTimeout(() => {
+    if (b.style.display === 'none' || b.disabled || !b.isConnected) return;
+    b.click();
+  }, DELAI_AUTO_SUIVANT);
+}
+function desarmerAutoSuivant(){ clearTimeout(minuteurAuto); clearTimeout(minuteurRevel); }
+
+/* ---------- Accueil ---------- */
+function creerCarte(cfg){
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'card'; b.dataset.jeu = cfg.id;
+  const i = document.createElement('span'); i.className = 'ico'; i.textContent = cfg.icone;
+  const n = document.createElement('span'); n.className = 'nom'; n.textContent = cfg.titre;
+  const d = document.createElement('span'); d.className = 'det'; d.textContent = cfg.description;
+  const s = document.createElement('span'); s.className = 'stars';
+  const e = lireEtoiles()[cfg.id] || 0;
+  s.textContent = e ? '⭐'.repeat(e) : '';
+  b.append(i, n, d, s);
+  b.addEventListener('click', () => lance(cfg.id));
+  return b;
+}
+function construireAccueil(){
+  $('hdrTitle').textContent = 'L’atelier de montage';
+  const palier = CONTENU.paliers[etatPalierAffiche];
+  $('sous-titre-accueil').textContent = (palier && palier.sousTitre) || CONTENU.sousTitre;
+  const rangee = $('rangee-paliers'); rangee.innerHTML = '';
+  const niveauProfil = niveauDuProfilActif();
+  let idx = ORDRE_PALIERS.indexOf(niveauProfil);
+  if (idx === -1) idx = 0;
+  const pid = lireProfilActifId();
+  ORDRE_PALIERS.filter(n => CONTENU.paliers[n]).forEach(n => {
+    const verr = ORDRE_PALIERS.indexOf(n) > idx && !bonusDejaRevele(pid, n);
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'puce-palier' + (n === etatPalierAffiche ? ' actif' : '') + (verr ? ' verrouille' : '');
+    b.textContent = verr ? n + ' 🔒' : n;
+    b.disabled = verr;
+    if (!verr) b.addEventListener('click', () => { etatPalierAffiche = n; construireAccueil(); });
+    rangee.appendChild(b);
+  });
+  $('note-palier').textContent = niveauProfil
+    ? 'Niveau de ' + (niveauProfil === etatPalierAffiche ? 'ton profil'
+        : 'ton profil : ' + niveauProfil + ' — tu regardes le palier ' + etatPalierAffiche) : '';
+  const g = $('grille-jeux'); g.innerHTML = '';
+  (palier ? palier.miniJeux : []).forEach(c => g.appendChild(creerCarte(c)));
+
+  const suivant = palierSuivant(etatPalierAffiche);
+  const bloc = $('bloc-bonus'), paquet = $('paquet-cadeau'), gb = $('grille-bonus');
+  if (suivant && palierMaitrise(etatPalierAffiche)) {
+    bloc.hidden = false;
+    $('note-bonus').textContent = 'Tu maîtrises tout le palier ' + etatPalierAffiche
+      + ' : essaie un aperçu du palier ' + suivant + ' !';
+    gb.innerHTML = '';
+    CONTENU.paliers[suivant].miniJeux.forEach(c => gb.appendChild(creerCarte(c)));
+    if (bonusDejaRevele(pid, suivant)) { paquet.hidden = true; gb.hidden = false; }
+    else {
+      paquet.hidden = false; paquet.disabled = false;
+      paquet.classList.remove('paquet-cadeau-ouverture');
+      gb.hidden = true;
+      /* `onclick` et non addEventListener : bouton fixe réutilisé à chaque
+         rendu, un écouteur de plus s’empilerait à chaque fois (§15). */
+      paquet.onclick = () => ouvrirPaquet(pid, suivant, paquet, gb);
+    }
+  } else bloc.hidden = true;
+}
+function ouvrirPaquet(pid, cible, paquet, gb){
+  if (paquet.disabled) return;
+  paquet.disabled = true;
+  marquerBonusRevele(pid, cible);
+  lancerConfettis(50); sonBonneReponse();
+  paquet.classList.add('paquet-cadeau-ouverture');
+  setTimeout(() => { paquet.hidden = true; gb.hidden = false; }, 480);
+}
+
+/* ---------- Lancement ---------- */
+function trouverMiniJeu(id){
+  for (const nom of ORDRE_PALIERS) {
+    const p = CONTENU.paliers[nom];
+    if (!p) continue;
+    const cfg = p.miniJeux.find(m => m.id === id);
+    if (cfg) return {cfg, palier:p, palierNom:nom};
+  }
+  return null;
+}
+function lance(id){
+  const t = trouverMiniJeu(id);
+  if (!t) return;
+  miniJeuCourant = t;
+  file = t.cfg.gen();
+  pos = 0; score = 0; total = file.length * PTS_MANCHE;
+  vitrail = [];
+  demarreLe = Date.now();
+  $('hdrTitle').textContent = t.cfg.titre;
+  montreEcran('game');
+  manche();
+}
+function majDots(){
+  $('dots').innerHTML = file.map((q, i) => {
+    let c = '';
+    if (i < pos) c = q._ok ? 'ok' : 'ko';
+    else if (i === pos) c = 'cur';
+    return `<span class="dot ${c}"></span>`;
+  }).join('');
+}
+function message(t, cl, corr){
+  const f = $('feedback');
+  f.textContent = t || ''; f.className = cl || '';
+  if (corr) {
+    const s = document.createElement('span');
+    s.className = 'correction-attendue'; s.textContent = ' ' + corr;
+    f.appendChild(s);
+  }
+}
+function poserConsigne(t, enonce){
+  $('qText').innerHTML = '';
+  const s = document.createElement('span'); s.textContent = t;
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'btn-voix'; b.textContent = '🔊';
+  b.setAttribute('aria-label', 'Écouter la consigne');
+  const dit = enonce || t;
+  b.addEventListener('click', () => lireAVoixHaute(dit));
+  $('qText').append(s, b);
+  lireAVoixHaute(dit);
+}
+
+/* ============================================================
+   LE CHANTIER — poser des points, pas dessiner
+   ============================================================ */
+const scene = () => $('scene');
+let chantier = null;
+
+function nouveauChantier(q){
+  const z = q.zone === 'pleine' ? ZONE_PLEINE : ZONE_TRAVAIL;
+  const sup = SUPPORTS[q.support];
+  return {
+    q, z, sup,
+    sommets: (q.sommetsFixes || []).slice(),
+    nbFixes: (q.sommetsFixes || []).length,
+    contours: [],            // contours fermés par l’enfant
+    cerclesPoses: [],
+    posables: [],
+    tol: q.support === 'uni' ? TOL_UNI * longueurReference(q) : TOL_GRILLE
+  };
+}
+/* La tolérance sur papier uni se calcule sur la longueur de référence de
+   la figure attendue — 3 % d’un grand rectangle n’est pas 3 % d’un petit. */
+function longueurReference(q){
+  const pts = (q.solutions[0] ? tousLesPoints(q.solutions[0]) : []);
+  if (!pts.length) return 40;
+  const b = bbox(pts);
+  return Math.max(b.x1 - b.x0, b.y1 - b.y0);
+}
+
+function ancresCourantes(){
+  return chantier.posables.reduce((s, p) => s.concat(p.ancres()), []);
+}
+/* Sur le cercle de construction de la rosace, un point ne peut que
+   glisser : c’est son écartement angulaire qui est en jeu, pas sa
+   distance au centre. */
+function surGuide(p, g){
+  const th = Math.atan2(p[1]-g.c[1], p[0]-g.c[0]);
+  return [g.c[0] + Math.cos(th)*g.r, g.c[1] + Math.sin(th)*g.r];
+}
+
+function poserSommet(p){
+  if (verrouille) return;
+  const q = chantier.q;
+  let pt;
+  if (q.guideCercle) pt = surGuide(p, q.guideCercle);
+  else pt = aimanterPoint(p, chantier.sup, chantier.z, ancresCourantes());
+  if (!pt) return;
+  const s = chantier.sommets;
+  /* Revenir sur le PREMIER sommet ferme le contour ; revenir sur le
+     DERNIER le retire. Le retour arrière avant validation est
+     indispensable au doigt, et n’a rien à voir avec l’essai-erreur
+     interdit après validation (CHARTE §18). */
+  if (s.length >= 3 && dist(pt, s[0]) < 12) { fermerContour(); return; }
+  if (s.length > chantier.nbFixes && dist(pt, s[s.length-1]) < 12) {
+    s.pop(); sonClic(); dessinerChantier(); majBoutons(); return;
+  }
+  if (s.some(x => dist(pt, x) < 6)) return;
+  s.push(pt); sonClic();
+  /* Sur la rosace, on pose un NOMBRE CONNU de points sur un cercle de
+     construction : il n’y a pas de contour à refermer à la main, et
+     demander de revenir sur le premier point n’aurait aucun sens. */
+  if (q.nbPointsAttendu && s.length === q.nbPointsAttendu) { fermerContour(); return; }
+  dessinerChantier(); majBoutons();
+}
+function fermerContour(){
+  if (verrouille) return;
+  const s = chantier.sommets;
+  if (s.length < 3) return;
+  chantier.contours.push(s.slice());
+  chantier.sommets = [];
+  chantier.nbFixes = 0;
+  sonClic();
+  dessinerChantier(); majBoutons();
+}
+function annuler(){
+  if (verrouille) return;
+  const c = chantier;
+  if (c.sommets.length > c.nbFixes) c.sommets.pop();
+  else if (c.cerclesPoses.length) c.cerclesPoses.pop();
+  else if (c.contours.length) {
+    /* On rouvre le dernier contour plutôt que de l’effacer : l’enfant
+       reprend son travail là où il l’a laissé. */
+    c.sommets = c.contours.pop();
+    c.nbFixes = 0;
+  }
+  dessinerChantier(); majBoutons();
+}
+
+/* ---------- Dessin ---------- */
+function contourD(pts, ferme){
+  return 'M ' + pts.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' L ') + (ferme ? ' Z' : '');
+}
+const cercleSvg = (c, r, cl) => `<circle class="${cl}" cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="${r.toFixed(1)}"/>`;
+
+function dessinerChantier(){
+  const g = scene().getElementById('chantier');
+  if (!g) return;
+  const c = chantier, q = c.q;
+  let s = '';
+  /* Les pièces achevées se remplissent de verre : la couleur est la
+     récompense de ce que l’enfant a produit lui-même. */
+  if (!q.petalesDe) c.contours.forEach((ct, i) => {
+    s += `<path class="piece-faite" d="${contourD(ct, true)}" fill="${VERRES[i % VERRES.length]}" fill-opacity=".55"/>`;
+  });
+  /* Les pétales de la rosace se déduisent des pointes posées : l’enfant
+     place la pointe, la gonfle du pétale suit (géométrie de M34). On lit
+     les pointes dans le chantier EN COURS ou dans le contour fermé — sans
+     quoi les pétales s’évanouiraient à la seconde où la pièce se ferme,
+     remplacés par le polygone brut des six pointes. */
+  if (q.petalesDe) {
+    const g6 = q.petalesDe;
+    const pointes = c.sommets.length ? c.sommets : (c.contours[0] || []);
+    pointes.forEach((p, i) => {
+      const a = g6.hex[i % 6], b = g6.hex[(i+1) % 6];
+      const pet = [a, [(a[0]+p[0])/2 - (b[1]-a[1])*0.16, (a[1]+p[1])/2 + (b[0]-a[0])*0.16], p, b];
+      s += `<path class="piece-faite" d="${contourD(pet, true)}" fill="${VERRES[i % VERRES.length]}" fill-opacity=".55"/>`;
+    });
+  }
+  c.cerclesPoses.forEach(ce => { s += cercleSvg(ce.c, ce.r, 'cercle-fait'); });
+  /* La ligne de l’enfant part du DERNIER point de l’amorce : repasser en
+     orange par-dessus les côtés déjà tracés les ferait passer pour son
+     travail, alors qu’ils lui sont donnés. */
+  const debut = Math.max(0, c.nbFixes - 1);
+  if (c.sommets.length - debut > 1 && !q.petalesDe)
+    s += `<path class="segment" d="${contourD(c.sommets.slice(debut), false)}"/>`;
+  c.sommets.forEach((p, i) => {
+    /* Le sommet qui FERME la pièce est signalé même s’il vient de
+       l’amorce : c’est la cible du dernier geste, l’enfant doit la voir. */
+    const ferme = i === 0 && c.sommets.length >= 3;
+    const cl = ferme ? 'sommet premier' : (i < c.nbFixes ? 'sommet fixe' : 'sommet');
+    s += `<circle class="${cl}" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${ferme ? 8 : 6}"/>`;
+  });
+  g.innerHTML = s;
+}
+
+function majBoutons(){
+  const c = chantier, q = c.q;
+  const b = $('btnValider');
+  const assez = q.cercles
+    ? (c.contours.length >= (q.solutions.length ? 1 : 0) && c.cerclesPoses.length >= 1)
+    : c.contours.length >= 1;
+  b.disabled = !assez;
+  const ann = document.querySelector('#barreOutils .outil-annuler');
+  if (ann) ann.disabled = !(c.sommets.length > c.nbFixes || c.contours.length || c.cerclesPoses.length);
+}
+
+/* ============================================================
+   RENDU D’UNE MANCHE
+   ============================================================ */
+function manche(){
+  desarmerAutoSuivant(); stopperVoix();
+  const q = file[pos];
+  verrouille = false;
+  $('feedback').textContent = ''; $('feedback').className = '';
+  $('btnNext').style.display = 'none';
+  $('btnValider').style.display = 'none';
+  $('barreOutils').hidden = true; $('barreOutils').innerHTML = '';
+  $('sousConsigne').textContent = q.sous || '';
+  majDots();
+  majVitrail();
+  poserConsigne(q.q, q.enonce);
+  if (q.mode === 'pochoir') rendrePochoir(q); else rendrePoser(q);
+}
+
+function fondScene(q){
+  const avecModele = !!q.modele;
+  const zt = q.zone === 'pleine' ? ZONE_PLEINE : ZONE_TRAVAIL;
+  const sup = SUPPORTS[q.support];
+  const H = avecModele ? HAUTEUR_AVEC_MODELE : HAUTEUR_PLEINE;
+  let s = '';
+  if (avecModele) {
+    s += sup.fond(ZONE_MODELE);
+    s += `<text class="etiquette-zone" x="${ZONE_MODELE.x0}" y="${ZONE_MODELE.y0 - 4}">le modèle</text>`;
+    (q.modele || []).forEach(ct => { s += `<path class="modele" d="${contourD(ct, true)}"/>`; });
+    (q.modeleCercles || []).forEach(ce => { s += cercleSvg(ce.c, ce.r, 'modele-cercle'); });
+    s += `<line class="maille" x1="10" y1="${(ZONE_MODELE.y1 + zt.y0)/2}" x2="390" y2="${(ZONE_MODELE.y1 + zt.y0)/2}" stroke-dasharray="4 6"/>`;
+  }
+  s += sup.fond(zt);
+  s += `<text class="etiquette-zone" x="${zt.x0}" y="${zt.y0 - 4}">ton panneau</text>`;
+  /* Le décor : ce que les étapes précédentes ont déjà construit (rosace). */
+  if (q.decor) {
+    (q.decor.cercles || []).forEach(ce => { s += cercleSvg(ce.c, ce.r, 'modele-cercle'); });
+    (q.decor.contours || []).forEach(ct => { s += `<path class="modele" d="${contourD(ct, true)}"/>`; });
+  }
+  if (q.guideCercle) s += cercleSvg(q.guideCercle.c, q.guideCercle.r, 'attendu');
+  if (q.centreImpose) s += `<circle class="sommet fixe" cx="${q.centreImpose[0]}" cy="${q.centreImpose[1]}" r="5"/>`;
+  (q.amorce || []).forEach(ct => { s += `<path class="amorce" d="${contourD(ct, false)}"/>`; });
+  scene().setAttribute('viewBox', '0 0 400 ' + H);
+  /* L’ordre de dessin est un ordre de LECTURE : le papier, puis
+     l’instrument posé dessus, puis ses graduations, puis le travail de
+     l’enfant par-dessus tout. Les posables étant ajoutés au fil des clics,
+     leur groupe doit être réservé ICI — ajoutés à la fin du SVG, ils
+     recouvriraient les ancres qu’ils publient. */
+  scene().innerHTML = s
+    + `<g id="instruments"></g><g id="ancres"></g><g id="chantier"></g><g id="correction"></g>`
+    + `<rect id="zonePose" x="${zt.x0 - 10}" y="${zt.y0 - 10}" width="${zt.l + 20}" height="${zt.h + 20}" class="cible-pose"/>`;
+  $('plan').hidden = false;
+  return zt;
+}
+
+/* La pose se distingue du DÉFILEMENT par un seuil de déplacement, jamais
+   par une temporisation : un tap qui glisse de trois pixels doit rester un
+   tap, et un défilement volontaire ne doit rien poser. */
+function brancherPose(svg, surTap){
+  let bas = null;
+  svg.addEventListener('pointerdown', (e) => {
+    if (verrouille) return;
+    bas = {x:e.clientX, y:e.clientY, bouge:false};
+  });
+  svg.addEventListener('pointermove', (e) => {
+    if (!bas) return;
+    if (Math.hypot(e.clientX - bas.x, e.clientY - bas.y) > SEUIL_GLISSEMENT) bas.bouge = true;
+  });
+  svg.addEventListener('pointerup', (e) => {
+    const b = bas; bas = null;
+    if (!b || b.bouge || verrouille) return;
+    const p = versSVG(svg, e.clientX, e.clientY);
+    surTap([p.x, p.y]);
+  });
+  svg.addEventListener('pointercancel', () => { bas = null; });
+}
+
+function dessinerAncres(){
+  const g = scene().getElementById('ancres');
+  if (!g) return;
+  g.innerHTML = ancresCourantes().map(a =>
+    `<circle class="ancre" cx="${a[0].toFixed(1)}" cy="${a[1].toFixed(1)}" r="3.4"/>`).join('');
+}
+
+function rendrePoser(q){
+  fondScene(q);
+  const svg = scene();
+  chantier = nouveauChantier(q);
+  dessinerChantier();
+
+  const barre = $('barreOutils');
+  const outils = [];
+  (q.instruments || []).forEach(nom => outils.push(nom));
+  if (q.compas) outils.push('compas');
+  if (q.esquissePossible) outils.push('mode');
+  outils.push('annuler');
+  barre.hidden = false;
+  barre.innerHTML = '';
+
+  /* Mode du CE2 : le croquis rapide et le tracé exact sont mis sur le même
+     plan par le texte. Savoir croquer vite une figure juste est une
+     compétence à part entière — seule la tolérance change. */
+  if (q.esquissePossible) {
+    q._mode = null;
+    ['main levée', 'à la règle'].forEach((lib, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'outil'; b.textContent = (i === 0 ? '✏️ ' : '📏 ') + lib;
+      b.addEventListener('click', () => {
+        if (verrouille) return;
+        q._mode = i === 0 ? 'esquisse' : 'regle';
+        chantier.tol = i === 0 ? TOL_ESQUISSE * longueurReference(q) : TOL_GRILLE;
+        barre.querySelectorAll('.outil-mode').forEach(x => x.classList.toggle('on', x === b));
+        sonClic();
+      });
+      b.classList.add('outil-mode');
+      barre.appendChild(b);
+    });
+  }
+  (q.instruments || []).forEach(nom => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'outil';
+    b.textContent = nom === 'regle' ? '📏 règle graduée' : '📐 équerre';
+    b.addEventListener('click', () => {
+      if (verrouille || b.disabled) return;
+      b.disabled = true; b.classList.add('on');
+      const zt = chantier.z;
+      const skin = nom === 'regle' ? REGLE_GRADUEE(12) : EQUERRE_GRADUEE(7);
+      const p = creerPosable(svg.getElementById('instruments'), Object.assign(skin,
+        {x: nom === 'regle' ? zt.x0 + zt.l/2 : zt.x0 + 24,
+         y: zt.y1 - skin.encombrement, angle: 0,
+         surChangement: () => dessinerAncres()}));
+      chantier.posables.push(p);
+      dessinerAncres(); sonClic();
+    });
+    barre.appendChild(b);
+  });
+  if (q.compas) brancherCompas(q, barre, svg);
+  {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'outil outil-annuler'; b.textContent = '↶ annuler';
+    b.addEventListener('click', () => { if (!verrouille) { annuler(); sonClic(); } });
+    barre.appendChild(b);
+  }
+
+  brancherPose(svg, (p) => {
+    if (chantier.enAttenteCentre) { poserCercle(p); return; }
+    poserSommet(p);
+  });
+
+  $('btnValider').style.display = 'block';
+  $('btnValider').textContent = 'Vérifier ✓';
+  $('btnValider').onclick = () => validerManche(q);
+  majBoutons();
+}
+
+/* ---------- Le compas ----------
+   Deux gestes distincts, exactement ceux de M35 : au CE1 le cercle de
+   centre donné PASSANT PAR un point donné (l’écartement est dérivé des
+   deux appuis, pas réglé) ; au CE2 le rayon se règle d’abord. */
+function brancherCompas(q, barre, svg){
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'outil outil-compas'; b.textContent = '🧭 compas';
+  b.addEventListener('click', () => {
+    if (verrouille) return;
+    chantier.enAttenteCentre = true;
+    chantier.centreProvisoire = null;
+    b.classList.add('on');
+    $('sousConsigne').textContent = q.compas === 'rayon'
+      ? 'Touche le centre du cercle : l’écartement est réglé sur ' + q.rayonDemande + '.'
+      : 'Touche le centre, puis un point par lequel le cercle doit passer.';
+    sonClic();
+  });
+  barre.appendChild(b);
+  if (q.compas === 'rayon') {
+    /* Le réglage de l’écartement passe par des boutons larges au doigt ;
+       l’échelle, elle, reste à 14 px par unité — celle de M35 et de M23. */
+    const rang = document.createElement('div');
+    q._ecartement = null;
+    for (let u = 2; u <= 9; u++) {
+      const x = document.createElement('button');
+      x.type = 'button'; x.className = 'outil outil-ecart'; x.textContent = String(u);
+      x.addEventListener('click', () => {
+        if (verrouille) return;
+        q._ecartement = u;
+        barre.querySelectorAll('.outil-ecart').forEach(y => y.classList.toggle('on', y === x));
+        sonClic();
+      });
+      barre.appendChild(x);
+    }
+  }
+}
+function poserCercle(p){
+  if (verrouille) return;
+  const q = chantier.q;
+  if (q.compas === 'rayon') {
+    if (!q._ecartement) { $('sousConsigne').textContent = 'Règle d’abord l’écartement du compas.'; return; }
+    const c = q.centreImpose && dist(p, q.centreImpose) < 26 ? q.centreImpose : p;
+    chantier.cerclesPoses.push({c, r:q._ecartement * PX_PAR_UNITE});
+    chantier.enAttenteCentre = false;
+    document.querySelector('#barreOutils .outil-compas').classList.remove('on');
+    $('sousConsigne').textContent = q.sous || '';
+    sonClic(); dessinerChantier(); majBoutons();
+    return;
+  }
+  if (!chantier.centreProvisoire) {
+    /* Le centre s’accroche à un sommet déjà construit : « centré sur un de
+       ses coins » se joue là, et à la main libre on n’y arriverait pas. */
+    const cands = tousLesPoints(chantier.contours).concat(chantier.sommets);
+    let c = p, d0 = 18;
+    cands.forEach(x => { const d = dist(p, x); if (d < d0) { d0 = d; c = x; } });
+    chantier.centreProvisoire = c;
+    $('sousConsigne').textContent = 'Et maintenant, un point par lequel le cercle passe.';
+    sonClic(); dessinerChantier();
+    const g = scene().getElementById('chantier');
+    g.insertAdjacentHTML('beforeend', `<circle class="sommet" cx="${c[0]}" cy="${c[1]}" r="6"/>`);
+    return;
+  }
+  const c = chantier.centreProvisoire;
+  chantier.cerclesPoses.push({c, r:dist(c, p)});
+  chantier.centreProvisoire = null;
+  chantier.enAttenteCentre = false;
+  document.querySelector('#barreOutils .outil-compas').classList.remove('on');
+  $('sousConsigne').textContent = q.sous || '';
+  sonClic(); dessinerChantier(); majBoutons();
+}
+
+/* ---------- Le pochoir ---------- */
+function rendrePochoir(q){
+  const zt = fondScene(q);
+  const svg = scene();
+  chantier = nouveauChantier(q);
+  const b = bbox(q.pochoir);
+  const forme = q.pochoir.map(p => [(p[0]-b.x0)*MAILLE, (p[1]-b.y0)*MAILLE]);
+  /* Le pochoir est un CARTON qu’on déplace, pas une figure déjà tracée :
+     teinte propre et croix de préhension en son centre, sans quoi il se
+     confond avec le modèle et rien ne dit qu’il bouge. */
+  const cg = [forme.reduce((s,p)=>s+p[0],0)/forme.length, forme.reduce((s,p)=>s+p[1],0)/forme.length];
+  const pochoir = creerPosable(svg.getElementById('instruments'), {
+    x: zt.x0 + MAILLE, y: zt.y0 + MAILLE, angle: 0,
+    corps: `<path class="pochoir-corps" d="${contourD(forme, true)}"/>`
+         + `<path class="pochoir-bord" fill="none" d="${contourD(forme, true)}"/>`
+         + `<g class="pochoir-prise" transform="translate(${cg[0].toFixed(1)},${cg[1].toFixed(1)})">`
+         + `<circle r="11"/><path d="M -6 0 H 6 M 0 -6 V 6"/></g>`,
+    surChangement: () => {}
+  });
+  chantier.pochoir = {p:pochoir, forme};
+
+  const barre = $('barreOutils');
+  barre.hidden = false;
+  barre.innerHTML = '';
+  const dep = document.createElement('button');
+  dep.type = 'button'; dep.className = 'outil on'; dep.textContent = '⬇ déposer la pièce';
+  dep.addEventListener('click', () => {
+    if (verrouille) return;
+    const e = pochoir.etat();
+    /* Le pochoir se dépose sur les nœuds les plus proches : c’est le geste
+       du carton posé à plat sur le carreau, pas un placement au pixel. */
+    const pts = forme.map(p => aimanterPoint([e.x + p[0], e.y + p[1]], chantier.sup, zt, []));
+    if (pts.some(p => !p)) { $('sousConsigne').textContent = 'La pièce dépasse du panneau : rentre-la dedans.'; return; }
+    chantier.contours = [pts];
+    pochoir.verrouiller(); pochoir.g.remove();
+    dep.disabled = true;
+    sonClic(); dessinerChantier(); majBoutons();
+  });
+  barre.appendChild(dep);
+  const ann = document.createElement('button');
+  ann.type = 'button'; ann.className = 'outil outil-annuler'; ann.textContent = '↶ annuler';
+  ann.disabled = true;
+  barre.appendChild(ann);
+
+  $('btnValider').style.display = 'block';
+  $('btnValider').textContent = 'Vérifier ✓';
+  $('btnValider').onclick = () => validerManche(q);
+  majBoutons();
+}
+
+/* ============================================================
+   VALIDATION ET CORRECTION (CHARTE §18)
+   ============================================================ */
+function validerManche(q){
+  if (verrouille) return;
+  verrouille = true;
+  $('btnValider').style.display = 'none';
+  chantier.posables.forEach(p => p.verrouiller());
+  document.querySelectorAll('#barreOutils .outil').forEach(b => b.disabled = true);
+
+  const tol = chantier.tol;
+  let bon = true, motif = null;
+
+  if (q.solutions.length) {
+    const attenduPoints = q.tolAngulaire;
+    if (attenduPoints) {
+      /* Rosace : ce sont des POINTS répartis sur un cercle, pas un contour
+         à parcourir. On compare l’ensemble, à un décalage de rang près. */
+      bon = chantier.contours.length === 1
+        && memeContour(chantier.contours[0], q.solutions[0][0], tol);
+      if (!bon) motif = 'Les six points devaient être régulièrement répartis.';
+    } else {
+      bon = figureAcceptee(chantier.contours, q.solutions, tol, q.libre);
+      if (!bon) motif = chantier.contours.length !== q.solutions[0].length
+        ? 'Il fallait ' + q.solutions[0].length + ' pièce' + (q.solutions[0].length > 1 ? 's' : '') + '.'
+        : 'Regarde la figure attendue, en vert.';
+    }
+  }
+  if (bon && q.cercles) {
+    bon = chantier.cerclesPoses.length === (q.solutions.length ? 1 : 1)
+      && cercleAccepte(chantier.cerclesPoses[0], q.cercles, tol);
+    if (!bon) motif = 'Le cercle n’était pas au bon endroit.';
+  }
+
+  if (!bon) montrerAttendu(q);
+  terminerManche(bon, motif);
+}
+
+function montrerAttendu(q){
+  clearTimeout(minuteurRevel);
+  const svg = scene();
+  const g = svg.getElementById('correction');
+  if (!g) return;
+  /* Révélation différée (§18) : l’enfant voit d’abord SON travail, puis la
+     figure attendue vient se superposer en fantôme vert. Le rouge ne
+     désigne jamais la bonne réponse. */
+  minuteurRevel = setTimeout(() => {
+    if (!g.isConnected) return;
+    let s = '';
+    const sol = q.solutions[0];
+    if (sol) {
+      /* On montre la solution LÀ OÙ l’enfant a travaillé quand la position
+         est libre : superposer au milieu du panneau une figure juste mais
+         décalée laisserait croire que la position était fausse. */
+      let d = [0, 0];
+      if (q.libre && chantier.contours.length) {
+        const cp = centre(tousLesPoints(chantier.contours)), cs = centre(tousLesPoints(sol));
+        d = [cp[0]-cs[0], cp[1]-cs[1]];
+      }
+      decaler(sol, d).forEach(ct => {
+        s += `<path class="attendu" d="${contourD(ct, true)}"/>`;
+        ct.forEach(p => { s += `<circle class="sommet-attendu" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="5"/>`; });
+      });
+    }
+    (q.cercles || []).slice(0, 1).forEach(ce => {
+      s += cercleSvg(ce.c, ce.rLibre ? (ce.rMin + ce.rMax)/2 : ce.r, 'attendu');
+    });
+    g.innerHTML = s;
+  }, DELAI_REVELATION);
+}
+
+function terminerManche(bon, motif){
+  const q = file[pos];
+  q._ok = bon;
+  if (bon) {
+    score += PTS_MANCHE;
+    /* Le vitrail est CUMULATIF : chaque pièce réussie rejoint le panneau,
+       qui s’illumine d’une manche à l’autre et se retrouve en grand sur
+       l’écran de fin. */
+    vitrail.push({contours:chantier.contours.slice(), cercles:chantier.cerclesPoses.slice(),
+                  petalesDe:q.petalesDe || null, sommets:q.petalesDe ? chantier.contours[0] : null});
+    sonBonneReponse(); lancerConfettis(28);
+    message(pioche(['Belle pièce !', 'Le verre est en place !', 'Montage impeccable !']), 'bon');
+  } else {
+    sonErreur();
+    message('Presque ! ', 'mauvais', motif || '');
+  }
+  majDots(); majVitrail();
+  $('btnNext').style.display = 'block';
+  $('btnNext').textContent = pos === file.length - 1 ? 'Voir mon score ⭐' : 'Suivant ➜';
+  $('btnNext').onclick = () => { pos++; if (pos < file.length) manche(); else fin(); };
+  armerAutoSuivant();
+}
+
+/* ============================================================
+   LE PANNEAU DE VITRAIL — cumulatif
+   ============================================================ */
+function dessinerVitrail(svg, larg, haut){
+  const n = file.length;
+  const casePx = larg / n;
+  let s = '';
+  for (let i = 0; i < n; i++) {
+    const x = i * casePx;
+    s += `<rect x="${x+2}" y="2" width="${casePx-4}" height="${haut-4}" rx="6"
+            fill="${i < vitrail.length ? 'rgba(255,255,255,.6)' : 'rgba(90,107,125,.06)'}"
+            stroke="#D9CDBA" stroke-width="1.4"/>`;
+    const v = vitrail[i];
+    if (!v) continue;
+    /* La pièce réussie est remise à l’échelle de sa case : le panneau
+       montre CE QUE L’ENFANT A CONSTRUIT, pas une vignette générique. */
+    const pts = tousLesPoints(v.contours).concat((v.cercles || []).map(c => c.c));
+    if (!pts.length) continue;
+    const b = bbox(pts);
+    const rc = (v.cercles || []).reduce((m, c) => Math.max(m, c.r), 0);
+    const bx0 = b.x0 - rc, bx1 = b.x1 + rc, by0 = b.y0 - rc, by1 = b.y1 + rc;
+    const k = Math.min((casePx - 14) / Math.max(1, bx1-bx0), (haut - 14) / Math.max(1, by1-by0));
+    const ox = x + casePx/2 - (bx0 + bx1)/2 * k, oy = haut/2 - (by0 + by1)/2 * k;
+    const T = (p) => [p[0]*k + ox, p[1]*k + oy];
+    v.contours.forEach((ct, j) => {
+      s += `<path d="${contourD(ct.map(T), true)}" fill="${VERRES[(i+j) % VERRES.length]}"
+              fill-opacity=".75" stroke="var(--plomb)" stroke-width="1.6" stroke-linejoin="round"/>`;
+    });
+    (v.cercles || []).forEach(ce => {
+      const c = T(ce.c);
+      s += `<circle cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="${(ce.r*k).toFixed(1)}"
+              fill="none" stroke="var(--plomb)" stroke-width="1.6"/>`;
+    });
+  }
+  svg.setAttribute('viewBox', `0 0 ${larg} ${haut}`);
+  svg.innerHTML = s;
+}
+function majVitrail(){
+  /* Cinq cases vides au-dessus du plan ne disent rien à l’enfant et
+     mangent la hauteur utile : le panneau n’apparaît qu’avec sa première
+     pièce, et devient alors une récompense qui grandit. */
+  const b = $('vitrail');
+  b.hidden = vitrail.length === 0;
+  if (!b.hidden) dessinerVitrail($('vitrailSvg'), 400, 62);
+}
+
+/* ============================================================
+   FIN DE PARTIE
+   ============================================================ */
+function fin(){
+  desarmerAutoSuivant(); stopperVoix();
+  const ratio = total ? score / total : 0;
+  const n = ratio >= 0.85 ? 3 : ratio >= 0.6 ? 2 : 1;
+  enregistrerEtoiles(miniJeuCourant.cfg.id, n);
+  enregistrerSession(miniJeuCourant.cfg.id, score, total, Math.round((Date.now() - demarreLe)/1000));
+  $('hdrTitle').textContent = 'Résultat';
+  $('endStars').innerHTML = '⭐'.repeat(n).split('').map(s => `<span>${s}</span>`).join('');
+  $('endMsg').textContent = n === 3 ? 'Vitrail terminé !' : n === 2 ? 'Beau panneau !' : 'Continue, ton vitrail avance !';
+  $('endScore').textContent = score + ' pièce' + (score > 1 ? 's' : '') + ' montée' + (score > 1 ? 's' : '') + ' sur ' + total + '.';
+  $('endVitrail').hidden = false;
+  dessinerVitrail($('endVitrailSvg'), 400, 150);
+  if (n === 3) sonNiveauParfait(); else sonBonneReponse();
+  lancerConfettis(n === 3 ? 90 : 40);
+  montreEcran('end');
+}
+$('bRejouer').addEventListener('click', () => lance(miniJeuCourant.cfg.id));
+$('bMenu').addEventListener('click', retourAccueil);
+
+/* ============================================================
+   DÉMARRAGE
+   ============================================================ */
+construireAccueil();
+montreEcran('home');
+
+/* Lancement paramétré (CHARTE §16) : un paramètre inconnu est ignoré en
+   silence — ce n’est qu’un raccourci d’entrée. */
+(function(){
+  const d = parametreURL('competence');
+  if (!d) return;
+  const t = trouverMiniJeu(d);
+  if (!t) return;
+  etatPalierAffiche = t.palierNom;
+  construireAccueil();
+  lance(d);
+})();
+
+/* Bouton « ← Menu » : retour à la coquille avec confirmation (CHARTE §7). */
+(function(){
+  const b = $('bouton-menu'), m = $('modale-menu');
+  if (!b || !m) return;
+  const fermer = () => { m.hidden = true; };
+  b.addEventListener('click', () => { m.hidden = false; });
+  $('modale-menu-rester').addEventListener('click', fermer);
+  $('modale-menu-revenir').addEventListener('click', () => { fermer(); location.href = '../index.html'; });
+})();
+</script>
+</body>
+</html>

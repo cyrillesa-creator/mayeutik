@@ -383,6 +383,62 @@
       ]
     },
     {
+      "id": "M38",
+      "titre": "L’atelier de montage",
+      "description": "Reproduis le modèle, complète les pièces inachevées, puis construis d’après l’énoncé du maître verrier.",
+      "icone": "🪟",
+      "niveau": "CP",
+      "niveaux": [
+        "CP",
+        "CE1",
+        "CE2"
+      ],
+      "domaine": "Espace et géométrie",
+      "domaineProgramme": "Espace et géométrie",
+      "theme": "Géométrie plane",
+      "programme": "BO-2024",
+      "type": "entrainement",
+      "fichier": "jeux/M38-reproduire-construire.html",
+      "competences": [
+        {
+          "id": "cp-reproduire",
+          "libelle": "Reproduire une figure simple sur quadrillage ou papier pointé, au pochoir puis à main libre (CP)"
+        },
+        {
+          "id": "cp-completer",
+          "libelle": "Compléter un rectangle dont deux côtés consécutifs sont tracés, un carré dont un côté l’est (CP)"
+        },
+        {
+          "id": "cp-assembler",
+          "libelle": "Construire un assemblage de carrés, rectangles et triangles (CP)"
+        },
+        {
+          "id": "ce1-reproduire",
+          "libelle": "Reproduire une figure à côtés obliques sur quadrillage ou papier pointé (CE1)"
+        },
+        {
+          "id": "ce1-completer",
+          "libelle": "Compléter un triangle rectangle, et passer au papier uni avec la règle et l’équerre (CE1)"
+        },
+        {
+          "id": "ce1-construire",
+          "libelle": "Construire d’après un énoncé un assemblage de figures et de cercles (CE1)"
+        },
+        {
+          "id": "ce2-reproduire",
+          "libelle": "Reproduire une figure sur quadrillage, à main levée ou à la règle (CE2)"
+        },
+        {
+          "id": "ce2-construire-uni",
+          "libelle": "Construire sur papier uni aux mesures données, à la règle, à l’équerre et au compas (CE2)"
+        },
+        {
+          "id": "ce2-rosace",
+          "libelle": "Construire une rosace : cercle, hexagone régulier et pétales (CE2)"
+        }
+      ]
+    },
+    {
       "id": "M39",
       "titre": "Tableaux et diagrammes",
       "description": "Mène l'enquête dans le jardin : recueille des données, construis et lis des tableaux et des diagrammes.",
