@@ -1,0 +1,1924 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>L’atelier de contrôle — Mayeutik</title>
+<!-- ============================================================
+     JEU M35 — Vérifier et coder (CP, CE1, CE2)
+     Backlog : pilotage/backlog.json — sous-thème « La géométrie plane »
+     Univers : l’atelier de contrôle du vitrail. Plan technique, trait noir
+     sur calque, palette DÉSATURÉE — on n’est plus dans le verre coloré de
+     M34, on est dans le plan.
+
+     Ce que le module fait : poser un instrument sur une figure et lire ce
+     qu’il tranche, puis annoter ce qu’on a établi. Ce qu’il ne fait pas :
+     reproduire ou construire une figure (M38), nommer ou justifier par
+     propriété (M34). Seule exception assumée, sans quoi une compétence CP
+     resterait orpheline : tracer une droite par deux points à la règle,
+     comme CONCLUSION du mini-jeu d’alignement.
+
+     LA RÈGLE D’OR : le texte dit d’utiliser l’instrument « dans les cas où
+     la réponse n’est pas perceptible de façon évidente ». Les items
+     ambigus doivent donc l’être VRAIMENT — un écart de 2 à 4 px, un angle
+     à 87°. Si le défaut se voit à l’œil, l’instrument devient décoratif et
+     l’enfant apprend à l’ignorer. Chaque palier mélange délibérément des
+     items évidents et des items indécidables : savoir quand l’œil suffit
+     est le véritable apprentissage transversal du module.
+
+     HONNÊTETÉ SUR LE GESTE : un écran ne peut pas entraîner la main sur un
+     vrai compas et ne doit pas prétendre le faire. On vise la couche
+     conceptuelle — ce que l’instrument permet de conclure, et quand il
+     faut y recourir. Aucun pincement à deux doigts, aucune simulation de
+     crayon longeant une réglette.
+     ============================================================ -->
+<style>
+:root{
+  color-scheme: light only;
+  --ciel:#EAF2FC; --carte:#FFFFFF; --encre:#1D3354; --encre2:#41577A;
+  --mandarine:#FF8A3D; --mandarine-f:#E5701F;
+  --menthe:#2EC4A6; --menthe-t:#0B8A70; --corail:#FF5D5D; --corail-t:#D93636; --soleil:#FFC93C;
+  /* Palette désaturée propre à l’atelier de contrôle : calque, mine de
+     plomb, bois de l’établi. */
+  --calque:#F4F6F8; --mine:#33404F; --trait:#5A6B7D; --bois:#B99A72; --bois-f:#8E7350;
+  --r:20px; --ombre:0 4px 0 rgba(29,51,84,.12);
+  font-size:16px;
+}
+
+/* ---------- Protections tactiles (CHARTE §19) ----------
+   `touch-action` ne s’hérite PAS : le sélecteur universel est le seul moyen
+   de couvrir toute l’interface. `pan-y` préserve le défilement vertical de
+   la page ; les instruments, eux, déclarent `none` sur eux-mêmes (§19
+   autorise la déclaration plus spécifique) — sans quoi tirer une règle vers
+   le bas ferait défiler la page au lieu de déplacer l’outil. */
+*{ box-sizing:border-box; touch-action:pan-y; -webkit-tap-highlight-color:transparent; }
+html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; background:var(--ciel); color-scheme:light only; }
+html,body{margin:0; padding:0; min-height:100%;}
+body{
+  -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none;
+  -webkit-touch-callout:none;
+  font-family:'Fredoka', ui-rounded, 'Segoe UI', system-ui, sans-serif;
+  background:var(--ciel); color:var(--encre);
+  background-image:radial-gradient(rgba(29,51,84,.05) 1.5px, transparent 1.5px);
+  background-size:26px 26px;
+  display:flex; justify-content:center;
+}
+img, svg{ -webkit-user-drag:none; }
+#app{width:100%; max-width:520px; min-height:100dvh; display:flex; flex-direction:column; padding:10px 14px 18px;}
+
+header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-height:54px;}
+#btnBack{
+  width:42px; height:42px; border-radius:14px; border:none; flex:none;
+  background:var(--carte); color:var(--encre); font-size:20px; font-weight:700;
+  box-shadow:var(--ombre); cursor:pointer;
+}
+#btnBack:active{transform:translateY(2px);}
+#hdrTitle{font-weight:600; font-size:1.15rem; flex:1; line-height:1.1;}
+#dots{display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end; max-width:46%;}
+.dot{width:10px; height:10px; border-radius:50%; background:#C9D6E8;}
+.dot.ok{background:var(--menthe);} .dot.ko{background:var(--corail);} .dot.cur{background:var(--mandarine);}
+.dot.demi{background:var(--soleil);}
+
+/* ---------- Accueil ---------- */
+#home h1{font-size:1.7rem; margin:4px 0 2px; font-weight:700;}
+#home .sub{color:var(--encre2); margin:0 0 12px; font-size:.95rem;}
+.rangee-paliers{display:flex; justify-content:center; gap:8px; margin:6px 0 8px; flex-wrap:wrap;}
+.puce-palier{
+  min-height:40px; padding:6px 18px; border-radius:999px; font-family:inherit;
+  font-weight:700; font-size:.92rem; cursor:pointer;
+  border:2.5px solid color-mix(in srgb, var(--encre) 22%, white); background:var(--carte); color:var(--encre);
+}
+.puce-palier.actif{background:var(--mandarine); border-color:var(--mandarine); color:#fff;}
+/* Palier verrouillé (CHARTE §15) : au-delà du niveau du profil actif, tant
+   que son paquet cadeau n’a pas été ouvert une première fois. */
+.puce-palier.verrouille{opacity:.5; cursor:not-allowed;}
+.note-palier{text-align:center; font-size:.82rem; color:var(--encre2); opacity:.85; margin:0 0 12px;}
+.cards{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.card{
+  background:var(--carte); border:none; border-radius:var(--r); padding:16px 12px 14px;
+  box-shadow:var(--ombre); cursor:pointer; text-align:center; font-family:inherit; color:var(--encre);
+  display:flex; flex-direction:column; align-items:center; gap:6px; transition:transform .08s;
+}
+.card:active{transform:translateY(3px);}
+.card .ico{font-size:2rem; line-height:1;}
+.card .nom{font-weight:600; font-size:1.02rem;}
+.card .det{font-size:.78rem; color:var(--encre2);}
+.card .stars{font-size:.85rem; letter-spacing:2px; min-height:1.1em;}
+
+.bloc-bonus{
+  margin-top:18px; border-radius:var(--r); padding:14px 12px;
+  border:3px dashed var(--soleil); background:color-mix(in srgb, var(--soleil) 14%, white);
+}
+.bloc-bonus h3{text-align:center; font-size:1rem; margin:0 0 2px; color:color-mix(in srgb, var(--soleil) 55%, black 30%);}
+.bloc-bonus .note-palier{margin:2px 0 10px;}
+.paquet-cadeau{
+  display:flex; flex-direction:column; align-items:center; gap:.7rem;
+  width:100%; border:none; background:transparent; padding:1rem .5rem; cursor:pointer;
+  min-height:44px; font-family:inherit;
+}
+.paquet-cadeau-boite{
+  position:relative; width:5.6rem; height:4.6rem; border-radius:14px;
+  background:linear-gradient(180deg, var(--corail), color-mix(in srgb, var(--corail) 70%, black 15%));
+  border:3px solid color-mix(in srgb, var(--corail) 55%, black 20%);
+  box-shadow:0 5px 0 color-mix(in srgb, var(--corail) 50%, black 25%);
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.paquet-cadeau:active .paquet-cadeau-boite{transform:translateY(3px);}
+.paquet-cadeau-ruban-v{position:absolute; left:50%; top:0; bottom:0; width:14px; margin-left:-7px; background:var(--soleil);}
+.paquet-cadeau-ruban-h{position:absolute; top:50%; left:0; right:0; height:14px; margin-top:-7px; background:var(--soleil);}
+.paquet-cadeau-noeud{position:absolute; left:50%; top:-1rem; transform:translateX(-50%); font-size:1.9rem; line-height:1;}
+.paquet-cadeau-texte{font-weight:700; font-size:.88rem; text-align:center; color:color-mix(in srgb, var(--encre) 85%, white);}
+@keyframes paquet-cadeau-pop{
+  0%{transform:scale(1) rotate(0deg); opacity:1;}
+  35%{transform:scale(1.18) rotate(-5deg); opacity:1;}
+  100%{transform:scale(.25) rotate(10deg); opacity:0;}
+}
+.paquet-cadeau.paquet-cadeau-ouverture .paquet-cadeau-boite{animation:paquet-cadeau-pop .45s ease forwards;}
+.paquet-cadeau.paquet-cadeau-ouverture .paquet-cadeau-texte{opacity:0; transition:opacity .2s ease;}
+@media (prefers-reduced-motion:reduce){
+  .paquet-cadeau.paquet-cadeau-ouverture .paquet-cadeau-boite{animation:none; opacity:0;}
+}
+
+/* ---------- Jeu ---------- */
+#qText{
+  font-size:1.08rem; font-weight:700; text-align:center; margin:6px 4px 2px;
+  line-height:1.35; display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;
+}
+.sous-consigne{text-align:center; font-size:.85rem; color:var(--encre2); margin:2px 0 8px; line-height:1.35;}
+.btn-voix{
+  border:none; background:var(--carte); box-shadow:var(--ombre); border-radius:12px;
+  min-width:40px; min-height:40px; font-size:1.05rem; cursor:pointer; font-family:inherit; padding:0 10px;
+}
+.btn-voix:active{transform:translateY(2px);}
+
+/* Le plan : calque clair, trait de mine, rien de saturé. */
+.plan{background:var(--calque); border:2px solid #D4DCE4; border-radius:var(--r); box-shadow:var(--ombre); padding:6px; margin-bottom:10px;}
+.plan svg{display:block; width:100%; height:auto;}
+.point-croix{stroke:var(--mine); stroke-width:2.6; stroke-linecap:round;}
+.fig-trait{fill:none; stroke:var(--mine); stroke-width:2.6; stroke-linejoin:round;}
+.fig-remplie{fill:rgba(90,107,125,.10); stroke:var(--mine); stroke-width:2.6; stroke-linejoin:round;}
+.trace-fait{stroke:var(--menthe-t); stroke-width:3.2; stroke-linecap:round;}
+.cible-tactile{fill:transparent; stroke:transparent; stroke-width:30; cursor:pointer;}
+/* La cible tactile est large et invisible ; l’INDICE, lui, est petit et
+   visible. Les deux sont distincts : une zone transparente ne s’offre pas,
+   et un indice assez gros pour le doigt encombrerait la figure. */
+.indice-cible{fill:none; stroke:var(--trait); stroke-width:1.7; stroke-dasharray:3.5 3.5; opacity:.6; pointer-events:none;}
+.indice-cible.pris{opacity:0;}
+.cible-tactile.sel{stroke:color-mix(in srgb, var(--mandarine) 55%, transparent);}
+.repere{fill:rgba(29,51,84,.30); pointer-events:none;}
+.sommet-actif{fill:none; stroke:var(--mandarine); stroke-width:3;}
+
+/* L’INSTRUMENT — `touch-action:none` sur lui seul (cf. §19 en tête).
+   Les enfants sont visés EXPLICITEMENT : `touch-action` ne s’hérite pas, et
+   le sélecteur universel ci-dessus les remettrait sinon en `pan-y` — la
+   poignée de rotation ferait alors défiler la page au lieu de tourner. */
+.posable, .posable *{touch-action:none;}
+.posable{cursor:grab;}
+.posable.saisi{cursor:grabbing;}
+.posable .corps{fill:rgba(120,140,160,.30); stroke:var(--trait); stroke-width:2.4;}
+.posable .bord{stroke:var(--mine); stroke-width:3.4; stroke-linecap:round;}
+.posable .poignee{fill:var(--mandarine); stroke:#fff; stroke-width:2.5;}
+.posable .poignee-halo{fill:rgba(255,138,61,.20);}
+.posable .poignee-fleche{fill:none; stroke:#fff; stroke-width:2.2; stroke-linecap:round;}
+.posable.aimante .bord{stroke:var(--menthe-t);}
+.posable.exact .corps{fill:rgba(46,196,166,.22);}
+.posable.exact .bord{stroke:var(--menthe-t);}
+
+.barre-outils{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:0 0 10px;}
+.outil{
+  border:2.5px solid #C9D6E8; background:var(--carte); border-radius:12px;
+  min-height:44px; padding:6px 12px; font-family:inherit; font-weight:700; font-size:.85rem;
+  color:var(--encre); cursor:pointer; display:flex; align-items:center; gap:6px;
+}
+.outil.on{border-color:var(--mandarine); background:#FFF3E9;}
+.outil svg{display:block; width:26px; height:22px;}
+
+#answers{display:grid; grid-template-columns:1fr; gap:10px;}
+#answers.duo{grid-template-columns:1fr 1fr;}
+#answers.trio{grid-template-columns:1fr 1fr 1fr;}
+#answers.pile{grid-template-columns:1fr;}
+.rep{
+  border:none; border-radius:16px; padding:13px 10px; font-family:inherit;
+  font-size:1rem; font-weight:600; background:var(--carte); color:var(--encre);
+  box-shadow:var(--ombre); cursor:pointer; min-height:44px; text-align:center;
+}
+.rep:active{transform:translateY(2px);}
+.rep.ok{background:var(--menthe); color:#fff;}
+.rep.ko{background:var(--corail); color:#fff; animation:shake .35s;}
+.rep.dim{opacity:.5;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+#feedback{
+  text-align:center; font-weight:700; margin-top:12px; min-height:2.4em;
+  font-size:1rem; line-height:1.35; padding:0 6px;
+}
+#feedback.bon{color:var(--menthe-t);} #feedback.mauvais{color:var(--corail-t);}
+#feedback.demi{color:#8A6D1F;}
+/* CHARTE §18 : ce qu’il fallait faire reste en VERT, le rouge ne désigne
+   jamais la bonne réponse. */
+#feedback .correction-attendue{color:var(--menthe-t);}
+
+#btnValider, #btnNext{
+  display:none; margin:12px auto 0; border:none; border-radius:18px;
+  padding:13px 34px; font-family:inherit; font-size:1.05rem; font-weight:700; color:#fff; cursor:pointer;
+}
+#btnValider{background:var(--menthe); box-shadow:0 4px 0 var(--menthe-t);}
+#btnNext{background:var(--mandarine); box-shadow:0 4px 0 var(--mandarine-f);}
+#btnValider:active, #btnNext:active{transform:translateY(3px);}
+
+/* Fin */
+#end{text-align:center; padding-top:8vh;}
+#endStars{font-size:3.4rem; letter-spacing:8px; margin:10px 0;}
+#endStars span{display:inline-block; animation:pop .5s backwards;}
+#endStars span:nth-child(2){animation-delay:.25s;} #endStars span:nth-child(3){animation-delay:.5s;}
+@keyframes pop{0%{transform:scale(0)}70%{transform:scale(1.35)}100%{transform:scale(1)}}
+#endMsg{font-size:1.3rem; font-weight:700;}
+#endScore{color:var(--encre2); margin:6px 0 22px;}
+#end .actions-fin{display:flex; gap:12px; justify-content:center;}
+#end .actions-fin button{
+  border:none; border-radius:18px; padding:13px 26px; font-family:inherit;
+  font-size:1.05rem; font-weight:700; cursor:pointer; box-shadow:var(--ombre); min-height:44px;
+}
+#bRejouer{background:var(--mandarine); color:#fff; box-shadow:0 4px 0 var(--mandarine-f);}
+#bMenu{background:var(--carte); color:var(--encre);}
+
+/* Retour coquille (CHARTE §7) */
+.barre-accueil{display:flex; margin:0 0 8px;}
+.bouton-menu{
+  min-height:44px; border-radius:14px; padding:0 14px; cursor:pointer; font-family:inherit;
+  border:2px solid color-mix(in srgb, var(--encre) 25%, white);
+  background:var(--carte); color:var(--encre); font-weight:600; font-size:.95rem;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.bouton-menu:active{transform:translateY(2px);}
+.modale-fond{
+  position:fixed; inset:0; z-index:1000; padding:1.2rem;
+  background:color-mix(in srgb, var(--encre) 55%, transparent);
+  display:flex; align-items:center; justify-content:center;
+}
+.modale-boite{
+  background:var(--carte); border-radius:20px; padding:22px 18px; max-width:20rem; width:100%;
+  text-align:center; box-shadow:0 12px 34px rgba(29,51,84,.3);
+}
+.modale-boite p{font-size:1.05rem; font-weight:600; margin:0 0 18px;}
+.modale-boutons{display:flex; gap:10px; justify-content:center; flex-wrap:wrap;}
+.modale-boutons button{
+  border:none; border-radius:16px; padding:12px 20px; font-family:inherit;
+  font-size:1rem; font-weight:700; cursor:pointer; min-height:44px;
+}
+.modale-boutons .m-rester{background:var(--carte); color:var(--encre); border:2px solid var(--encre);}
+.modale-boutons .m-revenir{background:var(--mandarine); color:#fff;}
+
+#confettis-conteneur{position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:999;}
+.confetti{position:absolute; top:-12px; width:9px; height:14px; border-radius:2px;
+  animation-name:chute-confetti; animation-timing-function:ease-in; animation-fill-mode:forwards;}
+@keyframes chute-confetti{ to{ transform:translateY(105vh) rotate(340deg); opacity:.75; } }
+@media (prefers-reduced-motion:reduce){ .confetti{display:none; animation:none;} }
+
+[hidden]{display:none !important;}
+@media (prefers-color-scheme: dark){
+  html, body{background:var(--ciel) !important; color:var(--encre) !important;}
+  .card, .rep, .plan, .outil, #btnBack, .puce-palier, .btn-voix{background:var(--carte) !important; color:var(--encre) !important;}
+  .plan{background:var(--calque) !important;}
+  .puce-palier.actif{background:var(--mandarine) !important; color:#fff !important;}
+  .rep.ok{background:var(--menthe) !important; color:#fff !important;}
+  .rep.ko{background:var(--corail) !important; color:#fff !important;}
+}
+@media (prefers-reduced-motion:reduce){ *{animation:none !important;} }
+</style>
+</head>
+<body>
+<div id="confettis-conteneur" aria-hidden="true"></div>
+<div class="modale-fond" id="modale-menu" hidden>
+  <div class="modale-boite" role="dialog" aria-modal="true" aria-labelledby="modale-menu-texte">
+    <p id="modale-menu-texte">Revenir au menu principal ? Ta partie en cours sera perdue.</p>
+    <div class="modale-boutons">
+      <button type="button" class="m-rester" id="modale-menu-rester">Rester</button>
+      <button type="button" class="m-revenir" id="modale-menu-revenir">Revenir au menu</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <button id="btnBack" hidden aria-label="Retour">←</button>
+    <div id="hdrTitle">L’atelier de contrôle</div>
+    <div id="dots"></div>
+  </header>
+  <main>
+    <section id="home">
+      <div class="barre-accueil"><button type="button" class="bouton-menu" id="bouton-menu">← Menu</button></div>
+      <h1>L’atelier de contrôle</h1>
+      <p class="sub" id="sous-titre-accueil"></p>
+      <div class="rangee-paliers" id="rangee-paliers"></div>
+      <p class="note-palier" id="note-palier"></p>
+      <div class="cards" id="grille-jeux"></div>
+      <div class="bloc-bonus" id="bloc-bonus" hidden>
+        <h3>Palier bonus 🎁</h3>
+        <p class="note-palier" id="note-bonus"></p>
+        <button type="button" class="paquet-cadeau" id="paquet-cadeau" hidden>
+          <span class="paquet-cadeau-boite">
+            <span class="paquet-cadeau-ruban-v"></span><span class="paquet-cadeau-ruban-h"></span>
+            <span class="paquet-cadeau-noeud">🎀</span>
+          </span>
+          <span class="paquet-cadeau-texte">Touche le paquet pour découvrir ta récompense !</span>
+        </button>
+        <div class="cards" id="grille-bonus" hidden></div>
+      </div>
+    </section>
+
+    <section id="game" hidden>
+      <div id="qText"></div>
+      <p class="sous-consigne" id="sousConsigne"></p>
+      <div class="barre-outils" id="barreOutils" hidden></div>
+      <div class="plan" id="plan"><svg id="scene" viewBox="0 0 400 300"></svg></div>
+      <div id="answers"></div>
+      <button id="btnValider" type="button">Vérifier ✓</button>
+      <p id="feedback"></p>
+      <button id="btnNext" type="button">Suivant ➜</button>
+    </section>
+
+    <section id="end" hidden>
+      <div id="endStars"></div>
+      <div id="endMsg"></div>
+      <div id="endScore"></div>
+      <div class="actions-fin">
+        <button id="bRejouer">Rejouer</button>
+        <button id="bMenu">Menu</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+
+/* ============================================================
+   CONSTANTES DE CALIBRAGE
+   Les seuils qui font vivre le module sont NOMMÉS ici, pas dispersés :
+   ce sont eux qu’il faudra retoucher après essai sur appareil.
+   ============================================================ */
+/* Échelle reprise du double-décimètre de M23 (20 unités : ⌊280/20⌋ = 14),
+   pour que l’enfant retrouve le même centimètre d’un jeu à l’autre. */
+const PX_PAR_CM = 14;
+/* L’aimant accroche la POSITION à cette distance. Il n’accroche jamais un
+   angle sur un alignement faux : il aide à poser, jamais à conclure. */
+const AIMANT_PX = 14;
+/* Écart d’un point à la droite des deux autres. Indécidable à l’œil, ou
+   franchement visible : c’est ce curseur qui décide si l’instrument est
+   nécessaire, et donc obligatoire. */
+const ECART_INDECIDABLE = [2, 4], ECART_EVIDENT = [15, 26];
+/* Angles douteux : proches de 90° sans y être. Un angle franc appartient
+   à M34, qui le classe à l’œil. */
+const ANGLES_DOUTEUX = [84, 86, 87, 93, 94, 96];
+const ANGLES_FRANCS = [52, 58, 63, 118, 125, 133];
+const TOL_ANGLE_DROIT = 1.0;         // en deçà, l’angle EST droit
+/* Longueurs : au-delà de 15 % d’écart la différence est franche, en deçà
+   elle appelle le report au compas. */
+const SEUIL_LONGUEUR_FRANCHE = 0.15;
+/* Milieu par pliage : ±5 % de la longueur du segment. Sur 300 px, ±15 px —
+   une cible honnête au doigt, qui écarte tout de même l’« à peu près ». */
+const TOL_PLIAGE = 0.05;
+/* Barème en DEMI-POINTS, pour que le contrat §11 reste entier : réponse
+   juste avec l’instrument requis = 2, juste sans l’avoir posé = 1,
+   fausse = 0. Trop vérifier n’est jamais pénalisé. */
+const PTS_PLEIN = 2, PTS_SANS_VERIF = 1;
+const DELAI_REVELATION = 900;        // §18 : révélation différée
+
+/* ============================================================
+   LANGUE (cf. CLAUDE.md) — élision et accord se calculent
+   ============================================================ */
+function deElision(mot){
+  return /^[aeiouyàâäéèêëïîôöùûü]/i.test(mot) ? 'd’' + mot : 'de ' + mot;
+}
+const maj = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+/* ============================================================
+   GÉOMÉTRIE
+   ============================================================ */
+const TAU = Math.PI * 2;
+const degres = r => r * 180 / Math.PI, radians = d => d * Math.PI / 180;
+const dist = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]);
+/* Distance signée d’un point à la droite (A,B) : le signe dit de quel côté,
+   la valeur absolue de combien. C’est la mesure même de l’alignement. */
+function ecartDroite(p, a, b){
+  const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy);
+  if (L < 1e-9) return dist(p, a);
+  return ((p[0] - a[0]) * dy - (p[1] - a[1]) * dx) / L;
+}
+function distancePointDroite(p, o, angle){
+  const dx = Math.cos(angle), dy = Math.sin(angle);
+  return Math.abs((p[0] - o[0]) * dy - (p[1] - o[1]) * dx);
+}
+function angleEn(sommet, a, b){
+  const u = [a[0] - sommet[0], a[1] - sommet[1]], v = [b[0] - sommet[0], b[1] - sommet[1]];
+  const cos = (u[0]*v[0] + u[1]*v[1]) / (Math.hypot(...u) * Math.hypot(...v));
+  return degres(Math.acos(Math.max(-1, Math.min(1, cos))));
+}
+const milieu = (a, b) => [(a[0]+b[0])/2, (a[1]+b[1])/2];
+/* Ramène un nuage de points dans un cadre donné, par translation puis, si
+   besoin, homothétie — laquelle ne touche pas aux angles, si bien que la
+   question posée reste vraie. Sans ce passage, une figure tirée au sort
+   sort du plan par un bord et l’enfant répond sur ce qu’il ne voit pas. */
+function cadrer(pts, x0, y0, x1, y1){
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const l = Math.max(...xs) - Math.min(...xs), h = Math.max(...ys) - Math.min(...ys);
+  const k = Math.min((x1-x0) / (l || 1), (y1-y0) / (h || 1), 1);
+  const mx = (Math.min(...xs) + Math.max(...xs)) / 2, my = (Math.min(...ys) + Math.max(...ys)) / 2;
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  return pts.map(p => [cx + (p[0] - mx)*k, cy + (p[1] - my)*k]);
+}
+function melanger(t){
+  const c = [...t];
+  for (let i = c.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [c[i], c[j]] = [c[j], c[i]]; }
+  return c;
+}
+const pioche = a => a[Math.floor(Math.random()*a.length)];
+const entre = (a, b) => a + Math.random() * (b - a);
+const signeAleatoire = () => Math.random() < 0.5 ? -1 : 1;
+
+/* ============================================================
+   MOTEUR D’OBJETS POSABLES
+   ------------------------------------------------------------
+   Un état {x, y, angle} rendu en <g transform>. Deux zones de saisie : le
+   CORPS translate, une POIGNÉE en bout fait tourner. Jamais de rotation à
+   deux doigts — indécouvrable pour un enfant, et incompatible avec le
+   défilement de la page.
+
+   La conversion écran → SVG passe par l’inverse de getScreenCTM() : un
+   simple delta de pixels serait faux dès que le viewBox est mis à
+   l’échelle, ce qui est le cas sur tout téléphone.
+   ============================================================ */
+function versSVG(svg, clientX, clientY){
+  const pt = svg.createSVGPoint();
+  pt.x = clientX; pt.y = clientY;
+  const m = svg.getScreenCTM();
+  if (!m) return {x:clientX, y:clientY};
+  const q = pt.matrixTransform(m.inverse());
+  return {x:q.x, y:q.y};
+}
+
+function creerPosable(svg, spec){
+  /* spec : {x, y, angle, corps (markup SVG local), poignee:[px,py],
+             pointsAimant:[[x,y]…], surChangement(etat)} */
+  let x = spec.x, y = spec.y, a = spec.angle || 0;
+  const g = document.createElementNS(NS, 'g');
+  g.setAttribute('class', 'posable');
+  const po = spec.poignee;
+  g.innerHTML = spec.corps
+    + (po ? `<circle class="poignee-halo" cx="${po[0]}" cy="${po[1]}" r="24"/>`
+          + `<circle class="poignee" cx="${po[0]}" cy="${po[1]}" r="11"/>`
+          + `<path class="poignee-fleche" d="M ${po[0]-5} ${po[1]-1.5} a 5 5 0 1 1 1.7 3.6"/>` : '');
+  svg.appendChild(g);
+
+  const etat = () => ({x, y, angle:a});
+  function appliquer(){
+    g.setAttribute('transform', `translate(${x.toFixed(2)},${y.toFixed(2)}) rotate(${degres(a).toFixed(2)})`);
+    /* Le groupe est passé en second : `appliquer()` s’exécute une première
+       fois AVANT que l’appelant n’ait pu ranger le posable dans
+       `posableCourant`, qui vaut alors encore null. */
+    if (spec.surChangement) spec.surChangement(etat(), g);
+  }
+  /* Aimantation de POSITION seulement : on rapproche l’origine de
+     l’instrument d’un point remarquable. L’angle, lui, n’est jamais
+     accroché — accrocher un angle reviendrait à trancher l’alignement à la
+     place de l’enfant, c’est-à-dire à répondre pour lui. */
+  function aimanter(){
+    if (!spec.pointsAimant) return false;
+    let meilleur = null, d0 = AIMANT_PX;
+    spec.pointsAimant.forEach(p => {
+      const d = Math.hypot(p[0] - x, p[1] - y);
+      if (d < d0) { d0 = d; meilleur = p; }
+    });
+    if (meilleur) { x = meilleur[0]; y = meilleur[1]; return true; }
+    return false;
+  }
+
+  let mode = null, depart = null;
+  const surDown = (e) => {
+    if (g.dataset.verrouille === '1') return;
+    const p = versSVG(svg, e.clientX, e.clientY);
+    const surPoignee = /^poignee/.test(e.target.getAttribute('class') || '');
+    mode = surPoignee ? 'rot' : 'trans';
+    depart = mode === 'trans'
+      ? {dx: p.x - x, dy: p.y - y}
+      : {a0: a, ang0: Math.atan2(p.y - y, p.x - x)};
+    try { g.setPointerCapture(e.pointerId); } catch (err) {}
+    g.classList.add('saisi');
+    e.preventDefault();
+  };
+  const surMove = (e) => {
+    if (!mode) return;
+    const p = versSVG(svg, e.clientX, e.clientY);
+    if (mode === 'trans') { x = p.x - depart.dx; y = p.y - depart.dy; g.classList.toggle('aimante', aimanter()); }
+    else a = depart.a0 + (Math.atan2(p.y - y, p.x - x) - depart.ang0);
+    appliquer();
+    e.preventDefault();
+  };
+  const surUp = (e) => {
+    mode = null; g.classList.remove('saisi');
+    try { g.releasePointerCapture(e.pointerId); } catch (err) {}
+  };
+  g.addEventListener('pointerdown', surDown);
+  g.addEventListener('pointermove', surMove);
+  g.addEventListener('pointerup', surUp);
+  g.addEventListener('pointercancel', surUp);
+
+  appliquer();
+  return {
+    g, etat,
+    verrouiller(){ g.dataset.verrouille = '1'; g.style.cursor = 'default'; },
+    /* Révélation différée (§18) : l’instrument rejoint tout seul la position
+       exacte, pour montrer ce qu’il fallait voir. */
+    placerExact(nx, ny, na){
+      g.classList.add('exact');
+      x = nx; y = ny; a = na;
+      g.style.transition = 'none';
+      appliquer();
+    }
+  };
+}
+
+/* ---- Habillages des trois instruments (géométrie locale) ----
+   Chaque habillage livre son CORPS et l’emplacement de sa POIGNÉE. Les deux
+   vont ensemble : un instrument sans poignée ne peut être que translaté,
+   donc jamais orienté — autant dire jamais posé. La poignée est toujours
+   loin de l’origine (le point d’aimantation), pour que le geste « je tiens
+   le coin et je fais pivoter » soit sûr même avec un doigt d’enfant. */
+
+/* La règle : bord franc le long de l’axe local des x, corps translucide
+   au-dessous — on lit l’alignement SUR le bord, jamais au milieu. */
+const REGLE = (L) => ({
+  corps: `<rect class="corps" x="${-L/2}" y="0" width="${L}" height="30" rx="4"/>`
+       + `<line class="bord" x1="${-L/2}" y1="0" x2="${L/2}" y2="0"/>`,
+  poignee: [L/2 - 34, 46]
+});
+/* Le gabarit : un coin de carton, pas une équerre complète. On le pose dans
+   le sommet ; le côté de la figure tombe visiblement dedans ou dehors. */
+const GABARIT = (L) => ({
+  corps: `<path class="corps" d="M 0 0 L ${L} 0 L ${L} ${L*0.34} L ${L*0.34} ${L*0.34} L ${L*0.34} ${L} L 0 ${L} Z"/>`
+       + `<line class="bord" x1="0" y1="0" x2="${L}" y2="0"/>`
+       + `<line class="bord" x1="0" y1="0" x2="0" y2="${L}"/>`,
+  poignee: [L*0.80, L*0.17]
+});
+/* L’équerre : même objet posable, habillage d’outil réel (CE2). */
+const EQUERRE = (L) => ({
+  corps: `<path class="corps" d="M 0 0 L ${L} 0 L 0 ${L} Z"/>`
+       + `<line class="bord" x1="0" y1="0" x2="${L}" y2="0"/>`
+       + `<line class="bord" x1="0" y1="0" x2="0" y2="${L}"/>`,
+  poignee: [L*0.36, L*0.36]
+});
+
+/* ============================================================
+   CONTENU PÉDAGOGIQUE PAR PALIER (CHARTE §15)
+   ============================================================ */
+const CONTENU = {
+  sousTitre: 'Pose l’instrument, lis ce qu’il dit, puis note-le sur le plan.',
+  paliers: {
+    CP: {
+      sousTitre: 'Aligne les pointes, puis vérifie à la règle !',
+      miniJeux: [
+        {id:'cp-alignement', mode:'alignement', titre:'Les pointes de l’établi', icone:'📌',
+         description:'Alignés, ou pas ?', nbQuestions:5, etabli:2, dosageEvident:1/3},
+        {id:'cp-tracer-droite', mode:'tracer', titre:'Le trait du verrier', icone:'📏',
+         description:'Trace le plomb.', nbQuestions:5}
+      ]
+    },
+    CE1: {
+      sousTitre: 'Le gabarit, le compas, et le code de l’angle droit.',
+      miniJeux: [
+        {id:'ce1-alignement', mode:'alignement', titre:'Le contrôle du plan', icone:'🔍',
+         description:'Juge, et parfois place.', nbQuestions:5, dosageEvident:1/2, placer:true},
+        {id:'ce1-angles', mode:'angles', titre:'Le gabarit de l’atelier', icone:'📐',
+         description:'Droit, aigu ou obtus ?', nbQuestions:5, outil:'gabarit'},
+        {id:'ce1-compas', mode:'compas1', titre:'Le cercle des rosaces', icone:'🧭',
+         description:'Cercle, et milieu par pliage.', nbQuestions:5},
+        {id:'ce1-codage', mode:'codage1', titre:'L’angle droit sur le plan', icone:'🔲',
+         description:'Code les angles droits.', nbQuestions:5}
+      ]
+    },
+    CE2: {
+      sousTitre: 'L’équerre, l’écartement, et le plan certifié.',
+      miniJeux: [
+        {id:'ce2-alignement', mode:'alignement', titre:'L’expertise', icone:'🔬',
+         description:'Plus rien d’évident.', nbQuestions:5, dosageEvident:0},
+        {id:'ce2-angles', mode:'anglesPoly', titre:'L’équerre du contrôleur', icone:'📐',
+         description:'Chaque angle du polygone.', nbQuestions:5, outil:'equerre'},
+        {id:'ce2-compas', mode:'compas2', titre:'L’écartement', icone:'🧭',
+         description:'Rayon donné et report.', nbQuestions:5},
+        {id:'ce2-codage', mode:'codage2', titre:'Le plan certifié', icone:'✅',
+         description:'Angles droits et égalités.', nbQuestions:5}
+      ]
+    }
+  }
+};
+
+/* ============================================================
+   STOCKAGE (CHARTE §9, §11, §15)
+   ============================================================ */
+const CLE_STOCKAGE = 'mayeutik-m35-verifier-etoiles';
+let memoireEtoiles = null;
+function lireEtoiles(){
+  if (memoireEtoiles === null) {
+    memoireEtoiles = {};
+    try { const b = localStorage.getItem(CLE_STOCKAGE); if (b) memoireEtoiles = JSON.parse(b); } catch(e){ memoireEtoiles = {}; }
+  }
+  return memoireEtoiles;
+}
+function enregistrerEtoiles(id, v){
+  const t = lireEtoiles(); t[id] = Math.max(t[id] || 0, v); memoireEtoiles = t;
+  try { localStorage.setItem(CLE_STOCKAGE, JSON.stringify(t)); } catch(e){}
+}
+/* Deux transitions (CP→CE1, CE1→CE2) : indicateur indexé par profil PUIS
+   par palier cible. */
+const CLE_BONUS_REVELE = 'mayeutik-m35-bonus-revele';
+let memoireBonus = null;
+function lireBonus(){
+  if (memoireBonus === null) {
+    memoireBonus = {};
+    try { const b = localStorage.getItem(CLE_BONUS_REVELE); if (b) memoireBonus = JSON.parse(b); } catch(e){ memoireBonus = {}; }
+  }
+  return memoireBonus;
+}
+function bonusDejaRevele(pid, cible){
+  const e = lireBonus()[pid];
+  return !!(e && typeof e === 'object' && e[cible]);
+}
+function marquerBonusRevele(pid, cible){
+  const t = lireBonus();
+  if (!t[pid] || typeof t[pid] !== 'object') t[pid] = {};
+  t[pid][cible] = true; memoireBonus = t;
+  try { localStorage.setItem(CLE_BONUS_REVELE, JSON.stringify(t)); } catch(e){}
+}
+const CLE_PROFILS = 'mayeutik-profils', CLE_PROFIL_ACTIF = 'mayeutik-profil-actif';
+const ORDRE_PALIERS = ['CP','CE1','CE2'];
+function lireProfilActifId(){ try { return localStorage.getItem(CLE_PROFIL_ACTIF) || 'p1'; } catch(e){ return 'p1'; } }
+function niveauDuProfilActif(){
+  try {
+    const b = localStorage.getItem(CLE_PROFILS);
+    if (!b) return null;
+    const a = JSON.parse(b).find(p => p.id === lireProfilActifId());
+    return (a && a.niveau) || null;
+  } catch(e){ return null; }
+}
+function parametreURL(n){ try { return new URLSearchParams(location.search).get(n); } catch(e){ return null; } }
+function palierDepuisURL(){
+  const b = parametreURL('palier');
+  if (!b) return null;
+  const M = b.toUpperCase();
+  return CONTENU.paliers[M] ? M : null;
+}
+function palierParDefaut(){
+  const u = palierDepuisURL(); if (u) return u;
+  const n = niveauDuProfilActif();
+  if (n && CONTENU.paliers[n]) return n;
+  return ORDRE_PALIERS.find(x => CONTENU.paliers[x]) || ORDRE_PALIERS[0];
+}
+const CLE_SESSIONS = 'mayeutik-sessions', MODULE_ID = 'M35', MAX_SESSIONS = 500;
+let memoireSessions = null;
+function lireSessions(){
+  if (memoireSessions === null) {
+    memoireSessions = [];
+    try { const b = localStorage.getItem(CLE_SESSIONS); if (b) memoireSessions = JSON.parse(b); } catch(e){ memoireSessions = []; }
+  }
+  return memoireSessions;
+}
+function enregistrerSession(comp, score, total, duree){
+  const pid = lireProfilActifId(), t = lireSessions();
+  t.push({profilId:pid, module:MODULE_ID, competence:comp, score, total, date:new Date().toISOString(), duree});
+  let n = 0;
+  for (let i = t.length - 1; i >= 0; i--) if (t[i].profilId === pid) { n++; if (n > MAX_SESSIONS) t.splice(i, 1); }
+  memoireSessions = t;
+  try { localStorage.setItem(CLE_SESSIONS, JSON.stringify(t)); } catch(e){}
+}
+const SEUIL_MAITRISE = 0.8;
+function palierMaitrise(nom){
+  const p = CONTENU.paliers[nom];
+  if (!p) return false;
+  const pid = lireProfilActifId();
+  const s = lireSessions().filter(x => x.profilId === pid && x.module === MODULE_ID);
+  return p.miniJeux.every(mj => {
+    const l = s.filter(x => x.competence === mj.id);
+    if (!l.length) return false;
+    const d = l[l.length - 1];
+    return d.total > 0 && d.score / d.total >= SEUIL_MAITRISE;
+  });
+}
+function palierSuivant(nom){
+  const i = ORDRE_PALIERS.indexOf(nom);
+  if (i === -1 || i === ORDRE_PALIERS.length - 1) return null;
+  const s = ORDRE_PALIERS[i+1];
+  return CONTENU.paliers[s] ? s : null;
+}
+
+/* ============================================================
+   SONS (§5), CONFETTIS (§4), VOIX
+   ============================================================ */
+let actx = null;
+function jouerNote(f, d, dur, vol, forme){
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = forme || 'sine'; o.frequency.value = f;
+    const t = actx.currentTime + d;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(actx.destination);
+    o.start(t); o.stop(t + dur + 0.02);
+  } catch(e){}
+}
+const N_BON = [523.25, 659.25, 783.99, 1046.5];
+const N_PARFAIT = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
+function sonBonneReponse(){ N_BON.forEach((f,i) => jouerNote(f, i*0.11, 0.11, 0.22)); }
+function sonNiveauParfait(){
+  const p = 0.1;
+  N_PARFAIT.forEach((f,i) => jouerNote(f, i*p, 0.12, 0.2));
+  N_BON.forEach(f => jouerNote(f, N_PARFAIT.length*p + 0.04, 0.75, 0.12, 'triangle'));
+}
+function sonErreur(){ [392.0, 293.66].forEach((f,i) => jouerNote(f, i*0.17, 0.17, 0.22)); }
+function sonClic(){ jouerNote(660, 0, 0.05, 0.12); }
+const COULEURS = ['#FF8A3D','#2EC4A6','#FFC93C','#5AB4DC','#FF5D5D'];
+function lancerConfettis(nb){
+  const c = $('confettis-conteneur');
+  if (!c) return;
+  for (let i = 0; i < (nb||30); i++) {
+    const p = document.createElement('span');
+    p.className = 'confetti';
+    p.style.left = Math.random()*100 + '%';
+    p.style.background = COULEURS[i % COULEURS.length];
+    p.style.animationDuration = (1.1 + Math.random()*0.9) + 's';
+    p.style.animationDelay = (Math.random()*0.35) + 's';
+    c.appendChild(p);
+    p.addEventListener('animationend', () => p.remove());
+    setTimeout(() => p.remove(), 2600);
+  }
+}
+function voixFrancaises(){
+  try { return (speechSynthesis.getVoices() || []).filter(v => /^fr/i.test(v.lang)); } catch(e){ return []; }
+}
+function lireAVoixHaute(t){
+  try {
+    if (!window.speechSynthesis) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(t);
+    u.lang = 'fr-FR'; u.rate = 0.95;
+    const l = voixFrancaises().filter(v => v.localService);
+    const v = l[0] || voixFrancaises()[0];
+    if (v) u.voice = v;
+    speechSynthesis.speak(u);
+  } catch(e){}
+}
+function stopperVoix(){ try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch(e){} }
+
+/* ============================================================
+   FABRIQUE D’ITEMS
+   ============================================================ */
+/* Trois points, alignés ou non. Un item ALIGNÉ est toujours indécidable à
+   l’œil — un alignement exact et un quasi-alignement se ressemblent trait
+   pour trait ; c’est pourquoi l’instrument y est toujours requis. Un
+   désalignement FRANC, lui, se voit : l’instrument y reste facultatif. */
+function itemAlignement(evident, penteMax){
+  const ya = entre(70, 210);
+  /* `penteMax` borne l’inclinaison de la rangée. Sans elle, les deux points
+     extrêmes tirés indépendamment donnent une rangée très oblique : le
+     défaut du point du milieu se lit alors comme « celui-ci est plus bas »
+     et non comme « celui-ci sort du rang ». */
+  const yb = penteMax
+    ? Math.max(70, Math.min(210, ya + entre(-penteMax, penteMax)))
+    : entre(70, 210);
+  const a = [entre(50, 110), ya];
+  const b = [entre(290, 350), yb];
+  const t = entre(0.42, 0.58);
+  const surDroite = [a[0] + (b[0]-a[0])*t, a[1] + (b[1]-a[1])*t];
+  const dx = b[0]-a[0], dy = b[1]-a[1], L = Math.hypot(dx, dy);
+  const nx = -dy/L, ny = dx/L;
+  let ecart = 0, aligne = false;
+  if (evident) {
+    ecart = entre(...ECART_EVIDENT) * signeAleatoire();     // défaut visible
+  } else if (Math.random() < 0.5) {
+    aligne = true;                                          // vraiment alignés
+  } else {
+    ecart = entre(...ECART_INDECIDABLE) * signeAleatoire(); // indécidable
+  }
+  const c = [surDroite[0] + nx*ecart, surDroite[1] + ny*ecart];
+  return {points:[a, c, b], aligne, ecart:Math.abs(ecart), evident:!!evident,
+          /* Instrument requis dès que l’œil ne peut pas trancher. */
+          requiert: !evident};
+}
+
+function itemAngle(douteux){
+  const sommet = [entre(150, 250), entre(170, 215)];
+  const base = entre(0, TAU);
+  const deg = douteux ? pioche(ANGLES_DOUTEUX) : pioche(ANGLES_FRANCS);
+  const estDroit = Math.random() < (douteux ? 0.34 : 0);
+  const angle = estDroit ? 90 : deg;
+  const L1 = entre(92, 118), L2 = entre(92, 118);
+  const a0 = [sommet[0] + Math.cos(base)*L1, sommet[1] + Math.sin(base)*L1];
+  const b0 = [sommet[0] + Math.cos(base + radians(angle))*L2, sommet[1] + Math.sin(base + radians(angle))*L2];
+  const [S, a, b] = cadrer([sommet, a0, b0], 34, 34, 366, 232);
+  return {sommet:S, a, b, angle, douteux:!!douteux, requiert:!!douteux,
+          reponse: Math.abs(angle - 90) <= TOL_ANGLE_DROIT ? 'droit' : (angle < 90 ? 'aigu' : 'obtus')};
+}
+
+/* Polygone dont on passe chaque angle en revue (CE2) : deux angles francs,
+   un ou deux douteux — c’est là que s’apprend « quand l’œil suffit-il ? ».
+   Un quadrilatère tiré au hasard ne donne pas ce dosage : ses quatre angles
+   tombent où ils veulent, et la plupart atterrissent dans la zone grise où
+   l’enfant ne peut ni voir ni décider. Les angles sont donc TIRÉS D’ABORD,
+   et la figure est CONSTRUITE pour les respecter exactement. */
+
+/* Somme imposée à 360°, chaque angle franc (≤ 75° ou ≥ 105°). */
+function anglesFrancsSommant(k, somme){
+  for (let essai = 0; essai < 300; essai++) {
+    const a = [];
+    for (let i = 0; i < k - 1; i++) a.push(pioche(ANGLES_FRANCS));
+    const dernier = somme - a.reduce((s, x) => s + x, 0);
+    if (dernier >= 30 && dernier <= 150 && Math.abs(dernier - 90) >= 15) return a.concat(dernier);
+  }
+  return null;
+}
+
+/* Contour fermé dont les angles intérieurs sont EXACTEMENT ceux demandés :
+   les directions des côtés découlent des angles, deux longueurs sont tirées
+   au sort et les deux autres se déduisent de la condition de fermeture. */
+function contourDAngles(A){
+  const n = A.length;
+  const th = [entre(0, TAU)];
+  for (let i = 1; i < n; i++) th.push(th[i-1] + radians(180 - A[i]));
+  for (let essai = 0; essai < 60; essai++) {
+    const s2 = entre(80, 150), s3 = entre(80, 150);
+    const rx = -(s2*Math.cos(th[2]) + s3*Math.cos(th[3]));
+    const ry = -(s2*Math.sin(th[2]) + s3*Math.sin(th[3]));
+    const det = Math.cos(th[0])*Math.sin(th[1]) - Math.cos(th[1])*Math.sin(th[0]);
+    if (Math.abs(det) < 1e-6) continue;
+    const s0 = (rx*Math.sin(th[1]) - ry*Math.cos(th[1])) / det;
+    const s1 = (ry*Math.cos(th[0]) - rx*Math.sin(th[0])) / det;
+    if (s0 < 60 || s1 < 60 || s0 > 220 || s1 > 220) continue;
+    const s = [s0, s1, s2, s3];
+    const pts = [[0, 0]];
+    for (let i = 0; i < n - 1; i++)
+      pts.push([pts[i][0] + s[i]*Math.cos(th[i]), pts[i][1] + s[i]*Math.sin(th[i])]);
+    /* Recentrage et mise à l’échelle : une homothétie ne touche pas aux
+       angles, la commande passée plus haut reste donc vraie. */
+    return cadrer(pts, 34, 34, 366, 232);
+  }
+  return null;
+}
+
+function itemPolygone(){
+  const n = 4;
+  for (let essai = 0; essai < 200; essai++) {
+    const nbDouteux = Math.random() < 0.5 ? 1 : 2;
+    /* Un angle « douteux » est tantôt vraiment droit, tantôt à quelques
+       degrés du droit : c’est ce qui rend l’équerre indispensable. */
+    const douteuxTires = Array.from({length: nbDouteux},
+      () => Math.random() < 0.4 ? 90 : pioche(ANGLES_DOUTEUX));
+    const francs = anglesFrancsSommant(n - nbDouteux, 360 - douteuxTires.reduce((s, x) => s + x, 0));
+    if (!francs) continue;
+    const A = melanger(douteuxTires.concat(francs));
+    const pts = contourDAngles(A);
+    if (!pts) continue;
+    /* Les réponses sont relues sur la FIGURE, jamais sur la commande. */
+    const angles = pts.map((p, i) => angleEn(p, pts[(i-1+n)%n], pts[(i+1)%n]));
+    return {pts, angles,
+      reponses: angles.map(a => Math.abs(a - 90) <= TOL_ANGLE_DROIT ? 'droit' : (a < 90 ? 'aigu' : 'obtus')),
+      douteux: angles.map(a => Math.abs(a - 90) <= 8)};
+  }
+  /* Repli déterministe : un trapèze rectangle, deux angles droits francs. */
+  const pts = cadrer([[70, 60], [70, 230], [300, 230], [250, 60]], 34, 34, 366, 232);
+  const angles = pts.map((p, i) => angleEn(p, pts[(i-1+4)%4], pts[(i+1)%4]));
+  return {pts, angles,
+    reponses: angles.map(a => Math.abs(a - 90) <= TOL_ANGLE_DROIT ? 'droit' : (a < 90 ? 'aigu' : 'obtus')),
+    douteux: angles.map(a => Math.abs(a - 90) <= 8)};
+}
+
+/* Figures du codage. `groupes` décrit les égalités de côtés attendues, et
+   `droits` les angles à marquer. Le seuil de 15 % décide si la différence
+   de longueurs est franche ou demande le report au compas. */
+function figureCodage(type){
+  const cx = 200, cy = 140, th = entre(-0.35, 0.35);
+  const T = pts => pts.map(([x,y]) => [cx + x*Math.cos(th) - y*Math.sin(th), cy + x*Math.sin(th) + y*Math.cos(th)]);
+  if (type === 'carre') {
+    const c = 74;
+    return {type, pts:T([[-c,-c],[c,-c],[c,c],[-c,c]]), groupes:[[0,1,2,3]], droits:[0,1,2,3]};
+  }
+  if (type === 'rectangle') {
+    const l = 108, h = 62;
+    return {type, pts:T([[-l,-h],[l,-h],[l,h],[-l,h]]), groupes:[[0,2],[1,3]], droits:[0,1,2,3]};
+  }
+  if (type === 'losange') {
+    const a = 108, b = 62;
+    return {type, pts:T([[0,-b],[a,0],[0,b],[-a,0]]), groupes:[[0,1,2,3]], droits:[]};
+  }
+  if (type === 'triangleRect') {
+    return {type, pts:T([[-70,60],[80,60],[-70,-70]]), groupes:[], droits:[0]};
+  }
+  /* Triangle isocèle : deux côtés égaux sur trois. La marque isolée y
+     devient visiblement absurde — c’est l’erreur que le jeu doit provoquer.
+     La base est franchement plus courte que les deux côtés (124 contre 166,
+     soit 34 % d’écart) : un premier dessin la donnait à 156 pour 155, donc
+     égale aux autres à 1 % près — le triangle était équilatéral sans le
+     dire, et le codage attendu devenait faux. */
+  return {type:'isocele', pts:T([[-62,66],[62,66],[0,-88]]), groupes:[[1,2]], droits:[]};
+}
+
+/* ============================================================
+   ÉTAT DE PARTIE
+   ============================================================ */
+const ecrans = {home:$('home'), game:$('game'), end:$('end')};
+let etatPalierAffiche = palierParDefaut();
+let miniJeuCourant = null, file = [], pos = 0, score = 0, total = 0, demarreLe = 0;
+let verrouille = false, posableCourant = null, selection = new Set();
+
+function remonterEnHaut(){
+  try { scrollTo({top:0, left:0, behavior:'auto'}); } catch(e){ scrollTo(0,0); }
+}
+function montreEcran(n){
+  desarmerAutoSuivant(); stopperVoix();
+  Object.values(ecrans).forEach(e => e.hidden = true);
+  ecrans[n].hidden = false;
+  $('btnBack').hidden = (n === 'home');
+  if (n === 'home') $('dots').innerHTML = '';
+  remonterEnHaut();
+}
+function retourAccueil(){
+  desarmerAutoSuivant(); stopperVoix();
+  montreEcran('home'); construireAccueil();
+}
+$('btnBack').addEventListener('click', retourAccueil);
+
+const DELAI_AUTO_SUIVANT = 2000;
+let minuteurAuto = null, minuteurRevel = null;
+function armerAutoSuivant(){
+  clearTimeout(minuteurAuto);
+  const b = $('btnNext');
+  minuteurAuto = setTimeout(() => {
+    if (b.style.display === 'none' || b.disabled || !b.isConnected) return;
+    b.click();
+  }, DELAI_AUTO_SUIVANT);
+}
+function desarmerAutoSuivant(){ clearTimeout(minuteurAuto); clearTimeout(minuteurRevel); }
+
+/* ---------- Accueil ---------- */
+function creerCarte(cfg){
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'card'; b.dataset.jeu = cfg.id;
+  const i = document.createElement('span'); i.className = 'ico'; i.textContent = cfg.icone;
+  const n = document.createElement('span'); n.className = 'nom'; n.textContent = cfg.titre;
+  const d = document.createElement('span'); d.className = 'det'; d.textContent = cfg.description;
+  const s = document.createElement('span'); s.className = 'stars';
+  const e = lireEtoiles()[cfg.id] || 0;
+  s.textContent = e ? '⭐'.repeat(e) : '';
+  b.append(i, n, d, s);
+  b.addEventListener('click', () => lance(cfg.id));
+  return b;
+}
+function construireAccueil(){
+  $('hdrTitle').textContent = 'L’atelier de contrôle';
+  const palier = CONTENU.paliers[etatPalierAffiche];
+  $('sous-titre-accueil').textContent = (palier && palier.sousTitre) || CONTENU.sousTitre;
+  const rangee = $('rangee-paliers'); rangee.innerHTML = '';
+  const niveauProfil = niveauDuProfilActif();
+  /* Verrouillage des onglets (CHARTE §15) : un palier au-delà du niveau du
+     profil reste fermé tant que son paquet cadeau n’a pas été ouvert. */
+  let idx = ORDRE_PALIERS.indexOf(niveauProfil);
+  if (idx === -1) idx = 0;
+  const pid = lireProfilActifId();
+  ORDRE_PALIERS.filter(n => CONTENU.paliers[n]).forEach(n => {
+    const verr = ORDRE_PALIERS.indexOf(n) > idx && !bonusDejaRevele(pid, n);
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'puce-palier' + (n === etatPalierAffiche ? ' actif' : '') + (verr ? ' verrouille' : '');
+    b.textContent = verr ? n + ' 🔒' : n;
+    b.disabled = verr;
+    if (!verr) b.addEventListener('click', () => { etatPalierAffiche = n; construireAccueil(); });
+    rangee.appendChild(b);
+  });
+  $('note-palier').textContent = niveauProfil
+    ? 'Niveau de ' + (niveauProfil === etatPalierAffiche ? 'ton profil'
+        : 'ton profil : ' + niveauProfil + ' — tu regardes le palier ' + etatPalierAffiche) : '';
+  const g = $('grille-jeux'); g.innerHTML = '';
+  (palier ? palier.miniJeux : []).forEach(c => g.appendChild(creerCarte(c)));
+
+  const suivant = palierSuivant(etatPalierAffiche);
+  const bloc = $('bloc-bonus'), paquet = $('paquet-cadeau'), gb = $('grille-bonus');
+  if (suivant && palierMaitrise(etatPalierAffiche)) {
+    bloc.hidden = false;
+    $('note-bonus').textContent = 'Tu maîtrises tout le palier ' + etatPalierAffiche
+      + ' : essaie un aperçu du palier ' + suivant + ' !';
+    gb.innerHTML = '';
+    CONTENU.paliers[suivant].miniJeux.forEach(c => gb.appendChild(creerCarte(c)));
+    if (bonusDejaRevele(pid, suivant)) { paquet.hidden = true; gb.hidden = false; }
+    else {
+      paquet.hidden = false; paquet.disabled = false;
+      paquet.classList.remove('paquet-cadeau-ouverture');
+      gb.hidden = true;
+      /* `onclick` et non addEventListener : bouton fixe réutilisé à chaque
+         rendu, un écouteur de plus s’empilerait à chaque fois (§15). */
+      paquet.onclick = () => ouvrirPaquet(pid, suivant, paquet, gb);
+    }
+  } else bloc.hidden = true;
+}
+function ouvrirPaquet(pid, cible, paquet, gb){
+  if (paquet.disabled) return;
+  paquet.disabled = true;
+  marquerBonusRevele(pid, cible);
+  lancerConfettis(50); sonBonneReponse();
+  paquet.classList.add('paquet-cadeau-ouverture');
+  setTimeout(() => { paquet.hidden = true; gb.hidden = false; }, 480);
+}
+
+/* ---------- Construction des files ---------- */
+function construireFile(cfg){
+  const n = cfg.nbQuestions;
+  if (cfg.mode === 'alignement') {
+    const nEtabli = cfg.etabli || 0;
+    const surPlan = n - nEtabli;
+    const nEvidents = Math.round(surPlan * (cfg.dosageEvident || 0));
+    const items = melanger(
+      Array.from({length: surPlan}, (_, i) => itemAlignement(i < nEvidents))
+    ).map((it, i) => Object.assign(it, {
+      mode:'alignement', note:true,
+      /* Au CE1, l’enfant doit parfois PLACER un point pour qu’il soit
+         aligné, et non plus seulement juger. */
+      placer: !!cfg.placer && i === surPlan - 1
+    }));
+    /* Le premier temps est physique : des pointes plantées dans l’établi,
+       vues de biais. Le second reprend LES MÊMES emplacements vus de
+       dessus. Ce basculement de représentation est ce que le texte
+       demande — pas un changement d’exercice. */
+    /* Sur l’établi, l’enfant n’a AUCUN instrument : la pointe fautive doit
+       donc se voir, et il doit y en avoir une. Un tirage « non évident »
+       donnait tantôt un écart de 2 px, indécidable, tantôt trois pointes
+       réellement alignées — et la consigne « une pointe n’est pas dans le
+       rang » désignait alors une pointe qui l’était. */
+    const etabli = Array.from({length: nEtabli}, () =>
+      Object.assign(itemAlignement(true, 26), {mode:'etabli', note:true, requiert:false}));
+    return etabli.concat(items);
+  }
+  if (cfg.mode === 'tracer')
+    return Array.from({length:n}, (_, i) => ({mode:'tracer', note:true, requiert:true,
+      orientation:['horizontale','verticale','oblique','oblique','verticale'][i % 5]}));
+  if (cfg.mode === 'angles')
+    return Array.from({length:n}, (_, i) =>
+      Object.assign(itemAngle(true), {mode:'angles', note:true, outil: i < 3 ? 'gabarit' : 'equerre'}));
+  if (cfg.mode === 'anglesPoly')
+    return Array.from({length:n}, () => Object.assign(itemPolygone(), {mode:'anglesPoly', note:true, requiert:true}));
+  if (cfg.mode === 'compas1')
+    return [
+      {mode:'compasLibre', note:false},                    // prise en main, non notée
+      {mode:'compasPassant', note:true, requiert:true},
+      {mode:'compasPassant', note:true, requiert:true},
+      {mode:'pliage', note:true, requiert:true},
+      {mode:'pliage', note:true, requiert:true}
+    ];
+  if (cfg.mode === 'compas2')
+    return [
+      {mode:'compasRayon', note:true, requiert:true, rayonCm:3},
+      {mode:'compasRayon', note:true, requiert:true, rayonCm:4},
+      {mode:'report', note:true, requiert:true},
+      {mode:'report', note:true, requiert:true},
+      {mode:'compasRayon', note:true, requiert:true, rayonCm:5}
+    ];
+  if (cfg.mode === 'codage1')
+    return melanger(['carre','rectangle','triangleRect','rectangle','carre'])
+      .map(t => Object.assign(figureCodage(t), {mode:'codage1', note:true, requiert:false}));
+  /* CE2 : la progression des figures EST le raisonnement à construire —
+     du carré (une seule marque répétée) au rectangle (deux groupes, deux
+     notations : l’exemple de réussite officiel), puis les cas limites. */
+  return ['carre','rectangle','losange','triangleRect','isocele']
+    .map(t => Object.assign(figureCodage(t), {mode:'codage2', note:true}));
+}
+function pointsManche(q){ return q.note === false ? 0 : PTS_PLEIN; }
+
+/* ---------- Lancement ---------- */
+function trouverMiniJeu(id){
+  for (const nom of ORDRE_PALIERS) {
+    const p = CONTENU.paliers[nom];
+    if (!p) continue;
+    const cfg = p.miniJeux.find(m => m.id === id);
+    if (cfg) return {cfg, palier:p, palierNom:nom};
+  }
+  return null;
+}
+function lance(id){
+  const t = trouverMiniJeu(id);
+  if (!t) return;
+  miniJeuCourant = t;
+  file = construireFile(t.cfg);
+  pos = 0; score = 0;
+  total = file.reduce((s, q) => s + pointsManche(q), 0);
+  demarreLe = Date.now();
+  $('hdrTitle').textContent = t.cfg.titre;
+  montreEcran('game');
+  question();
+}
+function majDots(){
+  $('dots').innerHTML = file.map((q, i) => {
+    let c = '';
+    if (i < pos) c = q._pts === PTS_PLEIN ? 'ok' : q._pts === PTS_SANS_VERIF ? 'demi' : (q.note === false ? 'ok' : 'ko');
+    else if (i === pos) c = 'cur';
+    return `<span class="dot ${c}"></span>`;
+  }).join('');
+}
+function message(t, cl, corr){
+  const f = $('feedback');
+  f.textContent = t || ''; f.className = cl || '';
+  if (corr) {
+    const s = document.createElement('span');
+    s.className = 'correction-attendue'; s.textContent = ' ' + corr;
+    f.appendChild(s);
+  }
+}
+function poserConsigne(t){
+  $('qText').innerHTML = '';
+  const s = document.createElement('span'); s.textContent = t;
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'btn-voix'; b.textContent = '🔊';
+  b.setAttribute('aria-label', 'Écouter la consigne');
+  b.addEventListener('click', () => lireAVoixHaute(t));
+  $('qText').append(s, b);
+  lireAVoixHaute(t);
+}
+function scene(){ return $('scene'); }
+function poserScene(inner, viewBox){
+  const s = scene();
+  s.setAttribute('viewBox', viewBox || '0 0 400 300');
+  s.innerHTML = inner;
+  $('plan').hidden = false;
+  return s;
+}
+const croix = (p, cl) => `<g class="${cl||'point-croix'}"><line x1="${p[0]-7}" y1="${p[1]-7}" x2="${p[0]+7}" y2="${p[1]+7}"/><line x1="${p[0]-7}" y1="${p[1]+7}" x2="${p[0]+7}" y2="${p[1]-7}"/></g>`;
+
+/* ---------- Le tour de jeu ---------- */
+function question(){
+  desarmerAutoSuivant(); stopperVoix();
+  const q = file[pos];
+  verrouille = false; posableCourant = null; selection = new Set();
+  $('feedback').textContent = ''; $('feedback').className = '';
+  $('btnNext').style.display = 'none';
+  $('btnValider').style.display = 'none';
+  $('answers').innerHTML = ''; $('answers').className = '';
+  $('barreOutils').hidden = true; $('barreOutils').innerHTML = '';
+  $('plan').hidden = true;
+  $('sousConsigne').textContent = '';
+  majDots();
+  const rendus = {
+    etabli:rendreEtabli, alignement:rendreAlignement, tracer:rendreTracer,
+    angles:rendreAngles, anglesPoly:rendreAnglesPoly,
+    compasLibre:rendreCompasLibre, compasPassant:rendreCompasPassant, pliage:rendrePliage,
+    compasRayon:rendreCompasRayon, report:rendreReport,
+    codage1:rendreCodage1, codage2:rendreCodage2
+  };
+  rendus[q.mode](q);
+}
+
+/* QCM générique — options mélangées (§13), bonne réponse montrée même si
+   elle n’a pas été touchée (§18). */
+function rendreQcm(opts, ans, apres, classe){
+  const zone = $('answers');
+  zone.className = classe || (opts.length === 3 ? 'trio' : opts.length === 2 ? 'duo' : '');
+  melanger(opts).forEach(o => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'rep'; b.textContent = o;
+    b.dataset.val = o;
+    b.addEventListener('click', () => {
+      if (verrouille) return;
+      verrouille = true;
+      const bon = o === ans;
+      zone.querySelectorAll('.rep').forEach(x => { x.disabled = true; if (x !== b) x.classList.add('dim'); });
+      b.classList.add(bon ? 'ok' : 'ko');
+      if (!bon) {
+        const c = [...zone.querySelectorAll('.rep')].find(x => x.dataset.val === ans);
+        if (c) { c.classList.remove('dim'); c.classList.add('ok'); }
+      }
+      apres(bon);
+    });
+    zone.appendChild(b);
+  });
+}
+
+/* ============================================================
+   CP — 1er temps : l’établi (objet réel avant sa représentation)
+   ============================================================ */
+function rendreEtabli(q){
+  poserConsigne('Une pointe n’est pas dans le rang. Touche-la !');
+  $('sousConsigne').textContent = 'Le verrier plante des pointes pour caler le verre : si l’une dévie, la pièce coince.';
+  const pts = q.points;
+  const fautive = 1;   // itemAlignement place toujours le point dévié au milieu
+  const sol = `<rect x="0" y="132" width="400" height="168" fill="var(--bois)"/>`
+    + `<rect x="0" y="132" width="400" height="7" fill="var(--bois-f)"/>`;
+  /* Le plateau est vu de biais : l’écart PERPENDICULAIRE à la rangée se
+     lit en profondeur, donc sur l’axe vertical. Une première projection
+     l’écrasait au dixième — un défaut de 20 px devenait un défaut de 2 px,
+     invisible, alors que c’est tout ce que l’enfant a pour répondre. */
+  const projetes = pts.map(p => [p[0], 206 + (p[1] - 140) * 0.68]);
+  poserScene(sol + projetes.map((p, i) =>
+    `<g class="pointe" data-i="${i}">`
+    + `<line x1="${p[0]}" y1="${p[1]}" x2="${p[0]}" y2="${p[1]-46}" stroke="var(--trait)" stroke-width="5" stroke-linecap="round"/>`
+    + `<circle cx="${p[0]}" cy="${p[1]-50}" r="8" fill="var(--mine)"/>`
+    + `<circle class="cible-tactile" cx="${p[0]}" cy="${p[1]-30}" r="20"/></g>`).join(''));
+  scene().querySelectorAll('.pointe').forEach(g => {
+    g.addEventListener('click', () => {
+      if (verrouille) return;
+      verrouille = true;
+      const bon = +g.dataset.i === fautive;
+      /* La tête est un disque REMPLI : la colorer demande `fill`, pas
+         `stroke` — sans quoi la bonne pointe reste noire et la §18 n’est
+         pas tenue. */
+      const teindre = (grp, c) => {
+        grp.querySelectorAll('line').forEach(e => e.setAttribute('stroke', c));
+        grp.querySelectorAll('circle:not(.cible-tactile)').forEach(e => e.setAttribute('fill', c));
+      };
+      if (!bon) {
+        const c = scene().querySelector(`.pointe[data-i="${fautive}"]`);
+        if (c) teindre(c, 'var(--menthe-t)');
+      }
+      teindre(g, bon ? 'var(--menthe-t)' : 'var(--corail)');
+      terminerManche(bon, bon ? PTS_PLEIN : 0,
+        bon ? 'La pièce de verre se cale : elle tient !' : null,
+        bon ? null : 'C’est la pointe verte qui sortait du rang.');
+    });
+  });
+}
+
+/* ============================================================
+   ALIGNEMENT — le cœur du module
+   ============================================================ */
+function rendreAlignement(q){
+  if (q.placer) return rendrePlacer(q);
+  poserConsigne('Ces trois points sont-ils alignés ?');
+  $('sousConsigne').textContent = q.requiert
+    ? 'Pose la règle sur les points pour en être sûr : à l’œil, on ne peut pas trancher.'
+    : 'Ici, un coup d’œil peut suffire. La règle reste à ta disposition.';
+  poserScene(q.points.map(p => croix(p)).join(''));
+  const svg = scene();
+  const centre = milieu(q.points[0], q.points[2]);
+  posableCourant = creerPosable(svg, {
+    x: centre[0], y: centre[1] + 62, angle: entre(-0.25, 0.25),
+    ...REGLE(330),
+    pointsAimant: q.points,
+    surChangement: (e) => {
+      /* L’instrument est réputé POSÉ dès que son bord passe assez près de
+         deux des trois points : c’est le geste réel de vérification. */
+      const proches = q.points.filter(p => distancePointDroite(p, [e.x, e.y], e.angle) < 9).length;
+      if (proches >= 2) q._instrumentPose = true;
+    }
+  });
+  rendreQcm(['Alignés', 'Pas alignés'], q.aligne ? 'Alignés' : 'Pas alignés', (bon) => {
+    posableCourant.verrouiller();
+    const manque = q.requiert && !q._instrumentPose;
+    const pts = !bon ? 0 : (manque ? PTS_SANS_VERIF : PTS_PLEIN);
+    /* Révélation différée (§18) : la règle rejoint la droite exacte des
+       deux points extrêmes ; l’écart du point du milieu se voit alors. */
+    clearTimeout(minuteurRevel);
+    minuteurRevel = setTimeout(() => {
+      if (!posableCourant || !posableCourant.g.isConnected) return;
+      const a = q.points[0], b = q.points[2];
+      /* L’origine de la règle est le MILIEU de son bord : la poser sur le
+         premier point ferait déborder la moitié gauche hors du plan et
+         laisserait le troisième point au-delà de son extrémité. */
+      const m = milieu(a, b);
+      posableCourant.placerExact(m[0], m[1], Math.atan2(b[1]-a[1], b[0]-a[0]));
+    }, DELAI_REVELATION);
+    let corr = null;
+    if (!bon) corr = q.aligne ? 'Ils étaient bien alignés : la règle le montre.'
+                              : 'Ils ne l’étaient pas — regarde l’écart sous la règle.';
+    else if (manque) corr = 'Mais ici, l’œil ne suffisait pas : il fallait poser la règle.';
+    terminerManche(bon, pts, bon && !manque ? (q.evident ? 'Bien vu — ici, l’œil suffisait.' : 'Bien vérifié !') : null, corr);
+  });
+}
+
+/* CE1 : placer un point pour qu’il soit aligné avec deux autres. */
+function rendrePlacer(q){
+  poserConsigne('Place la troisième pointe entre les deux autres, dans leur alignement.');
+  $('sousConsigne').textContent = 'Touche le plan à l’endroit voulu. La règle t’aide à viser.';
+  const a = q.points[0], b = q.points[2];
+  poserScene(croix(a) + croix(b) + `<rect id="zoneClic" x="0" y="0" width="400" height="300" fill="transparent"/>`);
+  const svg = scene();
+  posableCourant = creerPosable(svg, {
+    x: milieu(a, b)[0], y: milieu(a, b)[1] + 58, angle: entre(-0.25, 0.25),
+    ...REGLE(330), pointsAimant:[a, b],
+    surChangement:(e) => { if (distancePointDroite(a, [e.x,e.y], e.angle) < 9 && distancePointDroite(b, [e.x,e.y], e.angle) < 9) q._instrumentPose = true; }
+  });
+  svg.querySelector('#zoneClic').addEventListener('click', (ev) => {
+    if (verrouille) return;
+    verrouille = true;
+    const p = versSVG(svg, ev.clientX, ev.clientY);
+    const ecart = Math.abs(ecartDroite([p.x, p.y], a, b));
+    const dedans = p.x > Math.min(a[0],b[0]) - 20 && p.x < Math.max(a[0],b[0]) + 20;
+    const bon = ecart <= 6 && dedans;
+    posableCourant.verrouiller();
+    svg.insertAdjacentHTML('beforeend', croix([p.x, p.y], bon ? 'trace-fait' : 'point-croix'));
+    if (!bon) svg.insertAdjacentHTML('beforeend',
+      `<line class="trace-fait" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke-dasharray="7 6"/>`);
+    terminerManche(bon, bon ? PTS_PLEIN : 0, bon ? 'Pile dans l’alignement !' : null,
+      bon ? null : 'Le point devait tomber sur la ligne verte.');
+  });
+}
+
+/* ============================================================
+   CP — tracer une droite par deux points (seule production admise)
+   ============================================================ */
+function rendreTracer(q){
+  poserConsigne('Pose la règle sur les deux points, puis touche-la pour tracer le plomb.');
+  $('sousConsigne').textContent = 'Le trait doit passer exactement par les deux points.';
+  let a, b;
+  if (q.orientation === 'horizontale') { const y = entre(110, 190); a = [70, y]; b = [330, y]; }
+  else if (q.orientation === 'verticale') { const x = entre(140, 260); a = [x, 50]; b = [x, 250]; }
+  else { a = [entre(60, 110), entre(60, 110)]; b = [entre(280, 340), entre(190, 250)]; }
+  q._a = a; q._b = b;
+  poserScene(croix(a) + croix(b));
+  const svg = scene();
+  const c = milieu(a, b);
+  posableCourant = creerPosable(svg, {
+    x:c[0], y:c[1] + 60, angle:entre(-0.3, 0.3), ...REGLE(330), pointsAimant:[a, b],
+    surChangement:(e, g) => {
+      const ok = distancePointDroite(a, [e.x,e.y], e.angle) < 8 && distancePointDroite(b, [e.x,e.y], e.angle) < 8;
+      q._alignee = ok; q._instrumentPose = q._instrumentPose || ok;
+      g.classList.toggle('aimante', ok);
+    }
+  });
+  $('btnValider').style.display = 'block';
+  $('btnValider').textContent = 'Tracer ✎';
+  $('btnValider').onclick = () => {
+    if (verrouille) return;
+    verrouille = true;
+    $('btnValider').style.display = 'none';
+    posableCourant.verrouiller();
+    const bon = !!q._alignee;
+    if (bon) svg.insertAdjacentHTML('beforeend',
+      `<line class="trace-fait" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"/>`);
+    else {
+      clearTimeout(minuteurRevel);
+      minuteurRevel = setTimeout(() => {
+        if (!posableCourant || !posableCourant.g.isConnected) return;
+        const m = milieu(a, b);
+        posableCourant.placerExact(m[0], m[1], Math.atan2(b[1]-a[1], b[0]-a[0]));
+        if (svg.isConnected) svg.insertAdjacentHTML('beforeend',
+          `<line class="trace-fait" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke-dasharray="7 6"/>`);
+      }, DELAI_REVELATION);
+    }
+    terminerManche(bon, bon ? PTS_PLEIN : 0, bon ? 'Beau trait de plomb !' : null,
+      bon ? null : 'La règle devait passer par les deux points — regarde.');
+  };
+}
+
+/* ============================================================
+   CE1 / CE2 — angles au gabarit puis à l’équerre
+   ============================================================ */
+function rendreAngles(q){
+  const outil = q.outil || 'gabarit';
+  poserConsigne('Cet angle est-il droit, aigu ou obtus ?');
+  $('sousConsigne').textContent = outil === 'gabarit'
+    ? 'Pose le coin du gabarit dans le sommet : le côté tombe dedans ou dehors.'
+    : 'Même geste, avec l’équerre de l’atelier.';
+  /* Le plan gagne une BANDE DE RANGEMENT sous la figure : l’instrument y
+     attend entièrement visible. Garé à côté du sommet, il débordait du
+     plan et se présentait tronqué. */
+  poserScene(
+    `<line class="fig-trait" x1="${q.sommet[0]}" y1="${q.sommet[1]}" x2="${q.a[0]}" y2="${q.a[1]}"/>`
+    + `<line class="fig-trait" x1="${q.sommet[0]}" y1="${q.sommet[1]}" x2="${q.b[0]}" y2="${q.b[1]}"/>`
+    + `<circle class="repere" cx="${q.sommet[0]}" cy="${q.sommet[1]}" r="4"/>`
+    + `<line x1="20" y1="250" x2="380" y2="250" stroke="var(--trait)" stroke-width="1.4" stroke-dasharray="5 6" opacity=".5"/>`,
+    '0 0 400 370');
+  const svg = scene();
+  posableCourant = creerPosable(svg, {
+    x:54, y:258, angle:entre(-0.4, 0.4),
+    ...(outil === 'gabarit' ? GABARIT(90) : EQUERRE(92)),
+    pointsAimant:[q.sommet],
+    surChangement:(e) => {
+      /* Le gabarit est réputé posé quand son coin est logé dans le sommet
+         et qu’un de ses bords longe l’un des côtés. */
+      if (Math.hypot(e.x - q.sommet[0], e.y - q.sommet[1]) < 16) q._instrumentPose = true;
+    }
+  });
+  rendreQcm(['droit','aigu','obtus'], q.reponse, (bon) => {
+    posableCourant.verrouiller();
+    const manque = q.requiert && !q._instrumentPose;
+    const pts = !bon ? 0 : (manque ? PTS_SANS_VERIF : PTS_PLEIN);
+    clearTimeout(minuteurRevel);
+    minuteurRevel = setTimeout(() => {
+      if (!posableCourant || !posableCourant.g.isConnected) return;
+      /* On repose l’outil EXACTEMENT dans le sommet, aligné sur le premier
+         côté : l’écart avec le second saute alors aux yeux. */
+      posableCourant.placerExact(q.sommet[0], q.sommet[1],
+        Math.atan2(q.a[1]-q.sommet[1], q.a[0]-q.sommet[0]));
+    }, DELAI_REVELATION);
+    terminerManche(bon, pts, bon && !manque ? 'Bien vérifié !' : null,
+      !bon ? 'C’était un angle ' + q.reponse + ' — regarde le gabarit se poser.'
+           : (manque ? 'Mais il fallait poser l’instrument : à 3° près, l’œil se trompe.' : null));
+  });
+}
+
+/* CE2 : ce n’est plus un angle isolé mais un POLYGONE à passer en revue. */
+function rendreAnglesPoly(q){
+  const i = (q._sommet = q._sommet || 0);
+  poserConsigne('Angle ' + (i+1) + ' sur ' + q.pts.length + ' : droit, aigu, obtus ?');
+  $('sousConsigne').textContent = q.douteux[i]
+    ? 'Celui-ci est douteux : pose l’équerre.'
+    : 'Celui-ci se voit à l’œil — l’équerre reste possible.';
+  const d = 'M ' + q.pts.map(p => p.join(' ')).join(' L ') + ' Z';
+  poserScene(`<path class="fig-remplie" d="${d}"/>`
+    + `<circle class="sommet-actif" cx="${q.pts[i][0]}" cy="${q.pts[i][1]}" r="16"/>`
+    + `<line x1="20" y1="250" x2="380" y2="250" stroke="var(--trait)" stroke-width="1.4" stroke-dasharray="5 6" opacity=".5"/>`,
+    '0 0 400 370');
+  const svg = scene();
+  const s = q.pts[i];
+  posableCourant = creerPosable(svg, {
+    x:54, y:258, angle:entre(-0.3, 0.3), ...EQUERRE(88), pointsAimant:[s],
+    surChangement:(e) => { if (Math.hypot(e.x - s[0], e.y - s[1]) < 16) q._instrumentPose = true; }
+  });
+  rendreQcm(['droit','aigu','obtus'], q.reponses[i], (bon) => {
+    posableCourant.verrouiller();
+    const manque = q.douteux[i] && !q._instrumentPose;
+    q._bons = (q._bons || 0) + (bon && !manque ? 1 : bon ? 0.5 : 0);
+    if (i + 1 < q.pts.length) {
+      /* On enchaîne les sommets dans la même manche : c’est le polygone
+         entier qui est passé en revue, pas un angle isolé. */
+      message(bon ? 'Oui.' : 'Non : ' + q.reponses[i] + '.', bon ? 'bon' : 'mauvais');
+      $('btnNext').style.display = 'block';
+      $('btnNext').textContent = 'Angle suivant ➜';
+      $('btnNext').onclick = () => {
+        q._sommet = i + 1; q._instrumentPose = false; verrouille = false;
+        $('answers').innerHTML = ''; $('btnNext').style.display = 'none'; message('');
+        rendreAnglesPoly(q);
+      };
+      armerAutoSuivant();
+      return;
+    }
+    const ratio = q._bons / q.pts.length;
+    const pts = ratio >= 0.999 ? PTS_PLEIN : ratio >= 0.7 ? PTS_SANS_VERIF : 0;
+    terminerManche(ratio >= 0.999, pts,
+      ratio >= 0.999 ? 'Polygone entièrement contrôlé !' : null,
+      ratio >= 0.999 ? null : 'Certains angles t’ont échappé : ' + q.reponses.join(', ') + '.');
+  });
+}
+
+/* ============================================================
+   COMPAS — CE1 : deux appuis ; CE2 : écartement mesuré
+   ============================================================ */
+function cercleSvg(c, r, cl){ return `<circle class="${cl||'trace-fait'}" fill="none" cx="${c[0]}" cy="${c[1]}" r="${r}"/>`; }
+
+function rendreCompasLibre(q){
+  poserConsigne('Prends le compas en main : touche un centre, puis un point du cercle.');
+  $('sousConsigne').textContent = 'Cette manche n’est pas comptée — c’est pour essayer.';
+  /* Un plan entièrement vide ne dit pas qu’on peut le toucher : l’invite
+     reste dessinée tant que la pointe n’est pas piquée. */
+  poserScene(`<circle id="invite-c" cx="200" cy="140" r="46" fill="none" stroke="var(--trait)" stroke-width="1.7" stroke-dasharray="5 6" opacity=".45"/>`
+    + `<text id="invite-t" x="200" y="215" font-size="14" text-anchor="middle" fill="var(--encre2)">Touche le plan où tu veux</text>`
+    + `<rect id="zoneClic" x="0" y="0" width="400" height="300" fill="transparent"/>`);
+  const svg = scene();
+  let centre = null;
+  svg.querySelector('#zoneClic').addEventListener('click', (ev) => {
+    if (verrouille) return;
+    const p = versSVG(svg, ev.clientX, ev.clientY);
+    if (!centre) {
+      centre = [p.x, p.y]; sonClic();
+      ['invite-c', 'invite-t'].forEach(id => { const e = svg.getElementById(id); if (e) e.remove(); });
+      svg.insertAdjacentHTML('beforeend', `<circle class="repere" cx="${p.x}" cy="${p.y}" r="5"/>`);
+      $('sousConsigne').textContent = 'Maintenant, touche un point par lequel le cercle doit passer.';
+      return;
+    }
+    verrouille = true;
+    const r = Math.hypot(p.x - centre[0], p.y - centre[1]);
+    svg.insertAdjacentHTML('beforeend', cercleSvg(centre, r));
+    terminerManche(true, 0, 'Joli cercle ! On passe aux choses sérieuses.', null);
+  });
+}
+
+/* Le texte dit « cercle de centre un point donné ET PASSANT PAR un autre
+   point donné » : l’écartement n’est pas réglé, il est DÉRIVÉ des deux
+   appuis. Le problème du réglage disparaît, et c’est la formulation
+   officielle exacte. */
+function rendreCompasPassant(q){
+  const c = [entre(150, 250), entre(120, 180)];
+  const p = [c[0] + entre(60, 100) * signeAleatoire(), c[1] + entre(-40, 40)];
+  q._c = c; q._p = p;
+  poserConsigne('Trace le cercle de centre le point noir, passant par le point orange.');
+  $('sousConsigne').textContent = 'Touche d’abord le centre, puis le point de passage.';
+  /* La consigne dit « le point NOIR » et « le point ORANGE » : les deux
+     doivent donc être noir et orange, francs, avec un halo qui les désigne
+     comme des cibles. Un `repere` gris pâle de 6 px ne tenait ni l’un ni
+     l’autre. */
+  poserScene(`<rect id="zoneClic" x="0" y="0" width="400" height="300" fill="transparent"/>`
+    + `<circle cx="${c[0]}" cy="${c[1]}" r="16" fill="rgba(29,51,84,.12)"/>`
+    + `<circle cx="${c[0]}" cy="${c[1]}" r="6.5" fill="var(--mine)"/>`
+    + `<circle cx="${p[0]}" cy="${p[1]}" r="16" fill="rgba(255,138,61,.20)"/>`
+    + `<circle cx="${p[0]}" cy="${p[1]}" r="6.5" fill="var(--mandarine)"/>`);
+  const svg = scene();
+  let choisi = null;
+  svg.querySelector('#zoneClic').addEventListener('click', (ev) => {
+    if (verrouille) return;
+    const m = versSVG(svg, ev.clientX, ev.clientY);
+    if (!choisi) {
+      choisi = [m.x, m.y]; sonClic();
+      $('sousConsigne').textContent = 'Et maintenant, le point de passage.';
+      svg.insertAdjacentHTML('beforeend', `<circle class="sommet-actif" cx="${m.x}" cy="${m.y}" r="12"/>`);
+      return;
+    }
+    verrouille = true;
+    q._instrumentPose = true;
+    const bonCentre = Math.hypot(choisi[0]-c[0], choisi[1]-c[1]) <= 16;
+    const bonPoint = Math.hypot(m.x-p[0], m.y-p[1]) <= 16;
+    const bon = bonCentre && bonPoint;
+    const r = Math.hypot(m.x - choisi[0], m.y - choisi[1]);
+    svg.insertAdjacentHTML('beforeend', cercleSvg(choisi, r, bon ? 'trace-fait' : 'fig-trait'));
+    if (!bon) svg.insertAdjacentHTML('beforeend',
+      cercleSvg(c, Math.hypot(p[0]-c[0], p[1]-c[1]), 'trace-fait') );
+    terminerManche(bon, bon ? PTS_PLEIN : 0, bon ? 'Le cercle passe pile par le point !' : null,
+      bon ? null : 'Voici le cercle attendu, en vert.');
+  });
+}
+
+/* Le texte dit « par pliage » — ni compas, ni règle graduée. L’enfant place
+   son estimation, le PLI tranche : le segment se replie sur lui-même. */
+function rendrePliage(q){
+  const y = entre(120, 190);
+  const a = [entre(50, 80), y], b = [entre(320, 350), y];
+  q._a = a; q._b = b;
+  const L = dist(a, b);
+  poserConsigne('Où est le milieu de ce segment ? Touche-le, le pli vérifiera.');
+  $('sousConsigne').textContent = 'On plie le calque : le segment se replie sur lui-même.';
+  poserScene(`<line class="fig-trait" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"/>`
+    + croix(a) + croix(b)
+    + `<rect id="zoneClic" x="0" y="0" width="400" height="300" fill="transparent"/>`);
+  const svg = scene();
+  svg.querySelector('#zoneClic').addEventListener('click', (ev) => {
+    if (verrouille) return;
+    verrouille = true;
+    q._instrumentPose = true;
+    const p = versSVG(svg, ev.clientX, ev.clientY);
+    const m = milieu(a, b);
+    const ecart = Math.abs(p.x - m[0]);
+    const bon = ecart <= TOL_PLIAGE * L && Math.abs(p.y - y) < 40;
+    svg.insertAdjacentHTML('beforeend', `<circle cx="${p.x}" cy="${y}" r="7" fill="${bon ? 'var(--menthe-t)' : 'var(--corail)'}"/>`);
+    /* Le pli : on montre le rabattement, puis la marque du milieu. */
+    clearTimeout(minuteurRevel);
+    minuteurRevel = setTimeout(() => {
+      if (!svg.isConnected) return;
+      svg.insertAdjacentHTML('beforeend',
+        `<line class="trace-fait" x1="${m[0]}" y1="${y-34}" x2="${m[0]}" y2="${y+34}" stroke-dasharray="6 5"/>`
+        + `<circle class="repere" cx="${m[0]}" cy="${y}" r="6"/>`);
+    }, DELAI_REVELATION);
+    terminerManche(bon, bon ? PTS_PLEIN : 0, bon ? 'Le pli tombe juste sur ta marque !' : null,
+      bon ? null : 'Le pli marque le vrai milieu, en pointillé.');
+  });
+}
+
+/* CE2 : cette fois il FAUT fixer une longueur. Échelle graduée reprise du
+   double-décimètre de M23 (14 px/cm) pour que le centimètre soit le même
+   d’un jeu à l’autre. */
+function rendreCompasRayon(q){
+  const c = [entre(160, 240), entre(130, 175)];
+  q._c = c;
+  poserConsigne('Trace un cercle de rayon ' + q.rayonCm + ' cm, centré sur le point.');
+  $('sousConsigne').textContent = 'Choisis l’écartement, puis touche le centre du cercle.';
+  /* L’échelle est dessinée à l’ÉCHELLE VRAIE, 14 px/cm — le même
+     centimètre qu’au double-décimètre de M23. Une première version la
+     traçait à 28 px/cm tout en dessinant le cercle à 14 : la règle mentait
+     sur ce qu’elle mesurait. Le choix de l’écartement passe donc par des
+     boutons, larges au doigt, et la règle se contente de MONTRER la
+     longueur choisie — un pointillé de 14 px/cm, comparable au rayon. */
+  const CM_MAX = 10, X0 = 30, YR = 268;
+  const grad = [];
+  for (let cm = 0; cm <= CM_MAX; cm++) {
+    const x = X0 + cm * PX_PAR_CM;
+    grad.push(`<line x1="${x}" y1="${YR}" x2="${x}" y2="${YR - 13}" stroke="var(--encre2)" stroke-width="1.6"/>`
+      + `<text x="${x}" y="${YR - 17}" font-size="10.5" text-anchor="middle" fill="var(--encre2)">${cm}</text>`);
+  }
+  poserScene(
+    /* Le centre est une CIBLE : une croix comme partout ailleurs dans le
+       module, pas un point gris de 6 px qu’on cherche des yeux. */
+    `<circle cx="${c[0]}" cy="${c[1]}" r="15" fill="rgba(90,180,220,.16)"/>`
+    + croix(c) + `<circle class="repere" cx="${c[0]}" cy="${c[1]}" r="3.5"/>`
+    + `<text x="${c[0]}" y="${c[1] + 34}" font-size="12" text-anchor="middle" fill="var(--encre2)">centre</text>`
+    /* La réglette : corps, graduations et longueur retenue, à 14 px/cm. */
+    + `<rect x="${X0 - 10}" y="${YR - 30}" width="${CM_MAX*PX_PAR_CM + 20}" height="42" rx="5"
+             fill="rgba(120,140,160,.14)" stroke="var(--trait)" stroke-width="1.4"/>`
+    + `<line x1="${X0}" y1="${YR}" x2="${X0 + CM_MAX*PX_PAR_CM}" y2="${YR}" stroke="var(--encre2)" stroke-width="2.4"/>`
+    + grad.join('')
+    + `<line id="ecartVu" x1="${X0}" y1="${YR + 6}" x2="${X0}" y2="${YR + 6}" stroke="var(--mandarine)" stroke-width="6" stroke-linecap="round"/>`
+    + `<text id="lblEcart" x="${X0 + CM_MAX*PX_PAR_CM + 24}" y="${YR + 4}" font-size="15" font-weight="700" fill="var(--encre)">— cm</text>`
+    + `<rect id="zoneClic" x="0" y="0" width="400" height="232" fill="transparent"/>`);
+  const svg = scene();
+  let regle = null;
+  const barre = $('barreOutils');
+  barre.hidden = false;
+  barre.innerHTML = '';
+  for (let cm = 1; cm <= 7; cm++) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'outil'; b.textContent = cm + ' cm'; b.dataset.cm = cm;
+    b.addEventListener('click', () => {
+      if (verrouille) return;
+      regle = cm; sonClic();
+      barre.querySelectorAll('.outil').forEach(x => x.classList.toggle('on', x === b));
+      svg.getElementById('lblEcart').textContent = cm + ' cm';
+      svg.getElementById('ecartVu').setAttribute('x2', X0 + cm * PX_PAR_CM);
+    });
+    barre.appendChild(b);
+  }
+  svg.querySelector('#zoneClic').addEventListener('click', (ev) => {
+    if (verrouille || regle === null) {
+      if (regle === null) $('sousConsigne').textContent = 'Choisis d’abord l’écartement, sous le plan.';
+      return;
+    }
+    verrouille = true;
+    q._instrumentPose = true;
+    const p = versSVG(svg, ev.clientX, ev.clientY);
+    const bonCentre = Math.hypot(p.x - c[0], p.y - c[1]) <= 18;
+    const bon = bonCentre && regle === q.rayonCm;
+    svg.insertAdjacentHTML('beforeend', cercleSvg(bonCentre ? c : [p.x, p.y], regle * PX_PAR_CM, bon ? 'trace-fait' : 'fig-trait'));
+    if (!bon) svg.insertAdjacentHTML('beforeend', cercleSvg(c, q.rayonCm * PX_PAR_CM, 'trace-fait'));
+    terminerManche(bon, bon ? PTS_PLEIN : 0,
+      bon ? 'Rayon exact et bien centré !' : null,
+      bon ? null : 'Le cercle attendu, de rayon ' + q.rayonCm + ' cm, est en vert.');
+  });
+}
+
+/* Report de longueur : prendre l’écartement sur un segment et le
+   transporter sur un autre pour les COMPARER sans mesurer. Ce geste
+   alimente directement le codage des égalités. */
+function rendreReport(q){
+  const y1 = 110, y2 = 200;
+  const L1 = entre(110, 165);
+  /* Trois cas, et l’égalité en fait PARTIE : un tirage qui ne produirait
+     jamais deux segments égaux ferait de « Ils sont égaux » une réponse
+     toujours fausse, et le report ne servirait plus à rien. Le seuil de
+     15 % sépare ce que l’œil tranche de ce qui demande le compas. */
+  const cas = pioche(['egaux', 'proche', 'proche', 'franc']);
+  const L2 = cas === 'egaux' ? L1
+           : cas === 'proche' ? L1 * (1 + entre(0.04, 0.12) * signeAleatoire())
+           : L1 * (1 + entre(0.22, 0.40) * signeAleatoire());
+  const a1 = [70, y1], b1 = [70 + L1, y1], a2 = [70, y2], b2 = [70 + L2, y2];
+  q._segs = [[a1,b1],[a2,b2]];
+  /* Réponse et exigence de vérification relues sur les segments DESSINÉS. */
+  const ecartRelatif = Math.abs(L1 - L2) / Math.max(L1, L2);
+  q._exigeVerif = ecartRelatif < SEUIL_LONGUEUR_FRANCHE;
+  q._rep = ecartRelatif < 0.005 ? 'Ils sont égaux'
+         : (L1 > L2 ? 'Le segment 1 est plus long' : 'Le segment 2 est plus long');
+  poserConsigne('Ces deux segments ont-ils la même longueur ?');
+  $('sousConsigne').textContent = q._exigeVerif
+    ? 'Trop proches pour l’œil : touche le premier segment pour prendre l’écartement, puis le second pour le reporter.'
+    : 'L’écart se voit ici, mais tu peux quand même reporter : touche le premier segment, puis le second.';
+  poserScene(
+    `<line class="fig-trait" x1="${a1[0]}" y1="${y1}" x2="${b1[0]}" y2="${y1}"/>` + croix(a1) + croix(b1)
+    + `<circle cx="40" cy="${y1}" r="13" fill="var(--ciel)"/><text x="40" y="${y1+5}" font-size="15" font-weight="700" text-anchor="middle" fill="var(--encre)">1</text>`
+    + `<line class="fig-trait" x1="${a2[0]}" y1="${y2}" x2="${b2[0]}" y2="${y2}"/>` + croix(a2) + croix(b2)
+    + `<circle cx="40" cy="${y2}" r="13" fill="var(--ciel)"/><text x="40" y="${y2+5}" font-size="15" font-weight="700" text-anchor="middle" fill="var(--encre)">2</text>`
+    + `<line class="cible-tactile" data-s="0" x1="${a1[0]}" y1="${y1}" x2="${b1[0]}" y2="${y1}"/>`
+    + `<line class="cible-tactile" data-s="1" x1="${a2[0]}" y1="${y2}" x2="${b2[0]}" y2="${y2}"/>`);
+  const svg = scene();
+  let pris = false;
+  svg.querySelectorAll('.cible-tactile').forEach(l => l.addEventListener('click', () => {
+    if (verrouille) return;
+    if (l.dataset.s === '0' && !pris) {
+      pris = true; sonClic(); q._instrumentPose = true;
+      $('sousConsigne').textContent = 'Écartement pris. Touche maintenant le segment 2.';
+      svg.insertAdjacentHTML('beforeend',
+        `<line class="trace-fait" x1="${a1[0]}" y1="${y1-16}" x2="${b1[0]}" y2="${y1-16}" stroke-dasharray="5 4"/>`);
+      return;
+    }
+    if (l.dataset.s === '1' && pris) {
+      /* On reporte visiblement la longueur du premier sur le second : la
+         différence, ou son absence, devient lisible sans aucun nombre. */
+      svg.insertAdjacentHTML('beforeend',
+        `<line class="trace-fait" x1="${a2[0]}" y1="${y2-16}" x2="${a2[0]+L1}" y2="${y2-16}"/>`
+        + `<line class="trace-fait" x1="${a2[0]+L1}" y1="${y2-24}" x2="${a2[0]+L1}" y2="${y2+8}"/>`);
+      $('sousConsigne').textContent = 'Compare, puis réponds.';
+      pris = 'reporte';
+    }
+  }));
+  /* Une colonne, pas trois : « Le second est plus long » sur trois lignes
+     dans une case étroite se déchiffre au lieu de se lire. */
+  rendreQcm(['Ils sont égaux','Le segment 1 est plus long','Le segment 2 est plus long'], q._rep, (bon) => {
+    const manque = q._exigeVerif && !q._instrumentPose;
+    terminerManche(bon, !bon ? 0 : (manque ? PTS_SANS_VERIF : PTS_PLEIN),
+      bon && !manque ? 'Report bien mené !' : null,
+      !bon ? 'La bonne réponse : ' + q._rep.toLowerCase() + '.'
+           : (manque ? 'Mais il fallait reporter l’écartement pour en être sûr.' : null));
+  }, 'pile');
+}
+
+/* ============================================================
+   CODAGE — le tampon, jamais le tracé
+   ============================================================ */
+function marqueAngleDroit(pts, i){
+  const n = pts.length, s = pts[i], a = pts[(i-1+n)%n], b = pts[(i+1)%n];
+  const u = [(a[0]-s[0]), (a[1]-s[1])], v = [(b[0]-s[0]), (b[1]-s[1])];
+  const lu = Math.hypot(...u), lv = Math.hypot(...v), d = 17;
+  const p1 = [s[0] + u[0]/lu*d, s[1] + u[1]/lu*d];
+  const p2 = [s[0] + v[0]/lv*d, s[1] + v[1]/lv*d];
+  const p3 = [p1[0] + v[0]/lv*d, p1[1] + v[1]/lv*d];
+  return `<path class="marque" fill="none" stroke="var(--corail)" stroke-width="3"
+            d="M ${p1[0]} ${p1[1]} L ${p3[0]} ${p3[1]} L ${p2[0]} ${p2[1]}"/>`;
+}
+/* La marque d’égalité s’oriente seule : perpendiculaire au côté, en son
+   milieu. Un ou deux traits selon le groupe — deux groupes distincts
+   appellent deux notations distinctes. */
+function marqueEgalite(pts, i, nbTraits){
+  const n = pts.length, a = pts[i], b = pts[(i+1)%n];
+  const m = milieu(a, b);
+  const dx = b[0]-a[0], dy = b[1]-a[1], L = Math.hypot(dx, dy);
+  const nx = -dy/L, ny = dx/L, e = 9;
+  let s = '';
+  for (let k = 0; k < nbTraits; k++) {
+    const off = (k - (nbTraits-1)/2) * 7;
+    const cx = m[0] + dx/L*off, cy = m[1] + dy/L*off;
+    s += `<line class="marque" x1="${cx - nx*e}" y1="${cy - ny*e}" x2="${cx + nx*e}" y2="${cy + ny*e}" stroke="var(--mandarine)" stroke-width="3.2" stroke-linecap="round"/>`;
+  }
+  return s;
+}
+
+function rendreCodage1(q){
+  poserConsigne('Marque tous les angles droits de cette figure — et seulement eux.');
+  $('sousConsigne').textContent = 'Choisis le tampon, puis touche un sommet.';
+  dessinerCodage(q, ['droit']);
+}
+function rendreCodage2(q){
+  poserConsigne('Certifie ce plan : angles droits et côtés de même longueur.');
+  const aVerifier = q.type === 'rectangle' || q.type === 'isocele';
+  $('sousConsigne').textContent = aVerifier
+    ? 'Ici les longueurs se ressemblent : reporte l’écartement au compas avant de marquer.'
+    : 'Choisis un tampon, puis touche un sommet ou un côté.';
+  q._exigeVerif = aVerifier;
+  dessinerCodage(q, ['droit','simple','double']);
+}
+
+function dessinerCodage(q, tampons){
+  const n = q.pts.length;
+  const d = 'M ' + q.pts.map(p => p.join(' ')).join(' L ') + ' Z';
+ let cibles = '', indices = '';
+  /* Un côté ne se marque que si un tampon d’égalité est disponible : au CE1,
+     seuls les sommets sont actifs, et seuls eux s’annoncent. */
+  const cotesActifs = tampons.length > 1;
+  q.pts.forEach((p, i) => {
+    cibles  += `<circle class="cible-tactile" data-t="a${i}" cx="${p[0]}" cy="${p[1]}" r="20"/>`;
+    indices += `<circle class="indice-cible" data-i="a${i}" cx="${p[0]}" cy="${p[1]}" r="11"/>`;
+    if (!cotesActifs) return;
+    const b = q.pts[(i+1)%n], m = milieu(p, b);
+    cibles  += `<circle class="cible-tactile" data-t="c${i}" cx="${m[0]}" cy="${m[1]}" r="20"/>`;
+    indices += `<circle class="indice-cible" data-i="c${i}" cx="${m[0]}" cy="${m[1]}" r="9"/>`;
+  });
+  poserScene(`<path class="fig-remplie" d="${d}"/>` + indices + `<g id="marques"></g>` + cibles);
+  const svg = scene();
+
+  const nomsTampon = {droit:'angle droit', simple:'trait simple', double:'trait double'};
+  const apercu = {
+    droit:`<svg viewBox="0 0 26 22"><path d="M4 4 L18 4 L18 18" fill="none" stroke="#FF5D5D" stroke-width="3"/></svg>`,
+    simple:`<svg viewBox="0 0 26 22"><line x1="13" y1="4" x2="13" y2="18" stroke="#FF8A3D" stroke-width="3.2"/></svg>`,
+    double:`<svg viewBox="0 0 26 22"><line x1="10" y1="4" x2="10" y2="18" stroke="#FF8A3D" stroke-width="3.2"/><line x1="17" y1="4" x2="17" y2="18" stroke="#FF8A3D" stroke-width="3.2"/></svg>`
+  };
+  let choisi = tampons[0];
+  const barre = $('barreOutils');
+  barre.hidden = false;
+  barre.innerHTML = tampons.map(t =>
+    `<button type="button" class="outil${t === choisi ? ' on' : ''}" data-t="${t}">${apercu[t]}${nomsTampon[t]}</button>`).join('')
+    + (q._exigeVerif ? `<button type="button" class="outil" id="btnCompas">🧭 reporter</button>` : '');
+  barre.querySelectorAll('.outil[data-t]').forEach(b => b.addEventListener('click', () => {
+    choisi = b.dataset.t;
+    barre.querySelectorAll('.outil').forEach(x => x.classList.toggle('on', x === b));
+  }));
+  const btnC = $('btnCompas');
+  if (btnC) btnC.addEventListener('click', () => {
+    q._instrumentPose = true;
+    btnC.classList.add('on');
+    $('sousConsigne').textContent = 'Écartement reporté : tu peux marquer les égalités.';
+    sonClic();
+  });
+
+  const posees = {};   // clé de cible -> type de tampon
+  svg.querySelectorAll('.cible-tactile').forEach(c => c.addEventListener('click', () => {
+    if (verrouille) return;
+    const k = c.dataset.t;
+    if (posees[k]) { delete posees[k]; }
+    else if (k[0] === 'a' && choisi !== 'droit') return;   // un trait ne se pose pas sur un sommet
+    else if (k[0] === 'c' && choisi === 'droit') return;   // un carré d’angle ne se pose pas sur un côté
+    else { posees[k] = choisi; sonClic(); }
+    redessinerMarques();
+  }));
+  function redessinerMarques(){
+    const g = svg.getElementById('marques');
+    g.innerHTML = Object.keys(posees).map(k => {
+      const i = +k.slice(1);
+      return k[0] === 'a' ? marqueAngleDroit(q.pts, i)
+        : marqueEgalite(q.pts, i, posees[k] === 'double' ? 2 : 1);
+    }).join('');
+    /* L’indice s’efface là où une marque a pris sa place. */
+    svg.querySelectorAll('.indice-cible').forEach(e =>
+      e.classList.toggle('pris', !!posees[e.dataset.i]));
+  }
+
+  $('btnValider').style.display = 'block';
+  $('btnValider').textContent = 'Certifier ✓';
+  $('btnValider').onclick = () => {
+    if (verrouille) return;
+    verrouille = true;
+    $('btnValider').style.display = 'none';
+    const attenduAngles = new Set(q.droits.map(i => 'a' + i));
+    const posesAngles = new Set(Object.keys(posees).filter(k => k[0] === 'a'));
+    const anglesOk = attenduAngles.size === posesAngles.size && [...attenduAngles].every(k => posesAngles.has(k));
+
+    /* Une marque d’égalité est RELATIONNELLE : elle ne dit pas « ce côté
+       mesure quelque chose », elle dit « ce côté est égal à celui qui porte
+       la même marque ». D’où deux exigences : au moins deux marques
+       identiques pour qu’un codage ait un sens, et deux notations
+       distinctes pour deux groupes distincts. */
+    let egalitesOk = true, motif = null;
+    if (tampons.length > 1) {
+      const parType = {};
+      Object.keys(posees).filter(k => k[0] === 'c').forEach(k => {
+        (parType[posees[k]] = parType[posees[k]] || []).push(+k.slice(1));
+      });
+      const groupesPoses = Object.values(parType).map(l => l.slice().sort((x,y) => x-y).join(','));
+      const groupesAttendus = q.groupes.map(g => g.slice().sort((x,y) => x-y).join(','));
+      const isolee = Object.values(parType).some(l => l.length === 1);
+      if (isolee) { egalitesOk = false; motif = 'Une marque toute seule ne dit rien : il en faut au moins deux pareilles.'; }
+      else if (groupesPoses.length !== groupesAttendus.length
+        || !groupesAttendus.every(g => groupesPoses.includes(g))) {
+        egalitesOk = false;
+        motif = q.groupes.length === 2
+          ? 'Deux groupes de côtés égaux : il fallait deux notations différentes.'
+          : (q.groupes.length === 0 ? 'Cette figure n’a aucune égalité de côtés à marquer.'
+                                    : 'Les côtés de même longueur devaient tous porter la même marque.');
+      }
+    }
+    const bon = anglesOk && egalitesOk;
+    const manque = bon && q._exigeVerif && !q._instrumentPose;
+    // Correction : on montre le codage attendu (§18).
+    const g = svg.getElementById('marques');
+    svg.querySelectorAll('.indice-cible').forEach(e => e.classList.add('pris'));
+    g.innerHTML = q.droits.map(i => marqueAngleDroit(q.pts, i)).join('')
+      + q.groupes.map((grp, gi) => grp.map(i => marqueEgalite(q.pts, i, gi + 1)).join('')).join('');
+    terminerManche(bon, !bon ? 0 : (manque ? PTS_SANS_VERIF : PTS_PLEIN),
+      bon && !manque ? 'Plan certifié !' : null,
+      !bon ? (motif || 'Voici le codage attendu.')
+           : 'Mais il fallait reporter l’écartement avant de marquer les égalités.');
+  };
+}
+
+/* ---------- Fin de manche ---------- */
+function terminerManche(bon, pts, motBravo, correction){
+  const q = file[pos];
+  q._pts = pts; q._ok = bon;
+  score += pts;
+  if (bon && pts === PTS_PLEIN) { sonBonneReponse(); lancerConfettis(28); message(motBravo || 'Bravo !', 'bon'); }
+  else if (bon) { sonBonneReponse(); message('Juste, ', 'demi', correction || ''); }
+  else { sonErreur(); message('Presque ! ', 'mauvais', correction || ''); }
+  majDots();
+  $('btnNext').style.display = 'block';
+  $('btnNext').textContent = pos === file.length - 1 ? 'Voir mon score ⭐' : 'Suivant ➜';
+  $('btnNext').onclick = () => { pos++; if (pos < file.length) question(); else fin(); };
+  armerAutoSuivant();
+}
+
+function fin(){
+  desarmerAutoSuivant(); stopperVoix();
+  const ratio = total ? score / total : 0;
+  const n = ratio >= 0.85 ? 3 : ratio >= 0.6 ? 2 : 1;
+  enregistrerEtoiles(miniJeuCourant.cfg.id, n);
+  enregistrerSession(miniJeuCourant.cfg.id, score, total, Math.round((Date.now() - demarreLe)/1000));
+  $('hdrTitle').textContent = 'Résultat';
+  $('endStars').innerHTML = '⭐'.repeat(n).split('').map(s => `<span>${s}</span>`).join('');
+  $('endMsg').textContent = n === 3 ? 'Contrôle impeccable !' : n === 2 ? 'Bon travail !' : 'Continue, tu progresses !';
+  $('endScore').textContent = score + ' point' + (score > 1 ? 's' : '') + ' sur ' + total + '.';
+  if (n === 3) sonNiveauParfait(); else sonBonneReponse();
+  lancerConfettis(n === 3 ? 90 : 40);
+  montreEcran('end');
+}
+$('bRejouer').addEventListener('click', () => lance(miniJeuCourant.cfg.id));
+$('bMenu').addEventListener('click', retourAccueil);
+
+/* ============================================================
+   DÉMARRAGE
+   ============================================================ */
+construireAccueil();
+montreEcran('home');
+
+/* Lancement paramétré (CHARTE §16) : un paramètre inconnu est ignoré en
+   silence — ce n’est qu’un raccourci d’entrée. */
+(function(){
+  const d = parametreURL('competence');
+  if (!d) return;
+  const t = trouverMiniJeu(d);
+  if (!t) return;
+  etatPalierAffiche = t.palierNom;
+  construireAccueil();
+  lance(d);
+})();
+
+/* Bouton « ← Menu » : retour à la coquille avec confirmation (CHARTE §7). */
+(function(){
+  const b = $('bouton-menu'), m = $('modale-menu');
+  if (!b || !m) return;
+  const fermer = () => { m.hidden = true; };
+  b.addEventListener('click', () => { m.hidden = false; });
+  $('modale-menu-rester').addEventListener('click', fermer);
+  $('modale-menu-revenir').addEventListener('click', () => { fermer(); location.href = '../index.html'; });
+})();
+</script>
+</body>
+</html>

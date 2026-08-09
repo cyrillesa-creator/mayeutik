@@ -190,6 +190,66 @@
       ]
     },
     {
+      "id": "M35",
+      "titre": "L’atelier de contrôle",
+      "description": "Pose la règle, le gabarit, l’équerre et le compas pour vérifier ce que l’œil ne tranche pas, puis note-le sur le plan.",
+      "icone": "📐",
+      "niveau": "CP",
+      "niveaux": [
+        "CP",
+        "CE1",
+        "CE2"
+      ],
+      "domaine": "Espace et géométrie",
+      "domaineProgramme": "Espace et géométrie",
+      "theme": "Géométrie plane",
+      "programme": "BO-2024",
+      "type": "entrainement",
+      "fichier": "jeux/M35-verifier-coder.html",
+      "competences": [
+        {
+          "id": "cp-alignement",
+          "libelle": "Vérifier un alignement de points à la règle (CP)"
+        },
+        {
+          "id": "cp-tracer-droite",
+          "libelle": "Tracer à la règle la droite passant par deux points (CP)"
+        },
+        {
+          "id": "ce1-alignement",
+          "libelle": "Vérifier un alignement et placer un point aligné à la règle (CE1)"
+        },
+        {
+          "id": "ce1-angles",
+          "libelle": "Vérifier un angle droit au gabarit : droit, aigu ou obtus (CE1)"
+        },
+        {
+          "id": "ce1-compas",
+          "libelle": "Tracer un cercle au compas et trouver le milieu d’un segment par pliage (CE1)"
+        },
+        {
+          "id": "ce1-codage",
+          "libelle": "Coder les angles droits d’une figure (CE1)"
+        },
+        {
+          "id": "ce2-alignement",
+          "libelle": "Vérifier à la règle des alignements indécidables à l’œil (CE2)"
+        },
+        {
+          "id": "ce2-angles",
+          "libelle": "Contrôler à l’équerre chaque angle d’un polygone (CE2)"
+        },
+        {
+          "id": "ce2-compas",
+          "libelle": "Tracer un cercle de rayon donné et reporter une longueur au compas (CE2)"
+        },
+        {
+          "id": "ce2-codage",
+          "libelle": "Coder les angles droits et les égalités de longueur d’une figure (CE2)"
+        }
+      ]
+    },
+    {
       "id": "M36",
       "titre": "Les Solides",
       "description": "Manipule les solides en 3D : nomme-les, compte leurs faces, construis-les, plie leurs patrons et lis-les en perspective.",
