@@ -187,7 +187,8 @@
           "id": "ce2-litige",
           "libelle": "Réfuter une affirmation en localisant le contre-exemple puis en énonçant la propriété (CE2)"
         }
-      ]
+      ],
+      "iconeSvg": "<defs><clipPath id=\"vitre-m34\"><path d=\"M 8 36 L 8 19 Q 8 7 20 5 Q 32 7 32 19 L 32 36 Z\"/></clipPath></defs><g clip-path=\"url(#vitre-m34)\"><rect x=\"5\" y=\"3\" width=\"30\" height=\"35\" fill=\"#FBF7F0\"/><path d=\"M 20 5 L 32 19 L 8 19 Z\" fill=\"#FFC93C\"/><rect x=\"8\" y=\"19\" width=\"12\" height=\"8.5\" fill=\"#5AB4DC\"/><rect x=\"20\" y=\"19\" width=\"12\" height=\"8.5\" fill=\"#2EC4A6\"/><path d=\"M 8 27.5 L 20 27.5 L 14 36 L 8 36 Z\" fill=\"#9B5DE5\"/><path d=\"M 20 27.5 L 32 27.5 L 32 36 L 14 36 Z\" fill=\"#FF5D5D\"/><circle cx=\"20\" cy=\"13.6\" r=\"4.4\" fill=\"#FF8A3D\"/></g><g clip-path=\"url(#vitre-m34)\" fill=\"none\" stroke=\"#2B3A55\" stroke-width=\"1.5\" stroke-linejoin=\"round\" stroke-linecap=\"round\"><path d=\"M 20 5 L 8 19 M 20 5 L 32 19 M 8 19 H 32 M 20 19 V 27.5 M 8 27.5 H 32 M 20 27.5 L 14 36\"/><circle cx=\"20\" cy=\"13.6\" r=\"4.4\"/></g><path d=\"M 8 36 L 8 19 Q 8 7 20 5 Q 32 7 32 19 L 32 36 Z\" fill=\"none\" stroke=\"#2B3A55\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/>"
     },
     {
       "id": "M35",

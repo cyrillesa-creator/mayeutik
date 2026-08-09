@@ -167,6 +167,24 @@
 
   /* ---------- Petits utilitaires ---------- */
 
+  /**
+   * Vignette d'un module. Un emoji suffit à la plupart, mais certains
+   * modules méritent un dessin : `module.iconeSvg` porte alors le contenu
+   * d'un <svg viewBox="0 0 40 40">. On passe par innerHTML parce que h()
+   * ne sait poser que du texte, et parce que le markup vient du référentiel
+   * du dépôt — jamais d'une saisie utilisateur.
+   */
+  function iconeModule(module) {
+    const e = h('span', { class: 'icone' });
+    if (module.iconeSvg) {
+      e.classList.add('icone-dessin');
+      e.innerHTML = '<svg viewBox="0 0 40 40" aria-hidden="true">' + module.iconeSvg + '</svg>';
+      return e;
+    }
+    e.textContent = module.icone || '🎲';
+    return e;
+  }
+
   function h(balise, attrs, enfants) {
     const e = document.createElement(balise);
     Object.keys(attrs || {}).forEach((k) => {
@@ -664,7 +682,7 @@
       && module.descriptionsParNiveau[niveauContexte]) || module.description || '';
     return h('a', { class: 'carte-jeu ' + COULEURS_CARTES[indice % COULEURS_CARTES.length],
       href }, [
-      h('span', { class: 'icone', texte: module.icone || '🎲' }),
+      iconeModule(module),
       h('div', { class: 'infos' }, [
         h('div', { class: 'titre', texte: module.titre }),
         h('div', { class: 'description', texte: description }),

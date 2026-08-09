@@ -146,8 +146,13 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 }
 .vitrail svg{display:block; width:100%; height:auto;}
 .piece{cursor:pointer;}
-.piece .verre{stroke:var(--plomb); stroke-width:3; stroke-linejoin:round; transition:fill-opacity .12s;}
-.piece.sel .verre{stroke:var(--mandarine); stroke-width:6;}
+.piece .verre{stroke:var(--plomb); stroke-width:3; stroke-linejoin:round; transition:fill-opacity .12s;
+  vector-effect:non-scaling-stroke;}
+/* La sélection ne peut PAS être orange : le verre l’est aussi (VERRES[0]
+   vaut exactement --mandarine), et le marqueur disparaissait sur les pièces
+   orange. Encre foncée + pointillé : lisible sur les huit teintes de verre,
+   et impossible à confondre avec le vert du juste ou le rouge du faux. */
+.piece.sel .verre{stroke:#12233C; stroke-width:6; stroke-dasharray:13 8;}
 .piece.bon .verre{stroke:var(--menthe); stroke-width:6;}
 .piece.faux .verre{stroke:var(--corail); stroke-width:6;}
 .piece.manque .verre{stroke:var(--menthe); stroke-width:6; stroke-dasharray:9 6;}
@@ -156,13 +161,19 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
    cible large et transparente ; `.indice` est le repère fin qui signale
    qu’il y a là quelque chose à toucher — sans lui, l’enfant taperait au
    hasard ; trop épais, il étoufferait la figure. */
-.zone{fill:transparent; stroke:transparent; stroke-width:26; cursor:pointer; stroke-linecap:round;}
-.indice{fill:rgba(29,51,84,.30); stroke:rgba(29,51,84,.30); stroke-width:3.5; stroke-linecap:round; pointer-events:none;}
-.indice-trait{fill:none; stroke:rgba(29,51,84,.34); stroke-width:3.5; stroke-dasharray:7 6; stroke-linecap:round; pointer-events:none;}
-.zone.sel{stroke:color-mix(in srgb, var(--mandarine) 55%, transparent);}
+.zone{fill:transparent; stroke:transparent; stroke-width:26; cursor:pointer; stroke-linecap:round;
+  vector-effect:non-scaling-stroke;}
+.indice{fill:rgba(29,51,84,.30); stroke:rgba(29,51,84,.30); stroke-width:3.5; stroke-linecap:round; pointer-events:none; vector-effect:non-scaling-stroke;}
+.indice-trait{fill:none; stroke:rgba(29,51,84,.34); stroke-width:3.5; stroke-dasharray:7 6; stroke-linecap:round; pointer-events:none; vector-effect:non-scaling-stroke;}
+.zone.sel{stroke:color-mix(in srgb, #12233C 45%, transparent);}
 .zone.bon{stroke:color-mix(in srgb, var(--menthe) 60%, transparent);}
 .zone.faux{stroke:color-mix(in srgb, var(--corail) 60%, transparent);}
-.marque-angle{fill:none; stroke:var(--mandarine); stroke-width:3.5;}
+/* Le décompte animé de cp-decrire : côtés colorés un à un, sommets pointés. */
+.trait-compte{stroke:var(--corail); stroke-width:6; stroke-linecap:round; vector-effect:non-scaling-stroke;}
+.point-compte{fill:var(--corail); stroke:#fff; stroke-width:2; vector-effect:non-scaling-stroke;}
+.marque-angle-halo{fill:none; stroke:#fff; stroke-width:7.5; stroke-linecap:round; vector-effect:non-scaling-stroke;}
+.marque-angle{fill:none; stroke:#12233C; stroke-width:3.4; stroke-linecap:round; vector-effect:non-scaling-stroke;}
+.sommet-angle{fill:#fff; stroke:#12233C; stroke-width:2.2; vector-effect:non-scaling-stroke;}
 
 /* Réponses : QCM texte, QCM illustré (relations), présentoir de pièces */
 #answers{display:grid; grid-template-columns:1fr; gap:10px;}
@@ -190,7 +201,7 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 /* Présentoir (portrait-robot) : les pièces candidates, en grand */
 .presentoir{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
 .presentoir .rep{justify-content:center; padding:8px;}
-.presentoir svg{width:100%; height:96px;}
+.presentoir svg{width:100%; height:84px;}
 
 #feedback{
   text-align:center; font-weight:700; margin-top:12px; min-height:2.4em;
@@ -545,11 +556,32 @@ function cadrer(pieces, marge){
   const b = boiteEnglobante(pieces), m = marge === undefined ? 26 : marge;
   return [b.x1 - m, b.y1 - m, (b.x2 - b.x1) + 2 * m, (b.y2 - b.y1) + 2 * m].join(' ');
 }
-function afficherScene(pieces, extra){
+/* La scène a une TAILLE CONSTANTE. Une viewBox ajustée au contenu, comme
+   dans une première version, faisait varier la hauteur rendue d’une manche
+   à l’autre — deux carrés partageant un sommet occupaient deux fois plus de
+   place que deux rectangles accolés, et l’écran finissait par défiler. On
+   fixe donc le cadre et c’est la figure qui vient s’y loger, mise à
+   l’échelle uniformément : les proportions sont intactes, l’encombrement
+   ne bouge plus. Les traits (plomb, cibles tactiles, repères) sont en
+   `non-scaling-stroke` pour garder leur épaisseur À L’ÉCRAN, sans quoi une
+   petite figure verrait ses cibles tactiles rétrécir avec elle. */
+const SCENE_L = 400, SCENE_H_DEFAUT = 236;
+function afficherScene(pieces, extra, hauteur, cadre){
   const svg = $('svgScene');
-  svg.setAttribute('viewBox', cadrer(pieces));
-  svg.innerHTML = pieces.map(p => svgPiece(p)).join('') + (extra || '');
+  const H = hauteur || SCENE_H_DEFAUT;
+  svg.setAttribute('viewBox', `0 0 ${SCENE_L} ${H}`);
+  const c = cadre || {x:0, y:0, l:SCENE_L, h:H};
+  svg.innerHTML = `<g id="scenePieces" transform="${ajusterA(pieces, c)}">`
+    + pieces.map(p => svgPiece(p)).join('') + (extra || '') + `</g>`;
   $('vitrail').hidden = false;
+}
+/* Translation + homothétie qui logent un contenu dans un cadre donné. */
+function ajusterA(pieces, cadre, marge){
+  const b = boiteEnglobante(pieces), m = marge === undefined ? 20 : marge;
+  const k = Math.min((cadre.l - 2*m) / Math.max(1, b.x2 - b.x1), (cadre.h - 2*m) / Math.max(1, b.y2 - b.y1));
+  const tx = cadre.x + cadre.l/2 - (b.x1 + b.x2)/2 * k;
+  const ty = cadre.y + cadre.h/2 - (b.y1 + b.y2)/2 * k;
+  return `translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(4)})`;
 }
 
 /* ---- Petit schéma illustrant une proposition (CP) ----
@@ -563,8 +595,8 @@ function schemaRelation(e){
   const A = '#FF8A3D', B = '#5AB4DC', ACC = '#2EC4A6';
   const cadre = inner => `<svg class="schema" viewBox="0 0 80 64" aria-hidden="true">${inner}</svg>`;
   const carre = (x, y, c, f) => T([[x,y],[x+c,y],[x+c,y+c],[x,y+c]], f);
+  const dot = ([x, y]) => `<circle cx="${x}" cy="${y}" r="5" fill="${ACC}" stroke="#2B3A55" stroke-width="2"/>`;
   if (e.modele === 'forment') {
-    // deux/trois pièces qui, mises ensemble, composent une plus grande forme
     const n = e.n;
     if (n === 2) return cadre(T([[10,10],[70,10],[10,54]], A) + T([[70,10],[70,54],[10,54]], B));
     return cadre(T([[10,10],[40,10],[10,54]], A) + T([[40,10],[70,10],[40,54]], B) + T([[40,10],[70,54],[40,54]], ACC));
@@ -577,28 +609,34 @@ function schemaRelation(e){
   if (e.modele === 'sommet-commun') {
     const f = e.a === 'carre' ? [carre(6,6,26,A), carre(32,32,26,B)]
       : [T([[6,10],[36,10],[36,30],[6,30]], A), T([[36,30],[70,30],[70,52],[36,52]], B)];
-    return cadre(f.join('') + `<circle cx="${e.a==='carre'?32:36}" cy="${e.a==='carre'?32:30}" r="5" fill="${ACC}" stroke="#2B3A55" stroke-width="2"/>`);
+    return cadre(f.join('') + dot(e.a === 'carre' ? [32,32] : [36,30]));
   }
+  /* La famille « triangle et carré » : le schéma est construit à partir des
+     MÊMES sommets que ceux qui décident du texte, et les pastilles vertes
+     marquent EXACTEMENT les points dont la phrase parle. Une première
+     version marquait un coin du carré qui n’était même pas un sommet du
+     triangle, sous une phrase parlant d’un côté. */
+  const cc = [[14,6],[66,6],[66,58],[14,58]];         // le carré, en clair
+  const ext = carre(14,6,52,B);
   if (e.modele === 'dans') {
-    const ext = e.b === 'carre' ? carre(14,6,52,B) : T([[6,12],[74,12],[74,52],[6,52]], B);
-    const int = e.a === 'triangle' ? T([[26,44],[58,44],[42,18]], A) : carre(28,20,24,A);
-    return cadre(ext + int);
+    const tri = e.a === 'triangle' ? [[28,48],[56,48],[42,22]] : null;
+    return cadre(ext + (tri ? T(tri, A) : carre(28,20,24,A)));
   }
   if (e.modele === 'sommets-sur') {
-    const ext = carre(14,6,52,B);
-    const int = e.k === 2 ? T([[14,58],[66,58],[40,18]], A) : T([[14,58],[58,44],[40,18]], A);
-    const marques = e.k === 2
-      ? `<circle cx="14" cy="58" r="5" fill="${ACC}" stroke="#2B3A55" stroke-width="2"/><circle cx="66" cy="58" r="5" fill="${ACC}" stroke="#2B3A55" stroke-width="2"/>`
-      : `<circle cx="14" cy="58" r="5" fill="${ACC}" stroke="#2B3A55" stroke-width="2"/>`;
-    return cadre(ext + int + marques);
+    if (e.k === 1) {
+      const tri = [[14,58],[52,48],[38,22]];
+      return cadre(ext + T(tri, A) + dot(tri[0]));
+    }
+    if (e.k === 2) {
+      const tri = [[14,58],[66,58],[40,26]];
+      return cadre(ext + T(tri, A) + dot(tri[0]) + dot(tri[1]));
+    }
+    const tri = [[14,58],[66,58],[66,6]];
+    return cadre(ext + T(tri, A) + tri.map(dot).join(''));
   }
-  // sommet-sur-cote
-  const ext = carre(14,6,52,B);
-  const int = T([[14,58],[66,58],[40,6]], A);
-  const marque = e.cible === 'cote'
-    ? `<circle cx="40" cy="6" r="5" fill="${ACC}" stroke="#2B3A55" stroke-width="2"/>`
-    : `<circle cx="14" cy="6" r="5" fill="${ACC}" stroke="#2B3A55" stroke-width="2"/>`;
-  return cadre(ext + int + marque);
+  // sommet-sur-cote : le sommet marqué est bien SUR un côté, pas à un coin.
+  const tri = [[28,48],[56,44],[44,6]];
+  return cadre(ext + T(tri, A) + dot(tri[2]));
 }
 
 /* ---- Énoncés STRUCTURÉS ----
@@ -606,21 +644,25 @@ function schemaRelation(e){
    de fabriquer un distracteur en ne changeant QU’UN SEUL terme (spec §3.2),
    et de rendre le texte comme le schéma depuis la même source. */
 function texteRelation(e){
-  const n = e.n === 2 ? 'deux' : 'trois';
+  /* Aucune phrase ne commence par « Il y a » ni « Je vois » : ces amorces
+     n’apportent rien et allongent la lecture d’un CP. On dit ce qu’on voit,
+     directement. */
+  const n = e.n === 2 ? 'Deux' : 'Trois';
   if (e.modele === 'forment')
-    return `Il y a ${n} ${plurDe(e.a)} qui forment ${avecArt(e.b)}.`;
+    return `${n} ${plurDe(e.a)} forment ${avecArt(e.b)}.`;
   if (e.modele === 'cote-commun')
-    return `Je vois ${n} ${plurDe(e.a)} avec un côté en commun.`;
+    return `${n} ${plurDe(e.a)} ont un côté en commun.`;
   if (e.modele === 'sommet-commun')
-    return `Je vois ${n} ${plurDe(e.a)} avec un sommet en commun.`;
+    return `${n} ${plurDe(e.a)} ont un sommet en commun.`;
   if (e.modele === 'dans')
-    return `Il y a ${avecArt(e.a)} dans ${leDe(e.b)}.`;
+    return `${maj(avecArt(e.a))} est dans ${leDe(e.b)}.`;
   /* « du triangle », et non « de triangle » : c’est l’article DÉFINI
      contracté qu’il faut ici, la figure étant celle qu’on a sous les yeux. */
-  if (e.modele === 'sommets-sur')
-    return e.k === 2
-      ? `Deux sommets ${deArticle(e.a)} sont des sommets ${deArticle(e.b)}.`
-      : `Un sommet ${deArticle(e.a)} est un sommet ${deArticle(e.b)}.`;
+  if (e.modele === 'sommets-sur') {
+    if (e.k === 1) return `Un seul sommet ${deArticle(e.a)} est un sommet ${deArticle(e.b)}.`;
+    const q = e.k === 2 ? 'Deux' : 'Trois';
+    return `${q} sommets ${deArticle(e.a)} sont des sommets ${deArticle(e.b)}.`;
+  }
   return `Un sommet ${deArticle(e.a)} est sur un côté ${deArticle(e.b)}.`;
 }
 /* « du carré », « de la forme » : contraction de l’article défini. */
@@ -641,9 +683,9 @@ const CONTENU = {
       vocabulaire: ['disque','carre','rectangle','triangle','forme'],
       formes: ['disque','carre','rectangle','triangle'],
       miniJeux: [
-        {id:'cp-reconnaitre', mode:'reconnaitre', titre:'La commande', icone:'🧺',
+        {id:'cp-reconnaitre', mode:'reconnaitre', titre:'Les pièces de verre', icone:'🧺',
          description:'Trouve les pièces demandées.', nbQuestions:5},
-        {id:'cp-relations', mode:'relations', titre:'Ce que je vois', icone:'👀',
+        {id:'cp-relations', mode:'relations', titre:'Assemblages', icone:'👀',
          description:'Quelle phrase est vraie ?', nbQuestions:5},
         {id:'cp-decrire', mode:'decrire', titre:'La fiche du verrier', icone:'📋',
          description:'Côtés et sommets.', nbQuestions:5}
@@ -654,7 +696,7 @@ const CONTENU = {
       vocabulaire: ['disque','cercle','carre','rectangle','triangle','triangleRect','forme'],
       formes: ['disque','cercle','carre','rectangle','triangle','triangleRect'],
       miniJeux: [
-        {id:'ce1-reconnaitre', mode:'reconnaitre', titre:'La commande', icone:'🧺',
+        {id:'ce1-reconnaitre', mode:'reconnaitre', titre:'Les pièces de verre', icone:'🧺',
          description:'Cercle ou disque ?', nbQuestions:5},
         {id:'ce1-justifier', mode:'justifier', titre:'Le contrôle qualité', icone:'🔎',
          description:'Nomme, puis prouve-le.', nbQuestions:5},
@@ -668,9 +710,9 @@ const CONTENU = {
                     'losange','quadrilatere','pentagone','hexagone','polygone','forme'],
       formes: ['disque','cercle','carre','rectangle','triangle','triangleRect','losange','pentagone','hexagone'],
       miniJeux: [
-        {id:'ce2-vocabulaire', mode:'vocabulaire', titre:'La rosace', icone:'🌹',
-         description:'Centre, rayon, diagonale…', nbQuestions:5},
-        {id:'ce2-portrait', mode:'portrait', titre:'Le portrait-robot', icone:'🕵️',
+        {id:'ce2-vocabulaire', mode:'vocabulaire', titre:'La rosace', icone:'🏵️',
+         description:'Centre, rayon, diagonale…', nbQuestions:6},
+        {id:'ce2-portrait', mode:'portrait', titre:'La commande de pièces', icone:'📜',
          description:'Trouve la pièce décrite.', nbQuestions:5},
         {id:'ce2-litige', mode:'litige', titre:'Le litige', icone:'⚖️',
          description:'Montre l’erreur, puis explique.', nbQuestions:5}
@@ -924,7 +966,8 @@ function assemblageCommande(palier, demandees){
    qu’on l’a affirmé à côté.
    ============================================================ */
 function scenarioRelation(){
-  const type = pioche(['forment','cote-commun','sommet-commun','dans','sommets-sur','sommet-sur-cote']);
+  const type = pioche(['forment','cote-commun','sommet-commun','dans',
+                       'sommets-sur-1','sommets-sur-2','sommet-sur-cote']);
   const th = entre(0, TAU), T = pts => tournerPts(pts, th);
   const co = [VERRES[0], VERRES[1], VERRES[2]];
   const A = 100;
@@ -962,28 +1005,68 @@ function scenarioRelation(){
       vrai:{modele:'sommet-commun', n:2, a:a}
     };
   }
-  // Les trois derniers scénarios partagent la même figure : un triangle
-  // inscrit dans un carré, deux de ses sommets sur des sommets du carré,
-  // le troisième sur un côté. La phrase officielle à trois propositions est
-  // ainsi découpée en manches successives (spec §3.2).
+  /* LA FAMILLE « TRIANGLE ET CARRÉ ». Les quatre scénarios avaient jadis
+     UNE SEULE figure — un triangle dont deux sommets étaient des sommets du
+     carré et le troisième sur un côté. Deux propositions y étaient donc
+     vraies en même temps, et l’enfant pouvait cocher la « mauvaise » bonne
+     réponse. Chaque scénario a désormais SA figure, construite pour qu’une
+     seule phrase la décrive.
+     Le triangle est placé PUIS vérifié : `contactsTriangleCarre` recompte
+     sur les points réels combien de ses sommets tombent sur un sommet du
+     carré et combien sur un côté — la règle du dépôt, on calcule, on ne
+     déclare pas. */
   const c = A * 1.2;
   const q = [[-c/2, c/2], [c/2, c/2], [c/2, -c/2], [-c/2, -c/2]];
-  const tri = [q[0], q[1], [entre(-c*0.2, c*0.2), -c/2]];
+  const dedans = (fx, fy) => [c * fx, c * fy];
+  let tri;
+  if (type === 'dans') {
+    // Aucun contact : le triangle flotte à l’intérieur.
+    tri = [dedans(-0.26, 0.28), dedans(0.28, 0.26), dedans(entre(-0.10, 0.10), -0.26)];
+  } else if (type === 'sommets-sur-1') {
+    // Exactement un sommet sur un coin, les deux autres strictement dedans.
+    tri = [q[0], dedans(0.28, 0.22), dedans(entre(-0.06, 0.10), -0.26)];
+  } else if (type === 'sommets-sur-2') {
+    // Exactement deux sommets sur deux coins, le troisième strictement dedans.
+    tri = [q[0], q[1], dedans(entre(-0.14, 0.14), -0.12)];
+  } else {
+    // Exactement un sommet SUR UN CÔTÉ, à distance des coins, les autres dedans.
+    tri = [dedans(-0.28, 0.28), dedans(0.28, 0.24), [c * entre(-0.22, 0.22), -c/2]];
+  }
   const pieces = [
     {id:'r1', forme:'carre', pts:placerPts(T(q), 0, 0, 1), couleur:co[1]},
     {id:'r2', forme:'triangle', pts:placerPts(T(tri), 0, 0, 1), couleur:co[0]}
   ];
   if (type === 'dans') return {pieces, vrai:{modele:'dans', a:'triangle', b:'carre'}};
-  if (type === 'sommets-sur') return {pieces, vrai:{modele:'sommets-sur', k:2, a:'triangle', b:'carre'}};
-  return {pieces, vrai:{modele:'sommet-sur-cote', a:'triangle', b:'carre', cible:'cote'}};
+  if (type === 'sommets-sur-1') return {pieces, vrai:{modele:'sommets-sur', k:1, a:'triangle', b:'carre'}};
+  if (type === 'sommets-sur-2') return {pieces, vrai:{modele:'sommets-sur', k:2, a:'triangle', b:'carre'}};
+  return {pieces, vrai:{modele:'sommet-sur-cote', a:'triangle', b:'carre'}};
 }
 
-/* Distracteur = la phrase vraie dont UN SEUL terme a bougé. L’enfant doit
-   donc écouter la phrase entière au lieu de repérer un mot-clé. */
+/* Combien de sommets du triangle tombent sur un sommet du carré, combien
+   sur un côté (coins exclus) ? Sert à la fabrication ET aux tests : c’est
+   ce comptage, et non le nom du scénario, qui dit ce qui est vrai. */
+function contactsTriangleCarre(tri, carre){
+  const TOL = 1.2;
+  let surSommet = 0, surCote = 0;
+  tri.forEach(p => {
+    if (carre.some(v => hyp(p, v) <= TOL)) { surSommet++; return; }
+    const n = carre.length;
+    for (let i = 0; i < n; i++) {
+      const a = carre[i], b = carre[(i + 1) % n];
+      const L = hyp(a, b);
+      const t = ((p[0]-a[0])*(b[0]-a[0]) + (p[1]-a[1])*(b[1]-a[1])) / (L*L);
+      if (t <= 0.02 || t >= 0.98) continue;
+      const proj = [a[0] + (b[0]-a[0])*t, a[1] + (b[1]-a[1])*t];
+      if (hyp(p, proj) <= TOL) { surCote++; return; }
+    }
+  });
+  return {surSommet, surCote};
+}
+
 function distracteursRelation(vrai){
   const out = [];
   const clone = () => JSON.parse(JSON.stringify(vrai));
-  const autreForme = f => f === 'carre' ? 'rectangle' : f === 'rectangle' ? 'carre' : 'carre';
+  const autreForme = f => f === 'carre' ? 'rectangle' : 'carre';
   if (vrai.modele === 'forment') {
     let d = clone(); d.b = 'carre'; out.push(d);
     d = clone(); d.n = 3; out.push(d);
@@ -997,11 +1080,16 @@ function distracteursRelation(vrai){
     let d = clone(); d.a = 'carre'; d.b = 'triangle'; out.push(d);
     d = clone(); d.a = 'rectangle'; out.push(d);
   } else if (vrai.modele === 'sommets-sur') {
-    let d = clone(); d.k = 1; out.push(d);
-    d = clone(); d.modele = 'sommet-sur-cote'; d.cible = 'cote'; out.push(d);
+    /* On ne propose JAMAIS « un sommet est sur un côté » face à un triangle
+       dont des sommets occupent des coins du carré : un coin appartient à
+       deux côtés, la phrase serait défendable et la manche aurait deux
+       bonnes réponses. On reste donc sur le COMPTAGE, qui tranche. */
+    [1, 2, 3].filter(k => k !== vrai.k).slice(0, 2).forEach(k => {
+      const d = clone(); d.k = k; out.push(d);
+    });
   } else {
-    let d = clone(); d.modele = 'sommets-sur'; d.k = 2; out.push(d);
-    d = clone(); d.cible = 'sommet'; out.push(d);
+    let d = clone(); d.modele = 'sommets-sur'; d.k = 1; out.push(d);
+    d = clone(); d.modele = 'sommets-sur'; d.k = 2; out.push(d);
   }
   return out;
 }
@@ -1088,44 +1176,81 @@ function qRelations(cfg){
 }
 
 function qDecrire(cfg, palier){
+  /* CHARTE §13 — pas de redondance : les nombres à trouver sont TOUS
+     DIFFÉRENTS au fil de la partie. Une version antérieure tirait forme et
+     question au hasard et pouvait demander « combien de côtés » trois fois
+     de suite pour la réponse 4. On fixe donc le squelette : un nom, puis
+     un comptage à 3, un à 4, puis les deux formes que le CP ne nomme pas,
+     à 5 et à 6 côtés. */
   const nommables = palier.formes.filter(f => f !== 'cercle');
-  return Array.from({length: cfg.nbQuestions}, (_, i) => {
-    // Les deux dernières manches présentent une pièce à 5 ou 6 côtés, que
-    // le CP ne nomme pas : « cette forme », on ne fait que compter.
-    const inconnue = i >= 3;
-    const forme = inconnue ? pioche(['pentagone','hexagone']) : pioche(nommables);
-    const piece = creerPiece(forme, {cx:0, cy:0, taille:150, couleur:VERRES[i % VERRES.length]});
+  const troisCotes = nommables.filter(f => f === 'triangle' || f === 'triangleRect');
+  const quatreCotes = nommables.filter(f => ['carre','rectangle','losange'].includes(f));
+  const petits = melanger([
+    troisCotes.length ? {f:pioche(troisCotes)} : null,
+    quatreCotes.length ? {f:pioche(quatreCotes)} : null
+  ].filter(Boolean));
+  const grands = melanger(['pentagone','hexagone']);
+
+  const plan = [];
+  plan.push({type:'nom', f:pioche(nommables)});
+  petits.forEach(x => plan.push({type:'compte', f:x.f, connue:true}));
+  grands.forEach(f => plan.push({type:'compte', f, connue:false}));
+  while (plan.length < cfg.nbQuestions) plan.push({type:'nom', f:pioche(nommables)});
+
+  const quoiUtilise = [];
+  return plan.slice(0, cfg.nbQuestions).map((etape, i) => {
+    const piece = creerPiece(etape.f, {cx:0, cy:0, taille:150, couleur:VERRES[i % VERRES.length]});
     const p = proprietes(piece);
-    if (inconnue) {
-      const quoi = pioche(['cotes','sommets']);
-      const bon = quoi === 'cotes' ? p.nbCotes : p.nbSommets;
-      return {mode:'decrire', pieces:[piece],
-        q:'Combien cette forme a-t-elle ' + (quoi === 'cotes' ? 'de côtés' : 'de sommets') + ' ?',
-        sous:'Compte bien tout autour.',
-        opts:melanger([bon, bon + 1, bon - 1, bon + 2].map(String)), ans:String(bon)};
-    }
-    const quoi = pioche(forme === 'disque' ? ['nom'] : ['nom','cotes','sommets']);
-    if (quoi === 'nom') {
-      const autres = melanger(nommables.filter(f => f !== forme)).slice(0, 3);
+    if (etape.type === 'nom') {
+      const autres = melanger(nommables.filter(f => f !== etape.f)).slice(0, 3);
       return {mode:'decrire', pieces:[piece],
         q:'Comment s’appelle cette pièce ?', sous:'',
-        opts:melanger([forme, ...autres].map(nomDe)), ans:nomDe(forme)};
+        opts:melanger([etape.f, ...autres].map(nomDe)), ans:nomDe(etape.f)};
     }
+    /* Côtés et sommets alternent, pour que la partie ne soit pas une suite
+       de « combien de côtés ». */
+    const quoi = quoiUtilise.filter(x => x === 'cotes').length > quoiUtilise.filter(x => x === 'sommets').length
+      ? 'sommets' : (quoiUtilise.length ? 'cotes' : pioche(['cotes','sommets']));
+    quoiUtilise.push(quoi);
     const bon = quoi === 'cotes' ? p.nbCotes : p.nbSommets;
-    return {mode:'decrire', pieces:[piece],
-      q:'Combien ' + leDe(forme) + ' a-t-il ' + (quoi === 'cotes' ? 'de côtés' : 'de sommets') + ' ?',
-      sous:'Compte bien tout autour.',
+    const q = etape.connue
+      ? 'Combien ' + leDe(etape.f) + ' a-t-il ' + (quoi === 'cotes' ? 'de côtés' : 'de sommets') + ' ?'
+      : 'Combien cette forme a-t-elle ' + (quoi === 'cotes' ? 'de côtés' : 'de sommets') + ' ?';
+    return {mode:'decrire', pieces:[piece], compte:quoi, bonNombre:bon,
+      q, sous:'Compte bien tout autour.',
       opts:melanger([bon, bon + 1, bon - 1, bon + 2].map(String)), ans:String(bon)};
   });
 }
 
+/* Assertions candidates pour « pourquoi ce n’est pas un carré ? ». Chacune
+   porte son PRÉDICAT : c’est la figure qui décide si l’assertion est vraie,
+   pas une liste écrite à la main. Un distracteur est une assertion FAUSSE
+   sur la pièce affichée — « l’un de ses angles n’est pas droit » était
+   proposé comme faux devant un triangle, où il est manifestement vrai. */
+const ASSERTIONS_CARRE = [
+  {t:'elle n’a que trois côtés',                    vrai:p => p.nbCotes === 3},
+  {t:'ses quatre côtés n’ont pas la même longueur', vrai:p => p.nbCotes === 4 && !p.tousCotesEgaux},
+  {t:'l’un de ses angles n’est pas droit',          vrai:p => !p.rond && !p.tousAnglesDroits},
+  {t:'elle a plus de quatre côtés',                 vrai:p => p.nbCotes > 4},
+  {t:'elle n’a aucun sommet',                       vrai:p => p.nbSommets === 0},
+  {t:'elle a quatre sommets',                       vrai:p => p.nbSommets === 4}
+];
+
 function qJustifier(cfg, palier){
+  /* CHARTE §13 : les pièces ne se répètent pas d’une manche à l’autre. */
+  /* La réfutation a besoin du rectangle et du triangle : la phase « nommer »
+     se sert donc dans le reste, sans quoi la même pièce reviendrait deux
+     fois dans la partie. La variété inter-sessions (§13) vient de l’ordre,
+     des rotations, des proportions et des couleurs, pas du tirage des
+     formes — elles sont cinq pour cinq manches. */
+  const aRefuter = melanger(['rectangle','triangle']);
+  const aNommer = melanger(['carre','triangleRect','disque']);
   return Array.from({length: cfg.nbQuestions}, (_, i) => {
-    // Manches 1-3 : nommer puis prouver. Manches 4-5 : réfuter — on nomme
-    // ce que la pièce est VRAIMENT, puis on dit pourquoi elle est refusée.
+    // Manches 1-3 : nommer puis prouver. Manches 4-5 : réfuter.
     const refutation = i >= 3;
-    const forme = refutation ? pioche(['rectangle','triangle']) : pioche(['carre','rectangle','triangleRect','disque']);
+    const forme = refutation ? aRefuter[(i - 3) % aRefuter.length] : aNommer[i % aNommer.length];
     const piece = creerPiece(forme, {cx:0, cy:0, taille:150, couleur:VERRES[i % VERRES.length]});
+    const p = proprietes(piece);
     const autres = melanger(palier.formes.filter(f => f !== forme)).slice(0, 3);
     const etape1 = {q: refutation
         ? 'Le client dit : « c’est un carré. » Il se trompe. Qu’est-ce que c’est vraiment ?'
@@ -1136,8 +1261,9 @@ function qJustifier(cfg, palier){
       const motif = forme === 'rectangle'
         ? 'ses quatre côtés n’ont pas la même longueur'
         : 'elle n’a que trois côtés';
-      const faux = ['l’un de ses angles n’est pas droit', 'elle n’a aucun côté droit']
-        .filter(x => x !== motif).slice(0, 2);
+      /* Les deux distracteurs sont RELUS sur la pièce : seules des
+         assertions fausses ici peuvent être proposées. */
+      const faux = melanger(ASSERTIONS_CARRE.filter(x => x.t !== motif && !x.vrai(p)).map(x => x.t)).slice(0, 2);
       etape2 = {q:'Pourquoi ce n’est pas un carré ?', opts:melanger([motif, ...faux]), ans:motif};
     } else {
       const bonne = PROP[forme] || PROP.triangle;
@@ -1166,7 +1292,7 @@ function qAngles(cfg){
     }
     if (!piece) { piece = creerPiece('carre', {cx:0, cy:0, taille:150}); idx = 0; }
     return {mode:'angles', pieces:[piece], sommet:idx,
-      q:'Regarde l’angle marqué en orange. Comment est-il ?',
+      q:'Regarde l’angle marqué sur la pièce. Comment est-il ?',
       sous:'À l’œil : pas besoin d’équerre ici.',
       opts:melanger(['droit','aigu','obtus'].map(x => 'un angle ' + x)),
       ans:'un angle ' + classeAngle(anglesDeg(piece.pts)[idx])};
@@ -1186,17 +1312,24 @@ function qVocabulaire(cfg){
     sous: notion === 'polygone' ? 'Le mot qui les englobe toutes.'
       : ['triangle','quadrilatere','pentagone','hexagone'].includes(notion)
         ? 'Compte les côtés de chaque pièce.'
-        : 'Touche l’élément demandé sur la rosace.'
+        : ['diagonale','longueur','largeur'].includes(notion)
+          ? 'Sur le rectangle, posé sous la rosace. Plusieurs réponses conviennent.'
+          : 'Sur le grand cercle qui entoure la rosace.'
   }));
 }
 function consigneVocabulaire(n){
+  /* « la rosace » n’est pas un cercle : c’est l’assemblage de pétales. Le
+     centre, le rayon et le diamètre appartiennent au CERCLE qui la
+     délimite, et la consigne doit le dire. De même, la diagonale se
+     demande sur un quadrilatère IDENTIFIÉ — le rectangle posé sous la
+     rosace — et non sur « ce quadrilatère », qui ne désignait rien. */
   const m = {
-    centre:'Touche le centre de la rosace.',
-    rayon:'Touche un rayon de la rosace.',
-    diametre:'Touche le diamètre de la rosace.',
-    diagonale:'Touche une diagonale de ce quadrilatère.',
-    longueur:'Touche la longueur du rectangle.',
-    largeur:'Touche la largeur du rectangle.',
+    centre:'Touche le centre du cercle qui délimite la rosace.',
+    rayon:'Touche un rayon du cercle qui délimite la rosace.',
+    diametre:'Touche le diamètre du cercle qui délimite la rosace.',
+    diagonale:'Touche une diagonale du rectangle.',
+    longueur:'Touche une longueur du rectangle.',
+    largeur:'Touche une largeur du rectangle.',
     triangle:'Touche le triangle.',
     quadrilatere:'Touche un quadrilatère.',
     pentagone:'Touche le pentagone.',
@@ -1237,24 +1370,48 @@ function qLitige(cfg){
     const p = proprietes(piece);
     const angles = p.angles.map(classeAngle);
     const cotes = p.cotes;
-    let zonesBonnes, sous, motif, faux;
+    /* PLUSIEURS DÉSIGNATIONS SONT JUSTES, et les refuser serait faux : un
+       losange a QUATRE angles non droits, n’importe lequel dénonce le
+       défaut ; un rectangle a deux longs côtés et deux courts, et toute
+       paire « un long + un court » montre l’inégalité. On décrit donc des
+       EXIGENCES — tant de zones à prendre dans tel groupe — et non une
+       liste unique de bonnes cases. */
+    let exigences, sous, motif, faux;
     if (cas === 'losange') {
-      zonesBonnes = angles.map((a, j) => a !== 'droit' ? 'a' + j : null).filter(Boolean).slice(0, 1);
+      const nonDroits = angles.map((a, j) => a !== 'droit' ? 'a' + j : null).filter(Boolean);
+      exigences = [{parmi:nonDroits, nb:1}];
       sous = 'Touche UN angle qui ne va pas, puis appuie sur Vérifier.';
       motif = 'Or un carré a ses quatre angles droits.';
       faux = ['Or un carré a quatre côtés.', 'Or un carré a ses côtés de même longueur.'];
     } else {
-      // Deux côtés de longueurs différentes : il faut désigner LES DEUX.
-      const idxLong = cotes.indexOf(Math.max(...cotes)), idxCourt = cotes.indexOf(Math.min(...cotes));
-      zonesBonnes = ['c' + idxLong, 'c' + idxCourt];
-      sous = 'Touche LES DEUX côtés qui n’ont pas la même longueur, puis appuie sur Vérifier.';
+      const maxi = Math.max(...cotes), mini = Math.min(...cotes);
+      const longs = cotes.map((l, j) => presqueEgal(l, maxi) ? 'c' + j : null).filter(Boolean);
+      const courts = cotes.map((l, j) => presqueEgal(l, mini) ? 'c' + j : null).filter(Boolean);
+      exigences = [{parmi:longs, nb:1}, {parmi:courts, nb:1}];
+      sous = 'Touche UN grand côté ET UN petit côté, puis appuie sur Vérifier.';
       motif = 'Or un carré a ses quatre côtés de même longueur.';
       faux = ['Or un carré a ses quatre angles droits.', 'Or un carré a quatre sommets.'];
     }
-    return {mode:'litige', pieces:[piece], cas, zonesBonnes, etape:1,
+    return {mode:'litige', pieces:[piece], cas, exigences, etape:1,
       q:'Le client dit : « cette pièce est un carré. » Montre où ça coince.',
       sous, etape2:{q:'Et pourquoi ce n’est pas un carré ?', opts:melanger([motif, ...faux]), ans:motif}};
   });
+}
+
+/* Une sélection convient si elle prend exactement le nombre voulu de zones
+   dans CHAQUE groupe, et rien d’autre. */
+function selectionSatisfait(choisies, exigences){
+  const total = exigences.reduce((n, e) => n + e.nb, 0);
+  if (choisies.length !== total) return false;
+  const restantes = choisies.slice();
+  for (const e of exigences) {
+    let pris = 0;
+    for (let i = restantes.length - 1; i >= 0; i--) {
+      if (e.parmi.includes(restantes[i]) && pris < e.nb) { pris++; restantes.splice(i, 1); }
+    }
+    if (pris !== e.nb) return false;
+  }
+  return restantes.length === 0;
 }
 
 function construireFile(cfg, palier){
@@ -1442,7 +1599,7 @@ function question(){
 
   if (q.mode === 'reconnaitre') rendreReconnaitre(q);
   else if (q.mode === 'relations') rendreRelations(q);
-  else if (q.mode === 'decrire') rendreQcmSurFigure(q);
+  else if (q.mode === 'decrire') rendreDecrire(q);
   else if (q.mode === 'justifier') rendreJustifier(q);
   else if (q.mode === 'angles') rendreAngles(q);
   else if (q.mode === 'vocabulaire') rendreVocabulaire(q);
@@ -1516,11 +1673,68 @@ function rendreQcmSurFigure(q){
   rendreQcm(q.opts, q.ans, bon => terminerManche(bon, bon ? null : 'La bonne réponse était : ' + q.ans));
 }
 
+/* ---- cp-decrire : sur une erreur de comptage, on COMPTE devant l’enfant ----
+   Annoncer « c’était 5 » n’apprend rien. Un compteur s’allume dans un coin
+   du plan — hors de la figure, qui est logée dans le reste du cadre — puis
+   s’incrémente pendant que les côtés se colorent un à un, ou que les
+   sommets se marquent d’un point. Le passage automatique à la manche
+   suivante (§20) est neutralisé le temps du décompte, comme dans « Je
+   compte » de M36. */
+const PAS_COMPTAGE = 460;
+function rendreDecrire(q){
+  if (!q.compte) { rendreQcmSurFigure(q); return; }
+  const H = SCENE_H_DEFAUT;
+  const chip = `<g id="compteur" opacity="0">`
+    + `<rect x="12" y="14" width="52" height="46" rx="12" fill="#fff" stroke="#12233C" stroke-width="2.5"/>`
+    + `<text id="compteurTxt" x="38" y="47" text-anchor="middle" font-size="30" font-weight="700" fill="#12233C">0</text></g>`;
+  afficherScene(q.pieces, '', H, {x:78, y:0, l:SCENE_L - 78, h:H});
+  $('svgScene').insertAdjacentHTML('beforeend', chip + `<g id="decompte"></g>`);
+  rendreQcm(q.opts, q.ans, bon => {
+    terminerManche(bon, bon ? null : 'La bonne réponse était : ' + q.ans);
+    if (bon) return;
+    desarmerAutoSuivant();          // on laisse le temps de regarder compter
+    animerComptage(q);
+  });
+}
+function animerComptage(q){
+  const svg = $('svgScene');
+  const chip = svg.querySelector('#compteur'), txt = svg.querySelector('#compteurTxt');
+  const g = svg.querySelector('#decompte');
+  if (!chip || !g) return;
+  chip.setAttribute('opacity', '1');
+  /* Les marques se posent dans le MÊME groupe transformé que la figure :
+     elles suivent la mise à l’échelle de la scène sans calcul supplémentaire. */
+  const hote = svg.querySelector('#scenePieces') || g;
+  const pts = q.pieces[0].pts || [];
+  const n = pts.length;
+  let k = 0;
+  const pas = () => {
+    if (!svg.isConnected || k >= n) return;
+    const i = k;
+    if (q.compte === 'cotes') {
+      const a = pts[i], b = pts[(i + 1) % n];
+      hote.insertAdjacentHTML('beforeend',
+        `<line class="trait-compte" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"/>`);
+    } else {
+      const a = pts[i];
+      hote.insertAdjacentHTML('beforeend', `<circle class="point-compte" cx="${a[0]}" cy="${a[1]}" r="7"/>`);
+    }
+    k++;
+    txt.textContent = String(k);
+    if (k < n) setTimeout(pas, PAS_COMPTAGE);
+  };
+  setTimeout(pas, 320);
+}
+
 /* ---- cp/ce1-reconnaitre : sélection multiple puis validation ---- */
 function rendreReconnaitre(q){
   const dem = q.demandees;
   const attendues = q.pieces.filter(p => dem.includes(p.forme)).map(p => p.id);
-  afficherScene(q.pieces);
+  /* Jusqu’à sept pièces sur quatre rangées : c’est la HAUTEUR qui limite
+     leur taille, et un cadre de 236 les réduisait à des vignettes que le
+     doigt d’un CP rate. L’écran n’a pas d’autre contenu qu’un bouton, on
+     peut donc s’étendre. */
+  afficherScene(q.pieces, '', 306);
   $('btnValider').style.display = 'block';
   $('svgScene').querySelectorAll('.piece').forEach(g => {
     g.addEventListener('click', () => {
@@ -1551,7 +1765,9 @@ function rendreReconnaitre(q){
 
 /* ---- cp-relations : phrases courtes TOUJOURS illustrées ---- */
 function rendreRelations(q){
-  afficherScene(q.pieces);
+  /* Trois propositions illustrées occupent déjà ~210 px : la scène est
+     raccourcie d’autant pour que la manche tienne sur un écran. */
+  afficherScene(q.pieces, '', 176);
   const zone = $('answers');
   q.props.forEach(p => {
     const texte = texteRelation(p.e);
@@ -1572,7 +1788,7 @@ function rendreRelations(q){
 
 /* ---- ce1-justifier : deux temps, la preuve compte double ---- */
 function rendreJustifier(q){
-  afficherScene(q.pieces);
+  afficherScene(q.pieces, '', 200);
   const e = q.etape === 1 ? q.etape1 : q.etape2;
   poserConsigne(e.q);
   rendreQcm(e.opts, e.ans, bon => {
@@ -1609,58 +1825,47 @@ function rendreAngles(q){
     return [u[0] + (v[0] - u[0]) / L * d, u[1] + (v[1] - u[1]) / L * d];
   };
   const m1 = vers(s, a, 26), m2 = vers(s, b, 26);
-  const marque = `<path class="marque-angle" d="M ${m1[0]} ${m1[1]} A 26 26 0 0 1 ${m2[0]} ${m2[1]}"/>`
-    + `<circle cx="${s[0]}" cy="${s[1]}" r="5" fill="#FF8A3D" stroke="#2B3A55" stroke-width="2"/>`;
+  /* L’arc doit être CENTRÉ SUR LE SOMMET et balayer l’angle INTÉRIEUR —
+     c’est la convention des manuels. Le drapeau de balayage était figé à 1 :
+     selon le sens de parcours du polygone, l’arc partait alors de l’autre
+     côté et se refermait à l’envers. On le déduit maintenant du signe de
+     l’écart angulaire, ce qui place le centre de l’arc sur le sommet quelle
+     que soit l’orientation de la pièce. */
+  const d1 = Math.atan2(m1[1] - s[1], m1[0] - s[0]);
+  const d2 = Math.atan2(m2[1] - s[1], m2[0] - s[0]);
+  let ecart = d2 - d1;
+  while (ecart <= -Math.PI) ecart += TAU;
+  while (ecart > Math.PI) ecart -= TAU;
+  const chemin = `M ${m1[0]} ${m1[1]} A 26 26 0 0 ${ecart > 0 ? 1 : 0} ${m2[0]} ${m2[1]}`;
+  /* Le marqueur ne peut pas être orange : le verre l’est aussi. Halo blanc
+     sous un trait d’encre — lisible sur les huit teintes. */
+  const marque = `<path class="marque-angle-halo" d="${chemin}"/>`
+    + `<path class="marque-angle" d="${chemin}"/>`
+    + `<circle class="sommet-angle" cx="${s[0]}" cy="${s[1]}" r="5"/>`;
   afficherScene(q.pieces, marque);
   rendreQcm(q.opts, q.ans, bon => terminerManche(bon, bon ? null : 'C’était ' + q.ans + '.'));
 }
 
-/* ---- ce2-vocabulaire : la rosace, désignation ou classement ---- */
+/* ---- ce2-vocabulaire : la rosace, désignation ou classement ----
+   PLUSIEURS RÉPONSES SONT JUSTES et le jeu les accepte toutes : un
+   rectangle a deux longueurs, deux largeurs et deux diagonales, un cercle
+   une infinité de rayons. Refuser la seconde longueur serait faux ; la
+   consigne dit donc « touche UNE longueur », au singulier indéfini.
+   Les cibles ne se recouvrent plus : chaque zone est RÉTRÉCIE loin des
+   coins et des extrémités, et le centre est dessiné en DERNIER, donc
+   au-dessus — toucher le centre était auparavant lu comme un toucher du
+   diamètre, qui passe par lui. */
+const VOC_VB = '-150 -140 300 300';
 function rendreVocabulaire(q){
-  const R = construireRosace();
   const svg = $('svgScene');
   $('vitrail').hidden = false;
-  svg.setAttribute('viewBox', '-150 -150 300 300');
+  svg.setAttribute('viewBox', VOC_VB);
 
-  if (q.notion === 'polygone') {
-    // Manche de synthèse : le mot générique, sans désignation sur la figure.
-    svg.innerHTML = R.petales.map(p => svgPiece(p)).join('') + svgPiece(R.hexagone);
-    rendreQcm(melanger(['polygone','quadrilatère','hexagone','triangle']), 'polygone',
-      bon => terminerManche(bon, bon ? null : 'Le mot juste était : polygone.'));
-    return;
-  }
-
-  const rect = {id:'rect', forme:'rectangle',
-    pts:[[-58,86],[58,86],[58,124],[-58,124]], couleur:'#5AB4DC'};
-  const quad = R.petales[0];
-  let cibles = [];
-  const anneau = `<circle cx="0" cy="0" r="${R.R}" fill="none" stroke="#2B3A55" stroke-width="4"/>`;
-  const fond = R.petales.map(p => svgPiece(p)).join('') + svgPiece(R.hexagone) + svgPiece(rect) + anneau;
-
-  /* Ici les zones SONT les choix : sans trait visible, l’enfant ne verrait
-     ni rayon, ni diamètre, ni diagonale à départager. Chacune est donc
-     tracée en fin, doublée d’une cible large et transparente. */
-  const seg = (id, x1, y1, x2, y2, bon) =>
-    `<line class="indice-trait" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`
-    + `<line class="zone" data-z="${id}" data-bon="${bon ? 1 : 0}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
-  const pt = (id, x, y, bon) =>
-    `<circle class="indice" cx="${x}" cy="${y}" r="5"/>`
-    + `<circle class="zone" data-z="${id}" data-bon="${bon ? 1 : 0}" cx="${x}" cy="${y}" r="16"/>`;
-
-  const estRayon = q.notion === 'rayon', estDiam = q.notion === 'diametre';
-  cibles.push(pt('centre', 0, 0, q.notion === 'centre'));
-  cibles.push(seg('rayon', 0, 0, R.R * Math.cos(-0.6), R.R * Math.sin(-0.6), estRayon));
-  cibles.push(seg('diametre', -R.R, 0, R.R, 0, estDiam));
-  cibles.push(seg('diagonale', quad.pts[0][0], quad.pts[0][1], quad.pts[2][0], quad.pts[2][1], q.notion === 'diagonale'));
-  cibles.push(seg('longueur', rect.pts[0][0], rect.pts[0][1], rect.pts[1][0], rect.pts[1][1], q.notion === 'longueur'));
-  cibles.push(seg('largeur', rect.pts[1][0], rect.pts[1][1], rect.pts[2][0], rect.pts[2][1], q.notion === 'largeur'));
   if (['triangle','quadrilatere','pentagone','hexagone'].includes(q.notion)) {
-    // Classement par nombre de côtés : on pose trois pièces et on désigne.
     const formes = melanger(['triangle','quadrilatere','pentagone','hexagone']);
     const pieces = formes.map((f, i) => creerPiece(
       f === 'quadrilatere' ? 'rectangle' : f,
-      {cx:-95 + i * 63, cy:0, taille:56, couleur:VERRES[i % VERRES.length]}));
-    svg.setAttribute('viewBox', '-150 -60 300 130');
+      {cx:-105 + i * 70, cy:0, taille:64, couleur:VERRES[i % VERRES.length]}));
     svg.innerHTML = pieces.map((p, i) =>
       svgPiece(p, formes[i] === q.notion ? 'cible' : '')).join('');
     svg.querySelectorAll('.piece').forEach((g, i) => {
@@ -1675,6 +1880,57 @@ function rendreVocabulaire(q){
     });
     return;
   }
+
+  const R = construireRosace(), CY = -22, RR = 100;
+  const petales = R.petales.map(p => ({...p, pts:p.pts.map(([x, y]) => [x * RR / R.R, y * RR / R.R + CY])}));
+  const hex = {...R.hexagone, pts:R.hexagone.pts.map(([x, y]) => [x * RR / R.R, y * RR / R.R + CY])};
+
+  if (q.notion === 'polygone') {
+    svg.innerHTML = petales.map(p => svgPiece(p)).join('') + svgPiece(hex);
+    rendreQcm(melanger(['polygone','quadrilatère','hexagone','triangle']), 'polygone',
+      bon => terminerManche(bon, bon ? null : 'Le mot juste était : polygone.'));
+    return;
+  }
+
+  /* Le rectangle de référence : c’est LUI le quadrilatère dont on demande
+     la diagonale, la longueur et la largeur. Il est grand et à l’écart de
+     la rosace, pour que ses six cibles ne se marchent pas dessus. */
+  const RX = 80, RY0 = 96, RY1 = 158;
+  const rect = {id:'rect', forme:'rectangle',
+    pts:[[-RX, RY0], [RX, RY0], [RX, RY1], [-RX, RY1]], couleur:'#5AB4DC'};
+  const anneau = `<circle cx="0" cy="${CY}" r="${RR}" fill="none" stroke="#2B3A55" stroke-width="4"/>`;
+  const fond = petales.map(p => svgPiece(p)).join('') + svgPiece(hex) + svgPiece(rect) + anneau;
+
+  /* Une cible = un trait fin visible (l’enfant doit savoir qu’il y a là
+     quelque chose) doublé d’une bande large et transparente. */
+  const seg = (id, a, b, bon, retrait) => {
+    const t = retrait === undefined ? 0 : retrait;
+    const A = [a[0] + (b[0]-a[0])*t, a[1] + (b[1]-a[1])*t];
+    const B = [b[0] - (b[0]-a[0])*t, b[1] - (b[1]-a[1])*t];
+    return `<line class="indice-trait" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"/>`
+      + `<line class="zone" data-z="${id}" data-bon="${bon ? 1 : 0}" x1="${A[0]}" y1="${A[1]}" x2="${B[0]}" y2="${B[1]}"/>`;
+  };
+  const cibles = [];
+  const estCercle = ['centre','rayon','diametre'].includes(q.notion);
+  // Rayon : tracé en oblique, sa cible commence loin du centre.
+  const rx = RR * Math.cos(-1.05), ry = CY + RR * Math.sin(-1.05);
+  cibles.push(seg('rayon', [0, CY], [rx, ry], q.notion === 'rayon', 0.34));
+  // Diamètre : horizontal, en deux bandes qui laissent le centre libre.
+  cibles.push(`<line class="indice-trait" x1="${-RR}" y1="${CY}" x2="${RR}" y2="${CY}"/>`);
+  cibles.push(`<line class="zone" data-z="diam-g" data-bon="${q.notion === 'diametre' ? 1 : 0}" x1="${-RR*0.94}" y1="${CY}" x2="${-RR*0.30}" y2="${CY}"/>`);
+  cibles.push(`<line class="zone" data-z="diam-d" data-bon="${q.notion === 'diametre' ? 1 : 0}" x1="${RR*0.30}" y1="${CY}" x2="${RR*0.94}" y2="${CY}"/>`);
+  // Le rectangle : deux longueurs, deux largeurs, deux diagonales.
+  const r = rect.pts;
+  cibles.push(seg('long-h', r[0], r[1], q.notion === 'longueur', 0.2));
+  cibles.push(seg('long-b', r[3], r[2], q.notion === 'longueur', 0.2));
+  cibles.push(seg('larg-d', r[1], r[2], q.notion === 'largeur', 0.18));
+  cibles.push(seg('larg-g', r[0], r[3], q.notion === 'largeur', 0.18));
+  cibles.push(seg('diag-1', r[0], r[2], q.notion === 'diagonale', 0.22));
+  cibles.push(seg('diag-2', r[1], r[3], q.notion === 'diagonale', 0.22));
+  // Le centre EN DERNIER : il passe ainsi au-dessus du diamètre.
+  cibles.push(`<circle class="indice" cx="0" cy="${CY}" r="5"/>`
+    + `<circle class="zone" data-z="centre" data-bon="${q.notion === 'centre' ? 1 : 0}" cx="0" cy="${CY}" r="24"/>`);
+
   svg.innerHTML = fond + cibles.join('');
   svg.querySelectorAll('.zone').forEach(z => {
     z.addEventListener('click', () => {
@@ -1682,8 +1938,11 @@ function rendreVocabulaire(q){
       verrouille = true;
       const bon = z.dataset.bon === '1';
       z.classList.add(bon ? 'bon' : 'faux');
-      if (!bon) { const c = svg.querySelector('.zone[data-bon="1"]'); if (c) c.classList.add('bon'); }
-      terminerManche(bon, bon ? null : 'L’élément demandé est marqué en vert.');
+      /* §18 : on montre TOUTES les réponses qui convenaient, pas une seule. */
+      if (!bon) svg.querySelectorAll('.zone[data-bon="1"]').forEach(c => c.classList.add('bon'));
+      terminerManche(bon, bon ? null : (estCercle
+        ? 'Ce qu’il fallait toucher est marqué en vert.'
+        : 'Toutes les réponses possibles sont marquées en vert.'));
     });
   });
 }
@@ -1711,7 +1970,13 @@ function rendrePortrait(q){
         const c = zone.querySelectorAll('.rep')[q.choix.indexOf(q.cible)];
         if (c) { c.classList.remove('dim'); c.classList.add('ok'); }
       }
-      terminerManche(bon, bon ? null : 'C’était ' + avecArt(q.cible) + '.');
+      /* La description ne nomme jamais la figure — c’est tout son intérêt.
+         Mais une fois la réponse vérifiée, le mot doit être donné : sans
+         lui, l’enfant reconnaît sans apprendre à nommer. */
+      /* « un » comme « une » commencent par une voyelle : l’élision est
+         systématique, et se calcule au lieu de s’écrire. */
+      const nom = 'Il s’agit d’' + avecArt(q.cible) + '.';
+      terminerManche(bon, bon ? nom : 'C’était ' + avecArt(q.cible) + '.', undefined, bon ? nom : null);
     });
     zone.appendChild(b);
   });
@@ -1734,7 +1999,7 @@ function rendreLitige(q){
     zones += `<line class="zone" data-z="c${i}" x1="${s[0]}" y1="${s[1]}" x2="${t[0]}" y2="${t[1]}"/>`;
   });
   p.pts.forEach((s, i) => { zones += `<circle class="zone" data-z="a${i}" cx="${s[0]}" cy="${s[1]}" r="19"/>`; });
-  afficherScene(q.pieces, indices + zones);
+  afficherScene(q.pieces, indices + zones, 210);
   $('btnValider').style.display = 'block';
   const svg = $('svgScene');
   svg.querySelectorAll('.zone').forEach(z => {
@@ -1750,11 +2015,16 @@ function rendreLitige(q){
     verrouille = true;
     $('btnValider').style.display = 'none';
     const ch = [...selection];
-    const bon = ch.length === q.zonesBonnes.length && ch.every(z => q.zonesBonnes.includes(z));
+    const bon = selectionSatisfait(ch, q.exigences);
+    /* §18 : on montre UNE désignation valable — montrer les quatre côtés
+       d’un rectangle en vert laisserait croire qu’il fallait tous les
+       prendre, alors qu’il en fallait deux. */
+    const attendues = q.exigences.map(e => e.parmi.slice(0, e.nb)).reduce((a, b) => a.concat(b), []);
     svg.querySelectorAll('.zone').forEach(z => {
       z.classList.remove('sel');
-      const att = q.zonesBonnes.includes(z.dataset.z), pris = selection.has(z.dataset.z);
-      if (att) z.classList.add('bon');
+      const pris = selection.has(z.dataset.z);
+      if (bon && pris) z.classList.add('bon');
+      else if (!bon && attendues.includes(z.dataset.z)) z.classList.add('bon');
       else if (pris) z.classList.add('faux');
     });
     q._pts = (bon ? POINTS_ETAPE1 : 0);
@@ -1775,7 +2045,7 @@ function rendreLitige(q){
   };
 }
 function rendreLitigeEtape2(q){
-  afficherScene(q.pieces);
+  afficherScene(q.pieces, '', 200);
   poserConsigne(q.etape2.q);
   $('sousConsigne').textContent = 'Cette réponse compte double.';
   rendreQcm(q.etape2.opts, q.etape2.ans, bon => {
@@ -1785,12 +2055,12 @@ function rendreLitigeEtape2(q){
 }
 
 /* ---- Fin de manche ---- */
-function terminerManche(bon, correction, ptsForces){
+function terminerManche(bon, correction, ptsForces, precision){
   const q = file[pos];
   const pts = ptsForces !== undefined ? ptsForces : (bon ? 1 : 0);
   score += pts;
   q._ok = bon;
-  if (bon) { sonBonneReponse(); lancerConfettis(28); message('Bravo !', 'bon'); }
+  if (bon) { sonBonneReponse(); lancerConfettis(28); message(precision ? 'Bravo ! ' + precision : 'Bravo !', 'bon'); }
   else { sonErreur(); message('Presque ! ', 'mauvais', correction || ''); }
   majDots();
   $('btnNext').style.display = 'block';
