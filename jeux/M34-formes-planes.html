@@ -1,0 +1,1854 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>L’atelier du vitrail — Mayeutik</title>
+<!-- ============================================================
+     JEU M34 — Formes planes (CP, CE1, CE2)
+     Backlog : pilotage/backlog.json — sous-thème « La géométrie plane »
+     Univers : l’atelier du vitrail, table de tri. On regarde, on nomme,
+     on justifie, on réfute — on ne trace RIEN et on ne pose AUCUN
+     instrument (c’est le domaine de M35).
+
+     Mécanique propre au module : la justification par propriété, qui
+     mûrit en trois temps —
+       CP  : décrire ce qu’on voit, y compris les RELATIONS entre pièces
+       CE1 : nommer ne suffit plus, il faut désigner la propriété
+       CE2 : réfuter, en montrant d’abord OÙ l’affirmation se casse
+
+     Principe d’écriture : les propriétés d’une figure (nombre de côtés,
+     longueurs, angles, égalités) sont TOUJOURS calculées depuis ses
+     sommets, jamais déclarées à côté du dessin. Une donnée écrite à la
+     main finit par mentir sur ce qui est affiché.
+     ============================================================ -->
+<style>
+:root{
+  color-scheme: light only;
+  --ciel:#EAF2FC; --carte:#FFFFFF; --encre:#1D3354; --encre2:#41577A;
+  --mandarine:#FF8A3D; --mandarine-f:#E5701F;
+  --menthe:#2EC4A6; --menthe-t:#0B8A70; --corail:#FF5D5D; --corail-t:#D93636; --soleil:#FFC93C;
+  --plomb:#2B3A55;
+  --r:20px; --ombre:0 4px 0 rgba(29,51,84,.12);
+  font-size:16px;
+}
+
+/* ---------- Protections tactiles (CHARTE §19) ----------
+   `touch-action` ne s’hérite PAS : le sélecteur universel est le seul
+   moyen de couvrir toute l’interface. `pan-y` conserve le défilement
+   vertical de la page sur iPhone. */
+*{ box-sizing:border-box; touch-action:pan-y; -webkit-tap-highlight-color:transparent; }
+html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; background:var(--ciel); color-scheme:light only; }
+html,body{margin:0; padding:0; min-height:100%;}
+body{
+  -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none;
+  -webkit-touch-callout:none;
+  font-family:'Fredoka', ui-rounded, 'Segoe UI', system-ui, sans-serif;
+  background:var(--ciel); color:var(--encre);
+  background-image:radial-gradient(rgba(29,51,84,.05) 1.5px, transparent 1.5px);
+  background-size:26px 26px;
+  display:flex; justify-content:center;
+}
+img, svg{ -webkit-user-drag:none; }
+#app{width:100%; max-width:520px; min-height:100dvh; display:flex; flex-direction:column; padding:10px 14px 18px;}
+
+/* ---------- Header ---------- */
+header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-height:54px;}
+#btnBack{
+  width:42px; height:42px; border-radius:14px; border:none; flex:none;
+  background:var(--carte); color:var(--encre); font-size:20px; font-weight:700;
+  box-shadow:var(--ombre); cursor:pointer;
+}
+#btnBack:active{transform:translateY(2px); box-shadow:0 2px 0 rgba(29,51,84,.12);}
+#hdrTitle{font-weight:600; font-size:1.15rem; flex:1; line-height:1.1;}
+#dots{display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end; max-width:46%;}
+.dot{width:10px; height:10px; border-radius:50%; background:#C9D6E8;}
+.dot.ok{background:var(--menthe);} .dot.ko{background:var(--corail);} .dot.cur{background:var(--mandarine);}
+
+/* ---------- Accueil ---------- */
+#home h1{font-size:1.7rem; margin:4px 0 2px; font-weight:700;}
+#home .sub{color:var(--encre2); margin:0 0 12px; font-size:.95rem;}
+.rangee-paliers{display:flex; justify-content:center; gap:8px; margin:6px 0 8px; flex-wrap:wrap;}
+.puce-palier{
+  min-height:40px; padding:6px 18px; border-radius:999px; font-family:inherit;
+  font-weight:700; font-size:.92rem; cursor:pointer;
+  border:2.5px solid color-mix(in srgb, var(--encre) 22%, white); background:var(--carte); color:var(--encre);
+}
+.puce-palier.actif{background:var(--mandarine); border-color:var(--mandarine); color:#fff;}
+/* Palier verrouillé (CHARTE §15) : au-delà du niveau du profil actif, tant
+   que son paquet cadeau n’a pas été ouvert une première fois. */
+.puce-palier.verrouille{opacity:.5; cursor:not-allowed;}
+.note-palier{text-align:center; font-size:.82rem; color:var(--encre2); opacity:.85; margin:0 0 12px;}
+
+.cards{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.card{
+  background:var(--carte); border:none; border-radius:var(--r); padding:16px 12px 14px;
+  box-shadow:var(--ombre); cursor:pointer; text-align:center; font-family:inherit; color:var(--encre);
+  display:flex; flex-direction:column; align-items:center; gap:6px; transition:transform .08s;
+}
+.card:active{transform:translateY(3px); box-shadow:0 1px 0 rgba(29,51,84,.12);}
+.card .ico{font-size:2rem; line-height:1;}
+.card .nom{font-weight:600; font-size:1.02rem;}
+.card .det{font-size:.78rem; color:var(--encre2);}
+.card .stars{font-size:.85rem; letter-spacing:2px; min-height:1.1em;}
+
+/* Palier bonus (CHARTE §15) */
+.bloc-bonus{
+  margin-top:18px; border-radius:var(--r); padding:14px 12px;
+  border:3px dashed var(--soleil); background:color-mix(in srgb, var(--soleil) 14%, white);
+}
+.bloc-bonus h3{text-align:center; font-size:1rem; margin:0 0 2px; color:color-mix(in srgb, var(--soleil) 55%, black 30%);}
+.bloc-bonus .note-palier{margin:2px 0 10px;}
+.paquet-cadeau{
+  display:flex; flex-direction:column; align-items:center; gap:.7rem;
+  width:100%; border:none; background:transparent; padding:1rem .5rem; cursor:pointer;
+  min-height:44px; font-family:inherit;
+}
+.paquet-cadeau-boite{
+  position:relative; width:5.6rem; height:4.6rem; border-radius:14px;
+  background:linear-gradient(180deg, var(--corail), color-mix(in srgb, var(--corail) 70%, black 15%));
+  border:3px solid color-mix(in srgb, var(--corail) 55%, black 20%);
+  box-shadow:0 5px 0 color-mix(in srgb, var(--corail) 50%, black 25%);
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.paquet-cadeau:active .paquet-cadeau-boite{transform:translateY(3px); box-shadow:0 2px 0 color-mix(in srgb, var(--corail) 50%, black 25%);}
+.paquet-cadeau-ruban-v{position:absolute; left:50%; top:0; bottom:0; width:14px; margin-left:-7px; background:var(--soleil);}
+.paquet-cadeau-ruban-h{position:absolute; top:50%; left:0; right:0; height:14px; margin-top:-7px; background:var(--soleil);}
+.paquet-cadeau-noeud{position:absolute; left:50%; top:-1rem; transform:translateX(-50%); font-size:1.9rem; line-height:1;}
+.paquet-cadeau-texte{font-weight:700; font-size:.88rem; text-align:center; color:color-mix(in srgb, var(--encre) 85%, white);}
+@keyframes paquet-cadeau-pop{
+  0%{ transform:scale(1) rotate(0deg); opacity:1; }
+  35%{ transform:scale(1.18) rotate(-5deg); opacity:1; }
+  100%{ transform:scale(.25) rotate(10deg); opacity:0; }
+}
+.paquet-cadeau.paquet-cadeau-ouverture .paquet-cadeau-boite{animation:paquet-cadeau-pop .45s ease forwards;}
+.paquet-cadeau.paquet-cadeau-ouverture .paquet-cadeau-texte{opacity:0; transition:opacity .2s ease;}
+@media (prefers-reduced-motion:reduce){
+  .paquet-cadeau.paquet-cadeau-ouverture .paquet-cadeau-boite{animation:none; opacity:0; transition:opacity .3s ease;}
+}
+
+/* ---------- Écran de jeu ---------- */
+#qText{
+  font-size:1.1rem; font-weight:600; text-align:center; margin:6px 4px 4px;
+  line-height:1.35; display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;
+}
+.sous-consigne{text-align:center; font-size:.85rem; color:var(--encre2); margin:0 0 10px; line-height:1.35;}
+.btn-voix{
+  border:none; background:var(--carte); box-shadow:var(--ombre); border-radius:12px;
+  min-width:40px; min-height:40px; font-size:1.05rem; cursor:pointer; font-family:inherit; padding:0 10px;
+}
+.btn-voix:active{transform:translateY(2px);}
+
+/* Le vitrail : verre saturé, plomb sombre, sur un fond clair de table lumineuse. */
+.vitrail{
+  background:var(--carte); border-radius:var(--r); box-shadow:var(--ombre);
+  padding:8px; margin-bottom:10px;
+}
+.vitrail svg{display:block; width:100%; height:auto;}
+.piece{cursor:pointer;}
+.piece .verre{stroke:var(--plomb); stroke-width:3; stroke-linejoin:round; transition:fill-opacity .12s;}
+.piece.sel .verre{stroke:var(--mandarine); stroke-width:6;}
+.piece.bon .verre{stroke:var(--menthe); stroke-width:6;}
+.piece.faux .verre{stroke:var(--corail); stroke-width:6;}
+.piece.manque .verre{stroke:var(--menthe); stroke-width:6; stroke-dasharray:9 6;}
+/* Zones tactiles (litige, rosace). En SVG l’épaisseur du trait sert à la
+   fois de cible et de visuel : on dissocie donc les deux. `.zone` est une
+   cible large et transparente ; `.indice` est le repère fin qui signale
+   qu’il y a là quelque chose à toucher — sans lui, l’enfant taperait au
+   hasard ; trop épais, il étoufferait la figure. */
+.zone{fill:transparent; stroke:transparent; stroke-width:26; cursor:pointer; stroke-linecap:round;}
+.indice{fill:rgba(29,51,84,.30); stroke:rgba(29,51,84,.30); stroke-width:3.5; stroke-linecap:round; pointer-events:none;}
+.indice-trait{fill:none; stroke:rgba(29,51,84,.34); stroke-width:3.5; stroke-dasharray:7 6; stroke-linecap:round; pointer-events:none;}
+.zone.sel{stroke:color-mix(in srgb, var(--mandarine) 55%, transparent);}
+.zone.bon{stroke:color-mix(in srgb, var(--menthe) 60%, transparent);}
+.zone.faux{stroke:color-mix(in srgb, var(--corail) 60%, transparent);}
+.marque-angle{fill:none; stroke:var(--mandarine); stroke-width:3.5;}
+
+/* Réponses : QCM texte, QCM illustré (relations), présentoir de pièces */
+#answers{display:grid; grid-template-columns:1fr; gap:10px;}
+#answers.duo{grid-template-columns:1fr 1fr;}
+.rep{
+  border:none; border-radius:16px; padding:13px 12px; font-family:inherit;
+  font-size:1rem; font-weight:600; background:var(--carte); color:var(--encre);
+  box-shadow:var(--ombre); cursor:pointer; min-height:44px; text-align:left;
+  display:flex; align-items:center; gap:10px;
+}
+.rep.centre{text-align:center; justify-content:center;}
+.rep:active{transform:translateY(2px); box-shadow:0 1px 0 rgba(29,51,84,.12);}
+.rep.ok{background:var(--menthe); color:#fff;}
+.rep.ok .schema rect, .rep.ok .schema polygon{stroke:#fff;}
+.rep.ko{background:var(--corail); color:#fff; animation:shake .35s;}
+.rep.dim{opacity:.5;}
+.rep .schema{flex:none; width:64px; height:52px;}
+.rep .txt{flex:1; line-height:1.3;}
+.rep .relire{
+  flex:none; border:none; background:color-mix(in srgb, var(--encre) 8%, white);
+  border-radius:10px; min-width:38px; min-height:38px; font-size:.95rem; cursor:pointer; font-family:inherit;
+}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+/* Présentoir (portrait-robot) : les pièces candidates, en grand */
+.presentoir{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.presentoir .rep{justify-content:center; padding:8px;}
+.presentoir svg{width:100%; height:96px;}
+
+#feedback{
+  text-align:center; font-weight:700; margin-top:12px; min-height:2.4em;
+  font-size:1.02rem; line-height:1.35; padding:0 6px;
+}
+#feedback.bon{color:var(--menthe-t);} #feedback.mauvais{color:var(--corail-t);}
+/* CHARTE §18 : dans un message d’erreur, la BONNE réponse reste en vert. */
+#feedback .correction-attendue{color:var(--menthe-t);}
+
+#btnValider, #btnNext{
+  display:none; margin:12px auto 0; border:none; border-radius:18px;
+  padding:13px 34px; font-family:inherit; font-size:1.05rem; font-weight:700;
+  color:#fff; cursor:pointer;
+}
+#btnValider{background:var(--menthe); box-shadow:0 4px 0 var(--menthe-t);}
+#btnNext{background:var(--mandarine); box-shadow:0 4px 0 var(--mandarine-f);}
+#btnValider:active, #btnNext:active{transform:translateY(3px);}
+
+/* ---------- Fin ---------- */
+#end{text-align:center; padding-top:8vh;}
+#endStars{font-size:3.4rem; letter-spacing:8px; margin:10px 0;}
+#endStars span{display:inline-block; animation:pop .5s backwards;}
+#endStars span:nth-child(2){animation-delay:.25s;} #endStars span:nth-child(3){animation-delay:.5s;}
+@keyframes pop{0%{transform:scale(0)}70%{transform:scale(1.35)}100%{transform:scale(1)}}
+#endMsg{font-size:1.3rem; font-weight:700;}
+#endScore{color:var(--encre2); margin:6px 0 22px;}
+#end .actions-fin{display:flex; gap:12px; justify-content:center;}
+#end .actions-fin button{
+  border:none; border-radius:18px; padding:13px 26px; font-family:inherit;
+  font-size:1.05rem; font-weight:700; cursor:pointer; box-shadow:var(--ombre); min-height:44px;
+}
+#bRejouer{background:var(--mandarine); color:#fff; box-shadow:0 4px 0 var(--mandarine-f);}
+#bMenu{background:var(--carte); color:var(--encre);}
+
+/* ---------- Retour à la coquille (CHARTE §7) ---------- */
+.barre-accueil{display:flex; margin:0 0 8px;}
+.bouton-menu{
+  min-height:44px; border-radius:14px; padding:0 14px; cursor:pointer; font-family:inherit;
+  border:2px solid color-mix(in srgb, var(--encre) 25%, white);
+  background:var(--carte); color:var(--encre); font-weight:600; font-size:.95rem;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.bouton-menu:active{transform:translateY(2px);}
+.modale-fond{
+  position:fixed; inset:0; z-index:1000; padding:1.2rem;
+  background:color-mix(in srgb, var(--encre) 55%, transparent);
+  display:flex; align-items:center; justify-content:center;
+}
+.modale-boite{
+  background:var(--carte); border-radius:20px; padding:22px 18px; max-width:20rem; width:100%;
+  text-align:center; box-shadow:0 12px 34px rgba(29,51,84,.3);
+}
+.modale-boite p{font-size:1.05rem; font-weight:600; margin:0 0 18px; color:var(--encre);}
+.modale-boutons{display:flex; gap:10px; justify-content:center; flex-wrap:wrap;}
+.modale-boutons button{
+  border:none; border-radius:16px; padding:12px 20px; font-family:inherit;
+  font-size:1rem; font-weight:700; cursor:pointer; min-height:44px;
+}
+.modale-boutons .m-rester{background:var(--carte); color:var(--encre); border:2px solid var(--encre);}
+.modale-boutons .m-revenir{background:var(--mandarine); color:#fff; box-shadow:0 4px 0 var(--mandarine-f);}
+
+/* ---------- Confettis (CHARTE §4) ---------- */
+#confettis-conteneur{position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:999;}
+.confetti{position:absolute; top:-12px; width:9px; height:14px; border-radius:2px;
+  animation-name:chute-confetti; animation-timing-function:ease-in; animation-fill-mode:forwards;}
+@keyframes chute-confetti{ to{ transform:translateY(105vh) rotate(340deg); opacity:.75; } }
+@media (prefers-reduced-motion:reduce){ .confetti{display:none; animation:none;} }
+
+[hidden]{display:none !important;}
+@media (prefers-color-scheme: dark){
+  html, body{background:var(--ciel) !important; color:var(--encre) !important;}
+  .card, .rep, .vitrail, #btnBack, .puce-palier, .btn-voix{background:var(--carte) !important; color:var(--encre) !important;}
+  .puce-palier.actif{background:var(--mandarine) !important; color:#fff !important;}
+  .rep.ok{background:var(--menthe) !important; color:#fff !important;}
+  .rep.ko{background:var(--corail) !important; color:#fff !important;}
+}
+@media (prefers-reduced-motion:reduce){ *{animation:none !important;} }
+</style>
+</head>
+<body>
+<div id="confettis-conteneur" aria-hidden="true"></div>
+
+<div class="modale-fond" id="modale-menu" hidden>
+  <div class="modale-boite" role="dialog" aria-modal="true" aria-labelledby="modale-menu-texte">
+    <p id="modale-menu-texte">Revenir au menu principal ? Ta partie en cours sera perdue.</p>
+    <div class="modale-boutons">
+      <button type="button" class="m-rester" id="modale-menu-rester">Rester</button>
+      <button type="button" class="m-revenir" id="modale-menu-revenir">Revenir au menu</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <button id="btnBack" hidden aria-label="Retour">←</button>
+    <div id="hdrTitle">L’atelier du vitrail</div>
+    <div id="dots"></div>
+  </header>
+
+  <main>
+    <section id="home">
+      <div class="barre-accueil">
+        <button type="button" class="bouton-menu" id="bouton-menu">← Menu</button>
+      </div>
+      <h1>L’atelier du vitrail</h1>
+      <p class="sub" id="sous-titre-accueil"></p>
+      <div class="rangee-paliers" id="rangee-paliers"></div>
+      <p class="note-palier" id="note-palier"></p>
+      <div class="cards" id="grille-jeux"></div>
+
+      <div class="bloc-bonus" id="bloc-bonus" hidden>
+        <h3>Palier bonus 🎁</h3>
+        <p class="note-palier" id="note-bonus"></p>
+        <button type="button" class="paquet-cadeau" id="paquet-cadeau" hidden>
+          <span class="paquet-cadeau-boite">
+            <span class="paquet-cadeau-ruban-v"></span>
+            <span class="paquet-cadeau-ruban-h"></span>
+            <span class="paquet-cadeau-noeud">🎀</span>
+          </span>
+          <span class="paquet-cadeau-texte">Touche le paquet pour découvrir ta récompense !</span>
+        </button>
+        <div class="cards" id="grille-bonus" hidden></div>
+      </div>
+    </section>
+
+    <section id="game" hidden>
+      <div id="qText"></div>
+      <p class="sous-consigne" id="sousConsigne"></p>
+      <div class="vitrail" id="vitrail" hidden><svg id="svgScene" viewBox="0 0 400 320"></svg></div>
+      <div id="answers"></div>
+      <button id="btnValider" type="button">Vérifier ✓</button>
+      <p id="feedback"></p>
+      <button id="btnNext" type="button">Suivant ➜</button>
+    </section>
+
+    <section id="end" hidden>
+      <div id="endStars"></div>
+      <div id="endMsg"></div>
+      <div id="endScore"></div>
+      <div class="actions-fin">
+        <button id="bRejouer">Rejouer</button>
+        <button id="bMenu">Menu</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+
+/* ============================================================
+   OUTILS DE LANGUE (cf. CLAUDE.md)
+   Les énoncés sont ASSEMBLÉS : élision et accord se calculent, ne
+   s’écrivent jamais en dur.
+   ============================================================ */
+function deElision(mot){
+  return /^[aeiouyàâäéèêëïîôöùûü]/i.test(mot) ? 'd’' + mot : 'de ' + mot;
+}
+function accordePluriel(base, genre){ return base + (genre === 'f' ? 'es' : 's'); }
+const maj = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+/* Noms des formes. `genre` sert aux accords, `pluriel` aux consignes
+   « touche tous les… ». Le mot POLYGONE n’apparaît qu’au CE2 : au CP et
+   au CE1, une pièce à 5 ou 6 côtés se dit simplement « une forme ». */
+const NOMS = {
+  disque:      {sing:'disque',      plur:'disques',      genre:'m', art:'un'},
+  cercle:      {sing:'cercle',      plur:'cercles',      genre:'m', art:'un'},
+  carre:       {sing:'carré',       plur:'carrés',       genre:'m', art:'un'},
+  rectangle:   {sing:'rectangle',   plur:'rectangles',   genre:'m', art:'un'},
+  triangle:    {sing:'triangle',    plur:'triangles',    genre:'m', art:'un'},
+  triangleRect:{sing:'triangle rectangle', plur:'triangles rectangles', genre:'m', art:'un'},
+  losange:     {sing:'losange',     plur:'losanges',     genre:'m', art:'un'},
+  quadrilatere:{sing:'quadrilatère',plur:'quadrilatères',genre:'m', art:'un'},
+  pentagone:   {sing:'pentagone',   plur:'pentagones',   genre:'m', art:'un'},
+  hexagone:    {sing:'hexagone',    plur:'hexagones',    genre:'m', art:'un'},
+  polygone:    {sing:'polygone',    plur:'polygones',    genre:'m', art:'un'},
+  forme:       {sing:'forme',       plur:'formes',       genre:'f', art:'une'}
+};
+const nomDe   = k => (NOMS[k] || NOMS.forme).sing;
+const plurDe  = k => (NOMS[k] || NOMS.forme).plur;
+const artDe   = k => (NOMS[k] || NOMS.forme).art;
+const avecArt = k => artDe(k) + ' ' + nomDe(k);
+const leDe    = k => ((NOMS[k] || NOMS.forme).genre === 'f' ? 'la ' : 'le ') + nomDe(k);
+
+/* ============================================================
+   GÉOMÉTRIE — tout se calcule depuis les sommets
+   ============================================================ */
+const TAU = Math.PI * 2;
+const degres = r => r * 180 / Math.PI;
+const hyp = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]);
+
+function tournerPts(pts, theta){
+  const c = Math.cos(theta), s = Math.sin(theta);
+  return pts.map(([x, y]) => [x * c - y * s, x * s + y * c]);
+}
+function placerPts(pts, cx, cy, echelle){
+  return pts.map(([x, y]) => [cx + x * echelle, cy + y * echelle]);
+}
+function centre(pts){
+  const n = pts.length;
+  return [pts.reduce((s, p) => s + p[0], 0) / n, pts.reduce((s, p) => s + p[1], 0) / n];
+}
+function longueursCotes(pts){
+  return pts.map((p, i) => hyp(p, pts[(i + 1) % pts.length]));
+}
+/* Angle intérieur au sommet i, en degrés. */
+function anglesDeg(pts){
+  const n = pts.length;
+  return pts.map((p, i) => {
+    const a = pts[(i - 1 + n) % n], b = pts[(i + 1) % n];
+    const u = [a[0] - p[0], a[1] - p[1]], v = [b[0] - p[0], b[1] - p[1]];
+    const cos = (u[0] * v[0] + u[1] * v[1]) / (Math.hypot(...u) * Math.hypot(...v));
+    return degres(Math.acos(Math.max(-1, Math.min(1, cos))));
+  });
+}
+/* Classement d’un angle À L’ŒIL (CE1). Le programme autorise de conclure
+   sans équerre « quand il n’y a aucun doute » : on ne produit donc jamais
+   d’angle entre 75° et 105° hors de la tolérance du droit — la
+   vérification instrumentée appartient à M35. */
+const TOL_DROIT = 3, AIGU_FRANC = 75, OBTUS_FRANC = 105;
+function classeAngle(a){
+  if (Math.abs(a - 90) <= TOL_DROIT) return 'droit';
+  return a < 90 ? 'aigu' : 'obtus';
+}
+const angleFranc = a => Math.abs(a - 90) <= TOL_DROIT || a <= AIGU_FRANC || a >= OBTUS_FRANC;
+
+const presqueEgal = (a, b, tol) => Math.abs(a - b) <= (tol === undefined ? 0.06 : tol) * Math.max(a, b);
+
+/* Propriétés d’une pièce, CALCULÉES. C’est cette fonction qui fait
+   autorité partout : nommage, justification, réfutation et corrections
+   en découlent, si bien qu’aucune ne peut contredire le dessin. */
+function proprietes(piece){
+  if (piece.forme === 'disque' || piece.forme === 'cercle') {
+    return {rond:true, nbCotes:0, nbSommets:0, angles:[], cotes:[],
+            tousAnglesDroits:false, tousCotesEgaux:false, opposesEgaux:false};
+  }
+  const pts = piece.pts;
+  const cotes = longueursCotes(pts), angles = anglesDeg(pts);
+  const tousAnglesDroits = angles.every(a => classeAngle(a) === 'droit');
+  const tousCotesEgaux = cotes.every(l => presqueEgal(l, cotes[0]));
+  const opposesEgaux = cotes.length === 4 &&
+    presqueEgal(cotes[0], cotes[2]) && presqueEgal(cotes[1], cotes[3]);
+  return {rond:false, nbCotes:pts.length, nbSommets:pts.length, angles, cotes,
+          tousAnglesDroits, tousCotesEgaux, opposesEgaux};
+}
+
+/* Nom déduit des propriétés — jamais lu sur une étiquette posée à côté du
+   dessin. `vocabulaire` borne ce que le palier sait dire. */
+function nommerCalcule(piece, vocabulaire){
+  const p = proprietes(piece);
+  if (piece.forme === 'cercle') return 'cercle';
+  if (piece.forme === 'disque') return 'disque';
+  if (p.nbCotes === 3) {
+    if (vocabulaire.includes('triangleRect') && p.angles.some(a => classeAngle(a) === 'droit')) return 'triangleRect';
+    return 'triangle';
+  }
+  if (p.nbCotes === 4) {
+    if (p.tousAnglesDroits && p.tousCotesEgaux) return 'carre';
+    if (p.tousAnglesDroits) return 'rectangle';
+    if (p.tousCotesEgaux && vocabulaire.includes('losange')) return 'losange';
+    return vocabulaire.includes('quadrilatere') ? 'quadrilatere' : 'forme';
+  }
+  if (p.nbCotes === 5) return vocabulaire.includes('pentagone') ? 'pentagone' : 'forme';
+  if (p.nbCotes === 6) return vocabulaire.includes('hexagone') ? 'hexagone' : 'forme';
+  return 'forme';
+}
+
+/* ---- Constructeurs : sommets en repère unité, centrés sur l’origine ----
+   Toute figure reçoit ensuite une rotation LIBRE : le programme parle de
+   reconnaissance, pas de prototypes en position canonique. Un carré posé
+   sur un sommet reste un carré. */
+const C = {
+  carre: () => [[-.5,-.5],[.5,-.5],[.5,.5],[-.5,.5]],
+  rectangle: (r) => { const l = .5, h = .5 / (r || 1.7); return [[-l,-h],[l,-h],[l,h],[-l,h]]; },
+  losange: (r) => { const a = .58, b = a / (r || 1.8); return [[0,-b],[a,0],[0,b],[-a,0]]; },
+  triangleRect: (r) => { const a = .8, b = a / (r || 1.4); return recentre([[0,0],[a,0],[0,b]]); },
+  triangleIso: (r) => { const b = .8, h = b * (r || 1.0); return recentre([[-b/2,0],[b/2,0],[0,-h]]); },
+  /* Triangle scalène à angles francs : on tire jusqu’à en obtenir un dont
+     aucun angle n’est ambigu (ni proche de 90°, ni entre 75° et 105°). */
+  triangleQuelconque: () => {
+    for (let essai = 0; essai < 200; essai++) {
+      const p = recentre([[0,0],[0.9,0],[0.15 + Math.random()*0.6, -(0.35 + Math.random()*0.5)]]);
+      const a = anglesDeg(p);
+      if (a.every(angleFranc) && a.every(x => classeAngle(x) !== 'droit')) return p;
+    }
+    return recentre([[0,0],[0.9,0],[0.66,-0.42]]);
+  },
+  polygoneRegulier: (n, irregularite) => {
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+      const th = -Math.PI/2 + i * TAU / n;
+      const r = 0.55 * (1 + (irregularite || 0) * (Math.random() - 0.5));
+      pts.push([Math.cos(th) * r, Math.sin(th) * r]);
+    }
+    return recentre(pts);
+  }
+};
+function recentre(pts){ const [cx, cy] = centre(pts); return pts.map(([x, y]) => [x - cx, y - cy]); }
+
+/* Fabrique une pièce posée : forme + rotation libre + position + couleur. */
+const VERRES = ['#FF8A3D','#5AB4DC','#2EC4A6','#FFC93C','#FF5D5D','#9B5DE5','#4D96FF','#F76BA4'];
+let compteurPiece = 0;
+function creerPiece(forme, opts){
+  const o = opts || {};
+  const theta = o.theta !== undefined ? o.theta : Math.random() * TAU;
+  const taille = o.taille || 70;
+  const p = {id:'p' + (++compteurPiece), forme, couleur:o.couleur || pioche(VERRES)};
+  if (forme === 'disque' || forme === 'cercle') {
+    p.centre = [o.cx || 0, o.cy || 0];
+    p.rayon = taille * 0.5;
+  } else {
+    let base;
+    if (forme === 'carre') base = C.carre();
+    else if (forme === 'rectangle') base = C.rectangle(o.rapport || (1.5 + Math.random() * 0.8));
+    else if (forme === 'losange') base = C.losange(o.rapport || (1.5 + Math.random() * 0.7));
+    else if (forme === 'triangleRect') base = C.triangleRect(o.rapport);
+    else if (forme === 'triangle') base = Math.random() < 0.5 ? C.triangleIso(0.9) : C.triangleQuelconque();
+    else if (forme === 'pentagone') base = C.polygoneRegulier(5, 0.35);
+    else if (forme === 'hexagone') base = C.polygoneRegulier(6, 0.35);
+    else base = C.carre();
+    p.pts = placerPts(tournerPts(base, theta), o.cx || 0, o.cy || 0, taille);
+  }
+  return p;
+}
+
+/* ---- Rendu SVG ---- */
+function svgPiece(p, classes){
+  const cl = 'piece' + (classes ? ' ' + classes : '');
+  if (p.forme === 'disque')
+    return `<g class="${cl}" data-piece="${p.id}"><circle class="verre" cx="${p.centre[0]}" cy="${p.centre[1]}" r="${p.rayon}" fill="${p.couleur}"/></g>`;
+  if (p.forme === 'cercle')
+    /* Le cercle est le fil de plomb qui fait le tour ; le disque est le
+       verre coloré à l’intérieur. Un trait fin étant une cible tactile
+       exécrable, un anneau transparent de 24 px double le trait visible. */
+    return `<g class="${cl}" data-piece="${p.id}">`
+      + `<circle cx="${p.centre[0]}" cy="${p.centre[1]}" r="${p.rayon}" fill="none" stroke="transparent" stroke-width="24"/>`
+      + `<circle class="verre" cx="${p.centre[0]}" cy="${p.centre[1]}" r="${p.rayon}" fill="none"/></g>`;
+  return `<g class="${cl}" data-piece="${p.id}"><polygon class="verre" points="${p.pts.map(q => q.join(',')).join(' ')}" fill="${p.couleur}"/></g>`;
+}
+function boiteEnglobante(pieces){
+  let x1 = 1e9, y1 = 1e9, x2 = -1e9, y2 = -1e9;
+  pieces.forEach(p => {
+    const pts = p.pts || [[p.centre[0] - p.rayon, p.centre[1] - p.rayon], [p.centre[0] + p.rayon, p.centre[1] + p.rayon]];
+    pts.forEach(([x, y]) => { x1 = Math.min(x1, x); x2 = Math.max(x2, x); y1 = Math.min(y1, y); y2 = Math.max(y2, y); });
+  });
+  return {x1, y1, x2, y2};
+}
+/* viewBox ajustée au contenu : les pièces sont posées en coordonnées
+   libres, c’est le cadre qui vient à elles. */
+function cadrer(pieces, marge){
+  const b = boiteEnglobante(pieces), m = marge === undefined ? 26 : marge;
+  return [b.x1 - m, b.y1 - m, (b.x2 - b.x1) + 2 * m, (b.y2 - b.y1) + 2 * m].join(' ');
+}
+function afficherScene(pieces, extra){
+  const svg = $('svgScene');
+  svg.setAttribute('viewBox', cadrer(pieces));
+  svg.innerHTML = pieces.map(p => svgPiece(p)).join('') + (extra || '');
+  $('vitrail').hidden = false;
+}
+
+/* ---- Petit schéma illustrant une proposition (CP) ----
+   Décision de conception : les propositions de `cp-relations` portent
+   TOUJOURS un schéma, pas seulement quand la voix manque. Un enfant de CP
+   ne lit pas ces phrases ; sans image, le mini-jeu deviendrait un test de
+   lecture. La voix redevient alors un plus et non un pré-requis, ce que
+   la charte §5 exige. */
+function schemaRelation(e){
+  const T = (pts, fill) => `<polygon points="${pts.map(q => q.join(',')).join(' ')}" fill="${fill}" stroke="#2B3A55" stroke-width="2.5" stroke-linejoin="round"/>`;
+  const A = '#FF8A3D', B = '#5AB4DC', ACC = '#2EC4A6';
+  const cadre = inner => `<svg class="schema" viewBox="0 0 80 64" aria-hidden="true">${inner}</svg>`;
+  const carre = (x, y, c, f) => T([[x,y],[x+c,y],[x+c,y+c],[x,y+c]], f);
+  if (e.modele === 'forment') {
+    // deux/trois pièces qui, mises ensemble, composent une plus grande forme
+    const n = e.n;
+    if (n === 2) return cadre(T([[10,10],[70,10],[10,54]], A) + T([[70,10],[70,54],[10,54]], B));
+    return cadre(T([[10,10],[40,10],[10,54]], A) + T([[40,10],[70,10],[40,54]], B) + T([[40,10],[70,54],[40,54]], ACC));
+  }
+  if (e.modele === 'cote-commun') {
+    const f = e.a === 'carre' ? [carre(8,16,28,A), carre(36,16,28,B)]
+      : [T([[8,18],[42,18],[42,46],[8,46]], A), T([[42,18],[76,18],[76,46],[42,46]], B)];
+    return cadre(f.join('') + `<line x1="${e.a==='carre'?36:42}" y1="${e.a==='carre'?16:18}" x2="${e.a==='carre'?36:42}" y2="${e.a==='carre'?44:46}" stroke="${ACC}" stroke-width="5"/>`);
+  }
+  if (e.modele === 'sommet-commun') {
+    const f = e.a === 'carre' ? [carre(6,6,26,A), carre(32,32,26,B)]
+      : [T([[6,10],[36,10],[36,30],[6,30]], A), T([[36,30],[70,30],[70,52],[36,52]], B)];
+    return cadre(f.join('') + `<circle cx="${e.a==='carre'?32:36}" cy="${e.a==='carre'?32:30}" r="5" fill="${ACC}" stroke="#2B3A55" stroke-width="2"/>`);
+  }
+  if (e.modele === 'dans') {
+    const ext = e.b === 'carre' ? carre(14,6,52,B) : T([[6,12],[74,12],[74,52],[6,52]], B);
+    const int = e.a === 'triangle' ? T([[26,44],[58,44],[42,18]], A) : carre(28,20,24,A);
+    return cadre(ext + int);
+  }
+  if (e.modele === 'sommets-sur') {
+    const ext = carre(14,6,52,B);
+    const int = e.k === 2 ? T([[14,58],[66,58],[40,18]], A) : T([[14,58],[58,44],[40,18]], A);
+    const marques = e.k === 2
+      ? `<circle cx="14" cy="58" r="5" fill="${ACC}" stroke="#2B3A55" stroke-width="2"/><circle cx="66" cy="58" r="5" fill="${ACC}" stroke="#2B3A55" stroke-width="2"/>`
+      : `<circle cx="14" cy="58" r="5" fill="${ACC}" stroke="#2B3A55" stroke-width="2"/>`;
+    return cadre(ext + int + marques);
+  }
+  // sommet-sur-cote
+  const ext = carre(14,6,52,B);
+  const int = T([[14,58],[66,58],[40,6]], A);
+  const marque = e.cible === 'cote'
+    ? `<circle cx="40" cy="6" r="5" fill="${ACC}" stroke="#2B3A55" stroke-width="2"/>`
+    : `<circle cx="14" cy="6" r="5" fill="${ACC}" stroke="#2B3A55" stroke-width="2"/>`;
+  return cadre(ext + int + marque);
+}
+
+/* ---- Énoncés STRUCTURÉS ----
+   Une proposition n’est pas une chaîne mais un objet : c’est ce qui permet
+   de fabriquer un distracteur en ne changeant QU’UN SEUL terme (spec §3.2),
+   et de rendre le texte comme le schéma depuis la même source. */
+function texteRelation(e){
+  const n = e.n === 2 ? 'deux' : 'trois';
+  if (e.modele === 'forment')
+    return `Il y a ${n} ${plurDe(e.a)} qui forment ${avecArt(e.b)}.`;
+  if (e.modele === 'cote-commun')
+    return `Je vois ${n} ${plurDe(e.a)} avec un côté en commun.`;
+  if (e.modele === 'sommet-commun')
+    return `Je vois ${n} ${plurDe(e.a)} avec un sommet en commun.`;
+  if (e.modele === 'dans')
+    return `Il y a ${avecArt(e.a)} dans ${leDe(e.b)}.`;
+  /* « du triangle », et non « de triangle » : c’est l’article DÉFINI
+     contracté qu’il faut ici, la figure étant celle qu’on a sous les yeux. */
+  if (e.modele === 'sommets-sur')
+    return e.k === 2
+      ? `Deux sommets ${deArticle(e.a)} sont des sommets ${deArticle(e.b)}.`
+      : `Un sommet ${deArticle(e.a)} est un sommet ${deArticle(e.b)}.`;
+  return `Un sommet ${deArticle(e.a)} est sur un côté ${deArticle(e.b)}.`;
+}
+/* « du carré », « de la forme » : contraction de l’article défini. */
+function deArticle(k){
+  return ((NOMS[k] || NOMS.forme).genre === 'f' ? 'de la ' : 'du ') + nomDe(k);
+}
+
+/* ============================================================
+   CONTENU PÉDAGOGIQUE PAR PALIER (CHARTE §15)
+   ============================================================ */
+const CONTENU = {
+  sousTitre: 'Regarde les pièces de verre, nomme-les et explique !',
+  paliers: {
+    CP: {
+      sousTitre: 'Reconnais les formes dans le vitrail et dis ce que tu vois !',
+      /* Ce que le palier sait dire. Ni « polygone », ni « quadrilatère » :
+         une pièce à 5 ou 6 côtés se dit « une forme ». */
+      vocabulaire: ['disque','carre','rectangle','triangle','forme'],
+      formes: ['disque','carre','rectangle','triangle'],
+      miniJeux: [
+        {id:'cp-reconnaitre', mode:'reconnaitre', titre:'La commande', icone:'🧺',
+         description:'Trouve les pièces demandées.', nbQuestions:5},
+        {id:'cp-relations', mode:'relations', titre:'Ce que je vois', icone:'👀',
+         description:'Quelle phrase est vraie ?', nbQuestions:5},
+        {id:'cp-decrire', mode:'decrire', titre:'La fiche du verrier', icone:'📋',
+         description:'Côtés et sommets.', nbQuestions:5}
+      ]
+    },
+    CE1: {
+      sousTitre: 'Nomme les pièces… et dis pourquoi tu en es sûr !',
+      vocabulaire: ['disque','cercle','carre','rectangle','triangle','triangleRect','forme'],
+      formes: ['disque','cercle','carre','rectangle','triangle','triangleRect'],
+      miniJeux: [
+        {id:'ce1-reconnaitre', mode:'reconnaitre', titre:'La commande', icone:'🧺',
+         description:'Cercle ou disque ?', nbQuestions:5},
+        {id:'ce1-justifier', mode:'justifier', titre:'Le contrôle qualité', icone:'🔎',
+         description:'Nomme, puis prouve-le.', nbQuestions:5},
+        {id:'ce1-angles', mode:'angles', titre:'L’angle de la pièce', icone:'📐',
+         description:'Droit, aigu ou obtus ?', nbQuestions:5}
+      ]
+    },
+    CE2: {
+      sousTitre: 'Vocabulaire de la rosace, portraits et litiges !',
+      vocabulaire: ['disque','cercle','carre','rectangle','triangle','triangleRect',
+                    'losange','quadrilatere','pentagone','hexagone','polygone','forme'],
+      formes: ['disque','cercle','carre','rectangle','triangle','triangleRect','losange','pentagone','hexagone'],
+      miniJeux: [
+        {id:'ce2-vocabulaire', mode:'vocabulaire', titre:'La rosace', icone:'🌹',
+         description:'Centre, rayon, diagonale…', nbQuestions:5},
+        {id:'ce2-portrait', mode:'portrait', titre:'Le portrait-robot', icone:'🕵️',
+         description:'Trouve la pièce décrite.', nbQuestions:5},
+        {id:'ce2-litige', mode:'litige', titre:'Le litige', icone:'⚖️',
+         description:'Montre l’erreur, puis explique.', nbQuestions:5}
+      ]
+    }
+  }
+};
+
+/* ============================================================
+   OUTILS COMMUNS (CHARTE §13)
+   ============================================================ */
+function melanger(tableau){
+  const copie = [...tableau];
+  for (let i = copie.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copie[i], copie[j]] = [copie[j], copie[i]];
+  }
+  return copie;
+}
+const pioche = a => a[Math.floor(Math.random() * a.length)];
+const entre = (a, b) => a + Math.random() * (b - a);
+
+/* ============================================================
+   ÉTOILES / BONUS / PROFIL / SESSIONS (CHARTE §9, §11, §15)
+   ============================================================ */
+const CLE_STOCKAGE = 'mayeutik-m34-formes-etoiles';
+let memoireEtoiles = null;
+function lireEtoiles(){
+  if (memoireEtoiles === null) {
+    memoireEtoiles = {};
+    try { const b = window.localStorage.getItem(CLE_STOCKAGE); if (b) memoireEtoiles = JSON.parse(b); }
+    catch(e){ memoireEtoiles = {}; }
+  }
+  return memoireEtoiles;
+}
+function enregistrerEtoiles(jeuId, valeur){
+  const tout = lireEtoiles();
+  tout[jeuId] = Math.max(tout[jeuId] || 0, valeur);
+  memoireEtoiles = tout;
+  try { window.localStorage.setItem(CLE_STOCKAGE, JSON.stringify(tout)); } catch(e){}
+}
+
+/* Deux transitions possibles (CP→CE1 et CE1→CE2) : l’indicateur est donc
+   indexé par profil PUIS par palier cible. */
+const CLE_BONUS_REVELE = 'mayeutik-m34-bonus-revele';
+let memoireBonusRevele = null;
+function lireBonusRevele(){
+  if (memoireBonusRevele === null) {
+    memoireBonusRevele = {};
+    try { const b = window.localStorage.getItem(CLE_BONUS_REVELE); if (b) memoireBonusRevele = JSON.parse(b); }
+    catch(e){ memoireBonusRevele = {}; }
+  }
+  return memoireBonusRevele;
+}
+function bonusDejaRevele(profilId, palierCible){
+  const e = lireBonusRevele()[profilId];
+  return !!(e && typeof e === 'object' && e[palierCible]);
+}
+function marquerBonusRevele(profilId, palierCible){
+  const tout = lireBonusRevele();
+  if (!tout[profilId] || typeof tout[profilId] !== 'object') tout[profilId] = {};
+  tout[profilId][palierCible] = true;
+  memoireBonusRevele = tout;
+  try { window.localStorage.setItem(CLE_BONUS_REVELE, JSON.stringify(tout)); } catch(e){}
+}
+
+const CLE_PROFILS = 'mayeutik-profils';
+const CLE_PROFIL_ACTIF = 'mayeutik-profil-actif';
+const ORDRE_PALIERS = ['CP','CE1','CE2'];
+function lireProfilActifId(){
+  try { return window.localStorage.getItem(CLE_PROFIL_ACTIF) || 'p1'; } catch(e){ return 'p1'; }
+}
+function niveauDuProfilActif(){
+  try {
+    const b = window.localStorage.getItem(CLE_PROFILS);
+    if (!b) return null;
+    const actif = JSON.parse(b).find(p => p.id === lireProfilActifId());
+    return (actif && actif.niveau) || null;
+  } catch(e){ return null; }
+}
+function parametreURL(nom){
+  try { return new URLSearchParams(window.location.search).get(nom); } catch(e){ return null; }
+}
+function palierDepuisURL(){
+  const b = parametreURL('palier');
+  if (!b) return null;
+  const M = b.toUpperCase();
+  return CONTENU.paliers[M] ? M : null;
+}
+function palierParDefaut(){
+  const u = palierDepuisURL();
+  if (u) return u;
+  const n = niveauDuProfilActif();
+  if (n && CONTENU.paliers[n]) return n;
+  return ORDRE_PALIERS.find(n2 => CONTENU.paliers[n2]) || ORDRE_PALIERS[0];
+}
+
+const CLE_SESSIONS = 'mayeutik-sessions';
+const MODULE_ID = 'M34';
+const MAX_SESSIONS_PAR_PROFIL = 500;
+let memoireSessions = null;
+function lireSessions(){
+  if (memoireSessions === null) {
+    memoireSessions = [];
+    try { const b = window.localStorage.getItem(CLE_SESSIONS); if (b) memoireSessions = JSON.parse(b); }
+    catch(e){ memoireSessions = []; }
+  }
+  return memoireSessions;
+}
+function enregistrerSession(competence, score, total, duree){
+  const profilId = lireProfilActifId();
+  const toutes = lireSessions();
+  toutes.push({profilId, module:MODULE_ID, competence, score, total, date:new Date().toISOString(), duree});
+  let n = 0;
+  for (let i = toutes.length - 1; i >= 0; i--) {
+    if (toutes[i].profilId === profilId) { n++; if (n > MAX_SESSIONS_PAR_PROFIL) toutes.splice(i, 1); }
+  }
+  memoireSessions = toutes;
+  try { window.localStorage.setItem(CLE_SESSIONS, JSON.stringify(toutes)); } catch(e){}
+}
+const SEUIL_MAITRISE_LOCALE = 0.8;
+function palierMaitrise(palierNom){
+  const palier = CONTENU.paliers[palierNom];
+  if (!palier) return false;
+  const profilId = lireProfilActifId();
+  const sessions = lireSessions().filter(s => s.profilId === profilId && s.module === MODULE_ID);
+  return palier.miniJeux.every(mj => {
+    const s = sessions.filter(x => x.competence === mj.id);
+    if (!s.length) return false;
+    const d = s[s.length - 1];
+    return d.total > 0 && (d.score / d.total) >= SEUIL_MAITRISE_LOCALE;
+  });
+}
+function palierSuivant(palierNom){
+  const i = ORDRE_PALIERS.indexOf(palierNom);
+  if (i === -1 || i === ORDRE_PALIERS.length - 1) return null;
+  const s = ORDRE_PALIERS[i + 1];
+  return CONTENU.paliers[s] ? s : null;
+}
+
+/* ============================================================
+   SONS (CHARTE §5) et CONFETTIS (§4)
+   ============================================================ */
+let actx = null;
+function jouerNote(freq, debut, duree, volume, forme){
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = forme || 'sine'; o.frequency.value = freq;
+    const t = actx.currentTime + debut;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(volume, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + duree);
+    o.connect(g); g.connect(actx.destination);
+    o.start(t); o.stop(t + duree + 0.02);
+  } catch(e){}
+}
+const NOTES_BONNE_REPONSE = [523.25, 659.25, 783.99, 1046.5];
+const NOTES_NIVEAU_PARFAIT = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
+const ACCORD_NIVEAU_PARFAIT = [523.25, 659.25, 783.99, 1046.5];
+function sonBonneReponse(){ NOTES_BONNE_REPONSE.forEach((f, i) => jouerNote(f, i * 0.11, 0.11, 0.22)); }
+function sonNiveauParfait(){
+  const pas = 0.1;
+  NOTES_NIVEAU_PARFAIT.forEach((f, i) => jouerNote(f, i * pas, 0.12, 0.2));
+  const t = NOTES_NIVEAU_PARFAIT.length * pas + 0.04;
+  ACCORD_NIVEAU_PARFAIT.forEach(f => jouerNote(f, t, 0.75, 0.12, 'triangle'));
+}
+function sonErreur(){ [392.0, 293.66].forEach((f, i) => jouerNote(f, i * 0.17, 0.17, 0.22)); }
+function sonClic(){ jouerNote(660, 0, 0.05, 0.12); }
+
+const COULEURS_CONFETTIS = ['#FF8A3D','#2EC4A6','#FFC93C','#5AB4DC','#FF5D5D'];
+function lancerConfettis(nb){
+  const c = $('confettis-conteneur');
+  if (!c) return;
+  for (let i = 0; i < (nb || 30); i++) {
+    const p = document.createElement('span');
+    p.className = 'confetti';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.background = COULEURS_CONFETTIS[i % COULEURS_CONFETTIS.length];
+    p.style.animationDuration = (1.1 + Math.random() * 0.9) + 's';
+    p.style.animationDelay = (Math.random() * 0.35) + 's';
+    c.appendChild(p);
+    p.addEventListener('animationend', () => p.remove());
+    setTimeout(() => p.remove(), 2600);
+  }
+}
+
+/* ---- Voix (CHARTE §5) : un PLUS, jamais un pré-requis ----
+   Les propositions restent lisibles sans son grâce à leur schéma ; la voix
+   ne fait qu’aider. Choix d’une voix française locale quand il en existe. */
+function voixFrancaises(){
+  try { return (window.speechSynthesis.getVoices() || []).filter(v => /^fr/i.test(v.lang)); }
+  catch(e){ return []; }
+}
+function lireAVoixHaute(texte){
+  try {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(texte);
+    u.lang = 'fr-FR'; u.rate = 0.95;
+    const locales = voixFrancaises().filter(v => v.localService);
+    const v = locales[0] || voixFrancaises()[0];
+    if (v) u.voice = v;
+    window.speechSynthesis.speak(u);
+  } catch(e){}
+}
+function stopperVoix(){ try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch(e){} }
+
+/* ============================================================
+   GÉNÉRATION DES ASSEMBLAGES
+   Les pièces sont posées sur une grille lâche, chacune avec sa rotation
+   libre : aucun chevauchement, et jamais deux vitraux identiques (§13).
+   ============================================================ */
+function poserEnGrille(formes, opts){
+  const o = opts || {};
+  const cols = o.cols || 3, taille = o.taille || 78, pas = taille * 1.5;
+  return melanger(formes).map((f, i) => {
+    const c = i % cols, r = Math.floor(i / cols);
+    return creerPiece(f, {
+      cx: c * pas + entre(-8, 8),
+      cy: r * pas + entre(-8, 8),
+      taille: taille * entre(0.82, 1.0),
+      couleur: VERRES[i % VERRES.length]
+    });
+  });
+}
+
+/* Assemblage CONSCIENT DE LA COMMANDE : si l’on demande les rectangles,
+   aucun carré n’entre dans le vitrail. L’inclusion carré ⊂ rectangle est
+   hors programme au cycle 2 — on l’évite activement dans la fabrication
+   des items, pas seulement dans le discours. */
+function assemblageCommande(palier, demandees){
+  /* Un carré est aussi un rectangle au sens des propriétés, mais le cycle 2
+     n’enseigne pas cette inclusion : dès que la commande porte sur les
+     rectangles, le carré disparaît du vitrail. L’inverse n’est pas un
+     piège — un rectangle n’est pas un carré, le distinguer est justement
+     l’exercice. */
+  const dispo = palier.formes.filter(f => !(demandees.includes('rectangle') && f === 'carre'));
+  const intrus = dispo.filter(f => !demandees.includes(f));
+  const liste = [];
+  demandees.forEach(f => { const n = 1 + Math.floor(Math.random() * 2); for (let i = 0; i < n; i++) liste.push(f); });
+  const nbIntrus = Math.max(3, 7 - liste.length);
+  for (let i = 0; i < nbIntrus && intrus.length; i++) liste.push(pioche(intrus));
+  return poserEnGrille(liste, {cols:3, taille:76});
+}
+
+/* ============================================================
+   SCÉNARIOS DE RELATIONS (CP)
+   Chaque scénario CONSTRUIT la géométrie et l’énoncé structuré ensemble :
+   la phrase vraie l’est parce que la figure a été bâtie ainsi, pas parce
+   qu’on l’a affirmé à côté.
+   ============================================================ */
+function scenarioRelation(){
+  const type = pioche(['forment','cote-commun','sommet-commun','dans','sommets-sur','sommet-sur-cote']);
+  const th = entre(0, TAU), T = pts => tournerPts(pts, th);
+  const co = [VERRES[0], VERRES[1], VERRES[2]];
+  const A = 100;
+
+  if (type === 'forment') {
+    // Un rectangle coupé selon sa diagonale : deux triangles qui le forment.
+    const l = A * 1.5, h = A;
+    const q = [[-l/2,-h/2],[l/2,-h/2],[l/2,h/2],[-l/2,h/2]];
+    const t1 = T([q[0], q[1], q[2]]), t2 = T([q[0], q[2], q[3]]);
+    return {
+      pieces:[{id:'r1', forme:'triangle', pts:placerPts(t1, 0, 0, 1), couleur:co[0]},
+              {id:'r2', forme:'triangle', pts:placerPts(t2, 0, 0, 1), couleur:co[1]}],
+      vrai:{modele:'forment', n:2, a:'triangle', b:'rectangle'}
+    };
+  }
+  if (type === 'cote-commun') {
+    const a = pioche(['carre','rectangle']);
+    const l = a === 'carre' ? A : A * 1.4, h = A;
+    const g = T([[-l,-h/2],[0,-h/2],[0,h/2],[-l,h/2]]);
+    const d = T([[0,-h/2],[l,-h/2],[l,h/2],[0,h/2]]);
+    return {
+      pieces:[{id:'r1', forme:a, pts:placerPts(g, 0, 0, 1), couleur:co[0]},
+              {id:'r2', forme:a, pts:placerPts(d, 0, 0, 1), couleur:co[1]}],
+      vrai:{modele:'cote-commun', n:2, a:a}
+    };
+  }
+  if (type === 'sommet-commun') {
+    const a = pioche(['carre','rectangle']);
+    const l = a === 'carre' ? A : A * 1.4, h = A;
+    const g = T([[-l,-h],[0,-h],[0,0],[-l,0]]);
+    const d = T([[0,0],[l,0],[l,h],[0,h]]);
+    return {
+      pieces:[{id:'r1', forme:a, pts:placerPts(g, 0, 0, 1), couleur:co[0]},
+              {id:'r2', forme:a, pts:placerPts(d, 0, 0, 1), couleur:co[1]}],
+      vrai:{modele:'sommet-commun', n:2, a:a}
+    };
+  }
+  // Les trois derniers scénarios partagent la même figure : un triangle
+  // inscrit dans un carré, deux de ses sommets sur des sommets du carré,
+  // le troisième sur un côté. La phrase officielle à trois propositions est
+  // ainsi découpée en manches successives (spec §3.2).
+  const c = A * 1.2;
+  const q = [[-c/2, c/2], [c/2, c/2], [c/2, -c/2], [-c/2, -c/2]];
+  const tri = [q[0], q[1], [entre(-c*0.2, c*0.2), -c/2]];
+  const pieces = [
+    {id:'r1', forme:'carre', pts:placerPts(T(q), 0, 0, 1), couleur:co[1]},
+    {id:'r2', forme:'triangle', pts:placerPts(T(tri), 0, 0, 1), couleur:co[0]}
+  ];
+  if (type === 'dans') return {pieces, vrai:{modele:'dans', a:'triangle', b:'carre'}};
+  if (type === 'sommets-sur') return {pieces, vrai:{modele:'sommets-sur', k:2, a:'triangle', b:'carre'}};
+  return {pieces, vrai:{modele:'sommet-sur-cote', a:'triangle', b:'carre', cible:'cote'}};
+}
+
+/* Distracteur = la phrase vraie dont UN SEUL terme a bougé. L’enfant doit
+   donc écouter la phrase entière au lieu de repérer un mot-clé. */
+function distracteursRelation(vrai){
+  const out = [];
+  const clone = () => JSON.parse(JSON.stringify(vrai));
+  const autreForme = f => f === 'carre' ? 'rectangle' : f === 'rectangle' ? 'carre' : 'carre';
+  if (vrai.modele === 'forment') {
+    let d = clone(); d.b = 'carre'; out.push(d);
+    d = clone(); d.n = 3; out.push(d);
+  } else if (vrai.modele === 'cote-commun') {
+    let d = clone(); d.a = autreForme(vrai.a); out.push(d);
+    d = clone(); d.modele = 'sommet-commun'; out.push(d);
+  } else if (vrai.modele === 'sommet-commun') {
+    let d = clone(); d.a = autreForme(vrai.a); out.push(d);
+    d = clone(); d.modele = 'cote-commun'; out.push(d);
+  } else if (vrai.modele === 'dans') {
+    let d = clone(); d.a = 'carre'; d.b = 'triangle'; out.push(d);
+    d = clone(); d.a = 'rectangle'; out.push(d);
+  } else if (vrai.modele === 'sommets-sur') {
+    let d = clone(); d.k = 1; out.push(d);
+    d = clone(); d.modele = 'sommet-sur-cote'; d.cible = 'cote'; out.push(d);
+  } else {
+    let d = clone(); d.modele = 'sommets-sur'; d.k = 2; out.push(d);
+    d = clone(); d.cible = 'sommet'; out.push(d);
+  }
+  return out;
+}
+
+/* ============================================================
+   PROPRIÉTÉS ÉNONÇABLES (CE1/CE2)
+   ============================================================ */
+const PROP = {
+  carre:      'ses quatre angles sont droits et ses quatre côtés ont la même longueur',
+  rectangle:  'ses quatre angles sont droits et ses côtés opposés ont la même longueur',
+  losange:    'ses quatre côtés ont la même longueur, mais aucun angle n’est droit',
+  triangleRect:'il a trois côtés et l’un de ses angles est droit',
+  triangle:   'il a trois côtés et trois sommets',
+  disque:     'c’est le verre tout rond, sans aucun côté',
+  cercle:     'c’est le fil de plomb qui fait le tour, sans le verre au milieu'
+};
+const MOTIFS_REFUS = {
+  carre: ['ses quatre côtés n’ont pas la même longueur', 'l’un de ses angles n’est pas droit'],
+  rectangle: ['l’un de ses angles n’est pas droit', 'ses côtés opposés n’ont pas la même longueur']
+};
+
+/* ============================================================
+   LA ROSACE (CE2) — recyclée telle quelle par M41.
+   Duplication assumée : la charte impose des fichiers autonomes, on ne
+   peut pas partager de module. Toute retouche ici est à reporter dans M41.
+   ============================================================ */
+function construireRosace(){
+  const R = 130, cx = 0, cy = 0, n = 6;
+  const petales = [], sommetsHex = [];
+  for (let i = 0; i < n; i++) {
+    const th = -Math.PI/2 + i * TAU / n;
+    sommetsHex.push([cx + Math.cos(th) * R * 0.42, cy + Math.sin(th) * R * 0.42]);
+  }
+  for (let i = 0; i < n; i++) {
+    const a = sommetsHex[i], b = sommetsHex[(i + 1) % n];
+    const th = -Math.PI/2 + (i + 0.5) * TAU / n;
+    const loin = [cx + Math.cos(th) * R * 0.93, cy + Math.sin(th) * R * 0.93];
+    petales.push({id:'pet' + i, forme:'quadrilatere',
+      pts:[a, [ (a[0]+loin[0])/2 - (b[1]-a[1])*0.16, (a[1]+loin[1])/2 + (b[0]-a[0])*0.16 ], loin, b],
+      couleur:VERRES[i % VERRES.length]});
+  }
+  return {R, cx, cy, sommetsHex, petales,
+    hexagone:{id:'hex', forme:'hexagone', pts:sommetsHex, couleur:'#FFC93C'}};
+}
+
+/* ============================================================
+   GÉNÉRATEURS DE MANCHES — un par mini-jeu
+   ============================================================ */
+function qReconnaitre(cfg, palier){
+  const simples = palier.formes.filter(f => f !== 'cercle');
+  return Array.from({length: cfg.nbQuestions}, (_, i) => {
+    // Progression : une seule forme demandée, puis deux ensemble.
+    const deux = i >= 3;
+    let dem = melanger(simples).slice(0, deux ? 2 : 1);
+    /* On ne demande JAMAIS « les rectangles et les carrés » ensemble : la
+       consigne obligerait alors à trancher l’inclusion carré ⊂ rectangle,
+       hors programme au cycle 2. On remplace le carré par une autre forme. */
+    if (dem.includes('rectangle') && dem.includes('carre')) {
+      const remplacant = melanger(simples.filter(f => f !== 'rectangle' && f !== 'carre'))[0];
+      dem = remplacant ? ['rectangle', remplacant] : ['rectangle'];
+    }
+    // Au CE1, on ménage une manche cercle/disque : la distinction est
+    // abstraite sur papier, évidente en vitrail.
+    if (palier.formes.includes('cercle') && i === 2) dem.splice(0, dem.length, 'cercle');
+    const pieces = dem[0] === 'cercle'
+      ? poserEnGrille(['cercle','cercle','disque','disque','carre','triangle'], {cols:3, taille:76})
+      : assemblageCommande(palier, dem);
+    return {mode:'reconnaitre', pieces, demandees:dem,
+      q: 'Touche ' + (dem.length === 1
+            ? 'tous les ' + plurDe(dem[0])
+            : 'tous les ' + plurDe(dem[0]) + ' et tous les ' + plurDe(dem[1])) + ' !',
+      sous:'Sélectionne toutes les pièces, puis appuie sur Vérifier.'};
+  });
+}
+
+function qRelations(cfg){
+  return Array.from({length: cfg.nbQuestions}, () => {
+    const sc = scenarioRelation();
+    const props = melanger([{e:sc.vrai, bon:true}, ...distracteursRelation(sc.vrai).map(e => ({e, bon:false}))]);
+    return {mode:'relations', pieces:sc.pieces, props,
+      q:'Quelle phrase est vraie ?',
+      sous:'Regarde le vitrail, puis choisis la bonne phrase. Touche 🔊 pour l’écouter.'};
+  });
+}
+
+function qDecrire(cfg, palier){
+  const nommables = palier.formes.filter(f => f !== 'cercle');
+  return Array.from({length: cfg.nbQuestions}, (_, i) => {
+    // Les deux dernières manches présentent une pièce à 5 ou 6 côtés, que
+    // le CP ne nomme pas : « cette forme », on ne fait que compter.
+    const inconnue = i >= 3;
+    const forme = inconnue ? pioche(['pentagone','hexagone']) : pioche(nommables);
+    const piece = creerPiece(forme, {cx:0, cy:0, taille:150, couleur:VERRES[i % VERRES.length]});
+    const p = proprietes(piece);
+    if (inconnue) {
+      const quoi = pioche(['cotes','sommets']);
+      const bon = quoi === 'cotes' ? p.nbCotes : p.nbSommets;
+      return {mode:'decrire', pieces:[piece],
+        q:'Combien cette forme a-t-elle ' + (quoi === 'cotes' ? 'de côtés' : 'de sommets') + ' ?',
+        sous:'Compte bien tout autour.',
+        opts:melanger([bon, bon + 1, bon - 1, bon + 2].map(String)), ans:String(bon)};
+    }
+    const quoi = pioche(forme === 'disque' ? ['nom'] : ['nom','cotes','sommets']);
+    if (quoi === 'nom') {
+      const autres = melanger(nommables.filter(f => f !== forme)).slice(0, 3);
+      return {mode:'decrire', pieces:[piece],
+        q:'Comment s’appelle cette pièce ?', sous:'',
+        opts:melanger([forme, ...autres].map(nomDe)), ans:nomDe(forme)};
+    }
+    const bon = quoi === 'cotes' ? p.nbCotes : p.nbSommets;
+    return {mode:'decrire', pieces:[piece],
+      q:'Combien ' + leDe(forme) + ' a-t-il ' + (quoi === 'cotes' ? 'de côtés' : 'de sommets') + ' ?',
+      sous:'Compte bien tout autour.',
+      opts:melanger([bon, bon + 1, bon - 1, bon + 2].map(String)), ans:String(bon)};
+  });
+}
+
+function qJustifier(cfg, palier){
+  return Array.from({length: cfg.nbQuestions}, (_, i) => {
+    // Manches 1-3 : nommer puis prouver. Manches 4-5 : réfuter — on nomme
+    // ce que la pièce est VRAIMENT, puis on dit pourquoi elle est refusée.
+    const refutation = i >= 3;
+    const forme = refutation ? pioche(['rectangle','triangle']) : pioche(['carre','rectangle','triangleRect','disque']);
+    const piece = creerPiece(forme, {cx:0, cy:0, taille:150, couleur:VERRES[i % VERRES.length]});
+    const autres = melanger(palier.formes.filter(f => f !== forme)).slice(0, 3);
+    const etape1 = {q: refutation
+        ? 'Le client dit : « c’est un carré. » Il se trompe. Qu’est-ce que c’est vraiment ?'
+        : 'Comment s’appelle cette pièce ?',
+      opts:melanger([forme, ...autres].map(nomDe)), ans:nomDe(forme)};
+    let etape2;
+    if (refutation) {
+      const motif = forme === 'rectangle'
+        ? 'ses quatre côtés n’ont pas la même longueur'
+        : 'elle n’a que trois côtés';
+      const faux = ['l’un de ses angles n’est pas droit', 'elle n’a aucun côté droit']
+        .filter(x => x !== motif).slice(0, 2);
+      etape2 = {q:'Pourquoi ce n’est pas un carré ?', opts:melanger([motif, ...faux]), ans:motif};
+    } else {
+      const bonne = PROP[forme] || PROP.triangle;
+      const faux = melanger(Object.keys(PROP).filter(k => k !== forme).map(k => PROP[k])).slice(0, 2);
+      etape2 = {q:'Qu’est-ce qui le prouve ?', opts:melanger([bonne, ...faux]), ans:bonne};
+    }
+    return {mode:'justifier', pieces:[piece], etape1, etape2, etape:1,
+      q:etape1.q, sous:'D’abord le nom, ensuite la preuve.'};
+  });
+}
+
+function qAngles(cfg){
+  return Array.from({length: cfg.nbQuestions}, (_, i) => {
+    /* On tire une figure jusqu’à trouver un angle FRANC de la classe
+       voulue : jamais de cas limite, la vérification à l’équerre relève
+       de M35. */
+    const vise = ['droit','aigu','obtus'][i % 3];
+    let piece = null, idx = -1;
+    for (let essai = 0; essai < 400 && idx === -1; essai++) {
+      const f = vise === 'droit' ? pioche(['carre','rectangle','triangleRect'])
+        : pioche(['triangle','losange','pentagone','triangleRect']);
+      const cand = creerPiece(f, {cx:0, cy:0, taille:150, couleur:VERRES[i % VERRES.length]});
+      const a = anglesDeg(cand.pts);
+      const j = a.findIndex(x => classeAngle(x) === vise && angleFranc(x));
+      if (j !== -1) { piece = cand; idx = j; }
+    }
+    if (!piece) { piece = creerPiece('carre', {cx:0, cy:0, taille:150}); idx = 0; }
+    return {mode:'angles', pieces:[piece], sommet:idx,
+      q:'Regarde l’angle marqué en orange. Comment est-il ?',
+      sous:'À l’œil : pas besoin d’équerre ici.',
+      opts:melanger(['droit','aigu','obtus'].map(x => 'un angle ' + x)),
+      ans:'un angle ' + classeAngle(anglesDeg(piece.pts)[idx])};
+  });
+}
+
+function qVocabulaire(cfg){
+  /* Banque de onze notions pour cinq manches : la variété inter-sessions
+     du §13 vient du tirage, pas d’une rallonge du mini-jeu. */
+  const banque = ['centre','rayon','diametre','diagonale','longueur','largeur',
+                  'triangle','quadrilatere','pentagone','hexagone','polygone'];
+  return melanger(banque).slice(0, cfg.nbQuestions).map(notion => ({
+    mode:'vocabulaire', notion, q:consigneVocabulaire(notion),
+    /* Deux écrans distincts sous une même compétence : la rosace pour le
+       vocabulaire du cercle, un présentoir de pièces pour le classement
+       par nombre de côtés. La sous-consigne doit dire lequel on regarde. */
+    sous: notion === 'polygone' ? 'Le mot qui les englobe toutes.'
+      : ['triangle','quadrilatere','pentagone','hexagone'].includes(notion)
+        ? 'Compte les côtés de chaque pièce.'
+        : 'Touche l’élément demandé sur la rosace.'
+  }));
+}
+function consigneVocabulaire(n){
+  const m = {
+    centre:'Touche le centre de la rosace.',
+    rayon:'Touche un rayon de la rosace.',
+    diametre:'Touche le diamètre de la rosace.',
+    diagonale:'Touche une diagonale de ce quadrilatère.',
+    longueur:'Touche la longueur du rectangle.',
+    largeur:'Touche la largeur du rectangle.',
+    triangle:'Touche le triangle.',
+    quadrilatere:'Touche un quadrilatère.',
+    pentagone:'Touche le pentagone.',
+    hexagone:'Touche l’hexagone.',
+    polygone:'Quel mot désigne toutes ces formes à la fois ?'
+  };
+  return m[n];
+}
+
+function qPortrait(cfg){
+  const cibles = ['losange','carre','rectangle','triangleRect','disque','cercle'];
+  return melanger(cibles).slice(0, cfg.nbQuestions).map((cible, i) => {
+    const autres = melanger(cibles.filter(f => f !== cible)).slice(0, 3);
+    const toutes = melanger([cible, ...autres]);
+    const pieces = toutes.map((f, j) => creerPiece(f, {cx:0, cy:0, taille:120, couleur:VERRES[(i + j) % VERRES.length]}));
+    return {mode:'portrait', pieces, cible, choix:toutes, piecesChoix:pieces,
+      q:'Le client demande : « ' + PORTRAITS[cible] + ' »',
+      sous:'Touche la pièce qui correspond.'};
+  });
+}
+const PORTRAITS = {
+  losange:'Quatre côtés de même longueur, mais aucun angle droit.',
+  carre:'Quatre côtés de même longueur et quatre angles droits.',
+  rectangle:'Quatre angles droits, mais ses côtés ne sont pas tous de même longueur.',
+  triangleRect:'Trois côtés, et un angle droit.',
+  disque:'Tout rond, et le verre remplit tout.',
+  cercle:'Tout rond, mais seulement le tour : pas de verre au milieu.'
+};
+
+function qLitige(cfg){
+  return Array.from({length: cfg.nbQuestions}, (_, i) => {
+    /* Le client affirme « carré » ; la pièce n’en est pas un. Deux cas :
+       elle a bien quatre angles droits mais des côtés inégaux (rectangle),
+       ou quatre côtés égaux mais des angles non droits (losange). C’est ce
+       qui décide de ce qu’il faut toucher, et de la sous-consigne. */
+    const cas = i % 2 === 0 ? 'rectangle' : 'losange';
+    const piece = creerPiece(cas, {cx:0, cy:0, taille:150, couleur:VERRES[i % VERRES.length]});
+    const p = proprietes(piece);
+    const angles = p.angles.map(classeAngle);
+    const cotes = p.cotes;
+    let zonesBonnes, sous, motif, faux;
+    if (cas === 'losange') {
+      zonesBonnes = angles.map((a, j) => a !== 'droit' ? 'a' + j : null).filter(Boolean).slice(0, 1);
+      sous = 'Touche UN angle qui ne va pas, puis appuie sur Vérifier.';
+      motif = 'Or un carré a ses quatre angles droits.';
+      faux = ['Or un carré a quatre côtés.', 'Or un carré a ses côtés de même longueur.'];
+    } else {
+      // Deux côtés de longueurs différentes : il faut désigner LES DEUX.
+      const idxLong = cotes.indexOf(Math.max(...cotes)), idxCourt = cotes.indexOf(Math.min(...cotes));
+      zonesBonnes = ['c' + idxLong, 'c' + idxCourt];
+      sous = 'Touche LES DEUX côtés qui n’ont pas la même longueur, puis appuie sur Vérifier.';
+      motif = 'Or un carré a ses quatre côtés de même longueur.';
+      faux = ['Or un carré a ses quatre angles droits.', 'Or un carré a quatre sommets.'];
+    }
+    return {mode:'litige', pieces:[piece], cas, zonesBonnes, etape:1,
+      q:'Le client dit : « cette pièce est un carré. » Montre où ça coince.',
+      sous, etape2:{q:'Et pourquoi ce n’est pas un carré ?', opts:melanger([motif, ...faux]), ans:motif}};
+  });
+}
+
+function construireFile(cfg, palier){
+  if (cfg.mode === 'reconnaitre') return qReconnaitre(cfg, palier);
+  if (cfg.mode === 'relations')   return qRelations(cfg);
+  if (cfg.mode === 'decrire')     return qDecrire(cfg, palier);
+  if (cfg.mode === 'justifier')   return qJustifier(cfg, palier);
+  if (cfg.mode === 'angles')      return qAngles(cfg);
+  if (cfg.mode === 'vocabulaire') return qVocabulaire(cfg);
+  if (cfg.mode === 'portrait')    return qPortrait(cfg);
+  return qLitige(cfg);
+}
+/* Barème : la justification et la réfutation pèsent DOUBLE — c’est
+   l’objectif du module, nommer ne suffit pas. */
+const POINTS_ETAPE1 = 1, POINTS_ETAPE2 = 2;
+const enDeuxTemps = mode => mode === 'justifier' || mode === 'litige';
+function pointsParManche(mode){ return enDeuxTemps(mode) ? POINTS_ETAPE1 + POINTS_ETAPE2 : 1; }
+
+/* ============================================================
+   ÉCRANS ET DÉROULÉ
+   ============================================================ */
+const ecrans = {home:$('home'), game:$('game'), end:$('end')};
+let etatPalierAffiche = palierParDefaut();
+let miniJeuCourant = null, file = [], pos = 0, score = 0, total = 0, demarreLe = 0;
+let selection = new Set(), verrouille = false;
+
+function remonterEnHaut(){
+  try { window.scrollTo({top:0, left:0, behavior:'auto'}); } catch(e){ window.scrollTo(0, 0); }
+}
+function montreEcran(nom){
+  desarmerAutoSuivant(); stopperVoix();
+  Object.values(ecrans).forEach(e => e.hidden = true);
+  ecrans[nom].hidden = false;
+  $('btnBack').hidden = (nom === 'home');
+  if (nom === 'home') $('dots').innerHTML = '';
+  remonterEnHaut();
+}
+function retourAccueil(){
+  desarmerAutoSuivant(); stopperVoix();
+  montreEcran('home'); construireAccueil();
+}
+$('btnBack').addEventListener('click', retourAccueil);
+
+/* Navigation automatique (CHARTE §20) : 2 s après l’affichage du bouton. */
+const DELAI_AUTO_SUIVANT = 2000;
+let minuteurAutoSuivant = null;
+function armerAutoSuivant(){
+  clearTimeout(minuteurAutoSuivant);
+  const b = $('btnNext');
+  minuteurAutoSuivant = setTimeout(() => {
+    if (b.style.display === 'none' || b.disabled || !b.isConnected) return;
+    b.click();
+  }, DELAI_AUTO_SUIVANT);
+}
+function desarmerAutoSuivant(){ clearTimeout(minuteurAutoSuivant); }
+
+function creerCarte(cfg){
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'card'; b.dataset.jeu = cfg.id;
+  const ico = document.createElement('span'); ico.className = 'ico'; ico.textContent = cfg.icone;
+  const nom = document.createElement('span'); nom.className = 'nom'; nom.textContent = cfg.titre;
+  const det = document.createElement('span'); det.className = 'det'; det.textContent = cfg.description;
+  const st = document.createElement('span'); st.className = 'stars';
+  const n = lireEtoiles()[cfg.id] || 0;
+  st.textContent = n ? '⭐'.repeat(n) : '';
+  b.append(ico, nom, det, st);
+  b.addEventListener('click', () => lance(cfg.id));
+  return b;
+}
+
+function construireAccueil(){
+  $('hdrTitle').textContent = 'L’atelier du vitrail';
+  const palier = CONTENU.paliers[etatPalierAffiche];
+  $('sous-titre-accueil').textContent = (palier && palier.sousTitre) || CONTENU.sousTitre;
+
+  const rangee = $('rangee-paliers');
+  rangee.innerHTML = '';
+  const niveauProfil = niveauDuProfilActif();
+  /* Verrouillage des onglets (CHARTE §15) : un palier au-delà du niveau du
+     profil actif reste verrouillé tant que son paquet cadeau n’a pas été
+     ouvert — sinon le sélecteur contournerait la mécanique de déblocage. */
+  let indexNiveauProfil = ORDRE_PALIERS.indexOf(niveauProfil);
+  if (indexNiveauProfil === -1) indexNiveauProfil = 0;
+  const profilIdPourVerrou = lireProfilActifId();
+  ORDRE_PALIERS.filter(n => CONTENU.paliers[n]).forEach(n => {
+    const verr = ORDRE_PALIERS.indexOf(n) > indexNiveauProfil && !bonusDejaRevele(profilIdPourVerrou, n);
+    const puce = document.createElement('button');
+    puce.type = 'button';
+    puce.className = 'puce-palier' + (n === etatPalierAffiche ? ' actif' : '') + (verr ? ' verrouille' : '');
+    puce.textContent = verr ? n + ' 🔒' : n;
+    puce.disabled = verr;
+    if (!verr) puce.addEventListener('click', () => { etatPalierAffiche = n; construireAccueil(); });
+    rangee.appendChild(puce);
+  });
+  $('note-palier').textContent = niveauProfil
+    ? 'Niveau de ' + (niveauProfil === etatPalierAffiche
+        ? 'ton profil'
+        : 'ton profil : ' + niveauProfil + ' — tu regardes le palier ' + etatPalierAffiche)
+    : '';
+
+  const grille = $('grille-jeux');
+  grille.innerHTML = '';
+  (palier ? palier.miniJeux : []).forEach(cfg => grille.appendChild(creerCarte(cfg)));
+
+  const suivant = palierSuivant(etatPalierAffiche);
+  const blocBonus = $('bloc-bonus'), paquet = $('paquet-cadeau'), grilleBonus = $('grille-bonus');
+  if (suivant && palierMaitrise(etatPalierAffiche)) {
+    blocBonus.hidden = false;
+    $('note-bonus').textContent =
+      'Tu maîtrises tout le palier ' + etatPalierAffiche + ' : essaie un aperçu du palier ' + suivant + ' !';
+    grilleBonus.innerHTML = '';
+    CONTENU.paliers[suivant].miniJeux.forEach(cfg => grilleBonus.appendChild(creerCarte(cfg)));
+    const profilId = lireProfilActifId();
+    if (bonusDejaRevele(profilId, suivant)) { paquet.hidden = true; grilleBonus.hidden = false; }
+    else {
+      paquet.hidden = false; paquet.disabled = false;
+      paquet.classList.remove('paquet-cadeau-ouverture');
+      grilleBonus.hidden = true;
+      /* Propriété `onclick` et non addEventListener : ce bouton est un
+         élément fixe réutilisé à chaque rendu (CHARTE §15). */
+      paquet.onclick = () => ouvrirPaquetCadeau(profilId, suivant, paquet, grilleBonus);
+    }
+  } else blocBonus.hidden = true;
+}
+function ouvrirPaquetCadeau(profilId, cible, paquet, grilleBonus){
+  if (paquet.disabled) return;
+  paquet.disabled = true;
+  marquerBonusRevele(profilId, cible);
+  lancerConfettis(50); sonBonneReponse();
+  paquet.classList.add('paquet-cadeau-ouverture');
+  setTimeout(() => { paquet.hidden = true; grilleBonus.hidden = false; }, 480);
+}
+
+function trouverMiniJeu(id){
+  for (const nom of ORDRE_PALIERS) {
+    const p = CONTENU.paliers[nom];
+    if (!p) continue;
+    const cfg = p.miniJeux.find(mj => mj.id === id);
+    if (cfg) return {cfg, palier:p, palierNom:nom};
+  }
+  return null;
+}
+function lance(id){
+  const t = trouverMiniJeu(id);
+  if (!t) return;
+  miniJeuCourant = t;
+  file = construireFile(t.cfg, t.palier);
+  pos = 0; score = 0;
+  total = file.reduce((s, q) => s + pointsParManche(q.mode), 0);
+  demarreLe = Date.now();
+  $('hdrTitle').textContent = t.cfg.titre;
+  montreEcran('game');
+  question();
+}
+
+function majDots(){
+  $('dots').innerHTML = file.map((q, i) =>
+    `<span class="dot ${i < pos ? (q._ok ? 'ok' : 'ko') : i === pos ? 'cur' : ''}"></span>`).join('');
+}
+function message(txt, cl, correction){
+  const f = $('feedback');
+  f.textContent = txt || '';
+  f.className = cl || '';
+  if (correction) {
+    const s = document.createElement('span');
+    s.className = 'correction-attendue';
+    s.textContent = ' ' + correction;
+    f.appendChild(s);
+  }
+}
+
+/* ---- Rendu d’une manche ---- */
+function question(){
+  desarmerAutoSuivant(); stopperVoix();
+  const q = file[pos];
+  verrouille = false; selection = new Set();
+  $('feedback').textContent = ''; $('feedback').className = '';
+  $('btnNext').style.display = 'none';
+  $('btnValider').style.display = 'none';
+  $('answers').innerHTML = ''; $('answers').className = '';
+  $('vitrail').hidden = true;
+  $('sousConsigne').textContent = q.sous || '';
+  poserConsigne(q.q);
+  majDots();
+
+  if (q.mode === 'reconnaitre') rendreReconnaitre(q);
+  else if (q.mode === 'relations') rendreRelations(q);
+  else if (q.mode === 'decrire') rendreQcmSurFigure(q);
+  else if (q.mode === 'justifier') rendreJustifier(q);
+  else if (q.mode === 'angles') rendreAngles(q);
+  else if (q.mode === 'vocabulaire') rendreVocabulaire(q);
+  else if (q.mode === 'portrait') rendrePortrait(q);
+  else rendreLitige(q);
+}
+/* La consigne est lue à voix haute et réécoutable : au CP surtout, elle ne
+   doit pas dépendre de la lecture. */
+function poserConsigne(texte){
+  $('qText').innerHTML = '';
+  const t = document.createElement('span');
+  t.textContent = texte;
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'btn-voix'; b.textContent = '🔊';
+  b.setAttribute('aria-label', 'Écouter la consigne');
+  b.addEventListener('click', () => lireAVoixHaute(texte));
+  $('qText').append(t, b);
+  lireAVoixHaute(texte);
+}
+
+function boutonRep(libelle, onClick, opts){
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'rep' + ((opts && opts.centre) ? ' centre' : '');
+  if (opts && opts.schema) {
+    const d = document.createElement('span');
+    d.innerHTML = opts.schema;
+    b.appendChild(d.firstChild);
+  }
+  const t = document.createElement('span');
+  t.className = 'txt'; t.textContent = libelle;
+  b.appendChild(t);
+  if (opts && opts.voix) {
+    const r = document.createElement('button');
+    r.type = 'button'; r.className = 'relire'; r.textContent = '🔊';
+    r.setAttribute('aria-label', 'Réécouter cette phrase');
+    r.addEventListener('click', (ev) => { ev.stopPropagation(); lireAVoixHaute(libelle); });
+    b.appendChild(r);
+  }
+  b.addEventListener('click', onClick);
+  return b;
+}
+
+/* QCM générique : une seule bonne réponse, mélangée (§13), correction en
+   vert même si elle n’a pas été touchée (§18). */
+function rendreQcm(opts, ans, apres, extra){
+  const zone = $('answers');
+  if (opts.every(o => String(o).length < 16)) zone.className = 'duo';
+  opts.forEach(o => {
+    const b = boutonRep(String(o), () => {
+      if (verrouille) return;
+      verrouille = true;
+      const bon = String(o) === String(ans);
+      zone.querySelectorAll('.rep').forEach(x => {
+        x.disabled = true;
+        if (x !== b) x.classList.add('dim');
+      });
+      b.classList.add(bon ? 'ok' : 'ko');
+      if (!bon) {
+        const cible = [...zone.querySelectorAll('.rep')].find(x => x.querySelector('.txt').textContent === String(ans));
+        if (cible) { cible.classList.remove('dim'); cible.classList.add('ok'); }
+      }
+      apres(bon);
+    }, Object.assign({centre:true}, extra || {}));
+    zone.appendChild(b);
+  });
+}
+
+function rendreQcmSurFigure(q){
+  afficherScene(q.pieces);
+  rendreQcm(q.opts, q.ans, bon => terminerManche(bon, bon ? null : 'La bonne réponse était : ' + q.ans));
+}
+
+/* ---- cp/ce1-reconnaitre : sélection multiple puis validation ---- */
+function rendreReconnaitre(q){
+  const dem = q.demandees;
+  const attendues = q.pieces.filter(p => dem.includes(p.forme)).map(p => p.id);
+  afficherScene(q.pieces);
+  $('btnValider').style.display = 'block';
+  $('svgScene').querySelectorAll('.piece').forEach(g => {
+    g.addEventListener('click', () => {
+      if (verrouille) return;
+      const id = g.dataset.piece;
+      if (selection.has(id)) { selection.delete(id); g.classList.remove('sel'); }
+      else { selection.add(id); g.classList.add('sel'); sonClic(); }
+    });
+  });
+  $('btnValider').onclick = () => {
+    if (verrouille) return;
+    verrouille = true;
+    $('btnValider').style.display = 'none';
+    const choisies = [...selection];
+    const bon = choisies.length === attendues.length && choisies.every(id => attendues.includes(id));
+    /* §18 : on montre l’état complet — ce qui était juste, ce qui était de
+       trop, et ce qui manquait (en pointillé vert). */
+    $('svgScene').querySelectorAll('.piece').forEach(g => {
+      const id = g.dataset.piece, att = attendues.includes(id), pris = selection.has(id);
+      g.classList.remove('sel');
+      if (pris && att) g.classList.add('bon');
+      else if (pris && !att) g.classList.add('faux');
+      else if (!pris && att) g.classList.add('manque');
+    });
+    terminerManche(bon, bon ? null : 'Les pièces entourées en vert étaient les bonnes.');
+  };
+}
+
+/* ---- cp-relations : phrases courtes TOUJOURS illustrées ---- */
+function rendreRelations(q){
+  afficherScene(q.pieces);
+  const zone = $('answers');
+  q.props.forEach(p => {
+    const texte = texteRelation(p.e);
+    const b = boutonRep(texte, () => {
+      if (verrouille) return;
+      verrouille = true;
+      zone.querySelectorAll('.rep').forEach(x => { x.disabled = true; if (x !== b) x.classList.add('dim'); });
+      b.classList.add(p.bon ? 'ok' : 'ko');
+      if (!p.bon) {
+        const cible = [...zone.querySelectorAll('.rep')][q.props.findIndex(x => x.bon)];
+        if (cible) { cible.classList.remove('dim'); cible.classList.add('ok'); }
+      }
+      terminerManche(p.bon, p.bon ? null : 'La phrase vraie est en vert.');
+    }, {schema:schemaRelation(p.e), voix:true});
+    zone.appendChild(b);
+  });
+}
+
+/* ---- ce1-justifier : deux temps, la preuve compte double ---- */
+function rendreJustifier(q){
+  afficherScene(q.pieces);
+  const e = q.etape === 1 ? q.etape1 : q.etape2;
+  poserConsigne(e.q);
+  rendreQcm(e.opts, e.ans, bon => {
+    if (q.etape === 1) {
+      q._pts = (q._pts || 0) + (bon ? POINTS_ETAPE1 : 0);
+      q._ok1 = bon;
+      message(bon ? 'Bien vu !' : 'Presque !', bon ? 'bon' : 'mauvais',
+        bon ? null : 'C’était ' + e.ans + '.');
+      if (bon) sonBonneReponse(); else sonErreur();
+      $('btnNext').style.display = 'block';
+      $('btnNext').textContent = 'Et maintenant ? ➜';
+      $('btnNext').onclick = () => {
+        q.etape = 2; verrouille = false;
+        $('answers').innerHTML = ''; $('answers').className = '';
+        $('btnNext').style.display = 'none';
+        message('');
+        $('sousConsigne').textContent = 'Cette réponse compte double.';
+        rendreJustifier(q);
+      };
+      armerAutoSuivant();
+    } else {
+      q._pts = (q._pts || 0) + (bon ? POINTS_ETAPE2 : 0);
+      terminerManche(q._ok1 && bon, bon ? null : 'La bonne raison est en vert.', q._pts);
+    }
+  });
+}
+
+/* ---- ce1-angles : l’angle visé est marqué sur la figure ---- */
+function rendreAngles(q){
+  const p = q.pieces[0], pts = p.pts, i = q.sommet, n = pts.length;
+  const s = pts[i], a = pts[(i - 1 + n) % n], b = pts[(i + 1) % n];
+  const vers = (u, v, d) => {
+    const L = hyp(u, v);
+    return [u[0] + (v[0] - u[0]) / L * d, u[1] + (v[1] - u[1]) / L * d];
+  };
+  const m1 = vers(s, a, 26), m2 = vers(s, b, 26);
+  const marque = `<path class="marque-angle" d="M ${m1[0]} ${m1[1]} A 26 26 0 0 1 ${m2[0]} ${m2[1]}"/>`
+    + `<circle cx="${s[0]}" cy="${s[1]}" r="5" fill="#FF8A3D" stroke="#2B3A55" stroke-width="2"/>`;
+  afficherScene(q.pieces, marque);
+  rendreQcm(q.opts, q.ans, bon => terminerManche(bon, bon ? null : 'C’était ' + q.ans + '.'));
+}
+
+/* ---- ce2-vocabulaire : la rosace, désignation ou classement ---- */
+function rendreVocabulaire(q){
+  const R = construireRosace();
+  const svg = $('svgScene');
+  $('vitrail').hidden = false;
+  svg.setAttribute('viewBox', '-150 -150 300 300');
+
+  if (q.notion === 'polygone') {
+    // Manche de synthèse : le mot générique, sans désignation sur la figure.
+    svg.innerHTML = R.petales.map(p => svgPiece(p)).join('') + svgPiece(R.hexagone);
+    rendreQcm(melanger(['polygone','quadrilatère','hexagone','triangle']), 'polygone',
+      bon => terminerManche(bon, bon ? null : 'Le mot juste était : polygone.'));
+    return;
+  }
+
+  const rect = {id:'rect', forme:'rectangle',
+    pts:[[-58,86],[58,86],[58,124],[-58,124]], couleur:'#5AB4DC'};
+  const quad = R.petales[0];
+  let cibles = [];
+  const anneau = `<circle cx="0" cy="0" r="${R.R}" fill="none" stroke="#2B3A55" stroke-width="4"/>`;
+  const fond = R.petales.map(p => svgPiece(p)).join('') + svgPiece(R.hexagone) + svgPiece(rect) + anneau;
+
+  /* Ici les zones SONT les choix : sans trait visible, l’enfant ne verrait
+     ni rayon, ni diamètre, ni diagonale à départager. Chacune est donc
+     tracée en fin, doublée d’une cible large et transparente. */
+  const seg = (id, x1, y1, x2, y2, bon) =>
+    `<line class="indice-trait" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`
+    + `<line class="zone" data-z="${id}" data-bon="${bon ? 1 : 0}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+  const pt = (id, x, y, bon) =>
+    `<circle class="indice" cx="${x}" cy="${y}" r="5"/>`
+    + `<circle class="zone" data-z="${id}" data-bon="${bon ? 1 : 0}" cx="${x}" cy="${y}" r="16"/>`;
+
+  const estRayon = q.notion === 'rayon', estDiam = q.notion === 'diametre';
+  cibles.push(pt('centre', 0, 0, q.notion === 'centre'));
+  cibles.push(seg('rayon', 0, 0, R.R * Math.cos(-0.6), R.R * Math.sin(-0.6), estRayon));
+  cibles.push(seg('diametre', -R.R, 0, R.R, 0, estDiam));
+  cibles.push(seg('diagonale', quad.pts[0][0], quad.pts[0][1], quad.pts[2][0], quad.pts[2][1], q.notion === 'diagonale'));
+  cibles.push(seg('longueur', rect.pts[0][0], rect.pts[0][1], rect.pts[1][0], rect.pts[1][1], q.notion === 'longueur'));
+  cibles.push(seg('largeur', rect.pts[1][0], rect.pts[1][1], rect.pts[2][0], rect.pts[2][1], q.notion === 'largeur'));
+  if (['triangle','quadrilatere','pentagone','hexagone'].includes(q.notion)) {
+    // Classement par nombre de côtés : on pose trois pièces et on désigne.
+    const formes = melanger(['triangle','quadrilatere','pentagone','hexagone']);
+    const pieces = formes.map((f, i) => creerPiece(
+      f === 'quadrilatere' ? 'rectangle' : f,
+      {cx:-95 + i * 63, cy:0, taille:56, couleur:VERRES[i % VERRES.length]}));
+    svg.setAttribute('viewBox', '-150 -60 300 130');
+    svg.innerHTML = pieces.map((p, i) =>
+      svgPiece(p, formes[i] === q.notion ? 'cible' : '')).join('');
+    svg.querySelectorAll('.piece').forEach((g, i) => {
+      g.addEventListener('click', () => {
+        if (verrouille) return;
+        verrouille = true;
+        const bon = formes[i] === q.notion;
+        g.classList.add(bon ? 'bon' : 'faux');
+        if (!bon) svg.querySelectorAll('.piece')[formes.indexOf(q.notion)].classList.add('bon');
+        terminerManche(bon, bon ? null : 'La bonne pièce est entourée en vert.');
+      });
+    });
+    return;
+  }
+  svg.innerHTML = fond + cibles.join('');
+  svg.querySelectorAll('.zone').forEach(z => {
+    z.addEventListener('click', () => {
+      if (verrouille) return;
+      verrouille = true;
+      const bon = z.dataset.bon === '1';
+      z.classList.add(bon ? 'bon' : 'faux');
+      if (!bon) { const c = svg.querySelector('.zone[data-bon="1"]'); if (c) c.classList.add('bon'); }
+      terminerManche(bon, bon ? null : 'L’élément demandé est marqué en vert.');
+    });
+  });
+}
+
+/* ---- ce2-portrait : le présentoir ---- */
+function rendrePortrait(q){
+  $('vitrail').hidden = true;
+  const zone = $('answers');
+  zone.className = 'presentoir';
+  q.piecesChoix.forEach((p, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'rep';
+    const bb = boiteEnglobante([p]), m = 12;
+    b.innerHTML = `<svg viewBox="${bb.x1 - m} ${bb.y1 - m} ${bb.x2 - bb.x1 + 2*m} ${bb.y2 - bb.y1 + 2*m}">${svgPiece(p)}</svg>`;
+    b.addEventListener('click', () => {
+      if (verrouille) return;
+      verrouille = true;
+      const bon = q.choix[i] === q.cible;
+      zone.querySelectorAll('.rep').forEach((x, j) => {
+        x.disabled = true;
+        if (j !== i) x.classList.add('dim');
+      });
+      b.classList.add(bon ? 'ok' : 'ko');
+      if (!bon) {
+        const c = zone.querySelectorAll('.rep')[q.choix.indexOf(q.cible)];
+        if (c) { c.classList.remove('dim'); c.classList.add('ok'); }
+      }
+      terminerManche(bon, bon ? null : 'C’était ' + avecArt(q.cible) + '.');
+    });
+    zone.appendChild(b);
+  });
+}
+
+/* ---- ce2-litige : désigner le défaut, puis l’énoncer (compte double) ---- */
+function rendreLitige(q){
+  if (q.etape === 2) { rendreLitigeEtape2(q); return; }
+  /* Chaque côté porte un petit tiret en son milieu, chaque sommet un point :
+     ce sont les poignées qui disent « ici, ça se touche ». Les cibles
+     réelles, elles, sont larges et transparentes par-dessus. */
+  const p = q.pieces[0], n = p.pts.length;
+  let indices = '', zones = '';
+  p.pts.forEach((s, i) => {
+    const t = p.pts[(i + 1) % n];
+    const mx = (s[0] + t[0]) / 2, my = (s[1] + t[1]) / 2;
+    const L = hyp(s, t), ux = (t[0] - s[0]) / L, uy = (t[1] - s[1]) / L, d = 11;
+    indices += `<line class="indice-trait" x1="${mx - ux*d}" y1="${my - uy*d}" x2="${mx + ux*d}" y2="${my + uy*d}"/>`;
+    indices += `<circle class="indice" cx="${s[0]}" cy="${s[1]}" r="4.5"/>`;
+    zones += `<line class="zone" data-z="c${i}" x1="${s[0]}" y1="${s[1]}" x2="${t[0]}" y2="${t[1]}"/>`;
+  });
+  p.pts.forEach((s, i) => { zones += `<circle class="zone" data-z="a${i}" cx="${s[0]}" cy="${s[1]}" r="19"/>`; });
+  afficherScene(q.pieces, indices + zones);
+  $('btnValider').style.display = 'block';
+  const svg = $('svgScene');
+  svg.querySelectorAll('.zone').forEach(z => {
+    z.addEventListener('click', () => {
+      if (verrouille) return;
+      const id = z.dataset.z;
+      if (selection.has(id)) { selection.delete(id); z.classList.remove('sel'); }
+      else { selection.add(id); z.classList.add('sel'); sonClic(); }
+    });
+  });
+  $('btnValider').onclick = () => {
+    if (verrouille) return;
+    verrouille = true;
+    $('btnValider').style.display = 'none';
+    const ch = [...selection];
+    const bon = ch.length === q.zonesBonnes.length && ch.every(z => q.zonesBonnes.includes(z));
+    svg.querySelectorAll('.zone').forEach(z => {
+      z.classList.remove('sel');
+      const att = q.zonesBonnes.includes(z.dataset.z), pris = selection.has(z.dataset.z);
+      if (att) z.classList.add('bon');
+      else if (pris) z.classList.add('faux');
+    });
+    q._pts = (bon ? POINTS_ETAPE1 : 0);
+    q._ok1 = bon;
+    if (bon) sonBonneReponse(); else sonErreur();
+    message(bon ? 'Bien vu, c’est là que ça coince !' : 'Presque !', bon ? 'bon' : 'mauvais',
+      bon ? null : 'Ce qu’il fallait montrer est marqué en vert.');
+    $('btnNext').style.display = 'block';
+    $('btnNext').textContent = 'Et pourquoi ? ➜';
+    $('btnNext').onclick = () => {
+      q.etape = 2; verrouille = false;
+      $('answers').innerHTML = ''; $('answers').className = '';
+      $('btnNext').style.display = 'none';
+      message('');
+      rendreLitigeEtape2(q);
+    };
+    armerAutoSuivant();
+  };
+}
+function rendreLitigeEtape2(q){
+  afficherScene(q.pieces);
+  poserConsigne(q.etape2.q);
+  $('sousConsigne').textContent = 'Cette réponse compte double.';
+  rendreQcm(q.etape2.opts, q.etape2.ans, bon => {
+    q._pts = (q._pts || 0) + (bon ? POINTS_ETAPE2 : 0);
+    terminerManche(q._ok1 && bon, bon ? null : 'La bonne raison est en vert.', q._pts);
+  });
+}
+
+/* ---- Fin de manche ---- */
+function terminerManche(bon, correction, ptsForces){
+  const q = file[pos];
+  const pts = ptsForces !== undefined ? ptsForces : (bon ? 1 : 0);
+  score += pts;
+  q._ok = bon;
+  if (bon) { sonBonneReponse(); lancerConfettis(28); message('Bravo !', 'bon'); }
+  else { sonErreur(); message('Presque ! ', 'mauvais', correction || ''); }
+  majDots();
+  $('btnNext').style.display = 'block';
+  $('btnNext').textContent = pos === file.length - 1 ? 'Voir mon score ⭐' : 'Suivant ➜';
+  $('btnNext').onclick = () => {
+    pos++;
+    if (pos < file.length) question(); else fin();
+  };
+  armerAutoSuivant();
+}
+
+function fin(){
+  desarmerAutoSuivant(); stopperVoix();
+  const ratio = total ? score / total : 0;
+  const n = ratio >= 0.85 ? 3 : ratio >= 0.6 ? 2 : 1;
+  enregistrerEtoiles(miniJeuCourant.cfg.id, n);
+  enregistrerSession(miniJeuCourant.cfg.id, score, total, Math.round((Date.now() - demarreLe) / 1000));
+  $('hdrTitle').textContent = 'Résultat';
+  $('endStars').innerHTML = '⭐'.repeat(n).split('').map(s => `<span>${s}</span>`).join('');
+  $('endMsg').textContent = n === 3 ? 'Magnifique vitrail !' : n === 2 ? 'Bien joué !' : 'Continue, tu progresses !';
+  $('endScore').textContent = score + ' point' + (score > 1 ? 's' : '') + ' sur ' + total + '.';
+  if (n === 3) sonNiveauParfait(); else sonBonneReponse();
+  lancerConfettis(n === 3 ? 90 : 40);
+  montreEcran('end');
+}
+$('bRejouer').addEventListener('click', () => lance(miniJeuCourant.cfg.id));
+$('bMenu').addEventListener('click', retourAccueil);
+
+/* ============================================================
+   DÉMARRAGE
+   ============================================================ */
+construireAccueil();
+montreEcran('home');
+
+/* Lancement paramétré (CHARTE §16) : `?competence=<id>&palier=<cp|ce1|ce2>`.
+   Un paramètre inconnu est ignoré en silence — ce n’est qu’un raccourci. */
+(function(){
+  const demande = parametreURL('competence');
+  if (!demande) return;
+  const t = trouverMiniJeu(demande);
+  if (!t) return;
+  etatPalierAffiche = t.palierNom;
+  construireAccueil();
+  lance(demande);
+})();
+
+/* Bouton « ← Menu » : retour à la coquille avec confirmation (CHARTE §7). */
+(function(){
+  const bouton = $('bouton-menu'), modale = $('modale-menu');
+  if (!bouton || !modale) return;
+  const fermer = () => { modale.hidden = true; };
+  bouton.addEventListener('click', () => { modale.hidden = false; });
+  $('modale-menu-rester').addEventListener('click', fermer);
+  $('modale-menu-revenir').addEventListener('click', () => {
+    fermer();
+    window.location.href = '../index.html';
+  });
+})();
+</script>
+</body>
+</html>

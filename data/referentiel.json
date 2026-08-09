@@ -134,6 +134,62 @@
       ]
     },
     {
+      "id": "M34",
+      "titre": "L’atelier du vitrail",
+      "description": "Reconnais les formes dans un vitrail, décris ce que tu vois, puis justifie et conteste comme un vrai verrier.",
+      "icone": "🪟",
+      "niveau": "CP",
+      "niveaux": [
+        "CP",
+        "CE1",
+        "CE2"
+      ],
+      "domaine": "Espace et géométrie",
+      "domaineProgramme": "Espace et géométrie",
+      "theme": "Géométrie plane",
+      "programme": "BO-2024",
+      "type": "entrainement",
+      "fichier": "jeux/M34-formes-planes.html",
+      "competences": [
+        {
+          "id": "cp-reconnaitre",
+          "libelle": "Reconnaître disque, carré, rectangle et triangle dans un assemblage (CP)"
+        },
+        {
+          "id": "cp-relations",
+          "libelle": "Décrire les relations entre formes juxtaposées ou superposées (CP)"
+        },
+        {
+          "id": "cp-decrire",
+          "libelle": "Nommer une forme et donner son nombre de côtés et de sommets (CP)"
+        },
+        {
+          "id": "ce1-reconnaitre",
+          "libelle": "Reconnaître cercle, disque et triangle rectangle dans un assemblage (CE1)"
+        },
+        {
+          "id": "ce1-justifier",
+          "libelle": "Justifier le nom d’une figure par ses propriétés, et réfuter (CE1)"
+        },
+        {
+          "id": "ce1-angles",
+          "libelle": "Classer un angle : droit, aigu ou obtus, sans instrument (CE1)"
+        },
+        {
+          "id": "ce2-vocabulaire",
+          "libelle": "Vocabulaire de la géométrie plane : polygone, diagonale, rayon, diamètre (CE2)"
+        },
+        {
+          "id": "ce2-portrait",
+          "libelle": "Identifier une figure à partir de la description de ses propriétés (CE2)"
+        },
+        {
+          "id": "ce2-litige",
+          "libelle": "Réfuter une affirmation en localisant le contre-exemple puis en énonçant la propriété (CE2)"
+        }
+      ]
+    },
+    {
       "id": "M36",
       "titre": "Les Solides",
       "description": "Manipule les solides en 3D : nomme-les, compte leurs faces, construis-les, plie leurs patrons et lis-les en perspective.",
