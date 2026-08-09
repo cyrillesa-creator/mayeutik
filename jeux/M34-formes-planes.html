@@ -129,7 +129,7 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 
 /* ---------- Écran de jeu ---------- */
 #qText{
-  font-size:1.1rem; font-weight:600; text-align:center; margin:6px 4px 4px;
+  font-size:1.05rem; font-weight:600; text-align:center; margin:4px 4px 3px;
   line-height:1.35; display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;
 }
 .sous-consigne{text-align:center; font-size:.85rem; color:var(--encre2); margin:0 0 10px; line-height:1.35;}
@@ -156,18 +156,20 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 .piece.bon .verre{stroke:var(--menthe); stroke-width:6;}
 .piece.faux .verre{stroke:var(--corail); stroke-width:6;}
 .piece.manque .verre{stroke:var(--menthe); stroke-width:6; stroke-dasharray:9 6;}
-/* Zones tactiles (litige, rosace). En SVG l’épaisseur du trait sert à la
-   fois de cible et de visuel : on dissocie donc les deux. `.zone` est une
-   cible large et transparente ; `.indice` est le repère fin qui signale
-   qu’il y a là quelque chose à toucher — sans lui, l’enfant taperait au
-   hasard ; trop épais, il étoufferait la figure. */
-.zone{fill:transparent; stroke:transparent; stroke-width:26; cursor:pointer; stroke-linecap:round;
+/* Repères tactiles (litige, rosace). La CIBLE n’est plus un élément du DOM
+   mais de la géométrie : on mesure la distance du toucher à chaque cible et
+   on tranche (cf. `cibleTouchee`). Ne restent ici que les REPÈRES visibles,
+   fins — sans eux l’enfant taperait au hasard, trop épais ils
+   étoufferaient la figure. */
   vector-effect:non-scaling-stroke;}
 .indice{fill:rgba(29,51,84,.30); stroke:rgba(29,51,84,.30); stroke-width:3.5; stroke-linecap:round; pointer-events:none; vector-effect:non-scaling-stroke;}
 .indice-trait{fill:none; stroke:rgba(29,51,84,.34); stroke-width:3.5; stroke-dasharray:7 6; stroke-linecap:round; pointer-events:none; vector-effect:non-scaling-stroke;}
-.zone.sel{stroke:color-mix(in srgb, #12233C 45%, transparent);}
-.zone.bon{stroke:color-mix(in srgb, var(--menthe) 60%, transparent);}
-.zone.faux{stroke:color-mix(in srgb, var(--corail) 60%, transparent);}
+/* Le quadrilatère visé est ÉCLAIRÉ : « ce quadrilatère » ne désignait rien. */
+.surbrillance{fill:rgba(255,201,60,.42); stroke:var(--soleil); stroke-width:3; vector-effect:non-scaling-stroke;}
+.anneau-vise{stroke:var(--soleil) !important; stroke-width:6 !important;}
+.trace-bon{stroke:var(--menthe-t) !important; fill:var(--menthe-t) !important; stroke-width:6 !important; stroke-dasharray:none !important; opacity:1 !important;}
+.trace-faux{stroke:var(--corail) !important; fill:var(--corail) !important; stroke-width:6 !important; stroke-dasharray:none !important; opacity:1 !important;}
+.trace-choisi{stroke:#12233C !important; fill:#12233C !important; stroke-width:6 !important; stroke-dasharray:none !important; opacity:1 !important;}
 /* Le décompte animé de cp-decrire : côtés colorés un à un, sommets pointés. */
 .trait-compte{stroke:var(--corail); stroke-width:6; stroke-linecap:round; vector-effect:non-scaling-stroke;}
 .point-compte{fill:var(--corail); stroke:#fff; stroke-width:2; vector-effect:non-scaling-stroke;}
@@ -177,6 +179,7 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 
 /* Réponses : QCM texte, QCM illustré (relations), présentoir de pièces */
 #answers{display:grid; grid-template-columns:1fr; gap:10px;}
+#answers.compact{gap:7px;}
 #answers.duo{grid-template-columns:1fr 1fr;}
 .rep{
   border:none; border-radius:16px; padding:13px 12px; font-family:inherit;
@@ -190,7 +193,16 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 .rep.ok .schema rect, .rep.ok .schema polygon{stroke:#fff;}
 .rep.ko{background:var(--corail); color:#fff; animation:shake .35s;}
 .rep.dim{opacity:.5;}
-.rep .schema{flex:none; width:64px; height:52px;}
+.rep .schema{flex:none; width:58px; height:48px;}
+/* Choix multiple : une case cochée, avant validation. */
+.rep.coche{outline:3px solid #12233C; outline-offset:-3px; background:color-mix(in srgb, #12233C 8%, white);}
+/* CHARTE §13/A3 : la hauteur d’un bloc de réponse ne dépend pas de la
+   longueur du texte — sinon l’écran se met à défiler dès qu’une phrase
+   passe sur trois lignes. */
+#answers.compact .rep{padding:7px 9px; font-size:.9rem; gap:8px;}
+#answers.compact .rep .txt{line-height:1.2;}
+#answers.compact .rep .schema{width:50px; height:42px;}
+#answers.compact .rep .relire{min-width:34px; min-height:34px;}
 .rep .txt{flex:1; line-height:1.3;}
 .rep .relire{
   flex:none; border:none; background:color-mix(in srgb, var(--encre) 8%, white);
@@ -200,11 +212,11 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 
 /* Présentoir (portrait-robot) : les pièces candidates, en grand */
 .presentoir{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
-.presentoir .rep{justify-content:center; padding:8px;}
-.presentoir svg{width:100%; height:84px;}
+.presentoir .rep{justify-content:center; padding:5px;}
+.presentoir svg{width:100%; height:66px;}
 
 #feedback{
-  text-align:center; font-weight:700; margin-top:12px; min-height:2.4em;
+  text-align:center; font-weight:700; margin-top:9px; min-height:1.8em;
   font-size:1.02rem; line-height:1.35; padding:0 6px;
 }
 #feedback.bon{color:var(--menthe-t);} #feedback.mauvais{color:var(--corail-t);}
@@ -212,8 +224,8 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 #feedback .correction-attendue{color:var(--menthe-t);}
 
 #btnValider, #btnNext{
-  display:none; margin:12px auto 0; border:none; border-radius:18px;
-  padding:13px 34px; font-family:inherit; font-size:1.05rem; font-weight:700;
+  display:none; margin:9px auto 0; border:none; border-radius:18px;
+  padding:11px 32px; font-family:inherit; font-size:1.05rem; font-weight:700;
   color:#fff; cursor:pointer;
 }
 #btnValider{background:var(--menthe); box-shadow:0 4px 0 var(--menthe-t);}
@@ -565,7 +577,7 @@ function cadrer(pieces, marge){
    ne bouge plus. Les traits (plomb, cibles tactiles, repères) sont en
    `non-scaling-stroke` pour garder leur épaisseur À L’ÉCRAN, sans quoi une
    petite figure verrait ses cibles tactiles rétrécir avec elle. */
-const SCENE_L = 400, SCENE_H_DEFAUT = 236;
+const SCENE_L = 400, SCENE_H_DEFAUT = 236, HAUTEUR_RELATIONS = 104;
 function afficherScene(pieces, extra, hauteur, cadre){
   const svg = $('svgScene');
   const H = hauteur || SCENE_H_DEFAUT;
@@ -619,8 +631,11 @@ function schemaRelation(e){
   const cc = [[14,6],[66,6],[66,58],[14,58]];         // le carré, en clair
   const ext = carre(14,6,52,B);
   if (e.modele === 'dans') {
-    const tri = e.a === 'triangle' ? [[28,48],[56,48],[42,22]] : null;
-    return cadre(ext + (tri ? T(tri, A) : carre(28,20,24,A)));
+    /* Le schéma illustre CE QUE DIT LA PHRASE, y compris quand elle est
+       fausse : « un carré est dans le triangle » montre donc un carré dans
+       un triangle, et l’enfant compare cette image à la figure réelle. */
+    if (e.b === 'triangle') return cadre(T([[8,58],[72,58],[40,6]], B) + carre(30,34,20,A));
+    return cadre(ext + T([[28,48],[56,48],[42,22]], A));
   }
   if (e.modele === 'sommets-sur') {
     if (e.k === 1) {
@@ -733,6 +748,28 @@ function melanger(tableau){
   return copie;
 }
 const pioche = a => a[Math.floor(Math.random() * a.length)];
+/* CHARTE §13 (A4) — tirage SANS RÉPÉTITION à mémoire de session : ni la
+   même figure, ni le même nombre attendu, ni la même formulation ne
+   reviennent tant que le stock n’est pas épuisé, y compris d’une partie à
+   la suivante. Le mélange ne reprend qu’une fois le stock vidé. */
+const memoireTirages = {};
+function tirerSansRepetition(cle, stock, n){
+  let reste = memoireTirages[cle];
+  const sortie = [];
+  for (let i = 0; i < n; i++) {
+    if (!reste || !reste.length) {
+      /* Au remélange, ce qui vient d’être tiré part EN FIN de pioche :
+         sinon un élément servi en début de partie pourrait revenir dès la
+         partie suivante, et « sans répétition » ne vaudrait qu’à
+         l’intérieur d’un cycle. */
+      const dejaVus = sortie.slice();
+      reste = melanger(stock.filter(x => dejaVus.indexOf(x) === -1)).concat(melanger(dejaVus));
+    }
+    sortie.push(reste.shift());
+  }
+  memoireTirages[cle] = reste;
+  return sortie;
+}
 const entre = (a, b) => a + Math.random() * (b - a);
 
 /* ============================================================
@@ -966,8 +1003,8 @@ function assemblageCommande(palier, demandees){
    qu’on l’a affirmé à côté.
    ============================================================ */
 function scenarioRelation(){
-  const type = pioche(['forment','cote-commun','sommet-commun','dans',
-                       'sommets-sur-1','sommets-sur-2','sommet-sur-cote']);
+  const type = pioche(['forment','cote-commun','sommet-commun',
+                       'triangle-carre','triangle-carre']);
   const th = entre(0, TAU), T = pts => tournerPts(pts, th);
   const co = [VERRES[0], VERRES[1], VERRES[2]];
   const A = 100;
@@ -1005,41 +1042,67 @@ function scenarioRelation(){
       vrai:{modele:'sommet-commun', n:2, a:a}
     };
   }
-  /* LA FAMILLE « TRIANGLE ET CARRÉ ». Les quatre scénarios avaient jadis
-     UNE SEULE figure — un triangle dont deux sommets étaient des sommets du
-     carré et le troisième sur un côté. Deux propositions y étaient donc
-     vraies en même temps, et l’enfant pouvait cocher la « mauvaise » bonne
-     réponse. Chaque scénario a désormais SA figure, construite pour qu’une
-     seule phrase la décrive.
-     Le triangle est placé PUIS vérifié : `contactsTriangleCarre` recompte
-     sur les points réels combien de ses sommets tombent sur un sommet du
-     carré et combien sur un côté — la règle du dépôt, on calcule, on ne
-     déclare pas. */
+  /* LA FAMILLE « TRIANGLE ET CARRÉ ». Le programme en donne une DESCRIPTION
+     CUMULATIVE : « il y a un triangle dans un carré ; deux sommets du
+     triangle sont des sommets du carré ; un sommet du triangle est sur un
+     côté du carré ». Ces trois phrases sont vraies EN MÊME TEMPS sur la
+     même figure. En faire des réponses concurrentes d’un QCM à réponse
+     unique était une erreur de lecture : la manche est un CHOIX MULTIPLE,
+     « touche toutes les phrases vraies », ce qui est à la fois fidèle au
+     texte et plus formateur. */
   const c = A * 1.2;
   const q = [[-c/2, c/2], [c/2, c/2], [c/2, -c/2], [-c/2, -c/2]];
-  const dedans = (fx, fy) => [c * fx, c * fy];
-  let tri;
-  if (type === 'dans') {
-    // Aucun contact : le triangle flotte à l’intérieur.
-    tri = [dedans(-0.26, 0.28), dedans(0.28, 0.26), dedans(entre(-0.10, 0.10), -0.26)];
-  } else if (type === 'sommets-sur-1') {
-    // Exactement un sommet sur un coin, les deux autres strictement dedans.
-    tri = [q[0], dedans(0.28, 0.22), dedans(entre(-0.06, 0.10), -0.26)];
-  } else if (type === 'sommets-sur-2') {
-    // Exactement deux sommets sur deux coins, le troisième strictement dedans.
-    tri = [q[0], q[1], dedans(entre(-0.14, 0.14), -0.12)];
-  } else {
-    // Exactement un sommet SUR UN CÔTÉ, à distance des coins, les autres dedans.
-    tri = [dedans(-0.28, 0.28), dedans(0.28, 0.24), [c * entre(-0.22, 0.22), -c/2]];
-  }
+  // Deux sommets sur deux coins, le troisième franchement SUR un côté.
+  const tri = [q[0], q[1], [c * entre(-0.24, 0.24), -c/2]];
   const pieces = [
     {id:'r1', forme:'carre', pts:placerPts(T(q), 0, 0, 1), couleur:co[1]},
     {id:'r2', forme:'triangle', pts:placerPts(T(tri), 0, 0, 1), couleur:co[0]}
   ];
-  if (type === 'dans') return {pieces, vrai:{modele:'dans', a:'triangle', b:'carre'}};
-  if (type === 'sommets-sur-1') return {pieces, vrai:{modele:'sommets-sur', k:1, a:'triangle', b:'carre'}};
-  if (type === 'sommets-sur-2') return {pieces, vrai:{modele:'sommets-sur', k:2, a:'triangle', b:'carre'}};
-  return {pieces, vrai:{modele:'sommet-sur-cote', a:'triangle', b:'carre'}};
+  const vraies = [
+    {modele:'dans', a:'triangle', b:'carre'},
+    {modele:'sommets-sur', k:2, a:'triangle', b:'carre'},
+    {modele:'sommet-sur-cote', a:'triangle', b:'carre'}
+  ];
+  /* Une seule fausse : à quatre propositions l’écran tient encore, et les
+     trois vraies restent l’essentiel de la manche. */
+  const fausse = pioche([
+    {modele:'sommets-sur', k:3, a:'triangle', b:'carre'},
+    {modele:'dans', a:'carre', b:'triangle'},
+    {modele:'cote-commun', n:2, a:'carre'}
+  ]);
+  return {pieces, multi:true,
+    props: melanger(vraies.map(e => ({e, bon:true})).concat([{e:fausse, bon:false}]))};
+}
+
+/* Enveloppe convexe (parcours monotone d’Andrew) : sert à savoir quelle
+   figure DEUX pièces composent, sans le déclarer à côté du dessin. */
+function enveloppeConvexe(pts){
+  const P = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const croix = (o, a, b) => (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0]);
+  const bas = [], haut = [];
+  for (const p of P) { while (bas.length >= 2 && croix(bas[bas.length-2], bas[bas.length-1], p) <= 1e-6) bas.pop(); bas.push(p); }
+  for (let i = P.length - 1; i >= 0; i--) { const p = P[i];
+    while (haut.length >= 2 && croix(haut[haut.length-2], haut[haut.length-1], p) <= 1e-6) haut.pop(); haut.push(p); }
+  bas.pop(); haut.pop();
+  const h = bas.concat(haut);
+  /* On fusionne les sommets alignés résiduels. */
+  return h.filter((p, i) => hyp(p, h[(i+1) % h.length]) > 1.2);
+}
+function sommetsPartages(a, b){
+  let n = 0;
+  a.forEach(p => { if (b.some(x => hyp(p, x) <= 1.2)) n++; });
+  return n;
+}
+function cotesPartages(a, b){
+  let n = 0;
+  for (let i = 0; i < a.length; i++) {
+    const p = a[i], q = a[(i+1) % a.length];
+    for (let j = 0; j < b.length; j++) {
+      const r = b[j], t = b[(j+1) % b.length];
+      if ((hyp(p, r) <= 1.2 && hyp(q, t) <= 1.2) || (hyp(p, t) <= 1.2 && hyp(q, r) <= 1.2)) n++;
+    }
+  }
+  return n;
 }
 
 /* Combien de sommets du triangle tombent sur un sommet du carré, combien
@@ -1071,8 +1134,10 @@ function distracteursRelation(vrai){
     let d = clone(); d.b = 'carre'; out.push(d);
     d = clone(); d.n = 3; out.push(d);
   } else if (vrai.modele === 'cote-commun') {
+    /* PAS « sommet en commun » : deux pièces qui partagent un côté en
+       partagent aussi les deux extrémités, la phrase serait VRAIE. */
     let d = clone(); d.a = autreForme(vrai.a); out.push(d);
-    d = clone(); d.modele = 'sommet-commun'; out.push(d);
+    d = clone(); d.n = 3; out.push(d);
   } else if (vrai.modele === 'sommet-commun') {
     let d = clone(); d.a = autreForme(vrai.a); out.push(d);
     d = clone(); d.modele = 'cote-commun'; out.push(d);
@@ -1161,17 +1226,22 @@ function qReconnaitre(cfg, palier){
       q: 'Touche ' + (dem.length === 1
             ? 'tous les ' + plurDe(dem[0])
             : 'tous les ' + plurDe(dem[0]) + ' et tous les ' + plurDe(dem[1])) + ' !',
-      sous:'Sélectionne toutes les pièces, puis appuie sur Vérifier.'};
+      sous:'Sélectionne les pièces, puis Vérifier.'};
   });
 }
 
 function qRelations(cfg){
   return Array.from({length: cfg.nbQuestions}, () => {
     const sc = scenarioRelation();
+    if (sc.multi) {
+      return {mode:'relations', pieces:sc.pieces, props:sc.props, multi:true,
+        q:'Touche toutes les phrases vraies.',
+        sous:'Coche-les toutes, puis Vérifier.'};
+    }
     const props = melanger([{e:sc.vrai, bon:true}, ...distracteursRelation(sc.vrai).map(e => ({e, bon:false}))]);
     return {mode:'relations', pieces:sc.pieces, props,
       q:'Quelle phrase est vraie ?',
-      sous:'Regarde le vitrail, puis choisis la bonne phrase. Touche 🔊 pour l’écouter.'};
+      sous:'Choisis la bonne phrase. 🔊 pour l’écouter.'};
   });
 }
 
@@ -1192,10 +1262,10 @@ function qDecrire(cfg, palier){
   const grands = melanger(['pentagone','hexagone']);
 
   const plan = [];
-  plan.push({type:'nom', f:pioche(nommables)});
+  plan.push({type:'nom', f:tirerSansRepetition('decrire-nom', nommables, 1)[0]});
   petits.forEach(x => plan.push({type:'compte', f:x.f, connue:true}));
   grands.forEach(f => plan.push({type:'compte', f, connue:false}));
-  while (plan.length < cfg.nbQuestions) plan.push({type:'nom', f:pioche(nommables)});
+  while (plan.length < cfg.nbQuestions) plan.push({type:'nom', f:tirerSansRepetition('decrire-nom', nommables, 1)[0]});
 
   const quoiUtilise = [];
   return plan.slice(0, cfg.nbQuestions).map((etape, i) => {
@@ -1304,7 +1374,7 @@ function qVocabulaire(cfg){
      du §13 vient du tirage, pas d’une rallonge du mini-jeu. */
   const banque = ['centre','rayon','diametre','diagonale','longueur','largeur',
                   'triangle','quadrilatere','pentagone','hexagone','polygone'];
-  return melanger(banque).slice(0, cfg.nbQuestions).map(notion => ({
+  return tirerSansRepetition('voc-notions', banque, cfg.nbQuestions).map(notion => ({
     mode:'vocabulaire', notion, q:consigneVocabulaire(notion),
     /* Deux écrans distincts sous une même compétence : la rosace pour le
        vocabulaire du cercle, un présentoir de pièces pour le classement
@@ -1313,8 +1383,8 @@ function qVocabulaire(cfg){
       : ['triangle','quadrilatere','pentagone','hexagone'].includes(notion)
         ? 'Compte les côtés de chaque pièce.'
         : ['diagonale','longueur','largeur'].includes(notion)
-          ? 'Sur le rectangle, posé sous la rosace. Plusieurs réponses conviennent.'
-          : 'Sur le grand cercle qui entoure la rosace.'
+          ? 'Le quadrilatère éclairé. Plusieurs réponses conviennent.'
+          : 'Sur le cercle éclairé. Plusieurs réponses peuvent convenir.'
   }));
 }
 function consigneVocabulaire(n){
@@ -1326,10 +1396,11 @@ function consigneVocabulaire(n){
   const m = {
     centre:'Touche le centre du cercle qui délimite la rosace.',
     rayon:'Touche un rayon du cercle qui délimite la rosace.',
-    diametre:'Touche le diamètre du cercle qui délimite la rosace.',
-    diagonale:'Touche une diagonale du rectangle.',
-    longueur:'Touche une longueur du rectangle.',
-    largeur:'Touche une largeur du rectangle.',
+    /* Un cercle a une infinité de diamètres : « LE diamètre » n’existe pas. */
+    diametre:'Touche un diamètre du cercle qui délimite la rosace.',
+    diagonale:'Touche une diagonale du quadrilatère en surbrillance.',
+    longueur:'Touche une longueur du quadrilatère en surbrillance.',
+    largeur:'Touche une largeur du quadrilatère en surbrillance.',
     triangle:'Touche le triangle.',
     quadrilatere:'Touche un quadrilatère.',
     pentagone:'Touche le pentagone.',
@@ -1341,7 +1412,7 @@ function consigneVocabulaire(n){
 
 function qPortrait(cfg){
   const cibles = ['losange','carre','rectangle','triangleRect','disque','cercle'];
-  return melanger(cibles).slice(0, cfg.nbQuestions).map((cible, i) => {
+  return tirerSansRepetition('portrait-cibles', cibles, cfg.nbQuestions).map((cible, i) => {
     const autres = melanger(cibles.filter(f => f !== cible)).slice(0, 3);
     const toutes = melanger([cible, ...autres]);
     const pieces = toutes.map((f, j) => creerPiece(f, {cx:0, cy:0, taille:120, couleur:VERRES[(i + j) % VERRES.length]}));
@@ -1398,6 +1469,139 @@ function qLitige(cfg){
   });
 }
 
+/* ============================================================
+   VALIDATION PARTAGÉE DES ITEMS (A1)
+   ------------------------------------------------------------
+   Deux invariants, vérifiés sur la FIGURE réellement engendrée :
+     1. tout distracteur doit être rigoureusement FAUX ;
+     2. la cible d’un toucher est l’ENSEMBLE des zones valables.
+   Chaque item passe ici À LA GÉNÉRATION, et un auto-test en engendre des
+   centaines par mini-jeu. Le défaut le plus coûteux de la première
+   production venait de là : des propositions vraies présentées comme
+   fausses, et des réponses justes refusées.
+   ============================================================ */
+function veriteRelation(e, pieces){
+  const carre = pieces.find(p => p.forme === 'carre');
+  const tri = pieces.find(p => p.forme === 'triangle');
+  const familleTriCarre = pieces.length === 2 && carre && tri;
+  if (familleTriCarre) {
+    const c = contactsTriangleCarre(tri.pts, carre.pts);
+    if (e.modele === 'dans') return e.a === 'triangle' && e.b === 'carre';
+    if (e.modele === 'sommets-sur') return c.surSommet === e.k;
+    if (e.modele === 'sommet-sur-cote') return c.surCote >= 1;
+    return false;               // une seule pièce de chaque : rien d’autre n’est vrai
+  }
+  if (pieces.length !== 2) return null;
+  const [p1, p2] = pieces;
+  if (e.modele === 'cote-commun')
+    return e.n === 2 && p1.forme === e.a && p2.forme === e.a && cotesPartages(p1.pts, p2.pts) >= 1;
+  if (e.modele === 'sommet-commun')
+    return e.n === 2 && p1.forme === e.a && p2.forme === e.a && sommetsPartages(p1.pts, p2.pts) >= 1;
+  if (e.modele === 'forment') {
+    if (e.n !== pieces.length) return false;
+    if (p1.forme !== e.a || p2.forme !== e.a) return false;
+    const h = enveloppeConvexe(p1.pts.concat(p2.pts));
+    const nom = nommerCalcule({forme:'x', pts:h}, ['carre','rectangle','losange','triangle','forme']);
+    return nom === nomDe(e.b);
+  }
+  return null;
+}
+const VALIDATEURS = {
+  relations(q){
+    const pb = [];
+    const textes = q.props.map(p => texteRelation(p.e));
+    if (new Set(textes).size !== textes.length) pb.push('deux propositions au texte identique');
+    if (!q.props.some(p => p.bon)) pb.push('aucune proposition vraie');
+    q.props.forEach((p, i) => {
+      const v = veriteRelation(p.e, q.pieces);
+      if (v === null) return;
+      if (v !== p.bon) pb.push((p.bon ? 'donnée vraie mais fausse' : 'distracteur VRAI') + ' : ' + textes[i]);
+    });
+    return pb;
+  },
+  justifier(q){
+    const pb = [];
+    const p = proprietes(q.pieces[0]);
+    if (/Pourquoi/.test(q.etape2.q)) {
+      q.etape2.opts.forEach(o => {
+        const a = ASSERTIONS_CARRE.find(x => x.t === o);
+        if (!a) { pb.push('assertion inconnue : ' + o); return; }
+        if (a.vrai(p) !== (o === q.etape2.ans)) pb.push('assertion mal étiquetée : ' + o);
+      });
+    }
+    if (q.etape1.ans !== nomDe(q.pieces[0].forme)) pb.push('le nom attendu ne décrit pas la pièce');
+    if (new Set(q.etape2.opts).size !== q.etape2.opts.length) pb.push('deux options identiques');
+    return pb;
+  },
+  decrire(q){
+    const pb = [];
+    if (q.compte) {
+      const p = proprietes(q.pieces[0]);
+      const vrai = q.compte === 'cotes' ? p.nbCotes : p.nbSommets;
+      if (vrai !== q.bonNombre) pb.push('le nombre attendu ne correspond pas à la figure');
+      if (q.opts.filter(o => o === q.ans).length !== 1) pb.push('la bonne réponse figure deux fois');
+    } else if (q.ans !== nomDe(q.pieces[0].forme)) pb.push('le nom attendu ne décrit pas la pièce');
+    if (new Set(q.opts).size !== q.opts.length) pb.push('deux options identiques');
+    return pb;
+  },
+  angles(q){
+    const pb = [];
+    const a = anglesDeg(q.pieces[0].pts)[q.sommet];
+    if (q.ans !== 'un angle ' + classeAngle(a)) pb.push('la classe annoncée ne correspond pas à l’angle');
+    if (!angleFranc(a)) pb.push('angle limite : la classe se discute à l’œil');
+    return pb;
+  },
+  portrait(q){
+    const pb = [];
+    if (q.choix.filter(f => f === q.cible).length !== 1) pb.push('la pièce demandée figure deux fois');
+    /* La description ne doit convenir qu’à UNE pièce du présentoir. */
+    q.choix.forEach((f, i) => {
+      if (f === q.cible) return;
+      if (PORTRAITS[f] === PORTRAITS[q.cible]) pb.push('deux pièces répondent à la description');
+    });
+    return pb;
+  },
+  litige(q){
+    const pb = [];
+    const p = proprietes(q.pieces[0]);
+    if (!q.exigences || !q.exigences.length) { pb.push('aucune cible'); return pb; }
+    q.exigences.forEach(e => {
+      if (!e.parmi.length) pb.push('groupe de cibles vide');
+      e.parmi.forEach(id => {
+        const i = +id.slice(1);
+        if (id[0] === 'a' && classeAngle(p.angles[i]) === 'droit') pb.push('un angle droit proposé comme fautif');
+      });
+    });
+    /* Invariant 2 : TOUTES les cibles équivalentes sont acceptées. */
+    if (q.cas === 'rectangle') {
+      const maxi = Math.max(...p.cotes), mini = Math.min(...p.cotes);
+      const longs = p.cotes.filter(l => presqueEgal(l, maxi)).length;
+      const courts = p.cotes.filter(l => presqueEgal(l, mini)).length;
+      if (q.exigences[0].parmi.length !== longs || q.exigences[1].parmi.length !== courts)
+        pb.push('des côtés équivalents sont refusés');
+    } else {
+      const nonDroits = p.angles.filter(a => classeAngle(a) !== 'droit').length;
+      if (q.exigences[0].parmi.length !== nonDroits) pb.push('des angles équivalents sont refusés');
+    }
+    return pb;
+  },
+  reconnaitre(q){
+    const pb = [];
+    if (!q.pieces.some(p => q.demandees.includes(p.forme))) pb.push('aucune pièce demandée n’est présente');
+    if (q.demandees.includes('rectangle') && q.demandees.includes('carre'))
+      pb.push('rectangle et carré demandés ensemble (inclusion hors programme)');
+    return pb;
+  },
+  vocabulaire(q){ return []; }   // ses cibles naissent au rendu, testées à part
+};
+function verifierItem(q){
+  const f = VALIDATEURS[q.mode];
+  return f ? f(q) : [];
+}
+function verifierFile(f){
+  return f.map((q, i) => ({i, mode:q.mode, pb:verifierItem(q)})).filter(x => x.pb.length);
+}
+
 /* Une sélection convient si elle prend exactement le nombre voulu de zones
    dans CHAQUE groupe, et rien d’autre. */
 function selectionSatisfait(choisies, exigences){
@@ -1414,7 +1618,7 @@ function selectionSatisfait(choisies, exigences){
   return restantes.length === 0;
 }
 
-function construireFile(cfg, palier){
+function engendrerFile(cfg, palier){
   if (cfg.mode === 'reconnaitre') return qReconnaitre(cfg, palier);
   if (cfg.mode === 'relations')   return qRelations(cfg);
   if (cfg.mode === 'decrire')     return qDecrire(cfg, palier);
@@ -1423,6 +1627,17 @@ function construireFile(cfg, palier){
   if (cfg.mode === 'vocabulaire') return qVocabulaire(cfg);
   if (cfg.mode === 'portrait')    return qPortrait(cfg);
   return qLitige(cfg);
+}
+/* Aucune partie ne démarre sur un item que la validation partagée refuse.
+   En pratique les générateurs sont construits pour ne pas en produire ; ce
+   filet existe pour que l’ajout d’un scénario demain ne réintroduise pas en
+   silence le défaut qui a coûté le plus cher. */
+function construireFile(cfg, palier){
+  let f = engendrerFile(cfg, palier);
+  for (let essai = 0; essai < 25 && verifierFile(f).length; essai++) f = engendrerFile(cfg, palier);
+  const restants = verifierFile(f);
+  if (restants.length) console.warn('M34 : items non conformes', restants);
+  return f;
 }
 /* Barème : la justification et la réfutation pèsent DOUBLE — c’est
    l’objectif du module, nommer ne suffit pas. */
@@ -1647,7 +1862,9 @@ function boutonRep(libelle, onClick, opts){
    vert même si elle n’a pas été touchée (§18). */
 function rendreQcm(opts, ans, apres, extra){
   const zone = $('answers');
-  if (opts.every(o => String(o).length < 16)) zone.className = 'duo';
+  /* `classList.add` et non `className = …` : l’appelant a pu poser
+     `compact` avant nous, et l’écraser ferait défiler l’écran. */
+  if (opts.every(o => String(o).length < 16)) zone.classList.add('duo');
   opts.forEach(o => {
     const b = boutonRep(String(o), () => {
       if (verrouille) return;
@@ -1765,10 +1982,13 @@ function rendreReconnaitre(q){
 
 /* ---- cp-relations : phrases courtes TOUJOURS illustrées ---- */
 function rendreRelations(q){
-  /* Trois propositions illustrées occupent déjà ~210 px : la scène est
-     raccourcie d’autant pour que la manche tienne sur un écran. */
-  afficherScene(q.pieces, '', 176);
+  if (q.multi) { rendreRelationsMulti(q); return; }
+  /* Jusqu’à quatre propositions illustrées : la scène est raccourcie
+     d’autant, et à la MÊME hauteur que la variante à choix multiple —
+     l’encombrement ne doit pas bouger d’une manche à l’autre (A3). */
+  afficherScene(q.pieces, '', HAUTEUR_RELATIONS);
   const zone = $('answers');
+  zone.className = 'compact';
   q.props.forEach(p => {
     const texte = texteRelation(p.e);
     const b = boutonRep(texte, () => {
@@ -1786,9 +2006,51 @@ function rendreRelations(q){
   });
 }
 
+/* Choix MULTIPLE : la description officielle du programme est cumulative,
+   plusieurs phrases sont vraies à la fois sur la même figure. On coche, puis
+   on vérifie ; la réponse n’est juste que si l’ENSEMBLE coché est exactement
+   l’ensemble des phrases vraies. */
+function rendreRelationsMulti(q){
+  afficherScene(q.pieces, '', HAUTEUR_RELATIONS);
+  const zone = $('answers');
+  zone.className = 'compact';
+  const choisies = new Set();
+  q.props.forEach((p, i) => {
+    const b = boutonRep(texteRelation(p.e), () => {
+      if (verrouille) return;
+      if (choisies.has(i)) { choisies.delete(i); b.classList.remove('coche'); }
+      else { choisies.add(i); b.classList.add('coche'); sonClic(); }
+    }, {schema:schemaRelation(p.e), voix:true});
+    zone.appendChild(b);
+  });
+  $('btnValider').style.display = 'block';
+  $('btnValider').onclick = () => {
+    if (verrouille) return;
+    verrouille = true;
+    $('btnValider').style.display = 'none';
+    const attendues = q.props.map((p, i) => p.bon ? i : -1).filter(i => i >= 0);
+    const bon = choisies.size === attendues.length && attendues.every(i => choisies.has(i));
+    /* §18 : toutes les phrases vraies passent au vert, y compris celles que
+       l’enfant a oubliées ; le rouge ne marque que ce qu’il a coché à tort. */
+    zone.querySelectorAll('.rep').forEach((el, i) => {
+      el.disabled = true;
+      el.classList.remove('coche');
+      if (q.props[i].bon) el.classList.add('ok');
+      else if (choisies.has(i)) el.classList.add('ko');
+      else el.classList.add('dim');
+    });
+    terminerManche(bon, bon ? null : 'Les phrases vraies sont en vert : il y en avait '
+      + attendues.length + '.');
+  };
+}
+
 /* ---- ce1-justifier : deux temps, la preuve compte double ---- */
 function rendreJustifier(q){
-  afficherScene(q.pieces, '', 200);
+  /* Les propriétés énoncées sont longues (« ses quatre angles sont droits
+     et ses quatre côtés ont la même longueur ») : sans mise en page
+     compacte, trois options de trois lignes font défiler l’écran. */
+  afficherScene(q.pieces, '', 168);
+  $('answers').classList.add('compact');
   const e = q.etape === 1 ? q.etape1 : q.etape2;
   poserConsigne(e.q);
   rendreQcm(e.opts, e.ans, bon => {
@@ -1846,6 +2108,59 @@ function rendreAngles(q){
   rendreQcm(q.opts, q.ans, bon => terminerManche(bon, bon ? null : 'C’était ' + q.ans + '.'));
 }
 
+/* ============================================================
+   CHOISIR LA CIBLE TOUCHÉE (A2)
+   ------------------------------------------------------------
+   Des bandes transparentes empilées attribuent le toucher au dernier
+   élément DESSINÉ, pas au plus proche : une largeur se voyait comptée
+   comme une longueur près d’un coin, et le centre comme le diamètre, qui
+   passe par lui. On mesure donc la distance à CHAQUE cible et on tranche —
+   avec une règle de priorité : un POINT l’emporte toujours sur une LIGNE
+   qui passe dessus, parce qu’un point est plus difficile à viser et qu’on
+   ne le désigne jamais par accident.
+   ============================================================ */
+function distanceAuSegment(p, a, b){
+  const dx = b[0] - a[0], dy = b[1] - a[1];
+  const L2 = dx*dx + dy*dy;
+  if (L2 < 1e-9) return hyp(p, a);
+  let t = ((p[0]-a[0])*dx + (p[1]-a[1])*dy) / L2;
+  t = Math.max(0, Math.min(1, t));
+  return hyp(p, [a[0] + dx*t, a[1] + dy*t]);
+}
+const SEUIL_TOUCHER = 26, BONUS_POINT = 14;
+function cibleTouchee(p, cibles){
+  let meilleure = null, meilleurScore = Infinity;
+  cibles.forEach(c => {
+    const d = c.type === 'point' ? hyp(p, c.p) : distanceAuSegment(p, c.a, c.b);
+    if (d > SEUIL_TOUCHER) return;
+    /* Le bonus donne la priorité au point sans écraser la distance : une
+       ligne franchement plus proche l’emporte quand même. */
+    const score = d - (c.type === 'point' ? BONUS_POINT : 0);
+    if (score < meilleurScore) { meilleurScore = score; meilleure = c; }
+  });
+  return meilleure;
+}
+/* Capte les touchers sur toute la scène et les attribue à la bonne cible.
+   L’écouteur est posé sur le <svg> lui-même, qui SURVIT au changement de
+   manche : sans retrait explicite, ils s’empilent, et le plus ancien —
+   avec ses cibles périmées — répond en premier. C’est le même piège que le
+   `onclick` du paquet cadeau (§15). */
+function brancherCibles(svg, cibles, surChoix){
+  if (svg._ecouteurCibles) svg.removeEventListener('click', svg._ecouteurCibles);
+  const handler = (ev) => {
+    if (verrouille) return;
+    const pt = svg.createSVGPoint();
+    pt.x = ev.clientX; pt.y = ev.clientY;
+    const m = svg.getScreenCTM();
+    if (!m) return;
+    const q = pt.matrixTransform(m.inverse());
+    const c = cibleTouchee([q.x, q.y], cibles);
+    if (c) surChoix(c);
+  };
+  svg._ecouteurCibles = handler;
+  svg.addEventListener('click', handler);
+}
+
 /* ---- ce2-vocabulaire : la rosace, désignation ou classement ----
    PLUSIEURS RÉPONSES SONT JUSTES et le jeu les accepte toutes : un
    rectangle a deux longueurs, deux largeurs et deux diagonales, un cercle
@@ -1855,7 +2170,7 @@ function rendreAngles(q){
    coins et des extrémités, et le centre est dessiné en DERNIER, donc
    au-dessus — toucher le centre était auparavant lu comme un toucher du
    diamètre, qui passe par lui. */
-const VOC_VB = '-150 -140 300 300';
+const VOC_VB = '-150 -110 300 246';
 function rendreVocabulaire(q){
   const svg = $('svgScene');
   $('vitrail').hidden = false;
@@ -1881,7 +2196,7 @@ function rendreVocabulaire(q){
     return;
   }
 
-  const R = construireRosace(), CY = -22, RR = 100;
+  const R = construireRosace(), CY = -18, RR = 86;
   const petales = R.petales.map(p => ({...p, pts:p.pts.map(([x, y]) => [x * RR / R.R, y * RR / R.R + CY])}));
   const hex = {...R.hexagone, pts:R.hexagone.pts.map(([x, y]) => [x * RR / R.R, y * RR / R.R + CY])};
 
@@ -1892,58 +2207,61 @@ function rendreVocabulaire(q){
     return;
   }
 
-  /* Le rectangle de référence : c’est LUI le quadrilatère dont on demande
-     la diagonale, la longueur et la largeur. Il est grand et à l’écart de
-     la rosace, pour que ses six cibles ne se marchent pas dessus. */
-  const RX = 80, RY0 = 96, RY1 = 158;
+  /* Le quadrilatère de référence, MIS EN SURBRILLANCE quand la question
+     porte sur lui : « ce quadrilatère » ne désignait rien à l’écran. */
+  const RX = 78, RY0 = 74, RY1 = 118;
   const rect = {id:'rect', forme:'rectangle',
     pts:[[-RX, RY0], [RX, RY0], [RX, RY1], [-RX, RY1]], couleur:'#5AB4DC'};
-  const anneau = `<circle cx="0" cy="${CY}" r="${RR}" fill="none" stroke="#2B3A55" stroke-width="4"/>`;
-  const fond = petales.map(p => svgPiece(p)).join('') + svgPiece(hex) + svgPiece(rect) + anneau;
+  const surRect = ['diagonale','longueur','largeur'].includes(q.notion);
+  const halo = surRect
+    ? `<rect class="surbrillance" x="${-RX-12}" y="${RY0-12}" width="${2*RX+24}" height="${RY1-RY0+24}" rx="14"/>`
+    : '';
+  const anneau = `<circle class="${['centre','rayon','diametre'].includes(q.notion) ? 'anneau-vise' : ''}"
+      cx="0" cy="${CY}" r="${RR}" fill="none" stroke="#2B3A55" stroke-width="4"/>`;
+  const fond = petales.map(p => svgPiece(p)).join('') + svgPiece(hex) + halo + svgPiece(rect) + anneau;
 
-  /* Une cible = un trait fin visible (l’enfant doit savoir qu’il y a là
-     quelque chose) doublé d’une bande large et transparente. */
-  const seg = (id, a, b, bon, retrait) => {
-    const t = retrait === undefined ? 0 : retrait;
-    const A = [a[0] + (b[0]-a[0])*t, a[1] + (b[1]-a[1])*t];
-    const B = [b[0] - (b[0]-a[0])*t, b[1] - (b[1]-a[1])*t];
-    return `<line class="indice-trait" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"/>`
-      + `<line class="zone" data-z="${id}" data-bon="${bon ? 1 : 0}" x1="${A[0]}" y1="${A[1]}" x2="${B[0]}" y2="${B[1]}"/>`;
-  };
-  const cibles = [];
-  const estCercle = ['centre','rayon','diametre'].includes(q.notion);
-  // Rayon : tracé en oblique, sa cible commence loin du centre.
-  const rx = RR * Math.cos(-1.05), ry = CY + RR * Math.sin(-1.05);
-  cibles.push(seg('rayon', [0, CY], [rx, ry], q.notion === 'rayon', 0.34));
-  // Diamètre : horizontal, en deux bandes qui laissent le centre libre.
-  cibles.push(`<line class="indice-trait" x1="${-RR}" y1="${CY}" x2="${RR}" y2="${CY}"/>`);
-  cibles.push(`<line class="zone" data-z="diam-g" data-bon="${q.notion === 'diametre' ? 1 : 0}" x1="${-RR*0.94}" y1="${CY}" x2="${-RR*0.30}" y2="${CY}"/>`);
-  cibles.push(`<line class="zone" data-z="diam-d" data-bon="${q.notion === 'diametre' ? 1 : 0}" x1="${RR*0.30}" y1="${CY}" x2="${RR*0.94}" y2="${CY}"/>`);
-  // Le rectangle : deux longueurs, deux largeurs, deux diagonales.
+  /* Les CIBLES sont des objets géométriques, pas des bandes empilées : le
+     toucher est attribué à la plus proche (cf. `cibleTouchee`). Un cercle a
+     une infinité de rayons et de diamètres, un rectangle deux longueurs,
+     deux largeurs et deux diagonales : on en trace plusieurs, et TOUS sont
+     acceptés quand la question les vise. */
+  const surCercle = (a) => [RR * Math.cos(a), CY + RR * Math.sin(a)];
   const r = rect.pts;
-  cibles.push(seg('long-h', r[0], r[1], q.notion === 'longueur', 0.2));
-  cibles.push(seg('long-b', r[3], r[2], q.notion === 'longueur', 0.2));
-  cibles.push(seg('larg-d', r[1], r[2], q.notion === 'largeur', 0.18));
-  cibles.push(seg('larg-g', r[0], r[3], q.notion === 'largeur', 0.18));
-  cibles.push(seg('diag-1', r[0], r[2], q.notion === 'diagonale', 0.22));
-  cibles.push(seg('diag-2', r[1], r[3], q.notion === 'diagonale', 0.22));
-  // Le centre EN DERNIER : il passe ainsi au-dessus du diamètre.
-  cibles.push(`<circle class="indice" cx="0" cy="${CY}" r="5"/>`
-    + `<circle class="zone" data-z="centre" data-bon="${q.notion === 'centre' ? 1 : 0}" cx="0" cy="${CY}" r="24"/>`);
+  const cibles = [
+    {id:'rayon-1', type:'segment', a:[0, CY], b:surCercle(-1.05), notion:'rayon'},
+    {id:'rayon-2', type:'segment', a:[0, CY], b:surCercle(-2.30), notion:'rayon'},
+    {id:'diam-1', type:'segment', a:surCercle(0), b:surCercle(Math.PI), notion:'diametre'},
+    {id:'diam-2', type:'segment', a:surCercle(1.05), b:surCercle(1.05 + Math.PI), notion:'diametre'},
+    {id:'long-h', type:'segment', a:r[0], b:r[1], notion:'longueur'},
+    {id:'long-b', type:'segment', a:r[3], b:r[2], notion:'longueur'},
+    {id:'larg-d', type:'segment', a:r[1], b:r[2], notion:'largeur'},
+    {id:'larg-g', type:'segment', a:r[0], b:r[3], notion:'largeur'},
+    {id:'diag-1', type:'segment', a:r[0], b:r[2], notion:'diagonale'},
+    {id:'diag-2', type:'segment', a:r[1], b:r[3], notion:'diagonale'},
+    {id:'centre', type:'point', p:[0, CY], notion:'centre'}
+  ];
+  cibles.forEach(c => { c.bon = c.notion === q.notion; });
 
-  svg.innerHTML = fond + cibles.join('');
-  svg.querySelectorAll('.zone').forEach(z => {
-    z.addEventListener('click', () => {
-      if (verrouille) return;
-      verrouille = true;
-      const bon = z.dataset.bon === '1';
-      z.classList.add(bon ? 'bon' : 'faux');
-      /* §18 : on montre TOUTES les réponses qui convenaient, pas une seule. */
-      if (!bon) svg.querySelectorAll('.zone[data-bon="1"]').forEach(c => c.classList.add('bon'));
-      terminerManche(bon, bon ? null : (estCercle
-        ? 'Ce qu’il fallait toucher est marqué en vert.'
-        : 'Toutes les réponses possibles sont marquées en vert.'));
-    });
+  /* Le repère fin qui dit « il y a là quelque chose à toucher ». La cible,
+     elle, n’est plus un élément du DOM : c’est de la géométrie. */
+  const trace = cibles.map(c => c.type === 'point'
+    ? `<circle class="indice" data-c="${c.id}" cx="${c.p[0]}" cy="${c.p[1]}" r="5"/>`
+    : `<line class="indice-trait" data-c="${c.id}" x1="${c.a[0]}" y1="${c.a[1]}" x2="${c.b[0]}" y2="${c.b[1]}"/>`).join('');
+  svg.innerHTML = fond + trace;
+
+  brancherCibles(svg, cibles, (c) => {
+    verrouille = true;
+    const marquer = (id, cl) => {
+      const e = svg.querySelector(`[data-c="${id}"]`);
+      if (e) e.classList.add(cl);
+    };
+    marquer(c.id, c.bon ? 'trace-bon' : 'trace-faux');
+    /* §18 : toutes les réponses qui convenaient passent au vert. */
+    if (!c.bon) cibles.filter(x => x.bon).forEach(x => marquer(x.id, 'trace-bon'));
+    const n = cibles.filter(x => x.bon).length;
+    terminerManche(c.bon, c.bon ? null : (n > 1
+      ? 'Les ' + n + ' réponses possibles sont en vert.'
+      : 'Ce qu’il fallait toucher est en vert.'));
   });
 }
 
@@ -1989,26 +2307,28 @@ function rendreLitige(q){
      ce sont les poignées qui disent « ici, ça se touche ». Les cibles
      réelles, elles, sont larges et transparentes par-dessus. */
   const p = q.pieces[0], n = p.pts.length;
-  let indices = '', zones = '';
-  p.pts.forEach((s, i) => {
-    const t = p.pts[(i + 1) % n];
-    const mx = (s[0] + t[0]) / 2, my = (s[1] + t[1]) / 2;
-    const L = hyp(s, t), ux = (t[0] - s[0]) / L, uy = (t[1] - s[1]) / L, d = 11;
-    indices += `<line class="indice-trait" x1="${mx - ux*d}" y1="${my - uy*d}" x2="${mx + ux*d}" y2="${my + uy*d}"/>`;
-    indices += `<circle class="indice" cx="${s[0]}" cy="${s[1]}" r="4.5"/>`;
-    zones += `<line class="zone" data-z="c${i}" x1="${s[0]}" y1="${s[1]}" x2="${t[0]}" y2="${t[1]}"/>`;
+  /* Cibles GÉOMÉTRIQUES, comme sur la rosace : près d’un coin, la bande du
+     côté et celle du sommet se recouvrent, et c’est le dernier élément
+     dessiné qui gagnait. Un sommet est un POINT et l’emporte donc sur les
+     côtés qui y aboutissent. */
+  const cibles = [];
+  let indices = '';
+  p.pts.forEach((a, i) => {
+    const b = p.pts[(i + 1) % n];
+    const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+    const L = hyp(a, b), ux = (b[0]-a[0]) / L, uy = (b[1]-a[1]) / L, d = 11;
+    indices += `<line class="indice-trait" data-c="c${i}" x1="${mx - ux*d}" y1="${my - uy*d}" x2="${mx + ux*d}" y2="${my + uy*d}"/>`;
+    indices += `<circle class="indice" data-c="a${i}" cx="${a[0]}" cy="${a[1]}" r="4.5"/>`;
+    cibles.push({id:'c' + i, type:'segment', a, b});
   });
-  p.pts.forEach((s, i) => { zones += `<circle class="zone" data-z="a${i}" cx="${s[0]}" cy="${s[1]}" r="19"/>`; });
-  afficherScene(q.pieces, indices + zones, 210);
+  p.pts.forEach((a, i) => cibles.push({id:'a' + i, type:'point', p:a}));
+  afficherScene(q.pieces, indices, 210);
   $('btnValider').style.display = 'block';
   const svg = $('svgScene');
-  svg.querySelectorAll('.zone').forEach(z => {
-    z.addEventListener('click', () => {
-      if (verrouille) return;
-      const id = z.dataset.z;
-      if (selection.has(id)) { selection.delete(id); z.classList.remove('sel'); }
-      else { selection.add(id); z.classList.add('sel'); sonClic(); }
-    });
+  brancherCibles(svg, cibles, (c) => {
+    const e = svg.querySelector(`[data-c="${c.id}"]`);
+    if (selection.has(c.id)) { selection.delete(c.id); if (e) e.classList.remove('trace-choisi'); }
+    else { selection.add(c.id); if (e) e.classList.add('trace-choisi'); sonClic(); }
   });
   $('btnValider').onclick = () => {
     if (verrouille) return;
@@ -2020,12 +2340,12 @@ function rendreLitige(q){
        d’un rectangle en vert laisserait croire qu’il fallait tous les
        prendre, alors qu’il en fallait deux. */
     const attendues = q.exigences.map(e => e.parmi.slice(0, e.nb)).reduce((a, b) => a.concat(b), []);
-    svg.querySelectorAll('.zone').forEach(z => {
-      z.classList.remove('sel');
-      const pris = selection.has(z.dataset.z);
-      if (bon && pris) z.classList.add('bon');
-      else if (!bon && attendues.includes(z.dataset.z)) z.classList.add('bon');
-      else if (pris) z.classList.add('faux');
+    svg.querySelectorAll('[data-c]').forEach(z => {
+      const id = z.dataset.c, pris = selection.has(id);
+      z.classList.remove('trace-choisi');
+      if (bon && pris) z.classList.add('trace-bon');
+      else if (!bon && attendues.includes(id)) z.classList.add('trace-bon');
+      else if (pris) z.classList.add('trace-faux');
     });
     q._pts = (bon ? POINTS_ETAPE1 : 0);
     q._ok1 = bon;
@@ -2045,7 +2365,7 @@ function rendreLitige(q){
   };
 }
 function rendreLitigeEtape2(q){
-  afficherScene(q.pieces, '', 200);
+  afficherScene(q.pieces, '', 182);
   poserConsigne(q.etape2.q);
   $('sousConsigne').textContent = 'Cette réponse compte double.';
   rendreQcm(q.etape2.opts, q.etape2.ans, bon => {
