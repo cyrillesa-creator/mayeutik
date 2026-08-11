@@ -1,0 +1,350 @@
+/* ============================================================================
+   MOTEUR DE COMPAS — source unique, partagée par M35 et M38
+   ----------------------------------------------------------------------------
+   Ce fichier est la SOURCE. Il n’est jamais chargé par un jeu : la charte
+   impose des fichiers autonomes (§19, « une feuille de style partagée les
+   rendrait dépendants d’un fichier tiers »). `outils/sync-compas.js` recopie
+   ce bloc entre les sentinelles de chaque jeu et ÉCHOUE si une copie a dérivé.
+   Les jeux restent donc autonomes, mais « toute retouche ici est à reporter
+   là-bas » cesse d’être une promesse tenue de mémoire.
+
+   Tout tient sous UN SEUL nom global, `MoteurCompas`, et le moteur pose sa
+   propre feuille de style : une copie ne peut ainsi entrer en collision avec
+   rien dans le fichier hôte.
+
+   LE GESTE, validé sur appareil : un seul doigt.
+     pointerdown  plante la pointe ;
+     pointermove  ouvre et referme le compas, un rayon en pointillé suit ;
+     pointerup    lance le tracé, la mine parcourt le cercle en ~1,15 s.
+   Jamais de pincement à deux doigts : indécouvrable pour un enfant, et
+   incompatible avec le défilement de la page.
+
+   LA GÉOMÉTRIE est celle d’un vrai compas : branches de LONGUEUR FIXE, seul
+   l’angle d’ouverture varie. La charnière est au sommet du triangle isocèle
+   de côtés `branche` et de base `r` ; sa hauteur vaut √(branche² − (r/2)²).
+   Deux conséquences qu’on ne peut pas contourner, et qu’on assume donc :
+
+     • le rayon est PLAFONNÉ à 2 × branche. Au-delà, le compas est grand
+       ouvert et le dit. Sans ce plafond, la racine devient négative, la
+       hauteur NaN, et le compas disparaît de l’écran.
+
+     • à la verticale, les deux normales possibles ont exactement la même
+       hauteur : « charnière vers le haut » ne départage plus rien, et le
+       moindre tremblement du doigt fait basculer la charnière d’un côté à
+       l’autre — c’est ce qui rendait le glissement vers le bas inutilisable.
+       Une hystérésis ne suffit pas : en début de geste, deux pixels de
+       tremblement font tourner la direction de vingt degrés. Le côté est
+       donc CHOISI UNE FOIS, dès que l’ouverture est franche, et conservé
+       pour tout le geste. Le compas tourne alors d’un bloc avec la main,
+       exactement comme un vrai qu’on fait pivoter autour de sa pointe.
+   ============================================================================ */
+const MoteurCompas = (function(){
+  'use strict';
+  const NS = 'http://www.w3.org/2000/svg';
+
+  /* L’UNITÉ VIRTUELLE, définie ici et nulle part ailleurs pour M35 et M38.
+     Un rayon de 4 et un côté de 7 ont ainsi la même taille apparente d’un
+     module à l’autre par construction, et non par vigilance. Elle n’affirme
+     aucune grandeur réelle : voir SPEC-M38 §3. */
+  const UNITE = 14;
+  const BRANCHE = 9 * UNITE;          // longueur fixe des branches
+  const R_MAX = 2 * BRANCHE;          // ouverture maximale d’un compas réel
+  const R_MIN = 8;
+  const DUREE_TRACE = 1150;           // ms
+  const AIMANT_POINTE = 12;           // px : accrochage de la pointe
+  const AIMANT_RAYON = 6;             // px : accrochage du rayon à l’unité
+  /* En deçà de cette ouverture, le compas n’est pas dessiné et son côté n’est
+     pas fixé : quand la mine est à quelques pixels de la pointe, incliner le
+     doigt de deux pixels fait tourner la direction de vingt degrés, et une
+     charnière située à 126 px balaye alors tout l’écran. Un compas fermé n’a
+     de toute façon pas d’orientation. On ne montre donc que la pointe plantée
+     et le rayon qui s’étire. */
+  const OUVERTURE_FRANCHE = 20;
+
+  const hyp = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]);
+  const bride = (v, a, b) => Math.max(a, Math.min(b, v));
+  function reduitMouvement(){
+    try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+    catch (e) { return false; }
+  }
+
+  /* Le style du compas voyage avec le moteur : une copie n’a rien à ajouter
+     dans la feuille de style de son hôte. */
+  const CSS = `
+.compas{pointer-events:none;}
+.compas .branche{stroke:#33404F; stroke-width:5; stroke-linecap:round; vector-effect:non-scaling-stroke;}
+.compas .charniere{fill:#33404F; stroke:#fff; stroke-width:2; vector-effect:non-scaling-stroke;}
+.compas .pointe-fermee{fill:#33404F; stroke:#fff; stroke-width:2; vector-effect:non-scaling-stroke;}
+.compas .pointe{fill:none; stroke:#33404F; stroke-width:3; stroke-linejoin:round; vector-effect:non-scaling-stroke;}
+.compas .mine{fill:#FF8A3D; stroke:#33404F; stroke-width:2; vector-effect:non-scaling-stroke;}
+.compas.verrouille .branche{stroke:#7C8B9C;}
+.compas.verrouille .charniere{fill:#7C8B9C;}
+.compas-rayon{fill:none; stroke:#FF8A3D; stroke-width:2.4; stroke-dasharray:6 5; stroke-linecap:round; vector-effect:non-scaling-stroke;}
+.compas-cercle{fill:none; stroke:#0B8A70; stroke-width:3.2; stroke-linecap:round; vector-effect:non-scaling-stroke;}
+.compas-cercle.attendu{stroke-dasharray:8 6;}
+/* Le cercle que l’enfant a tracé, quand il ne convient pas. Le rouge marque
+   SA production, jamais la bonne réponse — laquelle reste en vert (§18). */
+.compas-cercle.faux{stroke:#FF5D5D;}
+.compas-etiquette{font-size:14px; font-weight:700; fill:#1D3354; paint-order:stroke; stroke:#fff; stroke-width:4;}
+.compas-etiquette.grise{fill:#7C8B9C;}
+.compas-invite{font-size:13px; fill:#41577A; opacity:.85;}
+.compas-zone{touch-action:none;}
+@media (prefers-reduced-motion:reduce){ .compas, .compas-cercle{transition:none !important;} }
+`;
+  function poserStyle(){
+    if (document.getElementById('style-moteur-compas')) return;
+    const s = document.createElement('style');
+    s.id = 'style-moteur-compas';
+    s.textContent = CSS;
+    document.head.appendChild(s);
+  }
+
+  function versSVG(svg, clientX, clientY){
+    const pt = svg.createSVGPoint();
+    pt.x = clientX; pt.y = clientY;
+    const m = svg.getScreenCTM();
+    if (!m) return [clientX, clientY];
+    const q = pt.matrixTransform(m.inverse());
+    return [q.x, q.y];
+  }
+
+  /* ------------------------------------------------------------------
+     creerCompas(svg, spec)
+       spec.zone         {x0,y0,x1,y1} où la pointe peut se planter
+       spec.branche      longueur des branches (défaut : BRANCHE)
+       spec.aimants      [[x,y]…] points d’accrochage de la pointe
+       spec.pointeLibre  false → la pointe REFUSE de se planter ailleurs
+       spec.rayonAimante true → le rayon s’accroche à l’unité entière
+       spec.surPointe    ()            pointe plantée
+       spec.surApercu    ({centre,r})  pendant le glissement
+       spec.surTrace     ({centre,r})  après l’animation
+     Le moteur ne juge JAMAIS : il trace et rend compte. C’est le mini-jeu
+     qui décide si le cercle est juste, comme `creerPosable` ne décide pas
+     d’un alignement.
+     ------------------------------------------------------------------ */
+  function creerCompas(svg, spec){
+    poserStyle();
+    const o = Object.assign({
+      branche: BRANCHE, aimants: [], pointeLibre: true, rayonAimante: false,
+      zone: null, etiquette: true
+    }, spec || {});
+
+    const g = document.createElementNS(NS, 'g');
+    g.setAttribute('class', 'compas');
+    const gTrace = document.createElementNS(NS, 'g');   // les cercles déjà tracés
+    let derniereTrace = null;
+    const gApercu = document.createElementNS(NS, 'g');  // rayon pointillé, étiquette
+    svg.appendChild(gTrace); svg.appendChild(gApercu); svg.appendChild(g);
+    svg.classList.add('compas-zone');
+
+    let centre = null, r = 0, angleMine = 0;
+    let verrouille = false, phase = 'repos', cote = null, anim = null, detruit = false;
+    /* `bloque` gèle le geste sans effacer le dessin : après validation, un
+       cercle validé est validé (CHARTE §18, pas d’essai-erreur sur place). */
+    let bloque = false;
+
+    const rMax = () => Math.min(R_MAX, 2 * o.branche);
+    const etat = () => ({centre: centre ? centre.slice() : null, r, verrouille, phase});
+
+    /* --- Le côté de la charnière : choisi une fois, gardé (cf. en-tête) --- */
+    function normales(u){ return [[-u[1], u[0]], [u[1], -u[0]]]; }
+    function choisirCote(u, d){
+      if (cote !== null) return;              // déjà fixé pour ce geste
+      if (d < OUVERTURE_FRANCHE) return;      // direction encore trop instable
+      const n = normales(u);
+      cote = n[0][1] <= n[1][1] ? 0 : 1;      // celle qui pointe le plus haut
+    }
+    function charniere(c, m){
+      const d = hyp(c, m) || 1e-6;
+      const u = [(m[0] - c[0]) / d, (m[1] - c[1]) / d];
+      choisirCote(u, d);
+      if (cote === null) cote = normales(u)[0][1] <= normales(u)[1][1] ? 0 : 1;
+      const n = normales(u)[cote];
+      /* On borne AVANT la racine : au-delà de 2·branche elle serait négative
+         et la charnière deviendrait NaN — le compas s’évanouissait. */
+      const demi = Math.min(d, rMax()) / 2;
+      const h = Math.sqrt(Math.max(0, o.branche * o.branche - demi * demi));
+      return [(c[0] + m[0]) / 2 + n[0] * h, (c[1] + m[1]) / 2 + n[1] * h];
+    }
+    const positionMine = () => centre
+      ? [centre[0] + Math.cos(angleMine) * r, centre[1] + Math.sin(angleMine) * r] : null;
+
+    /* --- Dessin, entièrement déduit de l’état --- */
+    function dessiner(){
+      if (detruit) return;
+      if (!centre) { g.innerHTML = ''; gApercu.innerHTML = ''; return; }
+      if (r < OUVERTURE_FRANCHE) {
+        /* Pointe plantée, compas encore fermé : on ne montre que la pointe. */
+        g.style.opacity = '1';
+        g.innerHTML = `<circle class="pointe-fermee" cx="${centre[0].toFixed(1)}" cy="${centre[1].toFixed(1)}" r="5"/>`;
+        return;
+      }
+      /* L’instrument se révèle en fondu sur les vingt-cinq pixels suivants :
+         apparaître d’un coup avec une charnière à 126 px ferait un saut. */
+      g.style.opacity = String(Math.min(1, (r - OUVERTURE_FRANCHE) / 25));
+      const m = positionMine();
+      const ch = charniere(centre, m);
+      const p = (a, b) => `${a[0].toFixed(1)} ${a[1].toFixed(1)} L ${b[0].toFixed(1)} ${b[1].toFixed(1)}`;
+      /* La pointe sèche : un petit V. La mine : une pastille. */
+      const dirP = [(centre[0] - ch[0]), (centre[1] - ch[1])];
+      const lp = Math.hypot(dirP[0], dirP[1]) || 1;
+      const perp = [-dirP[1] / lp, dirP[0] / lp];
+      const base = [centre[0] - dirP[0] / lp * 11, centre[1] - dirP[1] / lp * 11];
+      g.innerHTML =
+          `<path class="branche" d="M ${p(ch, centre)}"/>`
+        + `<path class="branche" d="M ${p(ch, m)}"/>`
+        + `<path class="pointe" d="M ${(base[0] + perp[0] * 5).toFixed(1)} ${(base[1] + perp[1] * 5).toFixed(1)}`
+        + ` L ${centre[0].toFixed(1)} ${centre[1].toFixed(1)}`
+        + ` L ${(base[0] - perp[0] * 5).toFixed(1)} ${(base[1] - perp[1] * 5).toFixed(1)}"/>`
+        + `<circle class="charniere" cx="${ch[0].toFixed(1)}" cy="${ch[1].toFixed(1)}" r="7"/>`
+        + `<circle class="mine" cx="${m[0].toFixed(1)}" cy="${m[1].toFixed(1)}" r="5"/>`;
+      g.classList.toggle('verrouille', verrouille);
+    }
+    function dessinerApercu(){
+      if (detruit || !centre) { gApercu.innerHTML = ''; return; }
+      const m = positionMine();
+      let s = `<path class="compas-rayon" d="M ${centre[0].toFixed(1)} ${centre[1].toFixed(1)} L ${m[0].toFixed(1)} ${m[1].toFixed(1)}"/>`;
+      if (o.etiquette) {
+        const t = (r / UNITE);
+        const texte = (Math.abs(t - Math.round(t)) < 0.02 ? String(Math.round(t)) : t.toFixed(1))
+          + (r >= rMax() - 0.5 ? ' — grand ouvert' : '');
+        s += `<text class="compas-etiquette${verrouille ? ' grise' : ''}" x="${(centre[0] + 12).toFixed(1)}"`
+          + ` y="${(centre[1] - 12).toFixed(1)}">${texte}</text>`;
+      }
+      gApercu.innerHTML = s;
+    }
+
+    /* --- Le tracé : la mine parcourt le cercle, le compas tourne avec --- */
+    function tracer(fini){
+      phase = 'trace';
+      const depart = angleMine;
+      const cercle = document.createElementNS(NS, 'path');
+      cercle.setAttribute('class', 'compas-cercle');
+      gTrace.appendChild(cercle);
+      derniereTrace = cercle;
+      const arc = (t) => {
+        if (t >= 0.9995) return `M ${(centre[0] + r).toFixed(2)} ${centre[1].toFixed(2)}`
+          + ` A ${r.toFixed(2)} ${r.toFixed(2)} 0 1 1 ${(centre[0] - r).toFixed(2)} ${centre[1].toFixed(2)}`
+          + ` A ${r.toFixed(2)} ${r.toFixed(2)} 0 1 1 ${(centre[0] + r).toFixed(2)} ${centre[1].toFixed(2)}`;
+        const a1 = depart + t * Math.PI * 2;
+        return `M ${(centre[0] + Math.cos(depart) * r).toFixed(2)} ${(centre[1] + Math.sin(depart) * r).toFixed(2)}`
+          + ` A ${r.toFixed(2)} ${r.toFixed(2)} 0 ${t > 0.5 ? 1 : 0} 1`
+          + ` ${(centre[0] + Math.cos(a1) * r).toFixed(2)} ${(centre[1] + Math.sin(a1) * r).toFixed(2)}`;
+      };
+      const achever = () => {
+        cercle.setAttribute('d', arc(1));
+        angleMine = depart;
+        phase = 'pose';
+        dessiner(); dessinerApercu();
+        if (o.surTrace) o.surTrace({centre: centre.slice(), r});
+      };
+      /* §19 accessibilité : sans animation, le cercle apparaît d’un trait. */
+      if (reduitMouvement()) { achever(); return; }
+      const t0 = performance.now();
+      const pas = (maintenant) => {
+        if (detruit || !cercle.isConnected) return;
+        const t = bride((maintenant - t0) / DUREE_TRACE, 0, 1);
+        cercle.setAttribute('d', arc(t));
+        angleMine = depart + t * Math.PI * 2;
+        dessiner();
+        if (t < 1) anim = requestAnimationFrame(pas); else { anim = null; achever(); }
+      };
+      anim = requestAnimationFrame(pas);
+    }
+
+    /* --- Le geste --- */
+    function dansZone(p){
+      if (!o.zone) return true;
+      return p[0] >= o.zone.x0 && p[0] <= o.zone.x1 && p[1] >= o.zone.y0 && p[1] <= o.zone.y1;
+    }
+    function accrocherPointe(p){
+      let meilleur = null, d0 = AIMANT_POINTE;
+      o.aimants.forEach(a => { const d = hyp(p, a); if (d < d0) { d0 = d; meilleur = a; } });
+      if (meilleur) return meilleur.slice();
+      return o.pointeLibre ? p : null;
+    }
+    let actif = false;
+    const surDown = (ev) => {
+      if (detruit || bloque || phase === 'trace') return;
+      const p = versSVG(svg, ev.clientX, ev.clientY);
+      if (!dansZone(p)) return;
+      const c = accrocherPointe(p);
+      if (!c) return;                                   // pointe refusée hors aimants
+      centre = c;
+      if (!verrouille) { r = 0; cote = null; }
+      phase = 'ouverture';
+      actif = true;
+      try { svg.setPointerCapture(ev.pointerId); } catch (e) {}
+      dessiner(); dessinerApercu();
+      if (o.surPointe) o.surPointe(etat());
+      ev.preventDefault();
+    };
+    const surMove = (ev) => {
+      if (!actif || detruit) return;
+      const p = versSVG(svg, ev.clientX, ev.clientY);
+      angleMine = Math.atan2(p[1] - centre[1], p[0] - centre[0]);
+      if (!verrouille) {
+        let d = bride(hyp(centre, p), 0, rMax());
+        if (o.rayonAimante) {
+          const u = Math.round(d / UNITE) * UNITE;
+          if (Math.abs(d - u) <= AIMANT_RAYON && u >= UNITE) d = u;
+        }
+        r = d;
+      }
+      dessiner(); dessinerApercu();
+      if (o.surApercu) o.surApercu(etat());
+      ev.preventDefault();
+    };
+    const surUp = (ev) => {
+      if (!actif || detruit) return;
+      actif = false;
+      try { svg.releasePointerCapture(ev.pointerId); } catch (e) {}
+      if (r < R_MIN) { phase = 'repos'; centre = null; dessiner(); dessinerApercu(); return; }
+      tracer();
+    };
+    svg.addEventListener('pointerdown', surDown);
+    svg.addEventListener('pointermove', surMove);
+    svg.addEventListener('pointerup', surUp);
+    svg.addEventListener('pointercancel', surUp);
+
+    return {
+      g, etat,
+      /* L’écartement verrouillé : le glissement ne repose plus que la pointe.
+         C’est le geste réel — on ouvre une fois, on plante autant de fois
+         qu’il faut — et c’est ce qui rend la rosace possible. */
+      verrouiller(){ verrouille = true; dessiner(); dessinerApercu(); },
+      deverrouiller(){ verrouille = false; dessiner(); dessinerApercu(); },
+      estVerrouille(){ return verrouille; },
+      grandOuvert(){ return r >= rMax() - 0.5; },
+      /* Pose programmatique : sert à la révélation différée du §18. */
+      placer(c, rayon, trace){
+        centre = c.slice(); r = bride(rayon, 0, rMax()); cote = null; angleMine = 0;
+        dessiner(); dessinerApercu();
+        if (trace) tracer();
+      },
+      effacerTraces(){ gTrace.innerHTML = ''; derniereTrace = null; },
+      /* Marque le cercle que l’enfant vient de tracer comme non conforme. */
+      marquerFaux(){ if (derniereTrace) derniereTrace.classList.add('faux'); },
+      /* Trace un cercle de correction, en vert, sans toucher au compas. */
+      montrerAttendu(c, rayon){
+        const e = document.createElementNS(NS, 'circle');
+        e.setAttribute('class', 'compas-cercle attendu');
+        e.setAttribute('cx', c[0]); e.setAttribute('cy', c[1]); e.setAttribute('r', rayon);
+        gTrace.appendChild(e);
+      },
+      figer(){ bloque = true; actif = false; },
+      detruire(){
+        detruit = true;
+        if (anim) cancelAnimationFrame(anim);
+        svg.removeEventListener('pointerdown', surDown);
+        svg.removeEventListener('pointermove', surMove);
+        svg.removeEventListener('pointerup', surUp);
+        svg.removeEventListener('pointercancel', surUp);
+        svg.classList.remove('compas-zone');
+        [g, gTrace, gApercu].forEach(e => e.remove());
+      }
+    };
+  }
+
+  return {UNITE, BRANCHE, R_MAX, DUREE_TRACE, AIMANT_POINTE, AIMANT_RAYON, creerCompas};
+})();
