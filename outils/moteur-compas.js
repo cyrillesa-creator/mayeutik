@@ -109,6 +109,11 @@ const MoteurCompas = (function(){
        spec.surPointe    ()            pointe plantée
        spec.surApercu    ({centre,r})  pendant le glissement
        spec.surTrace     ({centre,r})  après l’animation
+       spec.surReglage   ({r})         RÈGLE l’écartement au lieu de tracer
+     `surReglage` renverse l’ordre du geste, et c’est toute la différence du
+     CE2 : tant que l’écartement n’est pas verrouillé, relâcher le RÈGLE et le
+     fige ; une fois réglé, relâcher TRACE. Au CE1 le rayon est dérivé d’un
+     point de passage, au CE2 il est mesuré d’abord — voir SPEC-M35 §2.
      Le moteur ne juge JAMAIS : il trace et rend compte. C’est le mini-jeu
      qui décide si le cercle est juste, comme `creerPosable` ne décide pas
      d’un alignement.
@@ -369,6 +374,15 @@ const MoteurCompas = (function(){
       try { svg.releasePointerCapture(ev.pointerId); } catch (e) {}
       if (r < R_MIN) { phase = 'repos'; centre = null; rafraichir(); return; }
       rafraichir();                       // le dessin rattrape le dernier mouvement
+      /* Réglage de l’écartement : on ne trace pas, on FIGE l’ouverture. La
+         pointe se relève, le compas garde sa mesure — c’est le geste qu’on
+         fait sur une règle graduée avant de porter le compas sur la feuille. */
+      if (o.surReglage && !verrouille) {
+        verrouille = true; phase = 'pose'; centre = null;
+        rafraichir();
+        o.surReglage({r});
+        return;
+      }
       tracer();
     };
     svg.addEventListener('pointerdown', surDown);
@@ -383,6 +397,13 @@ const MoteurCompas = (function(){
          qu’il faut — et c’est ce qui rend la rosace possible. */
       verrouiller(){ verrouille = true; rafraichir(); },
       deverrouiller(){ verrouille = false; rafraichir(); },
+      /* Le même compas change de terrain sans changer d’identité : il quitte
+         la règle graduée pour la feuille, et son écartement le suit. */
+      configurer(c){
+        if ('zone' in c) o.zone = c.zone;
+        if ('aimants' in c) o.aimants = c.aimants;
+        if ('pointeLibre' in c) o.pointeLibre = c.pointeLibre;
+      },
       estVerrouille(){ return verrouille; },
       grandOuvert(){ return r >= rMax() - 0.5; },
       /* Pose programmatique : sert à la révélation différée du §18. */

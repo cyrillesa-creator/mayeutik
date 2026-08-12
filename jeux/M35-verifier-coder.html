@@ -438,6 +438,11 @@ const MoteurCompas = (function(){
        spec.surPointe    ()            pointe plantée
        spec.surApercu    ({centre,r})  pendant le glissement
        spec.surTrace     ({centre,r})  après l’animation
+       spec.surReglage   ({r})         RÈGLE l’écartement au lieu de tracer
+     `surReglage` renverse l’ordre du geste, et c’est toute la différence du
+     CE2 : tant que l’écartement n’est pas verrouillé, relâcher le RÈGLE et le
+     fige ; une fois réglé, relâcher TRACE. Au CE1 le rayon est dérivé d’un
+     point de passage, au CE2 il est mesuré d’abord — voir SPEC-M35 §2.
      Le moteur ne juge JAMAIS : il trace et rend compte. C’est le mini-jeu
      qui décide si le cercle est juste, comme `creerPosable` ne décide pas
      d’un alignement.
@@ -698,6 +703,15 @@ const MoteurCompas = (function(){
       try { svg.releasePointerCapture(ev.pointerId); } catch (e) {}
       if (r < R_MIN) { phase = 'repos'; centre = null; rafraichir(); return; }
       rafraichir();                       // le dessin rattrape le dernier mouvement
+      /* Réglage de l’écartement : on ne trace pas, on FIGE l’ouverture. La
+         pointe se relève, le compas garde sa mesure — c’est le geste qu’on
+         fait sur une règle graduée avant de porter le compas sur la feuille. */
+      if (o.surReglage && !verrouille) {
+        verrouille = true; phase = 'pose'; centre = null;
+        rafraichir();
+        o.surReglage({r});
+        return;
+      }
       tracer();
     };
     svg.addEventListener('pointerdown', surDown);
@@ -712,6 +726,13 @@ const MoteurCompas = (function(){
          qu’il faut — et c’est ce qui rend la rosace possible. */
       verrouiller(){ verrouille = true; rafraichir(); },
       deverrouiller(){ verrouille = false; rafraichir(); },
+      /* Le même compas change de terrain sans changer d’identité : il quitte
+         la règle graduée pour la feuille, et son écartement le suit. */
+      configurer(c){
+        if ('zone' in c) o.zone = c.zone;
+        if ('aimants' in c) o.aimants = c.aimants;
+        if ('pointeLibre' in c) o.pointeLibre = c.pointeLibre;
+      },
       estVerrouille(){ return verrouille; },
       grandOuvert(){ return r >= rMax() - 0.5; },
       /* Pose programmatique : sert à la révélation différée du §18. */
@@ -1157,7 +1178,7 @@ const CONTENU = {
         {id:'ce2-alignement', mode:'alignement', titre:'L’expertise', icone:'🔬',
          description:'Plus rien d’évident.', nbQuestions:5, dosageEvident:0},
         {id:'ce2-angles', mode:'anglesPoly', titre:'L’équerre du contrôleur', icone:'📐',
-         description:'Chaque angle du polygone.', nbQuestions:5, outil:'equerre'},
+         description:'Chaque angle du polygone.', nbQuestions:3, outil:'equerre'},
         {id:'ce2-compas', mode:'compas2', titre:'L’écartement', icone:'🧭',
          description:'Rayon donné et report.', nbQuestions:5},
         {id:'ce2-codage', mode:'codage2', titre:'Le plan certifié', icone:'✅',
@@ -1440,15 +1461,20 @@ function contourDAngles(A){
   const th = [entre(0, TAU)];
   for (let i = 1; i < n; i++) th.push(th[i-1] + radians(180 - A[i]));
   for (let essai = 0; essai < 60; essai++) {
-    const s2 = entre(80, 150), s3 = entre(80, 150);
-    const rx = -(s2*Math.cos(th[2]) + s3*Math.cos(th[3]));
-    const ry = -(s2*Math.sin(th[2]) + s3*Math.sin(th[3]));
+    /* Tous les côtés SAUF DEUX sont tirés au sort ; les deux premiers se
+       déduisent de la condition de fermeture, quel que soit le nombre de
+       côtés. Une homothétie finale ramène la figure dans le plan, si bien que
+       les longueurs absolues n’ont pas d’importance — seule compte la forme. */
+    const libres = [];
+    for (let i = 2; i < n; i++) libres.push(entre(80, 150));
+    let rx = 0, ry = 0;
+    for (let i = 2; i < n; i++) { rx -= libres[i-2]*Math.cos(th[i]); ry -= libres[i-2]*Math.sin(th[i]); }
     const det = Math.cos(th[0])*Math.sin(th[1]) - Math.cos(th[1])*Math.sin(th[0]);
     if (Math.abs(det) < 1e-6) continue;
     const s0 = (rx*Math.sin(th[1]) - ry*Math.cos(th[1])) / det;
     const s1 = (ry*Math.cos(th[0]) - rx*Math.sin(th[0])) / det;
-    if (s0 < 60 || s1 < 60 || s0 > 220 || s1 > 220) continue;
-    const s = [s0, s1, s2, s3];
+    if (s0 < 55 || s1 < 55 || s0 > 300 || s1 > 300) continue;
+    const s = [s0, s1].concat(libres);
     const pts = [[0, 0]];
     for (let i = 0; i < n - 1; i++)
       pts.push([pts[i][0] + s[i]*Math.cos(th[i]), pts[i][1] + s[i]*Math.sin(th[i])]);
@@ -1459,15 +1485,21 @@ function contourDAngles(A){
   return null;
 }
 
+/* QUATRE OU CINQ ANGLES, ET TROIS FIGURES SEULEMENT. Cinq quadrilatères
+   faisaient vingt jugements par manche : au-delà d’une douzaine la tâche
+   devient mécanique et perd son objet, qui est d’apprendre QUAND l’œil suffit,
+   pas de vérifier vingt angles. Trois figures de 4 ou 5 angles font 12 à 15
+   jugements, et le pentagone empêche d’installer une routine du quadrilatère. */
 function itemPolygone(){
-  const n = 4;
+  const n = Math.random() < 0.5 ? 4 : 5;
+  const sommeInterieure = (n - 2) * 180;
   for (let essai = 0; essai < 200; essai++) {
     const nbDouteux = Math.random() < 0.5 ? 1 : 2;
     /* Un angle « douteux » est tantôt vraiment droit, tantôt à quelques
        degrés du droit : c’est ce qui rend l’équerre indispensable. */
     const douteuxTires = Array.from({length: nbDouteux},
       () => Math.random() < 0.4 ? 90 : pioche(ANGLES_DOUTEUX));
-    const francs = anglesFrancsSommant(n - nbDouteux, 360 - douteuxTires.reduce((s, x) => s + x, 0));
+    const francs = anglesFrancsSommant(n - nbDouteux, sommeInterieure - douteuxTires.reduce((s, x) => s + x, 0));
     if (!francs) continue;
     const A = melanger(douteuxTires.concat(francs));
     const pts = contourDAngles(A);
@@ -1480,7 +1512,7 @@ function itemPolygone(){
   }
   /* Repli déterministe : un trapèze rectangle, deux angles droits francs. */
   const pts = cadrer([[70, 60], [70, 230], [300, 230], [250, 60]], 34, 34, 366, 232);
-  const angles = pts.map((p, i) => angleEn(p, pts[(i-1+4)%4], pts[(i+1)%4]));
+  const angles = pts.map((p, i) => angleEn(p, pts[(i-1+pts.length)%pts.length], pts[(i+1)%pts.length]));
   return {pts, angles,
     reponses: angles.map(a => Math.abs(a - 90) <= TOL_ANGLE_DROIT ? 'droit' : (a < 90 ? 'aigu' : 'obtus')),
     douteux: angles.map(a => Math.abs(a - 90) <= 8)};
@@ -1679,8 +1711,12 @@ const VALIDATEURS = {
       if (e < 12 && !q.douteux[i]) pb.push('angle ' + (i+1) + ' proche du droit sans être annoncé douteux');
       if (e >= 12 && q.douteux[i]) pb.push('angle ' + (i+1) + ' franc annoncé douteux');
     });
+    const attenduSomme = (q.angles.length - 2) * 180;
     const somme = q.angles.reduce((x, y) => x + y, 0);
-    if (Math.abs(somme - 360) > 0.5) pb.push('les angles ne somment pas à 360°');
+    if (Math.abs(somme - attenduSomme) > 0.5)
+      pb.push('les angles ne somment pas à ' + attenduSomme + '°');
+    if (q.angles.length < 4 || q.angles.length > 5)
+      pb.push(q.angles.length + ' angles : la manche en veut 4 ou 5');
     const nbDouteux = q.douteux.filter(Boolean).length;
     if (nbDouteux < 1 || nbDouteux > 2) pb.push(nbDouteux + ' angles douteux : le dosage voulu est 1 ou 2');
     return pb;
@@ -2334,22 +2370,36 @@ function rendrePliage(q){
    double-décimètre de M23 (14 px/cm) pour que le centimètre soit le même
    d’un jeu à l’autre. */
 function rendreCompasRayon(q){
-  const c = [entre(160, 240), entre(130, 175)];
+  /* LA SÉQUENCE DU CE2, INVERSE DE CELLE DU CE1. Au CE1 le rayon est DÉRIVÉ
+     d’un point de passage : on plante et on ouvre jusqu’au point. Au CE2 il
+     est MESURÉ D’ABORD — « un cercle de rayon 4 » — donc on règle l’écartement
+     sur la règle graduée, puis on porte le compas sur la feuille. La différence
+     est pédagogique et non cosmétique (SPEC-M35 §2), et elle se joue tout
+     entière dans l’ORDRE des deux gestes.
+
+     Une première version faisait choisir l’écartement par des BOUTONS « 3 cm,
+     4 cm… ». Un bouton n’est pas un compas : il donne la mesure au lieu de la
+     faire prendre, et la règle graduée n’était plus qu’une illustration. */
+  const c = [entre(150, 250), entre(96, 150)];
   q._c = c;
+  const CM_MAX = 10, X0 = 34, YR = 336;
+  const rAttendu = q.rayonCm * PX_PAR_CM;
+  const ZONE_REGLE = {x0:X0 - 24, y0:YR - 44, x1:X0 + CM_MAX*PX_PAR_CM + 30, y1:YR + 30};
+  const ZONE_PLAN  = {x0:26, y0:56, x1:374, y1:280};
+
   poserConsigne('Trace un cercle de rayon ' + q.rayonCm + ' cm, centré sur le point.');
-  $('sousConsigne').textContent = 'Choisis l’écartement, puis touche le centre du cercle.';
-  /* L’échelle est dessinée à l’ÉCHELLE VRAIE, 14 px/cm — le même
-     centimètre qu’au double-décimètre de M23. Une première version la
-     traçait à 28 px/cm tout en dessinant le cercle à 14 : la règle mentait
-     sur ce qu’elle mesurait. Le choix de l’écartement passe donc par des
-     boutons, larges au doigt, et la règle se contente de MONTRER la
-     longueur choisie — un pointillé de 14 px/cm, comparable au rayon. */
-  const CM_MAX = 10, X0 = 30, YR = 268;
+  $('sousConsigne').textContent =
+    'D’abord l’écartement : plante la pointe sur le 0 et ouvre jusqu’au ' + q.rayonCm + '.';
+
+  /* L’échelle est dessinée à l’ÉCHELLE VRAIE, 14 px/cm — le même centimètre
+     qu’au double-décimètre de M23. Une première version la traçait à 28 px/cm
+     tout en dessinant le cercle à 14 : la règle mentait sur ce qu’elle
+     mesurait. */
   const grad = [];
   for (let cm = 0; cm <= CM_MAX; cm++) {
     const x = X0 + cm * PX_PAR_CM;
-    grad.push(`<line x1="${x}" y1="${YR}" x2="${x}" y2="${YR - 13}" stroke="var(--encre2)" stroke-width="1.6"/>`
-      + `<text x="${x}" y="${YR - 17}" font-size="10.5" text-anchor="middle" fill="var(--encre2)">${cm}</text>`);
+    grad.push(`<line x1="${x}" y1="${YR}" x2="${x}" y2="${YR - (cm % 5 ? 9 : 15)}" stroke="var(--encre2)" stroke-width="1.6"/>`
+      + `<text x="${x}" y="${YR - 19}" font-size="10.5" text-anchor="middle" fill="var(--encre2)">${cm}</text>`);
   }
   poserScene(
     /* Le centre est une CIBLE : une croix comme partout ailleurs dans le
@@ -2357,46 +2407,52 @@ function rendreCompasRayon(q){
     `<circle cx="${c[0]}" cy="${c[1]}" r="15" fill="rgba(90,180,220,.16)"/>`
     + croix(c) + `<circle class="repere" cx="${c[0]}" cy="${c[1]}" r="3.5"/>`
     + `<text x="${c[0]}" y="${c[1] + 34}" font-size="12" text-anchor="middle" fill="var(--encre2)">centre</text>`
-    /* La réglette : corps, graduations et longueur retenue, à 14 px/cm. */
-    + `<rect x="${X0 - 10}" y="${YR - 30}" width="${CM_MAX*PX_PAR_CM + 20}" height="42" rx="5"
+    + `<rect x="${X0 - 14}" y="${YR - 34}" width="${CM_MAX*PX_PAR_CM + 28}" height="46" rx="5"
              fill="rgba(120,140,160,.14)" stroke="var(--trait)" stroke-width="1.4"/>`
     + `<line x1="${X0}" y1="${YR}" x2="${X0 + CM_MAX*PX_PAR_CM}" y2="${YR}" stroke="var(--encre2)" stroke-width="2.4"/>`
     + grad.join('')
-    + `<line id="ecartVu" x1="${X0}" y1="${YR + 6}" x2="${X0}" y2="${YR + 6}" stroke="var(--mandarine)" stroke-width="6" stroke-linecap="round"/>`
-    + `<text id="lblEcart" x="${X0 + CM_MAX*PX_PAR_CM + 24}" y="${YR + 4}" font-size="15" font-weight="700" fill="var(--encre)">— cm</text>`
-    + `<rect id="zoneClic" x="0" y="0" width="400" height="232" fill="transparent"/>`);
+    + `<text id="lblEcart" x="200" y="${YR + 34}" font-size="14" font-weight="700"
+             text-anchor="middle" fill="var(--encre2)">écartement : à régler</text>`,
+    '0 0 400 380');
   const svg = scene();
-  let regle = null;
-  const barre = $('barreOutils');
-  barre.hidden = false;
-  barre.innerHTML = '';
-  for (let cm = 1; cm <= 7; cm++) {
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = 'outil'; b.textContent = cm + ' cm'; b.dataset.cm = cm;
-    b.addEventListener('click', () => {
+
+  compasCourant = MoteurCompas.creerCompas(svg, {
+    /* Sur la règle, la pointe ne se plante QUE sur le zéro : mesurer, c’est
+       partir de l’origine. Et l’écartement s’accroche au centimètre entier —
+       l’enfant lit une graduation, il ne vise pas au pixel. */
+    zone: ZONE_REGLE, aimants: [[X0, YR]], pointeLibre: false, rayonAimante: true,
+    surPointe: () => sonClic(),
+    surReglage: (e) => {
+      const cm = Math.round(e.r / PX_PAR_CM);
+      q._ecartCm = cm;
+      q._instrumentPose = true;
+      svg.getElementById('lblEcart').textContent = 'écartement : ' + cm + ' cm';
+      /* Le compas quitte la règle pour la feuille, sans rien perdre de sa
+         mesure : c’est le même objet, c’est tout l’intérêt. */
+      compasCourant.configurer({zone: ZONE_PLAN, aimants: [c], pointeLibre: true});
+      $('sousConsigne').textContent = 'Écartement pris. Plante maintenant la pointe sur le centre.';
+      sonClic();
+    },
+    surTrace: (e) => {
       if (verrouille) return;
-      regle = cm; sonClic();
-      barre.querySelectorAll('.outil').forEach(x => x.classList.toggle('on', x === b));
-      svg.getElementById('lblEcart').textContent = cm + ' cm';
-      svg.getElementById('ecartVu').setAttribute('x2', X0 + cm * PX_PAR_CM);
-    });
-    barre.appendChild(b);
-  }
-  svg.querySelector('#zoneClic').addEventListener('click', (ev) => {
-    if (verrouille || regle === null) {
-      if (regle === null) $('sousConsigne').textContent = 'Choisis d’abord l’écartement, sous le plan.';
-      return;
+      verrouille = true;
+      compasCourant.figer();
+      const bonCentre = dist(e.centre, c) <= 16;
+      const bonRayon = Math.abs(e.r - rAttendu) <= 7;
+      const bon = bonCentre && bonRayon;
+      if (!bon) {
+        compasCourant.marquerFaux();
+        clearTimeout(minuteurRevel);
+        minuteurRevel = setTimeout(() => {
+          if (!svg.isConnected) return;
+          compasCourant.montrerAttendu(c, rAttendu);
+        }, DELAI_REVELATION);
+      }
+      terminerManche(bon, bon ? PTS_PLEIN : 0,
+        bon ? 'Rayon exact et bien centré !' : null,
+        bon ? null : (!bonRayon ? 'Il fallait ' + q.rayonCm + ' cm d’écartement : le cercle attendu est en vert.'
+                                : 'La pointe devait se planter sur le centre.'));
     }
-    verrouille = true;
-    q._instrumentPose = true;
-    const p = versSVG(svg, ev.clientX, ev.clientY);
-    const bonCentre = Math.hypot(p.x - c[0], p.y - c[1]) <= 18;
-    const bon = bonCentre && regle === q.rayonCm;
-    svg.insertAdjacentHTML('beforeend', cercleSvg(bonCentre ? c : [p.x, p.y], regle * PX_PAR_CM, bon ? 'trace-fait' : 'fig-trait'));
-    if (!bon) svg.insertAdjacentHTML('beforeend', cercleSvg(c, q.rayonCm * PX_PAR_CM, 'trace-fait'));
-    terminerManche(bon, bon ? PTS_PLEIN : 0,
-      bon ? 'Rayon exact et bien centré !' : null,
-      bon ? null : 'Le cercle attendu, de rayon ' + q.rayonCm + ' cm, est en vert.');
   });
 }
 
@@ -2499,11 +2555,19 @@ function rendreCodage1(q){
   $('sousConsigne').textContent = 'Choisis le tampon, puis touche un sommet.';
   dessinerCodage(q, ['droit']);
 }
+/* La figure est ANNONCÉE avant la tâche. Coder, c’est écrire ce qu’on sait
+   d’une figure qu’on a déjà reconnue : demander « certifie ce plan » devant
+   une forme anonyme mélange deux compétences, la reconnaissance (M34) et le
+   codage (ici), et l’enfant qui échoue ne sait plus laquelle lui a manqué. */
+const NOM_FIGURE = {carre:'un carré', rectangle:'un rectangle', losange:'un losange',
+                    triangleRect:'un triangle rectangle', isocele:'un triangle isocèle'};
+
 function rendreCodage2(q){
-  poserConsigne('Certifie ce plan : angles droits et côtés de même longueur.');
+  poserConsigne('Voici ' + (NOM_FIGURE[q.type] || 'cette figure')
+    + '. Certifie le plan : angles droits et côtés de même longueur.');
   const aVerifier = q.type === 'rectangle' || q.type === 'isocele';
   $('sousConsigne').textContent = aVerifier
-    ? 'Ici les longueurs se ressemblent : reporte l’écartement au compas avant de marquer.'
+    ? 'Ici les longueurs se ressemblent : prends le compas pour les comparer avant de marquer.'
     : 'Choisis un tampon, puis touche un sommet ou un côté.';
   q._exigeVerif = aVerifier;
   dessinerCodage(q, ['droit','simple','double']);
@@ -2538,22 +2602,59 @@ function dessinerCodage(q, tampons){
   barre.hidden = false;
   barre.innerHTML = tampons.map(t =>
     `<button type="button" class="outil${t === choisi ? ' on' : ''}" data-t="${t}">${apercu[t]}${nomsTampon[t]}</button>`).join('')
-    + (q._exigeVerif ? `<button type="button" class="outil" id="btnCompas">🧭 reporter</button>` : '');
+    + (q._exigeVerif ? `<button type="button" class="outil" id="btnCompas">🧭 compas</button>` : '');
   barre.querySelectorAll('.outil[data-t]').forEach(b => b.addEventListener('click', () => {
     choisi = b.dataset.t;
     barre.querySelectorAll('.outil').forEach(x => x.classList.toggle('on', x === b));
   }));
+
+  /* LE REPORT DE LONGUEUR EST UN INSTRUMENT, PAS UN BOUTON. « Reporter »
+     était un bouton sans effet visible : il déclarait la vérification faite
+     au lieu de la faire faire, alors que c’est précisément le geste que le
+     programme demande au CE2 — et le seul moyen honnête de trancher entre
+     deux côtés qui se ressemblent avant de les coder (SPEC-M35 §5.4).
+     Le vrai geste : on plante la pointe sur un sommet, on ouvre jusqu’au
+     sommet voisin — l’écartement se VERROUILLE — puis on replante ailleurs et
+     l’arc dit lui-même si la longueur retombe juste.
+     Le compas s’allume et s’éteint, parce qu’il capte le pointeur : tant
+     qu’il est là, les tampons ne se posent pas, et c’est le bouton qui dit
+     lequel des deux outils on tient. */
+  let compasActif = false;
   const btnC = $('btnCompas');
   if (btnC) btnC.addEventListener('click', () => {
-    q._instrumentPose = true;
-    btnC.classList.add('on');
-    $('sousConsigne').textContent = 'Écartement reporté : tu peux marquer les égalités.';
+    if (verrouille) return;
     sonClic();
+    compasActif = !compasActif;
+    btnC.classList.toggle('on', compasActif);
+    if (!compasActif) {
+      if (compasCourant) { compasCourant.detruire(); compasCourant = null; }
+      $('sousConsigne').textContent = 'Choisis un tampon, puis touche un sommet ou un côté.';
+      return;
+    }
+    $('sousConsigne').textContent = 'Plante la pointe sur un sommet et ouvre jusqu’au voisin.';
+    compasCourant = MoteurCompas.creerCompas(svg, {
+      /* La pointe ne se plante que sur un SOMMET : reporter une longueur,
+         c’est aller d’un sommet à un autre, pas mesurer au hasard. */
+      aimants: q.pts, pointeLibre: false,
+      /* AUCUN NOMBRE ICI. Reporter une longueur, c’est justement comparer
+         SANS mesurer : afficher « 15,4 » à côté du compas donnerait la
+         réponse dans une unité qui ne veut rien dire sur cette figure. */
+      etiquette: false,
+      surPointe: () => sonClic(),
+      surTrace: () => {
+        q._instrumentPose = true;
+        if (!compasCourant.estVerrouille()) {
+          compasCourant.verrouiller();
+          $('sousConsigne').textContent =
+            'Écartement gardé : replante la pointe sur un autre sommet pour comparer.';
+        }
+      }
+    });
   });
 
   const posees = {};   // clé de cible -> type de tampon
   svg.querySelectorAll('.cible-tactile').forEach(c => c.addEventListener('click', () => {
-    if (verrouille) return;
+    if (verrouille || compasActif) return;
     const k = c.dataset.t;
     if (posees[k]) { delete posees[k]; }
     else if (k[0] === 'a' && choisi !== 'droit') return;   // un trait ne se pose pas sur un sommet
@@ -2579,6 +2680,9 @@ function dessinerCodage(q, tampons){
     if (verrouille) return;
     verrouille = true;
     $('btnValider').style.display = 'none';
+    /* Le compas se range à la certification : §18, on ne revient pas dessus. */
+    if (compasCourant) { compasCourant.detruire(); compasCourant = null; }
+    if (btnC) { compasActif = false; btnC.classList.remove('on'); btnC.disabled = true; }
     const attenduAngles = new Set(q.droits.map(i => 'a' + i));
     const posesAngles = new Set(Object.keys(posees).filter(k => k[0] === 'a'));
     const anglesOk = attenduAngles.size === posesAngles.size && [...attenduAngles].every(k => posesAngles.has(k));
