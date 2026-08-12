@@ -172,6 +172,12 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
    Les enfants sont visés EXPLICITEMENT : `touch-action` ne s’hérite pas, et
    le sélecteur universel ci-dessus les remettrait sinon en `pan-y` — la
    poignée de rotation ferait alors défiler la page au lieu de tourner. */
+/* Ancrage : le point sur lequel l’extrémité s’est plantée, et les points
+   que le bord rencontre. Le premier est franc, le second discret — l’un dit
+   « je tourne autour d’ici », l’autre « l’alignement est trouvé ». */
+.halos-ancrage{pointer-events:none;}
+.halo-ancre{fill:rgba(255,138,61,.30); stroke:var(--mandarine); stroke-width:3; vector-effect:non-scaling-stroke;}
+.halo-bord{fill:rgba(46,196,166,.28); stroke:var(--menthe-t); stroke-width:2.6; vector-effect:non-scaling-stroke;}
 .posable, .posable *{touch-action:none;}
 .posable{cursor:grab;}
 .posable.saisi{cursor:grabbing;}
@@ -781,50 +787,108 @@ function versSVG(svg, clientX, clientY){
 }
 
 function creerPosable(svg, spec){
-  /* spec : {x, y, angle, corps (markup SVG local), poignee:[px,py],
-             pointsAimant:[[x,y]…], surChangement(etat)} */
+  /* spec : {x, y, angle, corps (markup SVG local),
+             ancrages:[[x,y]…]   points LOCAUX qui peuvent s’ancrer,
+             poignees:[{p:[x,y], pivot:i}…]  poignée locale + ancrage pivot,
+             pointsAimant:[[x,y]…] points de la scène où s’ancrer,
+             surChangement(etat, g)}
+
+     LE MODÈLE DE ROTATION. La règle pivotait autour de son CENTRE : le
+     mauvais modèle. Pour relier deux points, on cale d’abord la règle sur
+     l’un et on tourne autour de lui ; un pivot central déplace les deux
+     extrémités à la fois et rend l’opération quasi impossible au doigt.
+     Désormais, comme pour un compas dont la pointe est plantée :
+
+       • le CORPS se translate, et une extrémité qui passe près d’un point
+         s’y ANCRE — le point s’allume, l’extrémité s’y colle ;
+       • chaque extrémité porte SA POIGNÉE, et tirer l’une fait pivoter
+         l’instrument autour de L’AUTRE. Ancrée sur un point, la règle
+         tourne donc autour de ce point ;
+       • tout point que le BORD rencontre s’allume à son tour : c’est le
+         signal que l’alignement est trouvé.
+
+     Le gabarit et l’équerre suivent le même modèle avec un seul ancrage —
+     leur coin — et une seule poignée qui pivote autour de lui. */
   let x = spec.x, y = spec.y, a = spec.angle || 0;
+  const ancrages = spec.ancrages || [[0, 0]];
+  const poignees = spec.poignees || [];
+  const points = spec.pointsAimant || [];
+
+  /* Les halos vivent dans la SCÈNE, pas dans l’instrument : ils marquent des
+     points fixes du plan, ils ne doivent ni tourner ni se déplacer avec lui. */
+  const gHalos = document.createElementNS(NS, 'g');
+  gHalos.setAttribute('class', 'halos-ancrage');
   const g = document.createElementNS(NS, 'g');
   g.setAttribute('class', 'posable');
-  const po = spec.poignee;
-  g.innerHTML = spec.corps
-    + (po ? `<circle class="poignee-halo" cx="${po[0]}" cy="${po[1]}" r="24"/>`
-          + `<circle class="poignee" cx="${po[0]}" cy="${po[1]}" r="11"/>`
-          + `<path class="poignee-fleche" d="M ${po[0]-5} ${po[1]-1.5} a 5 5 0 1 1 1.7 3.6"/>` : '');
-  svg.appendChild(g);
+  g.innerHTML = spec.corps + poignees.map((po, i) =>
+      `<circle class="poignee-halo" data-poignee="${i}" cx="${po.p[0]}" cy="${po.p[1]}" r="24"/>`
+    + `<circle class="poignee" data-poignee="${i}" cx="${po.p[0]}" cy="${po.p[1]}" r="11"/>`
+    + `<path class="poignee-fleche" data-poignee="${i}" d="M ${po.p[0]-5} ${po.p[1]-1.5} a 5 5 0 1 1 1.7 3.6"/>`
+  ).join('');
+  svg.appendChild(gHalos); svg.appendChild(g);
 
-  const etat = () => ({x, y, angle:a});
+  const etat = () => ({x, y, angle:a, ancre:ancreCourante, surBord:pointsSurBord()});
+  const versScene = (q) => [x + q[0]*Math.cos(a) - q[1]*Math.sin(a),
+                            y + q[0]*Math.sin(a) + q[1]*Math.cos(a)];
+  let ancreCourante = null;   // index du point de la scène sur lequel on est ancré
+
+  /* Les points que le BORD de l’instrument rencontre : le bord est le
+     segment qui joint ses deux ancrages (pour un gabarit, ses deux bras). */
+  function pointsSurBord(){
+    if (ancrages.length < 2) return [];
+    const A = versScene(ancrages[0]), B = versScene(ancrages[1]);
+    return points.map((p, i) => distancePointSegment(p, A, B) < 8 ? i : -1).filter(i => i >= 0);
+  }
+  function ancrer(){
+    ancreCourante = null;
+    let meilleur = null, d0 = AIMANT_PX;
+    ancrages.forEach(q => {
+      const s = versScene(q);
+      points.forEach((p, i) => {
+        const d = Math.hypot(p[0] - s[0], p[1] - s[1]);
+        if (d < d0) { d0 = d; meilleur = {dx:p[0] - s[0], dy:p[1] - s[1], i}; }
+      });
+    });
+    if (!meilleur) return false;
+    x += meilleur.dx; y += meilleur.dy; ancreCourante = meilleur.i;
+    return true;
+  }
+  function dessinerHalos(){
+    const bord = pointsSurBord();
+    gHalos.innerHTML = points.map((p, i) => {
+      const cl = i === ancreCourante ? 'halo-ancre' : (bord.indexOf(i) >= 0 ? 'halo-bord' : null);
+      return cl ? `<circle class="${cl}" cx="${p[0]}" cy="${p[1]}" r="13"/>` : '';
+    }).join('');
+  }
   function appliquer(){
     g.setAttribute('transform', `translate(${x.toFixed(2)},${y.toFixed(2)}) rotate(${degres(a).toFixed(2)})`);
+    g.classList.toggle('aimante', ancreCourante !== null);
+    dessinerHalos();
     /* Le groupe est passé en second : `appliquer()` s’exécute une première
        fois AVANT que l’appelant n’ait pu ranger le posable dans
        `posableCourant`, qui vaut alors encore null. */
     if (spec.surChangement) spec.surChangement(etat(), g);
-  }
-  /* Aimantation de POSITION seulement : on rapproche l’origine de
-     l’instrument d’un point remarquable. L’angle, lui, n’est jamais
-     accroché — accrocher un angle reviendrait à trancher l’alignement à la
-     place de l’enfant, c’est-à-dire à répondre pour lui. */
-  function aimanter(){
-    if (!spec.pointsAimant) return false;
-    let meilleur = null, d0 = AIMANT_PX;
-    spec.pointsAimant.forEach(p => {
-      const d = Math.hypot(p[0] - x, p[1] - y);
-      if (d < d0) { d0 = d; meilleur = p; }
-    });
-    if (meilleur) { x = meilleur[0]; y = meilleur[1]; return true; }
-    return false;
   }
 
   let mode = null, depart = null;
   const surDown = (e) => {
     if (g.dataset.verrouille === '1') return;
     const p = versSVG(svg, e.clientX, e.clientY);
-    const surPoignee = /^poignee/.test(e.target.getAttribute('class') || '');
-    mode = surPoignee ? 'rot' : 'trans';
-    depart = mode === 'trans'
-      ? {dx: p.x - x, dy: p.y - y}
-      : {a0: a, ang0: Math.atan2(p.y - y, p.x - x)};
+    const cl = e.target.getAttribute('class') || '';
+    const idx = /^poignee/.test(cl) ? +e.target.dataset.poignee : -1;
+    if (idx >= 0) {
+      /* Rotation AUTOUR DE L’AUTRE EXTRÉMITÉ : c’est elle le pivot, et si
+         elle est ancrée sur un point, la règle tourne autour du point. */
+      const po = poignees[idx];
+      const local = ancrages[po.pivot] || [0, 0];
+      const pivot = versScene(local);
+      mode = 'rot';
+      depart = {pivot, local,
+        ecart: a - Math.atan2(p.y - pivot[1], p.x - pivot[0])};
+    } else {
+      mode = 'trans';
+      depart = {dx: p.x - x, dy: p.y - y};
+    }
     try { g.setPointerCapture(e.pointerId); } catch (err) {}
     g.classList.add('saisi');
     e.preventDefault();
@@ -832,12 +896,27 @@ function creerPosable(svg, spec){
   const surMove = (e) => {
     if (!mode) return;
     const p = versSVG(svg, e.clientX, e.clientY);
-    if (mode === 'trans') { x = p.x - depart.dx; y = p.y - depart.dy; g.classList.toggle('aimante', aimanter()); }
-    else a = depart.a0 + (Math.atan2(p.y - y, p.x - x) - depart.ang0);
+    if (mode === 'trans') { x = p.x - depart.dx; y = p.y - depart.dy; ancrer(); }
+    else {
+      a = depart.ecart + Math.atan2(p.y - depart.pivot[1], p.x - depart.pivot[0]);
+      /* On recale l’origine pour que le pivot ne bouge pas d’un pixel. */
+      const q = depart.local;
+      x = depart.pivot[0] - (q[0]*Math.cos(a) - q[1]*Math.sin(a));
+      y = depart.pivot[1] - (q[0]*Math.sin(a) + q[1]*Math.cos(a));
+    }
     appliquer();
     e.preventDefault();
   };
   const surUp = (e) => {
+    /* Un appui SANS déplacement sur le corps est un TOUCHER, pas un
+       déplacement : c’est ainsi qu’on appuie sur le bord de la règle pour
+       y poser un point. Relâcher l’instrument, en revanche, ne vaut jamais
+       réponse. */
+    if (mode === 'trans' && spec.surTap && depart) {
+      const p = versSVG(svg, e.clientX, e.clientY);
+      const bouge = Math.hypot(p.x - x - depart.dx, p.y - y - depart.dy);
+      if (bouge < 6) spec.surTap([p.x, p.y], etat());
+    }
     mode = null; g.classList.remove('saisi');
     try { g.releasePointerCapture(e.pointerId); } catch (err) {}
   };
@@ -849,6 +928,9 @@ function creerPosable(svg, spec){
   appliquer();
   return {
     g, etat,
+    /* Les points de la scène actuellement allumés : ancrage et bord. */
+    ancre(){ return ancreCourante; },
+    surBord(){ return pointsSurBord(); },
     verrouiller(){ g.dataset.verrouille = '1'; g.style.cursor = 'default'; },
     /* Révélation différée (§18) : l’instrument rejoint tout seul la position
        exacte, pour montrer ce qu’il fallait voir. */
@@ -857,8 +939,20 @@ function creerPosable(svg, spec){
       x = nx; y = ny; a = na;
       g.style.transition = 'none';
       appliquer();
-    }
+    },
+    detruire(){ gHalos.remove(); g.remove(); }
   };
+}
+
+/* Distance d’un point au SEGMENT, et non à la droite : au-delà de ses
+   extrémités, la règle ne couvre plus rien. */
+function distancePointSegment(p, a, b){
+  const dx = b[0] - a[0], dy = b[1] - a[1];
+  const L2 = dx*dx + dy*dy;
+  if (L2 < 1e-9) return Math.hypot(p[0]-a[0], p[1]-a[1]);
+  let t = ((p[0]-a[0])*dx + (p[1]-a[1])*dy) / L2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(p[0] - (a[0] + dx*t), p[1] - (a[1] + dy*t));
 }
 
 /* ---- Habillages des trois instruments (géométrie locale) ----
@@ -873,7 +967,10 @@ function creerPosable(svg, spec){
 const REGLE = (L) => ({
   corps: `<rect class="corps" x="${-L/2}" y="0" width="${L}" height="30" rx="4"/>`
        + `<line class="bord" x1="${-L/2}" y1="0" x2="${L/2}" y2="0"/>`,
-  poignee: [L/2 - 34, 46]
+  /* DEUX ancrages, DEUX poignées : chaque extrémité peut se planter sur un
+     point, et tirer une poignée fait pivoter autour de l’autre extrémité. */
+  ancrages: [[-L/2, 0], [L/2, 0]],
+  poignees: [{p:[-L/2 + 30, 46], pivot:1}, {p:[L/2 - 30, 46], pivot:0}]
 });
 /* Le gabarit : un coin de carton, pas une équerre complète. On le pose dans
    le sommet ; le côté de la figure tombe visiblement dedans ou dehors. */
@@ -881,14 +978,17 @@ const GABARIT = (L) => ({
   corps: `<path class="corps" d="M 0 0 L ${L} 0 L ${L} ${L*0.34} L ${L*0.34} ${L*0.34} L ${L*0.34} ${L} L 0 ${L} Z"/>`
        + `<line class="bord" x1="0" y1="0" x2="${L}" y2="0"/>`
        + `<line class="bord" x1="0" y1="0" x2="0" y2="${L}"/>`,
-  poignee: [L*0.80, L*0.17]
+  /* Le gabarit s’ancre par son COIN sur le sommet, puis pivote autour de lui. */
+  ancrages: [[0, 0], [L, 0]],
+  poignees: [{p:[L*0.80, L*0.17], pivot:0}]
 });
 /* L’équerre : même objet posable, habillage d’outil réel (CE2). */
 const EQUERRE = (L) => ({
   corps: `<path class="corps" d="M 0 0 L ${L} 0 L 0 ${L} Z"/>`
        + `<line class="bord" x1="0" y1="0" x2="${L}" y2="0"/>`
        + `<line class="bord" x1="0" y1="0" x2="0" y2="${L}"/>`,
-  poignee: [L*0.36, L*0.36]
+  ancrages: [[0, 0], [L, 0]],
+  poignees: [{p:[L*0.36, L*0.36], pivot:0}]
 });
 
 /* ============================================================
@@ -1129,6 +1229,45 @@ function itemAlignement(evident, penteMax){
           requiert: !evident};
 }
 
+/* L’ÉTABLI : quatre pointes, trois sur une même droite et une seule à
+   l’écart. C’est ce qui rend l’intruse unique — avec trois pointes dont une
+   dévie, les trois sont non alignées entre elles et n’importe laquelle peut
+   passer pour l’intruse. Le jugement « sont-elles alignées ? » n’a pas
+   cette exigence : trois y suffisent. */
+function itemEtabli(){
+  const ya = entre(80, 200);
+  const yb = Math.max(80, Math.min(200, ya + entre(-26, 26)));
+  const A = [46, ya], B = [354, yb];
+  const dx = B[0]-A[0], dy = B[1]-A[1], L = Math.hypot(dx, dy);
+  const nx = -dy/L, ny = dx/L;
+  const sur = (t) => [A[0] + dx*t, A[1] + dy*t];
+  /* Quatre emplacements le long de la rangée, un seul dévié. */
+  const ts = [0.06, 0.36, 0.66, 0.96];
+  const k = Math.floor(Math.random() * 4);
+  const ecart = entre(...ECART_EVIDENT) * signeAleatoire();
+  const points = ts.map((t, i) => {
+    const p = sur(t);
+    return i === k ? [p[0] + nx*ecart, p[1] + ny*ecart] : p;
+  });
+  const an = analyseEtabli(points);
+  return {points, fautive:an.fautive, ecart:an.ecart, aligne:false, evident:true};
+}
+
+/* Quelle pointe sort du rang, et de combien ? On CALCULE : pour chaque
+   pointe, on trace la droite des trois autres et on mesure sa distance.
+   Prendre au hasard deux points comme référence ne marche pas — l’un d’eux
+   peut être justement l’intruse. */
+function analyseEtabli(points){
+  let fautive = -1, ecart = -1, resteAligne = false;
+  points.forEach((p, i) => {
+    const autres = points.filter((_, j) => j !== i);
+    const d = Math.abs(ecartDroite(p, autres[0], autres[autres.length - 1]));
+    const plat = autres.every(q => Math.abs(ecartDroite(q, autres[0], autres[autres.length - 1])) < 1);
+    if (plat && d > ecart) { ecart = d; fautive = i; resteAligne = true; }
+  });
+  return {fautive, ecart, resteAligne};
+}
+
 function itemAngle(douteux){
   const sommet = [entre(150, 250), entre(170, 215)];
   const base = entre(0, TAU);
@@ -1356,7 +1495,118 @@ function ouvrirPaquet(pid, cible, paquet, gb){
 }
 
 /* ---------- Construction des files ---------- */
-function construireFile(cfg){
+/* ============================================================
+   VALIDATION PARTAGÉE DES ITEMS
+   ------------------------------------------------------------
+   Le même dispositif qu’en M34, généralisé ici : il n’avait pas été porté,
+   et le défaut est revenu sous une autre forme — trois pointes dont une
+   dévie ne désignent pas d’intruse unique, les trois sont non alignées
+   entre elles. Deux invariants, vérifiés sur la FIGURE réellement
+   engendrée :
+     1. la réponse attendue est UNIQUE, ou l’ensemble complet des réponses
+        acceptables est déclaré ;
+     2. rien de ce qui est annoncé ne contredit ce qui est dessiné.
+   Chaque item passe ici à la génération, et un auto-test en engendre des
+   centaines par mini-jeu.
+   ============================================================ */
+const VALIDATEURS = {
+  etabli(q){
+    const pb = [];
+    if (q.points.length !== 4) pb.push('la désignation exige quatre pointes, pas ' + q.points.length);
+    const an = analyseEtabli(q.points);
+    if (!an.resteAligne) pb.push('aucune pointe ne laisse les trois autres alignées : l’intruse n’est pas unique');
+    if (an.fautive !== q.fautive) pb.push('la pointe annoncée fautive n’est pas celle qui sort du rang');
+    if (an.ecart < ECART_EVIDENT[0] - 1)
+      pb.push('l’écart n’est pas visible à l’œil, alors qu’aucun instrument n’est offert');
+    return pb;
+  },
+  alignement(q){
+    const pb = [];
+    const [a, c, b] = q.points;
+    const d = Math.abs(ecartDroite(c, a, b));
+    if (q.aligne && d > 0.5) pb.push('annoncé aligné, mais l’écart vaut ' + d.toFixed(1));
+    if (!q.aligne && d < 1) pb.push('annoncé non aligné, mais les points le sont');
+    if (q.requiert !== !q.evident) pb.push('l’exigence d’instrument ne suit pas l’évidence du cas');
+    if (q.evident && d < ECART_EVIDENT[0] - 1) pb.push('cas dit évident dont l’écart ne se voit pas');
+    return pb;
+  },
+  tracer(q){ return []; },
+  angles(q){
+    const pb = [];
+    const vrai = angleEn(q.sommet, q.a, q.b);
+    const attendu = Math.abs(vrai - 90) <= TOL_ANGLE_DROIT ? 'droit' : (vrai < 90 ? 'aigu' : 'obtus');
+    if (attendu !== q.reponse) pb.push('la classe annoncée ne correspond pas à l’angle dessiné');
+    return pb;
+  },
+  anglesPoly(q){
+    const pb = [];
+    q.angles.forEach((ang, i) => {
+      const e = Math.abs(ang - 90);
+      const attendu = e <= TOL_ANGLE_DROIT ? 'droit' : (ang < 90 ? 'aigu' : 'obtus');
+      if (attendu !== q.reponses[i]) pb.push('angle ' + (i+1) + ' mal étiqueté');
+      if (e < 12 && !q.douteux[i]) pb.push('angle ' + (i+1) + ' proche du droit sans être annoncé douteux');
+      if (e >= 12 && q.douteux[i]) pb.push('angle ' + (i+1) + ' franc annoncé douteux');
+    });
+    const somme = q.angles.reduce((x, y) => x + y, 0);
+    if (Math.abs(somme - 360) > 0.5) pb.push('les angles ne somment pas à 360°');
+    const nbDouteux = q.douteux.filter(Boolean).length;
+    if (nbDouteux < 1 || nbDouteux > 2) pb.push(nbDouteux + ' angles douteux : le dosage voulu est 1 ou 2');
+    return pb;
+  },
+  compasLibre(q){ return []; },
+  compasPassant(q){ return []; },
+  pliage(q){ return []; },
+  compasRayon(q){
+    const pb = [];
+    if (q.rayonCm * PX_PAR_CM > MoteurCompas.R_MAX)
+      pb.push('rayon hors de portée du compas');
+    return pb;
+  },
+  report(q){ return []; },
+  codage1(q){
+    const pb = [];
+    const n = q.pts.length;
+    q.droits.forEach(i => {
+      const ang = angleEn(q.pts[i], q.pts[(i-1+n)%n], q.pts[(i+1)%n]);
+      if (Math.abs(ang - 90) > 1) pb.push('sommet ' + i + ' annoncé droit sans l’être');
+    });
+    /* Au CE1, le programme ne prévoit QUE le code des angles droits : le
+       codage des égalités de longueur est une compétence CE2. */
+    if (q.groupes && q.groupes.length && q.mode === 'codage1' && q._tamponsEgalite)
+      pb.push('des marques d’égalité sont proposées au CE1');
+    return pb;
+  },
+  codage2(q){
+    const pb = [];
+    const n = q.pts.length;
+    const L = q.pts.map((p, i) => Math.hypot(q.pts[(i+1)%n][0]-p[0], q.pts[(i+1)%n][1]-p[1]));
+    q.droits.forEach(i => {
+      const ang = angleEn(q.pts[i], q.pts[(i-1+n)%n], q.pts[(i+1)%n]);
+      if (Math.abs(ang - 90) > 1) pb.push('sommet ' + i + ' annoncé droit sans l’être');
+    });
+    q.groupes.forEach(g => {
+      const m = L[g[0]];
+      g.forEach(i => { if (Math.abs(L[i] - m) / m > 0.02) pb.push('côtés annoncés égaux sans l’être'); });
+    });
+    const marques = new Set(q.groupes.reduce((a, b) => a.concat(b), []));
+    L.forEach((l, i) => {
+      if (marques.has(i)) return;
+      q.groupes.forEach(g => {
+        if (Math.abs(l - L[g[0]]) / L[g[0]] < 0.02) pb.push('un côté égal à un côté marqué reste sans marque');
+      });
+    });
+    return pb;
+  }
+};
+function verifierItem(q){
+  const f = VALIDATEURS[q.mode];
+  return f ? f(q) : [];
+}
+function verifierFile(f){
+  return f.map((q, i) => ({i, mode:q.mode, pb:verifierItem(q)})).filter(x => x.pb.length);
+}
+
+function engendrerFile(cfg){
   const n = cfg.nbQuestions;
   if (cfg.mode === 'alignement') {
     const nEtabli = cfg.etabli || 0;
@@ -1379,8 +1629,13 @@ function construireFile(cfg){
        donnait tantôt un écart de 2 px, indécidable, tantôt trois pointes
        réellement alignées — et la consigne « une pointe n’est pas dans le
        rang » désignait alors une pointe qui l’était. */
+    /* QUATRE pointes, pas trois. Avec trois pointes dont une dévie, les
+       trois sont « non alignées » entre elles et n’importe laquelle peut
+       passer pour l’intruse : l’item n’a pas de réponse unique. Trois
+       alignées et une seule à l’écart, et l’intruse le devient. Le jugement
+       « sont-elles alignées ? » n’a pas cette exigence : trois y suffisent. */
     const etabli = Array.from({length: nEtabli}, () =>
-      Object.assign(itemAlignement(true, 26), {mode:'etabli', note:true, requiert:false}));
+      Object.assign(itemEtabli(), {mode:'etabli', note:true, requiert:false}));
     return etabli.concat(items);
   }
   if (cfg.mode === 'tracer')
@@ -1416,6 +1671,18 @@ function construireFile(cfg){
   return ['carre','rectangle','losange','triangleRect','isocele']
     .map(t => Object.assign(figureCodage(t), {mode:'codage2', note:true}));
 }
+/* Aucune partie ne démarre sur un item que la validation refuse. En
+   pratique les fabriques sont écrites pour ne pas en produire ; ce filet
+   existe pour qu’un scénario ajouté demain ne réintroduise pas en silence
+   un item mal posé. */
+function construireFile(cfg){
+  let f = engendrerFile(cfg);
+  for (let essai = 0; essai < 25 && verifierFile(f).length; essai++) f = engendrerFile(cfg);
+  const restants = verifierFile(f);
+  if (restants.length) console.warn('M35 : items non conformes', restants);
+  return f;
+}
+
 function pointsManche(q){ return q.note === false ? 0 : PTS_PLEIN; }
 
 /* ---------- Lancement ---------- */
@@ -1533,7 +1800,10 @@ function rendreEtabli(q){
   poserConsigne('Une pointe n’est pas dans le rang. Touche-la !');
   $('sousConsigne').textContent = 'Le verrier plante des pointes pour caler le verre : si l’une dévie, la pièce coince.';
   const pts = q.points;
-  const fautive = 1;   // itemAlignement place toujours le point dévié au milieu
+  /* L’indice de la pointe déviée est CALCULÉ par la fabrique sur les points
+     réellement produits — il n’est plus supposé d’après l’ordre de
+     construction, qui n’a aucune raison d’être stable. */
+  const fautive = q.fautive;
   const sol = `<rect x="0" y="132" width="400" height="168" fill="var(--bois)"/>`
     + `<rect x="0" y="132" width="400" height="7" fill="var(--bois-f)"/>`;
   /* Le plateau est vu de biais : l’écart PERPENDICULAIRE à la rangée se
@@ -1587,10 +1857,10 @@ function rendreAlignement(q){
     ...REGLE(330),
     pointsAimant: q.points,
     surChangement: (e) => {
-      /* L’instrument est réputé POSÉ dès que son bord passe assez près de
-         deux des trois points : c’est le geste réel de vérification. */
-      const proches = q.points.filter(p => distancePointDroite(p, [e.x, e.y], e.angle) < 9).length;
-      if (proches >= 2) q._instrumentPose = true;
+      /* L’instrument est réputé POSÉ dès que son bord rencontre deux des
+         trois points — et c’est le posable lui-même qui le dit désormais,
+         puisque c’est lui qui allume les points rencontrés. */
+      if (e.surBord.length >= 2) q._instrumentPose = true;
     }
   });
   rendreQcm(['Alignés', 'Pas alignés'], q.aligne ? 'Alignés' : 'Pas alignés', (bon) => {
@@ -1620,28 +1890,42 @@ function rendreAlignement(q){
 /* CE1 : placer un point pour qu’il soit aligné avec deux autres. */
 function rendrePlacer(q){
   poserConsigne('Place la troisième pointe entre les deux autres, dans leur alignement.');
-  $('sousConsigne').textContent = 'Touche le plan à l’endroit voulu. La règle t’aide à viser.';
+  /* DEUX TEMPS DISTINCTS. La pointe se posait au RELÂCHEMENT de la règle :
+     l’enfant n’avait pas la main, et le simple fait de lâcher l’instrument
+     valait réponse. On cale d’abord, puis on appuie sur le bord — et
+     relâcher l’instrument ne fait jamais rien. */
+  $('sousConsigne').textContent = 'D’abord cale la règle sur les deux pointes. Ensuite, appuie sur son bord à l’endroit voulu.';
   const a = q.points[0], b = q.points[2];
-  poserScene(croix(a) + croix(b) + `<rect id="zoneClic" x="0" y="0" width="400" height="300" fill="transparent"/>`);
+  poserScene(croix(a) + croix(b));
   const svg = scene();
   posableCourant = creerPosable(svg, {
     x: milieu(a, b)[0], y: milieu(a, b)[1] + 58, angle: entre(-0.25, 0.25),
     ...REGLE(330), pointsAimant:[a, b],
-    surChangement:(e) => { if (distancePointDroite(a, [e.x,e.y], e.angle) < 9 && distancePointDroite(b, [e.x,e.y], e.angle) < 9) q._instrumentPose = true; }
-  });
-  svg.querySelector('#zoneClic').addEventListener('click', (ev) => {
-    if (verrouille) return;
-    verrouille = true;
-    const p = versSVG(svg, ev.clientX, ev.clientY);
-    const ecart = Math.abs(ecartDroite([p.x, p.y], a, b));
-    const dedans = p.x > Math.min(a[0],b[0]) - 20 && p.x < Math.max(a[0],b[0]) + 20;
-    const bon = ecart <= 6 && dedans;
-    posableCourant.verrouiller();
-    svg.insertAdjacentHTML('beforeend', croix([p.x, p.y], bon ? 'trace-fait' : 'point-croix'));
-    if (!bon) svg.insertAdjacentHTML('beforeend',
-      `<line class="trace-fait" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke-dasharray="7 6"/>`);
-    terminerManche(bon, bon ? PTS_PLEIN : 0, bon ? 'Pile dans l’alignement !' : null,
-      bon ? null : 'Le point devait tomber sur la ligne verte.');
+    surChangement:(e) => {
+      if (e.surBord.length >= 2) {
+        q._instrumentPose = true;
+        $('sousConsigne').textContent = 'La règle est calée : appuie maintenant sur son bord, entre les deux pointes.';
+      }
+    },
+    /* Le toucher ne compte QUE sur une règle calée sur les deux pointes :
+       sinon on placerait un point d’après une règle posée n’importe où. */
+    surTap:(p) => {
+      if (verrouille) return;
+      if (!q._instrumentPose) {
+        $('sousConsigne').textContent = 'Cale d’abord la règle sur les deux pointes.';
+        return;
+      }
+      verrouille = true;
+      const ecart = Math.abs(ecartDroite(p, a, b));
+      const dedans = p[0] > Math.min(a[0],b[0]) - 20 && p[0] < Math.max(a[0],b[0]) + 20;
+      const bon = ecart <= 8 && dedans;
+      posableCourant.verrouiller();
+      svg.insertAdjacentHTML('beforeend', croix(p, bon ? 'trace-fait' : 'point-croix'));
+      if (!bon) svg.insertAdjacentHTML('beforeend',
+        `<line class="trace-fait" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke-dasharray="7 6"/>`);
+      terminerManche(bon, bon ? PTS_PLEIN : 0, bon ? 'Pile dans l’alignement !' : null,
+        bon ? null : 'La pointe devait tomber sur la ligne verte, entre les deux autres.');
+    }
   });
 }
 
@@ -1649,8 +1933,11 @@ function rendrePlacer(q){
    CP — tracer une droite par deux points (seule production admise)
    ============================================================ */
 function rendreTracer(q){
-  poserConsigne('Pose la règle sur les deux points, puis touche-la pour tracer le plomb.');
-  $('sousConsigne').textContent = 'Le trait doit passer exactement par les deux points.';
+  /* « Tracer le plomb » ne veut rien dire pour un enfant de six ans, et le
+     programme emploie justement les mots justes : « tracer une droite
+     passant par deux points ». */
+  poserConsigne('Trace une droite qui passe par ces deux points.');
+  $('sousConsigne').textContent = 'Cale la règle sur les deux points, puis appuie sur son bord.';
   let a, b;
   if (q.orientation === 'horizontale') { const y = entre(110, 190); a = [70, y]; b = [330, y]; }
   else if (q.orientation === 'verticale') { const x = entre(140, 260); a = [x, 50]; b = [x, 250]; }
@@ -1661,35 +1948,45 @@ function rendreTracer(q){
   const c = milieu(a, b);
   posableCourant = creerPosable(svg, {
     x:c[0], y:c[1] + 60, angle:entre(-0.3, 0.3), ...REGLE(330), pointsAimant:[a, b],
-    surChangement:(e, g) => {
-      const ok = distancePointDroite(a, [e.x,e.y], e.angle) < 8 && distancePointDroite(b, [e.x,e.y], e.angle) < 8;
+    surChangement:(e) => {
+      const ok = e.surBord.length >= 2;
       q._alignee = ok; q._instrumentPose = q._instrumentPose || ok;
-      g.classList.toggle('aimante', ok);
-    }
+    },
+    /* On appuie sur le bord pour tracer : plus de bouton, et relâcher la
+       règle ne trace rien. */
+    surTap:() => { if (!verrouille) tracerLaDroite(); }
   });
-  $('btnValider').style.display = 'block';
-  $('btnValider').textContent = 'Tracer ✎';
-  $('btnValider').onclick = () => {
+  const tracerLaDroite = () => {
     if (verrouille) return;
     verrouille = true;
-    $('btnValider').style.display = 'none';
     posableCourant.verrouiller();
     const bon = !!q._alignee;
-    if (bon) svg.insertAdjacentHTML('beforeend',
-      `<line class="trace-fait" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"/>`);
+    if (bon) svg.insertAdjacentHTML('beforeend', droiteSvg(a, b, 'trace-fait'));
     else {
       clearTimeout(minuteurRevel);
       minuteurRevel = setTimeout(() => {
         if (!posableCourant || !posableCourant.g.isConnected) return;
         const m = milieu(a, b);
         posableCourant.placerExact(m[0], m[1], Math.atan2(b[1]-a[1], b[0]-a[0]));
-        if (svg.isConnected) svg.insertAdjacentHTML('beforeend',
-          `<line class="trace-fait" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke-dasharray="7 6"/>`);
+        if (svg.isConnected) svg.insertAdjacentHTML('beforeend', droiteSvg(a, b, 'trace-fait', '7 6'));
       }, DELAI_REVELATION);
     }
-    terminerManche(bon, bon ? PTS_PLEIN : 0, bon ? 'Beau trait de plomb !' : null,
+    terminerManche(bon, bon ? PTS_PLEIN : 0, bon ? 'Belle droite !' : null,
       bon ? null : 'La règle devait passer par les deux points — regarde.');
   };
+}
+
+/* Une DROITE, pas un segment : le trait DÉPASSE des deux points, de chaque
+   côté. C’est le mot du programme au CP, et la distinction se construit
+   ici, visuellement. */
+function droiteSvg(a, b, classe, tirets){
+  const dx = b[0]-a[0], dy = b[1]-a[1], L = Math.hypot(dx, dy) || 1;
+  const e = 46;                       // débord de part et d’autre
+  const p1 = [a[0] - dx/L*e, a[1] - dy/L*e];
+  const p2 = [b[0] + dx/L*e, b[1] + dy/L*e];
+  return `<line class="${classe}" x1="${p1[0].toFixed(1)}" y1="${p1[1].toFixed(1)}"`
+    + ` x2="${p2[0].toFixed(1)}" y2="${p2[1].toFixed(1)}"`
+    + (tirets ? ` stroke-dasharray="${tirets}"` : '') + `/>`;
 }
 
 /* ============================================================
@@ -1698,9 +1995,11 @@ function rendreTracer(q){
 function rendreAngles(q){
   const outil = q.outil || 'gabarit';
   poserConsigne('Cet angle est-il droit, aigu ou obtus ?');
+  /* Le bouton de rotation n’est pas découvrable seul : la consigne décrit
+     les deux temps du geste. */
   $('sousConsigne').textContent = outil === 'gabarit'
-    ? 'Pose le coin du gabarit dans le sommet : le côté tombe dedans ou dehors.'
-    : 'Même geste, avec l’équerre de l’atelier.';
+    ? 'Cale le coin du gabarit sur le coin de la figure, puis tire le bouton orange pour le faire pivoter.'
+    : 'Même geste avec l’équerre : cale son coin, puis tire le bouton orange.';
   /* Le plan gagne une BANDE DE RANGEMENT sous la figure : l’instrument y
      attend entièrement visible. Garé à côté du sommet, il débordait du
      plan et se présentait tronqué. */
@@ -1716,9 +2015,10 @@ function rendreAngles(q){
     ...(outil === 'gabarit' ? GABARIT(90) : EQUERRE(92)),
     pointsAimant:[q.sommet],
     surChangement:(e) => {
-      /* Le gabarit est réputé posé quand son coin est logé dans le sommet
-         et qu’un de ses bords longe l’un des côtés. */
-      if (Math.hypot(e.x - q.sommet[0], e.y - q.sommet[1]) < 16) q._instrumentPose = true;
+      /* Le gabarit est réputé posé quand son COIN s’est ancré sur le
+         sommet : c’est l’ancrage lui-même qui le dit, et c’est autour de ce
+         point que l’instrument pivote ensuite. */
+      if (e.ancre !== null) q._instrumentPose = true;
     }
   });
   rendreQcm(['droit','aigu','obtus'], q.reponse, (bon) => {
@@ -1755,7 +2055,7 @@ function rendreAnglesPoly(q){
   const s = q.pts[i];
   posableCourant = creerPosable(svg, {
     x:54, y:258, angle:entre(-0.3, 0.3), ...EQUERRE(88), pointsAimant:[s],
-    surChangement:(e) => { if (Math.hypot(e.x - s[0], e.y - s[1]) < 16) q._instrumentPose = true; }
+    surChangement:(e) => { if (e.ancre !== null) q._instrumentPose = true; }
   });
   rendreQcm(['droit','aigu','obtus'], q.reponses[i], (bon) => {
     posableCourant.verrouiller();
