@@ -629,9 +629,29 @@
 
   /* ---------- Vue : accueil / index des jeux (enfant) ---------- */
 
+  /*
+   * ORDRE DU PROGRAMME. Les modules sont présentés dans l’ordre du BO —
+   * domaines, puis sous-thèmes, puis progression interne — et non dans
+   * l’ordre où ils ont été écrits. C’est la règle la plus simple et la plus
+   * stable : elle évite de rejustifier une place à chaque ajout de module, et
+   * elle fait s’enchaîner ce qui doit s’enchaîner (nommer → vérifier →
+   * construire, pour les trois ateliers de géométrie plane). Voir PRODUIT.md.
+   *
+   * `rangProgramme` n’est pas saisi à la main : il est CALCULÉ depuis
+   * `pilotage/backlog.json`, qui porte déjà cet ordre, par
+   * `outils/ordre-programme.js` — dont `--verifie` échoue si le référentiel a
+   * dérivé du pilotage. Un module sans rang passe en fin de liste plutôt que
+   * de casser le tri.
+   */
+  function ordreProgramme(a, b) {
+    const ra = typeof a.rangProgramme === 'number' ? a.rangProgramme : Infinity;
+    const rb = typeof b.rangProgramme === 'number' ? b.rangProgramme : Infinity;
+    return ra !== rb ? ra - rb : String(a.id).localeCompare(String(b.id));
+  }
+
   function modulesFiltres(niveauxSelectionnes, domainesSelectionnes) {
     const recherche = normaliser(etat.recherche.trim());
-    return (referentiel.modules || []).filter((m) => {
+    return (referentiel.modules || []).slice().sort(ordreProgramme).filter((m) => {
       // Entrées de BACKLOG (module planifié, sans fichier de jeu) : présentes
       // dans le référentiel pour le pilotage, jamais proposées à l’enfant —
       // une carte sans jeu associé ne mènerait nulle part.

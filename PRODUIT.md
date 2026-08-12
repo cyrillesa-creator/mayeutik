@@ -86,3 +86,17 @@ La charte actuelle ([`CHARTE.md`](./CHARTE.md)) reste la référence visuelle et
 L'effort de design produit se concentre sur la **coquille** (écran d'accueil, index, tableau de bord parental), avec un **ton délibérément différencié** selon le public :
 - **côté enfant** : ludique, coloré, dans l'esprit de la charte des jeux ;
 - **côté parent** : sobre et informatif, pensé pour une lecture rapide et rassurante du tableau de bord.
+
+---
+
+## Ordre des modules à l'écran d'accueil
+
+Les modules d'un niveau sont présentés **dans l'ordre du programme** : domaines dans l'ordre du BO, puis sous-thèmes, puis progression interne au sous-thème.
+
+C'est la règle la plus simple, la plus stable et la plus défendable. Elle évite d'avoir à rejustifier une place à chaque ajout de module, et elle fait s'enchaîner ce qui doit s'enchaîner — les trois ateliers de géométrie plane se suivent : **M34 nommer → M35 vérifier → M38 construire**.
+
+**Point de vigilance** : l'ordre du programme n'est pas toujours l'ordre des prérequis. Ici il l'est. Si un conflit apparaît, **le prérequis prime**, et l'exception est documentée ici.
+
+**L'ordre n'est pas saisi à la main.** `pilotage/backlog.json` porte déjà cet ordre — il est issu du fichier de pilotage et groupe ses 41 entrées par domaine puis par sous-thème. Le recopier dans le référentiel reviendrait à maintenir deux vérités qui divergeraient. `outils/ordre-programme.js` le **calcule** et inscrit un `rangProgramme` dans `data/referentiel.json` ; `node outils/ordre-programme.js --verifie` échoue si le référentiel a dérivé du pilotage. Un module ajouté au pilotage prend donc sa place tout seul.
+
+Un module absent du pilotage est rangé **en fin de son domaine**, et non en fin de liste : un module de calcul relégué derrière la gestion de données pour une raison d'intendance se lirait comme une erreur à l'écran.
