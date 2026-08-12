@@ -988,6 +988,35 @@ function creerPosable(svg, spec){
     const t = (possible && hi >= lo && hi >= 0) ? Math.min(hi, 1) : 1;
     return [q0[0] + (po.p[0] - q0[0]) * t, q0[1] + (po.p[1] - q0[1]) * t];
   }
+  /* AIMANTATION EN DEUX TEMPS (B4). Le coin s’ancre d’abord sur le sommet ;
+     ENSUITE, pendant la rotation, le bord de l’instrument se cale sur l’un ou
+     l’autre des côtés de la figure. Deux gestes distincts, dans cet ordre —
+     c’est ce que décrit la consigne, et c’était le seul des deux qui manquait.
+
+     CE QUI EST AIMANTÉ, ET CE QUI NE L’EST SURTOUT PAS. Seul le bord de
+     RÉFÉRENCE de l’instrument — celui qui joint ses deux ancrages — se cale,
+     et seulement sur les côtés RÉELS de la figure. Le second bras, lui, n’est
+     jamais aidé : c’est l’écart entre lui et l’autre côté qui EST la réponse.
+     Le caler reviendrait à répondre à la place de l’enfant. L’aimant aide donc
+     à poser, jamais à conclure — et par construction, pas par réglage.
+
+     La règle, elle, ne reçoit jamais de directions : accrocher son angle
+     trancherait l’alignement à sa place (même raison, cf. A1). C’est pour cela
+     que `directionsAimant` est fourni par l’appelant et non déduit ici. */
+  const directions = spec.directionsAimant || [];
+  const AIMANT_ANGLE = radians(5);   // à recalibrer sur appareil : aider, pas conclure
+  function aimanterAngle(ang){
+    if (!directions.length) return ang;
+    let meilleur = ang, e0 = AIMANT_ANGLE;
+    directions.forEach(d => {
+      /* Écart ramené dans ]−π, π] : à 359° d’un côté et 1° de l’autre, on est
+         à 2° l’un de l’autre, pas à 358°. */
+      const e = Math.abs(Math.atan2(Math.sin(d - ang), Math.cos(d - ang)));
+      if (e < e0) { e0 = e; meilleur = d; }
+    });
+    return meilleur;
+  }
+
   function ancrer(){
     ancreCourante = null;
     let meilleur = null, d0 = AIMANT_PX;
@@ -1052,6 +1081,9 @@ function creerPosable(svg, spec){
     if (mode === 'trans') { x = p.x - depart.dx; y = p.y - depart.dy; ancrer(); }
     else {
       a = depart.ecart + Math.atan2(p.y - depart.pivot[1], p.x - depart.pivot[0]);
+      /* Second temps : le bord se cale, mais SEULEMENT une fois le coin planté
+         — hors ancrage, l’instrument tourne librement. */
+      if (ancreCourante !== null) a = aimanterAngle(a);
       /* On recale l’origine pour que le pivot ne bouge pas d’un pixel. */
       const q = depart.local;
       x = depart.pivot[0] - (q[0]*Math.cos(a) - q[1]*Math.sin(a));
@@ -2238,6 +2270,9 @@ function rendreAngles(q){
     x:54, y:258, angle:entre(-0.4, 0.4),
     ...(outil === 'gabarit' ? GABARIT(90) : EQUERRE(92)),
     pointsAimant:[q.sommet],
+    /* B4 : les deux côtés issus du sommet, lus sur la figure dessinée. */
+    directionsAimant:[Math.atan2(q.a[1]-q.sommet[1], q.a[0]-q.sommet[0]),
+                      Math.atan2(q.b[1]-q.sommet[1], q.b[0]-q.sommet[0])],
     surChangement:(e) => {
       /* Le gabarit est réputé posé quand son COIN s’est ancré sur le
          sommet : c’est l’ancrage lui-même qui le dit, et c’est autour de ce
@@ -2277,8 +2312,12 @@ function rendreAnglesPoly(q){
     '0 0 400 370');
   const svg = scene();
   const s = q.pts[i];
+  const n = q.pts.length;
+  const voisins = [q.pts[(i-1+n)%n], q.pts[(i+1)%n]];
   posableCourant = creerPosable(svg, {
     x:54, y:258, angle:entre(-0.3, 0.3), ...EQUERRE(88), pointsAimant:[s],
+    /* B4 : les deux côtés du polygone qui partent du sommet examiné. */
+    directionsAimant:[voisins[0], voisins[1]].map(v => Math.atan2(v[1]-s[1], v[0]-s[0])),
     surChangement:(e) => { if (e.ancre !== null) q._instrumentPose = true; }
   });
   rendreQcm(['droit','aigu','obtus'], q.reponses[i], (bon) => {
