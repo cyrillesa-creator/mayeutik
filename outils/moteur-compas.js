@@ -99,15 +99,6 @@ const MoteurCompas = (function(){
     document.head.appendChild(s);
   }
 
-  function versSVG(svg, clientX, clientY){
-    const pt = svg.createSVGPoint();
-    pt.x = clientX; pt.y = clientY;
-    const m = svg.getScreenCTM();
-    if (!m) return [clientX, clientY];
-    const q = pt.matrixTransform(m.inverse());
-    return [q.x, q.y];
-  }
-
   /* ------------------------------------------------------------------
      creerCompas(svg, spec)
        spec.zone         {x0,y0,x1,y1} où la pointe peut se planter
@@ -136,6 +127,25 @@ const MoteurCompas = (function(){
     const gApercu = document.createElementNS(NS, 'g');  // rayon pointillé, étiquette
     svg.appendChild(gTrace); svg.appendChild(gApercu); svg.appendChild(g);
     svg.classList.add('compas-zone');
+
+    /* LA CONVERSION ÉCRAN → SVG, UNE FOIS PAR GESTE. `getScreenCTM()` lit la
+       géométrie de la page, que le dessin précédent vient d’invalider : appelée
+       à chaque `pointermove`, elle imposait un recalcul de mise en page forcé
+       par mouvement, écriture / lecture / écriture — le motif qui fait traîner
+       un glissement. La matrice ne peut pas bouger pendant le geste : le doigt
+       est capturé et la zone est en `touch-action:none`, donc rien ne défile ni
+       ne se redimensionne. On la lit donc au `pointerdown` et on garde son
+       inverse. */
+    const ptSVG = svg.createSVGPoint();
+    let inv = null;
+    function relireRepere(){ const m = svg.getScreenCTM(); inv = m ? m.inverse() : null; }
+    function versSVG(clientX, clientY){
+      if (!inv) relireRepere();
+      if (!inv) return [clientX, clientY];
+      ptSVG.x = clientX; ptSVG.y = clientY;
+      const q = ptSVG.matrixTransform(inv);
+      return [q.x, q.y];
+    }
 
     let centre = null, r = 0, angleMine = 0;
     let verrouille = false, phase = 'repos', cote = null, anim = null, detruit = false;
@@ -169,50 +179,104 @@ const MoteurCompas = (function(){
     const positionMine = () => centre
       ? [centre[0] + Math.cos(angleMine) * r, centre[1] + Math.sin(angleMine) * r] : null;
 
+    /* --- Les nœuds du compas, créés UNE SEULE FOIS ------------------------
+       Réécrire `innerHTML` à chaque `pointermove` faisait analyser cinq
+       fragments de SVG et reconstruire cinq nœuds par mouvement, là où seules
+       six coordonnées changent. Les éléments sont donc permanents et le dessin
+       ne fait plus que poser des attributs ; ce qui n’a pas lieu d’être visible
+       est masqué, jamais détruit. */
+    function creer(tag, classe, parent){
+      const e = document.createElementNS(NS, tag);
+      e.setAttribute('class', classe);
+      parent.appendChild(e);
+      return e;
+    }
+    const elFermee   = creer('circle', 'pointe-fermee', g);
+    const elBrancheP = creer('path', 'branche', g);
+    const elBrancheM = creer('path', 'branche', g);
+    const elPointe   = creer('path', 'pointe', g);
+    const elCharn    = creer('circle', 'charniere', g);
+    const elMine     = creer('circle', 'mine', g);
+    const OUVERT     = [elBrancheP, elBrancheM, elPointe, elCharn, elMine];
+    const elRayon    = creer('path', 'compas-rayon', gApercu);
+    const elEtiq     = creer('text', 'compas-etiquette', gApercu);
+    elFermee.setAttribute('r', 5);
+    elCharn.setAttribute('r', 7);
+    elMine.setAttribute('r', 5);
+    /* `display:none` sort l’élément du rendu, contrairement à `visibility` :
+       un compas fermé ne coûte alors rien du tout. */
+    const montrer = (e, oui) => e.setAttribute('display', oui ? 'inline' : 'none');
+    const pose = (e, k, v) => e.setAttribute(k, v.toFixed(1));
+
     /* --- Dessin, entièrement déduit de l’état --- */
     function dessiner(){
       if (detruit) return;
-      if (!centre) { g.innerHTML = ''; gApercu.innerHTML = ''; return; }
+      if (!centre) {
+        montrer(elFermee, false); OUVERT.forEach(e => montrer(e, false));
+        return;
+      }
       if (r < OUVERTURE_FRANCHE) {
         /* Pointe plantée, compas encore fermé : on ne montre que la pointe. */
         g.style.opacity = '1';
-        g.innerHTML = `<circle class="pointe-fermee" cx="${centre[0].toFixed(1)}" cy="${centre[1].toFixed(1)}" r="5"/>`;
+        pose(elFermee, 'cx', centre[0]); pose(elFermee, 'cy', centre[1]);
+        montrer(elFermee, true); OUVERT.forEach(e => montrer(e, false));
         return;
       }
       /* L’instrument se révèle en fondu sur les vingt-cinq pixels suivants :
          apparaître d’un coup avec une charnière à 126 px ferait un saut. */
       g.style.opacity = String(Math.min(1, (r - OUVERTURE_FRANCHE) / 25));
+      montrer(elFermee, false); OUVERT.forEach(e => montrer(e, true));
       const m = positionMine();
       const ch = charniere(centre, m);
-      const p = (a, b) => `${a[0].toFixed(1)} ${a[1].toFixed(1)} L ${b[0].toFixed(1)} ${b[1].toFixed(1)}`;
+      const seg = (a, b) => `M ${a[0].toFixed(1)} ${a[1].toFixed(1)} L ${b[0].toFixed(1)} ${b[1].toFixed(1)}`;
       /* La pointe sèche : un petit V. La mine : une pastille. */
       const dirP = [(centre[0] - ch[0]), (centre[1] - ch[1])];
       const lp = Math.hypot(dirP[0], dirP[1]) || 1;
       const perp = [-dirP[1] / lp, dirP[0] / lp];
       const base = [centre[0] - dirP[0] / lp * 11, centre[1] - dirP[1] / lp * 11];
-      g.innerHTML =
-          `<path class="branche" d="M ${p(ch, centre)}"/>`
-        + `<path class="branche" d="M ${p(ch, m)}"/>`
-        + `<path class="pointe" d="M ${(base[0] + perp[0] * 5).toFixed(1)} ${(base[1] + perp[1] * 5).toFixed(1)}`
+      elBrancheP.setAttribute('d', seg(ch, centre));
+      elBrancheM.setAttribute('d', seg(ch, m));
+      elPointe.setAttribute('d',
+          `M ${(base[0] + perp[0] * 5).toFixed(1)} ${(base[1] + perp[1] * 5).toFixed(1)}`
         + ` L ${centre[0].toFixed(1)} ${centre[1].toFixed(1)}`
-        + ` L ${(base[0] - perp[0] * 5).toFixed(1)} ${(base[1] - perp[1] * 5).toFixed(1)}"/>`
-        + `<circle class="charniere" cx="${ch[0].toFixed(1)}" cy="${ch[1].toFixed(1)}" r="7"/>`
-        + `<circle class="mine" cx="${m[0].toFixed(1)}" cy="${m[1].toFixed(1)}" r="5"/>`;
+        + ` L ${(base[0] - perp[0] * 5).toFixed(1)} ${(base[1] - perp[1] * 5).toFixed(1)}`);
+      pose(elCharn, 'cx', ch[0]); pose(elCharn, 'cy', ch[1]);
+      pose(elMine, 'cx', m[0]);   pose(elMine, 'cy', m[1]);
       g.classList.toggle('verrouille', verrouille);
     }
     function dessinerApercu(){
-      if (detruit || !centre) { gApercu.innerHTML = ''; return; }
+      if (detruit) return;
+      if (!centre) { montrer(elRayon, false); montrer(elEtiq, false); return; }
       const m = positionMine();
-      let s = `<path class="compas-rayon" d="M ${centre[0].toFixed(1)} ${centre[1].toFixed(1)} L ${m[0].toFixed(1)} ${m[1].toFixed(1)}"/>`;
-      if (o.etiquette) {
-        const t = (r / UNITE);
-        const texte = (Math.abs(t - Math.round(t)) < 0.02 ? String(Math.round(t)) : t.toFixed(1))
-          + (r >= rMax() - 0.5 ? ' — grand ouvert' : '');
-        s += `<text class="compas-etiquette${verrouille ? ' grise' : ''}" x="${(centre[0] + 12).toFixed(1)}"`
-          + ` y="${(centre[1] - 12).toFixed(1)}">${texte}</text>`;
-      }
-      gApercu.innerHTML = s;
+      elRayon.setAttribute('d',
+        `M ${centre[0].toFixed(1)} ${centre[1].toFixed(1)} L ${m[0].toFixed(1)} ${m[1].toFixed(1)}`);
+      montrer(elRayon, true);
+      if (!o.etiquette) { montrer(elEtiq, false); return; }
+      const t = (r / UNITE);
+      elEtiq.textContent = (Math.abs(t - Math.round(t)) < 0.02 ? String(Math.round(t)) : t.toFixed(1))
+        + (r >= rMax() - 0.5 ? ' — grand ouvert' : '');
+      elEtiq.setAttribute('class', 'compas-etiquette' + (verrouille ? ' grise' : ''));
+      pose(elEtiq, 'x', centre[0] + 12); pose(elEtiq, 'y', centre[1] - 12);
+      montrer(elEtiq, true);
     }
+
+    /* UN DESSIN PAR IMAGE, PAS UN PAR ÉVÉNEMENT. Un écran tactile envoie
+       jusqu’à 120 `pointermove` par seconde là où l’écran n’en affiche que 60 :
+       dessiner à chaque événement, c’est jeter la moitié du travail et prendre
+       du retard sur le doigt. L’ÉTAT reste mis à jour immédiatement — `etat()`
+       ne ment jamais — seul le rendu est reporté à la prochaine image. */
+    let demande = 0;
+    function planifier(){
+      if (demande || detruit) return;
+      demande = requestAnimationFrame(() => { demande = 0; dessiner(); dessinerApercu(); });
+    }
+    function rafraichir(){
+      if (demande) { cancelAnimationFrame(demande); demande = 0; }
+      dessiner(); dessinerApercu();
+    }
+    /* Les nœuds naissent sans coordonnées : sans ce premier passage, la pointe
+       fermée s’afficherait à l’origine du plan avant le moindre geste. */
+    rafraichir();
 
     /* --- Le tracé : la mine parcourt le cercle, le compas tourne avec --- */
     function tracer(fini){
@@ -235,7 +299,7 @@ const MoteurCompas = (function(){
         cercle.setAttribute('d', arc(1));
         angleMine = depart;
         phase = 'pose';
-        dessiner(); dessinerApercu();
+        rafraichir();
         if (o.surTrace) o.surTrace({centre: centre.slice(), r});
       };
       /* §19 accessibilité : sans animation, le cercle apparaît d’un trait. */
@@ -266,7 +330,11 @@ const MoteurCompas = (function(){
     let actif = false;
     const surDown = (ev) => {
       if (detruit || bloque || phase === 'trace') return;
-      const p = versSVG(svg, ev.clientX, ev.clientY);
+      /* Une seule lecture de la matrice écran → SVG par geste : la page a pu
+         défiler ou tourner depuis le geste précédent, elle ne bougera plus
+         pendant celui-ci. */
+      relireRepere();
+      const p = versSVG(ev.clientX, ev.clientY);
       if (!dansZone(p)) return;
       const c = accrocherPointe(p);
       if (!c) return;                                   // pointe refusée hors aimants
@@ -275,13 +343,13 @@ const MoteurCompas = (function(){
       phase = 'ouverture';
       actif = true;
       try { svg.setPointerCapture(ev.pointerId); } catch (e) {}
-      dessiner(); dessinerApercu();
+      rafraichir();
       if (o.surPointe) o.surPointe(etat());
       ev.preventDefault();
     };
     const surMove = (ev) => {
       if (!actif || detruit) return;
-      const p = versSVG(svg, ev.clientX, ev.clientY);
+      const p = versSVG(ev.clientX, ev.clientY);
       angleMine = Math.atan2(p[1] - centre[1], p[0] - centre[0]);
       if (!verrouille) {
         let d = bride(hyp(centre, p), 0, rMax());
@@ -291,7 +359,7 @@ const MoteurCompas = (function(){
         }
         r = d;
       }
-      dessiner(); dessinerApercu();
+      planifier();
       if (o.surApercu) o.surApercu(etat());
       ev.preventDefault();
     };
@@ -299,7 +367,8 @@ const MoteurCompas = (function(){
       if (!actif || detruit) return;
       actif = false;
       try { svg.releasePointerCapture(ev.pointerId); } catch (e) {}
-      if (r < R_MIN) { phase = 'repos'; centre = null; dessiner(); dessinerApercu(); return; }
+      if (r < R_MIN) { phase = 'repos'; centre = null; rafraichir(); return; }
+      rafraichir();                       // le dessin rattrape le dernier mouvement
       tracer();
     };
     svg.addEventListener('pointerdown', surDown);
@@ -312,14 +381,14 @@ const MoteurCompas = (function(){
       /* L’écartement verrouillé : le glissement ne repose plus que la pointe.
          C’est le geste réel — on ouvre une fois, on plante autant de fois
          qu’il faut — et c’est ce qui rend la rosace possible. */
-      verrouiller(){ verrouille = true; dessiner(); dessinerApercu(); },
-      deverrouiller(){ verrouille = false; dessiner(); dessinerApercu(); },
+      verrouiller(){ verrouille = true; rafraichir(); },
+      deverrouiller(){ verrouille = false; rafraichir(); },
       estVerrouille(){ return verrouille; },
       grandOuvert(){ return r >= rMax() - 0.5; },
       /* Pose programmatique : sert à la révélation différée du §18. */
       placer(c, rayon, trace){
         centre = c.slice(); r = bride(rayon, 0, rMax()); cote = null; angleMine = 0;
-        dessiner(); dessinerApercu();
+        rafraichir();
         if (trace) tracer();
       },
       effacerTraces(){ gTrace.innerHTML = ''; derniereTrace = null; },
@@ -336,6 +405,7 @@ const MoteurCompas = (function(){
       detruire(){
         detruit = true;
         if (anim) cancelAnimationFrame(anim);
+        if (demande) { cancelAnimationFrame(demande); demande = 0; }
         svg.removeEventListener('pointerdown', surDown);
         svg.removeEventListener('pointermove', surMove);
         svg.removeEventListener('pointerup', surUp);
