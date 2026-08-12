@@ -1225,6 +1225,44 @@ function marquerBonusRevele(pid, cible){
   t[pid][cible] = true; memoireBonus = t;
   try { localStorage.setItem(CLE_BONUS_REVELE, JSON.stringify(t)); } catch(e){}
 }
+/* PRISE EN MAIN DES INSTRUMENTS (A2). Aucun instrument n’est explicable par
+   une consigne seule : la règle, le gabarit, l’équerre et le compas se
+   découvrent en les manipulant. À la PREMIÈRE rencontre de chacun, le
+   mini-jeu s’ouvre donc sur une manche d’essai — pas de score, pas de bonne
+   réponse, pas de pastille de progression — dont l’enfant sort quand il veut.
+   L’indicateur est rangé par profil PUIS par instrument : sans quoi la manche
+   se rejouerait à chaque session, et le petit rituel utile deviendrait un
+   péage. Motif à remonter dans CHARTE.md s’il tient à l’usage, puisque M38
+   réutilisera les mêmes instruments. */
+const CLE_INSTRUMENTS_VUS = 'mayeutik-m35-instruments-vus';
+let memoireInstruments = null;
+function lireInstrumentsVus(){
+  if (memoireInstruments === null) {
+    memoireInstruments = {};
+    try { const b = localStorage.getItem(CLE_INSTRUMENTS_VUS); if (b) memoireInstruments = JSON.parse(b); } catch(e){ memoireInstruments = {}; }
+  }
+  return memoireInstruments;
+}
+function instrumentDejaVu(pid, outil){
+  const e = lireInstrumentsVus()[pid];
+  return !!(e && typeof e === 'object' && e[outil]);
+}
+function marquerInstrumentVu(pid, outil){
+  const t = lireInstrumentsVus();
+  if (!t[pid] || typeof t[pid] !== 'object') t[pid] = {};
+  t[pid][outil] = true; memoireInstruments = t;
+  try { localStorage.setItem(CLE_INSTRUMENTS_VUS, JSON.stringify(t)); } catch(e){}
+}
+/* Quel instrument chaque mini-jeu met entre les mains. Un mini-jeu sans
+   instrument n’a rien à faire découvrir. */
+function instrumentDuMiniJeu(cfg){
+  if (cfg.mode === 'alignement' || cfg.mode === 'tracer') return 'regle';
+  if (cfg.mode === 'angles') return cfg.outil || 'gabarit';
+  if (cfg.mode === 'anglesPoly') return 'equerre';
+  if (cfg.mode === 'compas1' || cfg.mode === 'compas2') return 'compas';
+  return null;
+}
+
 const CLE_PROFILS = 'mayeutik-profils', CLE_PROFIL_ACTIF = 'mayeutik-profil-actif';
 const ORDRE_PALIERS = ['CP','CE1','CE2'];
 function lireProfilActifId(){ try { return localStorage.getItem(CLE_PROFIL_ACTIF) || 'p1'; } catch(e){ return 'p1'; } }
@@ -1721,7 +1759,7 @@ const VALIDATEURS = {
     if (nbDouteux < 1 || nbDouteux > 2) pb.push(nbDouteux + ' angles douteux : le dosage voulu est 1 ou 2');
     return pb;
   },
-  compasLibre(q){ return []; },
+  priseEnMain(q){ return []; },
   compasPassant(q){ return []; },
   pliage(q){ return []; },
   compasRayon(q){
@@ -1816,7 +1854,11 @@ function engendrerFile(cfg){
     return Array.from({length:n}, () => Object.assign(itemPolygone(), {mode:'anglesPoly', note:true, requiert:true}));
   if (cfg.mode === 'compas1')
     return [
-      {mode:'compasLibre', note:false},                    // prise en main, non notée
+      /* La prise en main n’est plus ici : `construireFile` la pose devant la
+         file, une seule fois par profil et pour les quatre instruments (A2).
+         La manche qu’elle occupait revient au cercle, qui est la compétence
+         annoncée — le mini-jeu retrouve ses cinq manches notées. */
+      {mode:'compasPassant', note:true, requiert:true},
       {mode:'compasPassant', note:true, requiert:true},
       {mode:'compasPassant', note:true, requiert:true},
       {mode:'pliage', note:true, requiert:true},
@@ -1848,6 +1890,12 @@ function construireFile(cfg){
   for (let essai = 0; essai < 25 && verifierFile(f).length; essai++) f = engendrerFile(cfg);
   const restants = verifierFile(f);
   if (restants.length) console.warn('M35 : items non conformes', restants);
+  /* La manche d’essai se pose DEVANT la file, une seule fois dans la vie du
+     profil, et n’entre ni dans le score (`note:false`) ni dans les pastilles
+     (`essai`). */
+  const outil = instrumentDuMiniJeu(cfg);
+  if (outil && !instrumentDejaVu(lireProfilActifId(), outil))
+    f.unshift({mode:'priseEnMain', outil, note:false, essai:true});
   return f;
 }
 
@@ -1876,10 +1924,17 @@ function lance(id){
   question();
 }
 function majDots(){
-  $('dots').innerHTML = file.map((q, i) => {
+  /* Une manche d’ESSAI n’avance à rien : elle ne prend pas de pastille, sans
+     quoi « pas de progression » serait démenti par la barre elle-même. Tant
+     qu’on y est, c’est la première manche notée qui porte le repère. */
+  const notees = file.map((q, i) => ({q, i})).filter(x => !x.q.essai);
+  const courant = (file[pos] && file[pos].essai)
+    ? (notees.find(x => x.i > pos) || {i: -1}).i
+    : pos;
+  $('dots').innerHTML = notees.map(({q, i}) => {
     let c = '';
     if (i < pos) c = q._pts === PTS_PLEIN ? 'ok' : q._pts === PTS_SANS_VERIF ? 'demi' : (q.note === false ? 'ok' : 'ko');
-    else if (i === pos) c = 'cur';
+    else if (i === courant) c = 'cur';
     return `<span class="dot ${c}"></span>`;
   }).join('');
 }
@@ -1929,7 +1984,8 @@ function question(){
   const rendus = {
     etabli:rendreEtabli, alignement:rendreAlignement, tracer:rendreTracer,
     angles:rendreAngles, anglesPoly:rendreAnglesPoly,
-    compasLibre:rendreCompasLibre, compasPassant:rendreCompasPassant, pliage:rendrePliage,
+    priseEnMain:rendrePriseEnMain,
+    compasPassant:rendreCompasPassant, pliage:rendrePliage,
     compasRayon:rendreCompasRayon, report:rendreReport,
     codage1:rendreCodage1, codage2:rendreCodage2
   };
@@ -2252,28 +2308,88 @@ function rendreAnglesPoly(q){
 }
 
 /* ============================================================
-   COMPAS — CE1 : deux appuis ; CE2 : écartement mesuré
+   PRISE EN MAIN — la manche d’essai, une fois par instrument (A2)
    ============================================================ */
-function cercleSvg(c, r, cl){ return `<circle class="${cl||'trace-fait'}" fill="none" cx="${c[0]}" cy="${c[1]}" r="${r}"/>`; }
+/* Ce qu’on montre est le GESTE, pas la tâche : une figure quelconque, sur
+   laquelle il n’y a rien à réussir, et de quoi manipuler. Un instrument
+   qu’on n’a pas encore tenu ne s’explique pas par une consigne — c’est le
+   constat qui a motivé A2 ; on ne remplace donc pas la consigne, on lui
+   donne d’abord un objet à décrire. */
+const PRISE_EN_MAIN = {
+  regle: {
+    titre: 'La règle',
+    geste: 'Glisse la règle pour la déplacer. Tire un bouton orange : elle pivote autour de son AUTRE bout.',
+    aide: 'Approche une extrémité d’une croix : le point s’allume, la règle s’y accroche.'
+  },
+  gabarit: {
+    titre: 'Le gabarit',
+    geste: 'Glisse le gabarit, puis cale son coin sur le coin de la figure.',
+    aide: 'Une fois calé, tire le bouton orange : il pivote autour du coin.'
+  },
+  equerre: {
+    titre: 'L’équerre',
+    geste: 'Glisse l’équerre, puis cale son coin sur le coin de la figure.',
+    aide: 'Une fois calée, tire le bouton orange : elle pivote autour du coin.'
+  },
+  compas: {
+    titre: 'Le compas',
+    geste: 'Plante la pointe, puis glisse sans lever le doigt pour l’ouvrir.',
+    aide: 'Quand tu relâches, le compas trace son cercle tout seul.'
+  }
+};
 
-function rendreCompasLibre(q){
-  poserConsigne('Plante la pointe du compas, puis glisse pour l’ouvrir.');
-  $('sousConsigne').textContent = 'Cette manche n’est pas comptée — c’est pour prendre l’objet en main.';
-  const svg = poserScene(
-    `<text class="compas-invite" x="200" y="${ZONE_TRACE.y0 - 14}" text-anchor="middle">Appuie n’importe où, puis glisse sans lever le doigt.</text>`,
-    VB_COMPAS);
-  compasCourant = MoteurCompas.creerCompas(svg, {
-    zone: ZONE_TRACE,
-    surPointe: () => { const t = svg.querySelector('.compas-invite'); if (t) t.remove(); sonClic(); },
-    surTrace: () => {
-      if (verrouille) return;
-      verrouille = true;
-      compasCourant.figer();
-      terminerManche(true, 0, 'Joli cercle ! On passe aux choses sérieuses.', null);
-    }
-  });
+function rendrePriseEnMain(q){
+  const d = PRISE_EN_MAIN[q.outil] || PRISE_EN_MAIN.regle;
+  poserConsigne(d.titre + ' — essaie-le, rien n’est compté.');
+  $('sousConsigne').textContent = d.geste + ' ' + d.aide;
+
+  if (q.outil === 'compas') {
+    const svg = poserScene(
+      `<text class="compas-invite" x="200" y="${ZONE_TRACE.y0 - 14}" text-anchor="middle">Appuie n’importe où, puis glisse sans lever le doigt.</text>`,
+      VB_COMPAS);
+    compasCourant = MoteurCompas.creerCompas(svg, {
+      zone: ZONE_TRACE,
+      surPointe: () => { const t = svg.querySelector('.compas-invite'); if (t) t.remove(); sonClic(); },
+      /* On n’efface RIEN entre deux essais : voir ses cercles s’accumuler,
+         c’est voir ce que l’instrument fait. */
+      surTrace: () => sonClic()
+    });
+  } else {
+    /* Une figure sans enjeu : trois croix pour la règle, un coin pour le
+       gabarit et l’équerre — de quoi éprouver l’accrochage sans qu’il y ait
+       quoi que ce soit à trouver. */
+    const s = [150, 130], a = [300, 130], b = [150, 246];
+    const points = q.outil === 'regle'
+      ? [[70, 96], [200, 140], [330, 184]]
+      : [s];
+    poserScene(
+      (q.outil === 'regle'
+        ? points.map(p => croix(p)).join('')
+        : `<line class="fig-trait" x1="${s[0]}" y1="${s[1]}" x2="${a[0]}" y2="${a[1]}"/>`
+          + `<line class="fig-trait" x1="${s[0]}" y1="${s[1]}" x2="${b[0]}" y2="${b[1]}"/>`
+          + `<circle class="repere" cx="${s[0]}" cy="${s[1]}" r="4"/>`)
+      + `<line x1="20" y1="250" x2="380" y2="250" stroke="var(--trait)" stroke-width="1.4" stroke-dasharray="5 6" opacity=".5"/>`,
+      '0 0 400 370');
+    const svg = scene();
+    posableCourant = q.outil === 'regle'
+      ? creerPosable(svg, {x:200, y:300, angle:entre(-0.2, 0.2), ...REGLE(330), pointsAimant:points})
+      : creerPosable(svg, {x:54, y:258, angle:entre(-0.4, 0.4),
+          ...(q.outil === 'gabarit' ? GABARIT(90) : EQUERRE(92)), pointsAimant:[s]});
+  }
+
+  /* AUCUNE VALIDATION, et pas de passage automatique (§20) : l’enfant sort
+     quand IL a fini. Le bouton est là dès la première seconde. */
+  $('btnNext').style.display = 'block';
+  $('btnNext').textContent = 'J’ai compris, on commence ➜';
+  $('btnNext').onclick = () => {
+    marquerInstrumentVu(lireProfilActifId(), q.outil);
+    pos++; if (pos < file.length) question(); else fin();
+  };
 }
 
+/* ============================================================
+   COMPAS — CE1 : deux appuis ; CE2 : écartement mesuré
+   ============================================================ */
 /* Le texte dit « cercle de centre un point donné ET PASSANT PAR un autre
    point donné » : l’écartement n’est pas réglé, il est DÉRIVÉ des deux
    appuis. Le problème du réglage disparaît, et c’est la formulation
