@@ -2145,14 +2145,20 @@ function cibleTouchee(p, cibles){
    manche : sans retrait explicite, ils s’empilent, et le plus ancien —
    avec ses cibles périmées — répond en premier. C’est le même piège que le
    `onclick` du paquet cadeau (§15). */
-function brancherCibles(svg, cibles, surChoix){
+function brancherCibles(svg, cibles, surChoix, repere){
   if (svg._ecouteurCibles) svg.removeEventListener('click', svg._ecouteurCibles);
   const handler = (ev) => {
     if (verrouille) return;
+    /* Le toucher doit être converti dans L’ESPACE OÙ VIVENT LES CIBLES, et
+       non dans celui de la racine : depuis que la scène est logée par
+       homothétie dans un cadre fixe, ses pièces habitent le repère du
+       groupe `#scenePieces`. Passer par la matrice de la racine décalait
+       tout du facteur d’échelle, et plus rien ne répondait au litige. */
+    const cadre = repere && repere.isConnected ? repere : svg;
+    const m = cadre.getScreenCTM();
+    if (!m) return;
     const pt = svg.createSVGPoint();
     pt.x = ev.clientX; pt.y = ev.clientY;
-    const m = svg.getScreenCTM();
-    if (!m) return;
     const q = pt.matrixTransform(m.inverse());
     const c = cibleTouchee([q.x, q.y], cibles);
     if (c) surChoix(c);
@@ -2329,7 +2335,7 @@ function rendreLitige(q){
     const e = svg.querySelector(`[data-c="${c.id}"]`);
     if (selection.has(c.id)) { selection.delete(c.id); if (e) e.classList.remove('trace-choisi'); }
     else { selection.add(c.id); if (e) e.classList.add('trace-choisi'); sonClic(); }
-  });
+  }, svg.getElementById('scenePieces'));
   $('btnValider').onclick = () => {
     if (verrouille) return;
     verrouille = true;
