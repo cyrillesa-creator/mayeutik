@@ -69,7 +69,10 @@ const MoteurCompas = (function(){
   const OUVERTURE_FRANCHE = 20;
   const R_LOUPE = 42;                 // rayon de la loupe, en unités de viewBox
   const GROSSISSEMENT = 2;
-  const ECART_LOUPE = 62;             // de combien elle se décale du doigt
+  /* Décalage par défaut. Il doit être PLUS GRAND quand l’objet observé porte
+     des inscriptions à lire : sur une règle graduée, une loupe trop proche
+     recouvre les chiffres qu’elle est censée dégager — d’où `spec.ecartLoupe`. */
+  const ECART_LOUPE = 62;
   let compteurMonde = 0;              // les identifiants doivent rester uniques
 
   const hyp = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]);
@@ -130,7 +133,9 @@ const MoteurCompas = (function(){
        spec.aimants      [[x,y]…] points d’accrochage de la POINTE
        spec.aimantsMine  [[x,y]…] points d’accrochage de la MINE
        spec.pointeLibre  false → la pointe REFUSE de se planter ailleurs
-       spec.rayonAimante true → le rayon s’accroche à l’unité entière
+       spec.rayonAimante true → le rayon s’accroche à l’unité entière (fenêtre)
+       spec.rayonCrante  true → le rayon EST toujours un nombre entier d’unités
+       spec.ecartLoupe   de combien la loupe se décale du doigt (défaut : 62)
        spec.arc          angle (rad) : trace un ARC et non un tour complet
        spec.loupe        false → pas de loupe sous le doigt (défaut : true)
        spec.surPointe    ()            pointe plantée
@@ -149,7 +154,8 @@ const MoteurCompas = (function(){
     poserStyle();
     const o = Object.assign({
       branche: BRANCHE, aimants: [], aimantsMine: [], pointeLibre: true,
-      rayonAimante: false, zone: null, etiquette: true, loupe: true
+      rayonAimante: false, rayonCrante: false, zone: null, etiquette: true,
+      loupe: true, ecartLoupe: ECART_LOUPE
     }, spec || {});
 
     const g = document.createElementNS(NS, 'g');
@@ -341,8 +347,9 @@ const MoteurCompas = (function(){
       const gauche = vb && vb.width ? vb.x : 0;
       const droite = vb && vb.width ? vb.x + vb.width : 400;
       const marge = R_LOUPE + 4;
-      const dessus = p[1] - ECART_LOUPE >= haut + marge;
-      const ly = bride(dessus ? p[1] - ECART_LOUPE : p[1] + ECART_LOUPE, haut + marge, bas - marge);
+      const ecart = o.ecartLoupe;
+      const dessus = p[1] - ecart >= haut + marge;
+      const ly = bride(dessus ? p[1] - ecart : p[1] + ecart, haut + marge, bas - marge);
       const lx = bride(p[0], gauche + marge, droite - marge);
       gLoupe.setAttribute('transform', `translate(${lx.toFixed(1)},${ly.toFixed(1)})`);
       const u = gLoupe.querySelector('use');
@@ -482,7 +489,19 @@ const MoteurCompas = (function(){
           o.aimantsMine.forEach(a => { const e = hyp(m, a); if (e < d0) { d0 = e; meilleur = a; } });
           if (meilleur) d = bride(hyp(centre, meilleur), 0, rMax());
         }
-        if (o.rayonAimante) {
+        /* DEUX FORCES D’ACCROCHAGE, et la faible ne suffisait pas.
+           `rayonAimante` n’attire que dans une fenêtre de 6 px autour de
+           chaque unité : à 25 px l’unité, moins de la moitié des positions
+           accrochent, et entre deux fenêtres l’enfant lit « 2,4 » sans
+           pouvoir atteindre 2. C’est invivable sur les PETITES longueurs, où
+           la course entière tient dans la largeur d’un doigt.
+           `rayonCrante` supprime la fenêtre : l’écartement vaut TOUJOURS un
+           nombre entier d’unités, et le compas passe de cran en cran comme
+           une molette. Régler à 2 devient alors aussi facile qu’à 5, et la
+           tâche reste entière — il faut toujours LIRE la graduation visée. */
+        if (o.rayonCrante) {
+          d = Math.max(UNITE, Math.round(d / UNITE) * UNITE);
+        } else if (o.rayonAimante) {
           const u = Math.round(d / UNITE) * UNITE;
           if (Math.abs(d - u) <= AIMANT_RAYON && u >= UNITE) d = u;
         }
@@ -533,6 +552,8 @@ const MoteurCompas = (function(){
         if ('aimantsMine' in c) o.aimantsMine = c.aimantsMine;
           if ('pointeLibre' in c) o.pointeLibre = c.pointeLibre;
         if ('loupe' in c) { o.loupe = c.loupe; if (!c.loupe) cacherLoupe(); }
+        if ('ecartLoupe' in c) o.ecartLoupe = c.ecartLoupe;
+        if ('rayonCrante' in c) o.rayonCrante = c.rayonCrante;
       },
       estVerrouille(){ return verrouille; },
       grandOuvert(){ return r >= rMax() - 0.5; },
