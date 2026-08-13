@@ -389,6 +389,10 @@ const MoteurCompas = (function(){
      de toute façon pas d’orientation. On ne montre donc que la pointe plantée
      et le rayon qui s’étire. */
   const OUVERTURE_FRANCHE = 20;
+  const R_LOUPE = 42;                 // rayon de la loupe, en unités de viewBox
+  const GROSSISSEMENT = 2;
+  const ECART_LOUPE = 62;             // de combien elle se décale du doigt
+  let compteurMonde = 0;              // les identifiants doivent rester uniques
 
   const hyp = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]);
   const bride = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -418,6 +422,19 @@ const MoteurCompas = (function(){
 .compas-etiquette.grise{fill:#7C8B9C;}
 .compas-invite{font-size:13px; fill:#41577A; opacity:.85;}
 .compas-zone{touch-action:none;}
+/* LA LOUPE. Au moment précis où l’enfant plante la pointe, son doigt couvre
+   l’endroit qu’il vise : il pose à l’aveugle. La loupe montre, décalée
+   au-dessus du doigt, ce qui se trouve dessous — agrandi deux fois, avec une
+   croix sur le point exact où la pointe tombera. Elle ne capte aucun
+   évènement : c’est une fenêtre, pas un objet. */
+.compas-loupe{pointer-events:none;}
+.compas-loupe .verre-loupe{fill:#fff;}
+.compas-loupe .cercle-loupe{fill:none; stroke:#33404F; stroke-width:2.5; vector-effect:non-scaling-stroke;}
+/* La croix est DOUBLÉE d’un halo blanc : en orange seul elle disparaissait
+   sur le point orange qu’elle est censée désigner. Même correction que le
+   marqueur d’angle de M34 — une marque doit se lire sur ce qu’elle marque. */
+.compas-loupe .croix-halo{stroke:#fff; stroke-width:5; stroke-linecap:round; vector-effect:non-scaling-stroke;}
+.compas-loupe .croix-loupe{stroke:#12233C; stroke-width:2; stroke-linecap:round; vector-effect:non-scaling-stroke;}
 @media (prefers-reduced-motion:reduce){ .compas, .compas-cercle{transition:none !important;} }
 `;
   function poserStyle(){
@@ -437,6 +454,7 @@ const MoteurCompas = (function(){
        spec.pointeLibre  false → la pointe REFUSE de se planter ailleurs
        spec.rayonAimante true → le rayon s’accroche à l’unité entière
        spec.arc          angle (rad) : trace un ARC et non un tour complet
+       spec.loupe        false → pas de loupe sous le doigt (défaut : true)
        spec.surPointe    ()            pointe plantée
        spec.surApercu    ({centre,r})  pendant le glissement
        spec.surTrace     ({centre,r})  après l’animation
@@ -453,7 +471,7 @@ const MoteurCompas = (function(){
     poserStyle();
     const o = Object.assign({
       branche: BRANCHE, aimants: [], aimantsMine: [], pointeLibre: true,
-      rayonAimante: false, zone: null, etiquette: true
+      rayonAimante: false, zone: null, etiquette: true, loupe: true
     }, spec || {});
 
     const g = document.createElementNS(NS, 'g');
@@ -461,7 +479,44 @@ const MoteurCompas = (function(){
     const gTrace = document.createElementNS(NS, 'g');   // les cercles déjà tracés
     let derniereTrace = null;
     const gApercu = document.createElementNS(NS, 'g');  // rayon pointillé, étiquette
-    svg.appendChild(gTrace); svg.appendChild(gApercu); svg.appendChild(g);
+
+    /* LE MONDE, pour que la loupe ait quelque chose à agrandir. Elle montre un
+       `<use>` de ce groupe : la figure de la manche ET les cercles déjà
+       tracés, mais NI le compas NI la loupe elle-même — l’instrument dans sa
+       propre loupe encombrerait la vue qu’on cherche justement à dégager, et
+       une loupe qui se contient elle-même boucle. Les enfants existants du
+       SVG y sont déplacés au montage et remis en place à la destruction : le
+       jeu hôte retrouve son DOM exactement tel qu’il l’avait laissé. */
+    const gMonde = document.createElementNS(NS, 'g');
+    gMonde.setAttribute('class', 'compas-monde');
+    const idMonde = 'compas-monde-' + (++compteurMonde);
+    gMonde.id = idMonde;
+    const enfantsHote = [];
+    if (o.loupe) {
+      while (svg.firstChild) { enfantsHote.push(svg.firstChild); gMonde.appendChild(svg.firstChild); }
+      svg.appendChild(gMonde);
+      gMonde.appendChild(gTrace);
+    } else {
+      svg.appendChild(gTrace);
+    }
+    svg.appendChild(gApercu); svg.appendChild(g);
+
+    const gLoupe = document.createElementNS(NS, 'g');
+    gLoupe.setAttribute('class', 'compas-loupe');
+    gLoupe.setAttribute('display', 'none');
+    if (o.loupe) {
+      const idClip = 'clip-loupe-' + compteurMonde;
+      gLoupe.innerHTML =
+          `<defs><clipPath id="${idClip}"><circle cx="0" cy="0" r="${R_LOUPE}"/></clipPath></defs>`
+        + `<circle class="verre-loupe" cx="0" cy="0" r="${R_LOUPE}"/>`
+        + `<g clip-path="url(#${idClip})"><use href="#${idMonde}"/></g>`
+        + `<line class="croix-halo" x1="-10" y1="0" x2="10" y2="0"/>`
+        + `<line class="croix-halo" x1="0" y1="-10" x2="0" y2="10"/>`
+        + `<line class="croix-loupe" x1="-10" y1="0" x2="10" y2="0"/>`
+        + `<line class="croix-loupe" x1="0" y1="-10" x2="0" y2="10"/>`
+        + `<circle class="cercle-loupe" cx="0" cy="0" r="${R_LOUPE}"/>`;
+      svg.appendChild(gLoupe);
+    }
     svg.classList.add('compas-zone');
 
     /* LA CONVERSION ÉCRAN → SVG, UNE FOIS PAR GESTE. `getScreenCTM()` lit la
@@ -596,6 +651,29 @@ const MoteurCompas = (function(){
       montrer(elEtiq, true);
     }
 
+    /* La loupe se place AU-DESSUS du doigt, et passe dessous quand le doigt
+       approche du haut du plan : une loupe à moitié hors du cadre ne montre
+       plus rien. Le décalage la sort de sous la main sans l’éloigner du
+       geste. Le contenu est recentré sur le point observé puis agrandi. */
+    function majLoupe(p){
+      if (!o.loupe || !p) return;
+      const vb = svg.viewBox && svg.viewBox.baseVal;
+      const haut = vb && vb.height ? vb.y : 0;
+      const bas = vb && vb.height ? vb.y + vb.height : 400;
+      const gauche = vb && vb.width ? vb.x : 0;
+      const droite = vb && vb.width ? vb.x + vb.width : 400;
+      const marge = R_LOUPE + 4;
+      const dessus = p[1] - ECART_LOUPE >= haut + marge;
+      const ly = bride(dessus ? p[1] - ECART_LOUPE : p[1] + ECART_LOUPE, haut + marge, bas - marge);
+      const lx = bride(p[0], gauche + marge, droite - marge);
+      gLoupe.setAttribute('transform', `translate(${lx.toFixed(1)},${ly.toFixed(1)})`);
+      const u = gLoupe.querySelector('use');
+      if (u) u.setAttribute('transform',
+        `scale(${GROSSISSEMENT}) translate(${(-p[0]).toFixed(2)},${(-p[1]).toFixed(2)})`);
+      gLoupe.setAttribute('display', 'inline');
+    }
+    const cacherLoupe = () => { if (o.loupe) gLoupe.setAttribute('display', 'none'); };
+
     /* UN DESSIN PAR IMAGE, PAS UN PAR ÉVÉNEMENT. Un écran tactile envoie
        jusqu’à 120 `pointermove` par seconde là où l’écran n’en affiche que 60 :
        dessiner à chaque événement, c’est jeter la moitié du travail et prendre
@@ -698,6 +776,8 @@ const MoteurCompas = (function(){
       actif = true;
       try { svg.setPointerCapture(ev.pointerId); } catch (e) {}
       rafraichir();
+      /* Au `pointerdown`, ce que le doigt cache est justement la pointe. */
+      majLoupe(centre);
       if (o.surPointe) o.surPointe(etat());
       ev.preventDefault();
     };
@@ -731,12 +811,16 @@ const MoteurCompas = (function(){
         r = d;
       }
       planifier();
+      /* Pendant le glissement, le doigt est sur la MINE : c’est elle qu’il
+         cache, et donc elle que la loupe doit montrer. */
+      majLoupe(positionMine() || centre);
       if (o.surApercu) o.surApercu(etat());
       ev.preventDefault();
     };
     const surUp = (ev) => {
       if (!actif || detruit) return;
       actif = false;
+      cacherLoupe();
       try { svg.releasePointerCapture(ev.pointerId); } catch (e) {}
       if (r < R_MIN) { phase = 'repos'; centre = null; rafraichir(); return; }
       rafraichir();                       // le dessin rattrape le dernier mouvement
@@ -799,7 +883,14 @@ const MoteurCompas = (function(){
         svg.removeEventListener('pointerup', surUp);
         svg.removeEventListener('pointercancel', surUp);
         svg.classList.remove('compas-zone');
-        [g, gTrace, gApercu].forEach(e => e.remove());
+        [g, gTrace, gApercu, gLoupe].forEach(e => e.remove());
+        /* On rend au SVG les enfants qu’on lui avait empruntés, dans l’ordre,
+           puis on retire l’emballage : le jeu hôte retrouve exactement la
+           structure qu’il avait avant. */
+        if (gMonde.parentNode) {
+          enfantsHote.forEach(e => svg.insertBefore(e, gMonde));
+          gMonde.remove();
+        }
       }
     };
   }
