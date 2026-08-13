@@ -155,6 +155,10 @@
       "fichier": "jeux/M34-formes-planes.html",
       "competences": [
         {
+          "id": "cp-convoyeur",
+          "libelle": "Reconnaître disque, carré, rectangle et triangle en flux, dans l’environnement (CP)"
+        },
+        {
           "id": "cp-reconnaitre",
           "libelle": "Reconnaître disque, carré, rectangle et triangle dans un assemblage (CP)"
         },
@@ -165,6 +169,10 @@
         {
           "id": "cp-decrire",
           "libelle": "Nommer une forme et donner son nombre de côtés et de sommets (CP)"
+        },
+        {
+          "id": "ce1-convoyeur",
+          "libelle": "Distinguer cercle et disque, et repérer le triangle rectangle, en flux (CE1)"
         },
         {
           "id": "ce1-reconnaitre",
@@ -179,8 +187,12 @@
           "libelle": "Classer un angle : droit, aigu ou obtus, sans instrument (CE1)"
         },
         {
+          "id": "ce2-convoyeur",
+          "libelle": "Classer des figures par catégorie : quadrilatère, pentagone, hexagone (CE2)"
+        },
+        {
           "id": "ce2-vocabulaire",
-          "libelle": "Vocabulaire de la géométrie plane : polygone, diagonale, rayon, diamètre (CE2)"
+          "libelle": "Désigner les éléments d’une figure : centre, rayon, diamètre, diagonale, longueur, largeur (CE2)"
         },
         {
           "id": "ce2-portrait",

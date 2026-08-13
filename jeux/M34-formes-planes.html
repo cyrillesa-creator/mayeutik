@@ -155,6 +155,39 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 .piece.sel .verre{stroke:#12233C; stroke-width:6; stroke-dasharray:13 8;}
 .piece.bon .verre{stroke:var(--menthe); stroke-width:6;}
 .piece.faux .verre{stroke:var(--corail); stroke-width:6;}
+
+/* ---- LE CONVOYEUR ----
+   `touch-action:none` sur la SEULE zone du tapis : ailleurs la page défile
+   normalement (charte §19, et `touch-action` ne s’hérite pas — les pièces
+   sont donc visées explicitement). Sans cela, viser une pièce qui bouge
+   ferait défiler la page une fois sur deux. */
+.convoyeur, .convoyeur *{touch-action:none;}
+.convoyeur{-webkit-user-select:none; user-select:none;}
+.tapis-fond{fill:#E4EAF3;}
+.tapis-bande{fill:#D2DCEA;}
+.tapis-rail{stroke:#B9C7DA; stroke-width:3; stroke-linecap:round;}
+.piece-tapis{cursor:pointer;}
+.piece-tapis .verre{transition:none;}
+.piece-tapis.ratee .verre{opacity:.4;}
+.barre-convoyeur{display:flex; gap:8px; justify-content:center; align-items:center;
+  flex-wrap:wrap; margin:10px 0 4px;}
+.barre-convoyeur .manette{display:flex; gap:4px; background:#E8EEF7; border-radius:14px; padding:4px;}
+.cran{border:0; background:transparent; border-radius:11px; padding:7px 12px; font:inherit;
+  font-weight:700; font-size:.85rem; color:var(--encre2); cursor:pointer;}
+.cran.on{background:#fff; color:var(--encre); box-shadow:0 2px 6px rgba(29,51,84,.16);}
+.btn-pause{border:0; background:#fff; border-radius:14px; padding:8px 16px; font:inherit;
+  font-weight:700; font-size:.9rem; color:var(--encre); cursor:pointer;
+  box-shadow:0 2px 8px rgba(29,51,84,.12);}
+.compteur-prises{font-weight:800; color:var(--encre); font-size:.95rem;}
+.voile-pause{fill:rgba(29,51,84,.55);}
+.texte-pause{fill:#fff; font-size:22px; font-weight:800; text-anchor:middle;}
+#endBilan{margin:10px auto 18px; max-width:320px;}
+#endBilan table{width:100%; border-collapse:collapse; font-size:.86rem;}
+#endBilan th{font-weight:700; color:var(--encre2); padding:3px 6px; text-align:center;}
+#endBilan th:first-child{text-align:left;}
+#endBilan td{padding:3px 6px; text-align:center; color:var(--encre);}
+#endBilan td:first-child{text-align:left; font-weight:600;}
+#endBilan tr+tr{border-top:1px solid #E3EAF4;}
 .piece.manque .verre{stroke:var(--menthe); stroke-width:6; stroke-dasharray:9 6;}
 /* Repères tactiles (litige, rosace). La CIBLE n’est plus un élément du DOM
    mais de la géométrie : on mesure la distance du toucher à chaque cible et
@@ -353,6 +386,7 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
       <div id="endStars"></div>
       <div id="endMsg"></div>
       <div id="endScore"></div>
+      <div id="endBilan"></div>
       <div class="actions-fin">
         <button id="bRejouer">Rejouer</button>
         <button id="bMenu">Menu</button>
@@ -502,6 +536,17 @@ const C = {
     }
     return recentre([[0,0],[0.9,0],[0.66,-0.42]]);
   },
+  /* Un quadrilatère qui n’est RIEN d’autre : ni carré, ni rectangle, ni
+     losange. Le convoyeur du CE2 en a besoin — reconnaître un quadrilatère
+     quelconque comme quadrilatère est justement ce qui distingue la
+     catégorie de la forme. Il est tiré puis RELU (cf. `piecePourNom`) :
+     on ne se fie pas au nom qu’on a voulu lui donner. */
+  quadrilatereQuelconque: () => recentre([
+    [-0.5 + Math.random()*0.12, -0.42 - Math.random()*0.12],
+    [ 0.46 + Math.random()*0.12, -0.30 + Math.random()*0.14],
+    [ 0.34 - Math.random()*0.14,  0.46 + Math.random()*0.10],
+    [-0.44 - Math.random()*0.10,  0.28 + Math.random()*0.16]
+  ]),
   polygoneRegulier: (n, irregularite) => {
     const pts = [];
     for (let i = 0; i < n; i++) {
@@ -532,6 +577,7 @@ function creerPiece(forme, opts){
     else if (forme === 'losange') base = C.losange(o.rapport || (1.5 + Math.random() * 0.7));
     else if (forme === 'triangleRect') base = C.triangleRect(o.rapport);
     else if (forme === 'triangle') base = Math.random() < 0.5 ? C.triangleIso(0.9) : C.triangleQuelconque();
+    else if (forme === 'quadrilatere') base = C.quadrilatereQuelconque();
     else if (forme === 'pentagone') base = C.polygoneRegulier(5, 0.35);
     else if (forme === 'hexagone') base = C.polygoneRegulier(6, 0.35);
     else base = C.carre();
@@ -697,7 +743,11 @@ const CONTENU = {
          une pièce à 5 ou 6 côtés se dit « une forme ». */
       vocabulaire: ['disque','carre','rectangle','triangle','forme'],
       formes: ['disque','carre','rectangle','triangle'],
+      formesConvoyeur: ['disque','carre','rectangle','triangle'],
+      vitesses: [35, 55, 80],
       miniJeux: [
+        {id:'cp-convoyeur', mode:'convoyeur', titre:'Le convoyeur', icone:'🎢',
+         description:'Attrape les bonnes pièces.'},
         {id:'cp-reconnaitre', mode:'reconnaitre', titre:'Les pièces de verre', icone:'🧺',
          description:'Trouve les pièces demandées.', nbQuestions:5},
         {id:'cp-relations', mode:'relations', titre:'Assemblages', icone:'👀',
@@ -710,7 +760,11 @@ const CONTENU = {
       sousTitre: 'Nomme les pièces… et dis pourquoi tu en es sûr !',
       vocabulaire: ['disque','cercle','carre','rectangle','triangle','triangleRect','forme'],
       formes: ['disque','cercle','carre','rectangle','triangle','triangleRect'],
+      formesConvoyeur: ['disque','cercle','carre','rectangle','triangle','triangleRect'],
+      vitesses: [45, 70, 100],
       miniJeux: [
+        {id:'ce1-convoyeur', mode:'convoyeur', titre:'Le convoyeur', icone:'🎢',
+         description:'Cercle ou disque, à la volée.'},
         {id:'ce1-reconnaitre', mode:'reconnaitre', titre:'Les pièces de verre', icone:'🧺',
          description:'Cercle ou disque ?', nbQuestions:5},
         {id:'ce1-justifier', mode:'justifier', titre:'Le contrôle qualité', icone:'🔎',
@@ -724,7 +778,14 @@ const CONTENU = {
       vocabulaire: ['disque','cercle','carre','rectangle','triangle','triangleRect',
                     'losange','quadrilatere','pentagone','hexagone','polygone','forme'],
       formes: ['disque','cercle','carre','rectangle','triangle','triangleRect','losange','pentagone','hexagone'],
+      /* Le quadrilatère quelconque n’existe QUE sur le tapis : c’est là que
+         la catégorie se joue, et nulle part ailleurs dans le module. */
+      formesConvoyeur: ['disque','cercle','carre','rectangle','triangle','triangleRect',
+                        'losange','quadrilatere','pentagone','hexagone'],
+      vitesses: [55, 85, 120],
       miniJeux: [
+        {id:'ce2-convoyeur', mode:'convoyeur', titre:'Le convoyeur', icone:'🎢',
+         description:'Classe les pièces par catégorie.'},
         {id:'ce2-vocabulaire', mode:'vocabulaire', titre:'La rosace', icone:'🏵️',
          description:'Centre, rayon, diagonale…', nbQuestions:6},
         {id:'ce2-portrait', mode:'portrait', titre:'La commande de pièces', icone:'📜',
@@ -735,6 +796,11 @@ const CONTENU = {
     }
   }
 };
+
+/* Chaque palier porte son nom : plusieurs générateurs en ont besoin et le
+   déduire de la place dans l’objet à chaque fois serait une invitation à se
+   tromper. */
+Object.keys(CONTENU.paliers).forEach(n => { CONTENU.paliers[n]._nom = n; });
 
 /* ============================================================
    OUTILS COMMUNS (CHARTE §13)
@@ -1370,10 +1436,15 @@ function qAngles(cfg){
 }
 
 function qVocabulaire(cfg){
-  /* Banque de onze notions pour cinq manches : la variété inter-sessions
-     du §13 vient du tirage, pas d’une rallonge du mini-jeu. */
-  const banque = ['centre','rayon','diametre','diagonale','longueur','largeur',
-                  'triangle','quadrilatere','pentagone','hexagone','polygone'];
+  /* PÉRIMÈTRE RESSERRÉ SUR LES ÉLÉMENTS DE FIGURE. La rosace portait aussi
+     le classement par nombre de côtés — triangle, quadrilatère, pentagone,
+     hexagone, polygone. Ce classement est parti au CONVOYEUR, où il est
+     mieux servi : classer des figures ENTIÈRES par catégorie y est la tâche
+     même, pièce après pièce, au lieu d’être une question isolée posée sur un
+     présentoir. Il reste ici ce que la rosace sait faire et que rien d’autre
+     ne fait : DÉSIGNER DES ÉLÉMENTS d’une figure — centre, rayon, diamètre,
+     diagonale, longueur, largeur. Les deux mini-jeux ne se recouvrent plus. */
+  const banque = ['centre','rayon','diametre','diagonale','longueur','largeur'];
   return tirerSansRepetition('voc-notions', banque, cfg.nbQuestions).map(notion => ({
     mode:'vocabulaire', notion, q:consigneVocabulaire(notion),
     /* Deux écrans distincts sous une même compétence : la rosace pour le
@@ -1408,6 +1479,113 @@ function consigneVocabulaire(n){
     polygone:'Quel mot désigne toutes ces formes à la fois ?'
   };
   return m[n];
+}
+
+/* ============================================================
+   LE CONVOYEUR — génération du flux (SPEC-M34-convoyeur §3, §4)
+   ============================================================ */
+/* Une consigne, et ce que le mot RECOUVRE.
+
+   `accepte` — les formes qui comptent. Le seul cas d’inclusion LÉGITIME du
+   cycle 2 y figure en toutes lettres : un triangle rectangle EST un
+   triangle, donc « attrape les triangles » l’accepte, alors que « attrape
+   les triangles rectangles » n’accepte que lui.
+
+   `bannis` — les formes qu’on n’envoie PAS sur le tapis pendant cette
+   consigne, parce qu’un enfant qui les toucherait aurait mathématiquement
+   raison sans que le programme l’y ait outillé : pas de carré quand on
+   demande les rectangles, pas de carré non plus quand on demande les
+   losanges. L’inclusion carré ⊂ rectangle est hors programme au cycle 2 ;
+   on ne la contredit pas, on évite la situation. */
+const CONVOYEUR_CONSIGNES = {
+  CP: [
+    {mot:'disque',       accepte:['disque'],       bannis:[]},
+    {mot:'carre',        accepte:['carre'],        bannis:[]},
+    {mot:'rectangle',    accepte:['rectangle'],    bannis:['carre']},
+    {mot:'triangle',     accepte:['triangle'],     bannis:[]}
+  ],
+  CE1: [
+    {mot:'disque',       accepte:['disque'],       bannis:[]},
+    {mot:'cercle',       accepte:['cercle'],       bannis:[]},
+    {mot:'carre',        accepte:['carre'],        bannis:[]},
+    {mot:'rectangle',    accepte:['rectangle'],    bannis:['carre']},
+    {mot:'triangle',     accepte:['triangle','triangleRect'], bannis:[]},
+    {mot:'triangleRect', accepte:['triangleRect'], bannis:[]}
+  ],
+  /* Au CE2 la consigne ne désigne plus une forme mais une CATÉGORIE : il
+     faut ranger quatre formes différentes sous le mot « quadrilatère ».
+     C’est un changement de nature, pas d’inventaire. */
+  CE2: [
+    {mot:'quadrilatere', accepte:['carre','rectangle','losange','quadrilatere'], bannis:[]},
+    {mot:'triangle',     accepte:['triangle','triangleRect'], bannis:[]},
+    {mot:'pentagone',    accepte:['pentagone'],    bannis:[]},
+    {mot:'hexagone',     accepte:['hexagone'],     bannis:[]},
+    {mot:'losange',      accepte:['losange'],      bannis:['carre']},
+    {mot:'disque',       accepte:['disque'],       bannis:[]}
+  ]
+};
+const CONVOYEUR_N = 3;             // pièces cibles par consigne
+const CONVOYEUR_PAR_PHASE = 8;     // pièces envoyées : 3 cibles, 5 distracteurs
+
+/* Une pièce dont le nom CALCULÉ est bien celui qu’on voulait. On ne se fie
+   jamais à l’intention : un « losange » tiré avec un rapport proche de 1
+   serait un carré, et le tapis mentirait. Même principe que partout dans
+   M34 — les propriétés se relisent sur les sommets. */
+function piecePourNom(nom, vocabulaire){
+  let p = null;
+  for (let essai = 0; essai < 120; essai++) {
+    p = creerPiece(nom, {cx:0, cy:0, taille:CONVOYEUR_TAILLE});
+    p._nomCalcule = nommerCalcule(p, vocabulaire);
+    if (p._nomCalcule === nom) return p;
+  }
+  return p;   // le validateur refusera la file, et `construireFile` regénérera
+}
+
+/* Le flux d’une phase. Il n’est pas aléatoire pur : il GARANTIT que N pièces
+   cibles passeront, entrelacées de distracteurs — sans quoi une phase
+   pourrait n’en présenter aucune et devenir impossible à finir. */
+function fluxDePhase(consigne, pool, vocabulaire){
+  const interdits = consigne.accepte.concat(consigne.bannis);
+  const autres = pool.filter(f => interdits.indexOf(f) < 0);
+  const cibles = Array.from({length: CONVOYEUR_N},
+    () => piecePourNom(pioche(consigne.accepte), vocabulaire));
+  const distracteurs = Array.from({length: CONVOYEUR_PAR_PHASE - CONVOYEUR_N},
+    () => piecePourNom(pioche(autres), vocabulaire));
+  cibles.forEach(p => { p._cible = true; });
+  distracteurs.forEach(p => { p._cible = false; });
+  /* On mélange, mais on refuse un début sans aucune cible : trois
+     distracteurs d’affilée en ouverture, et l’enfant croit s’être trompé
+     de consigne. */
+  let flux = cibles.concat(distracteurs);
+  for (let essai = 0; essai < 40; essai++) {
+    flux = melanger(flux);
+    if (flux.slice(0, 3).some(p => p._cible)) break;
+  }
+  return flux;
+}
+
+function qConvoyeur(cfg, palier){
+  const consignes = CONVOYEUR_CONSIGNES[palier._nom] || CONVOYEUR_CONSIGNES.CP;
+  const pool = palier.formesConvoyeur || palier.formes;
+  /* Ordre des consignes tiré SANS REMISE (§13) : chaque type est demandé une
+     fois et une seule, et la partie s’arrête quand ils l’ont tous été. */
+  return melanger(consignes.slice()).map(c => ({
+    mode:'convoyeur', consigne:c, points:CONVOYEUR_N,
+    flux:fluxDePhase(c, pool, palier.vocabulaire),
+    q:'Attrape ' + lesDe(c.mot) + ' !',
+    sous:sousConvoyeur(c.mot)
+  }));
+}
+/* « les triangles », « les disques » — l’article défini pluriel se calcule,
+   il ne s’écrit pas à côté de chaque mot. */
+function lesDe(k){ return 'les ' + plurDe(k); }
+function sousConvoyeur(mot){
+  if (mot === 'quadrilatere') return 'Toutes les pièces à quatre côtés, quelle que soit leur allure.';
+  if (mot === 'triangle') return 'Toutes les pièces à trois côtés.';
+  if (mot === 'cercle') return 'Le cercle est un anneau de plomb vide ; le disque est plein.';
+  if (mot === 'disque') return 'Le disque est plein ; le cercle n’est qu’un anneau.';
+  if (mot === 'triangleRect') return 'Ceux-là seulement : un angle droit dans le triangle.';
+  return null;
 }
 
 function qPortrait(cfg){
@@ -1592,7 +1770,24 @@ const VALIDATEURS = {
       pb.push('rectangle et carré demandés ensemble (inclusion hors programme)');
     return pb;
   },
-  vocabulaire(q){ return []; }   // ses cibles naissent au rendu, testées à part
+  vocabulaire(q){ return []; },  // ses cibles naissent au rendu, testées à part
+  /* Le tapis est RELU pièce par pièce, sur le nom calculé depuis les
+     sommets — jamais sur la forme demandée à la fabrique. C’est ce qui
+     attrape le losange né carré, ou le rectangle né trop régulier. */
+  convoyeur(q){
+    const pb = [];
+    const noms = q.flux.map(p => p._nomCalcule);
+    const cibles = noms.filter(n => q.consigne.accepte.indexOf(n) >= 0).length;
+    if (cibles !== CONVOYEUR_N)
+      pb.push(cibles + ' pièces cibles sur le tapis, il en faut ' + CONVOYEUR_N);
+    noms.forEach((n, i) => {
+      if (q.consigne.bannis.indexOf(n) >= 0)
+        pb.push('pièce ' + (i+1) + ' : ' + n + ' interdit quand on demande ' + q.consigne.mot);
+      if (q.flux[i]._cible !== (q.consigne.accepte.indexOf(n) >= 0))
+        pb.push('pièce ' + (i+1) + ' : son étiquette de cible contredit sa géométrie');
+    });
+    return pb;
+  }
 };
 function verifierItem(q){
   const f = VALIDATEURS[q.mode];
@@ -1619,6 +1814,7 @@ function selectionSatisfait(choisies, exigences){
 }
 
 function engendrerFile(cfg, palier){
+  if (cfg.mode === 'convoyeur')   return qConvoyeur(cfg, palier);
   if (cfg.mode === 'reconnaitre') return qReconnaitre(cfg, palier);
   if (cfg.mode === 'relations')   return qRelations(cfg);
   if (cfg.mode === 'decrire')     return qDecrire(cfg, palier);
@@ -1657,7 +1853,7 @@ function remonterEnHaut(){
   try { window.scrollTo({top:0, left:0, behavior:'auto'}); } catch(e){ window.scrollTo(0, 0); }
 }
 function montreEcran(nom){
-  desarmerAutoSuivant(); stopperVoix();
+  desarmerAutoSuivant(); stopperVoix(); arreterConvoyeur();
   Object.values(ecrans).forEach(e => e.hidden = true);
   ecrans[nom].hidden = false;
   $('btnBack').hidden = (nom === 'home');
@@ -1775,7 +1971,9 @@ function lance(id){
   miniJeuCourant = t;
   file = construireFile(t.cfg, t.palier);
   pos = 0; score = 0;
-  total = file.reduce((s, q) => s + pointsParManche(q.mode), 0);
+  /* Une manche déclare son propre poids quand il n’est pas celui de son
+     mode : une phase de convoyeur vaut ses N prises. */
+  total = file.reduce((s, q) => s + (q.points !== undefined ? q.points : pointsParManche(q.mode)), 0);
   demarreLe = Date.now();
   $('hdrTitle').textContent = t.cfg.titre;
   montreEcran('game');
@@ -1800,7 +1998,7 @@ function message(txt, cl, correction){
 
 /* ---- Rendu d’une manche ---- */
 function question(){
-  desarmerAutoSuivant(); stopperVoix();
+  desarmerAutoSuivant(); stopperVoix(); arreterConvoyeur();
   const q = file[pos];
   verrouille = false; selection = new Set();
   $('feedback').textContent = ''; $('feedback').className = '';
@@ -1808,11 +2006,13 @@ function question(){
   $('btnValider').style.display = 'none';
   $('answers').innerHTML = ''; $('answers').className = '';
   $('vitrail').hidden = true;
+  $('svgScene').classList.remove('convoyeur');
   $('sousConsigne').textContent = q.sous || '';
   poserConsigne(q.q);
   majDots();
 
-  if (q.mode === 'reconnaitre') rendreReconnaitre(q);
+  if (q.mode === 'convoyeur') rendreConvoyeur(q);
+  else if (q.mode === 'reconnaitre') rendreReconnaitre(q);
   else if (q.mode === 'relations') rendreRelations(q);
   else if (q.mode === 'decrire') rendreDecrire(q);
   else if (q.mode === 'justifier') rendreJustifier(q);
@@ -2272,6 +2472,323 @@ function rendreVocabulaire(q){
 }
 
 /* ---- ce2-portrait : le présentoir ---- */
+/* ============================================================
+   LE CONVOYEUR — le moteur (SPEC-M34-convoyeur §2, §3, §6)
+   ============================================================
+
+   LE RISQUE PRINCIPAL est de mesurer la dextérité au lieu de la géométrie.
+   Toucher un objet en mouvement est une tâche MOTRICE avant d’être une tâche
+   géométrique : trop vite ou trop petit, le jeu pénalise l’enfant lent à
+   reconnaître exactement comme l’enfant maladroit. D’où trois garde-fous qui
+   ne se négocient pas — vitesse par défaut la plus LENTE des trois, pièces
+   d’au moins 80 px apparents (le double des 44 px d’une cible fixe : une
+   cible mobile en demande davantage), et AUCUNE pénalité d’oubli au CP.
+
+   TROIS PIÈGES TECHNIQUES, et ce qu’on en fait :
+
+   1. La position se calcule à partir du TEMPS ÉCOULÉ, jamais d’un incrément
+      par image — sinon la vitesse dépend de la fréquence de l’écran et le jeu
+      n’a pas la même difficulté sur deux appareils.
+
+   2. Le toucher se résout à l’instant du `pointerdown`, pas sur la dernière
+      image rendue. À 120 unités/s, une image de retard, c’est deux unités
+      d’écart ; sur un appareil qui rame, bien davantage. On avance donc les
+      pièces jusqu’à l’instant exact du doigt avant de chercher laquelle il
+      désigne.
+
+   3. `touch-action:none` sur la seule zone du tapis, posé sur les pièces
+      comme sur le fond : la propriété ne s’hérite pas, et sans elle viser une
+      pièce ferait défiler la page.
+
+   LE CHANGEMENT DE CONSIGNE est le moment critique : si l’enfant ne le
+   remarque pas, il continue sur l’ancienne forme et accumule des erreurs sans
+   comprendre. On vide donc le tapis — plus aucune pièce nouvelle dès la
+   N-ième prise, les autres finissent leur course — puis on marque une
+   respiration et la nouvelle consigne arrive, lue à voix haute. Le tapis vide
+   fait la ponctuation : chaque pièce appartient sans équivoque à une seule
+   consigne, et la vitesse n’a jamais eu à varier.
+   ============================================================ */
+const CONVOYEUR_VB_L = 340, CONVOYEUR_VB_H = 208;
+const CONVOYEUR_TAILLE = 78;          // ≈ 80 px apparents sur un téléphone
+const CONVOYEUR_ESPACEMENT = 122;     // entre deux pièces : plus large qu’une pièce tournée
+const CONVOYEUR_MARGE = 62;           // demi-encombrement maximal d’une pièce tournée
+const CONVOYEUR_TOL = 10;             // rattrapage : à 10 unités du bord, c’est touché
+const CONVOYEUR_GEL = 850;            // ms d’immobilisation d’une pièce touchée à tort
+const CONVOYEUR_RESPIRATION = 1000;   // ms de tapis vide entre deux consignes
+const CONVOYEUR_COEF = [1, 1.1, 1.2];
+const CLE_VITESSE = 'mayeutik-m34-convoyeur-vitesse';
+
+function mouvementReduit(){
+  try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  catch(e){ return false; }
+}
+/* Le cran de vitesse est un CHOIX de l’enfant, mémorisé par profil, et il ne
+   conditionne aucune progression : on termine le jeu au cran le plus lent. */
+function lireCranVitesse(){
+  if (mouvementReduit()) return 0;
+  try {
+    const t = JSON.parse(localStorage.getItem(CLE_VITESSE) || '{}');
+    const v = t[lireProfilActifId()];
+    return (v === 1 || v === 2) ? v : 0;
+  } catch(e){ return 0; }
+}
+function ecrireCranVitesse(c){
+  try {
+    const t = JSON.parse(localStorage.getItem(CLE_VITESSE) || '{}');
+    t[lireProfilActifId()] = c;
+    localStorage.setItem(CLE_VITESSE, JSON.stringify(t));
+  } catch(e){}
+}
+
+/* Le doigt est-il sur cette pièce ? On mesure une DISTANCE à la géométrie,
+   avec un rattrapage : viser une cible qui bouge n’est pas viser un bouton. */
+function distanceAPiece(p, x, y){
+  if (p.forme === 'disque' || p.forme === 'cercle')
+    return Math.max(0, Math.hypot(x - p.centre[0], y - p.centre[1]) - p.rayon);
+  const pts = p.pts, n = pts.length;
+  let dedans = false, d = 1e9;
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    if ((pts[i][1] > y) !== (pts[j][1] > y) &&
+        x < (pts[j][0] - pts[i][0]) * (y - pts[i][1]) / (pts[j][1] - pts[i][1]) + pts[i][0]) dedans = !dedans;
+    d = Math.min(d, distanceAuSegment([x, y], pts[i], pts[j]));
+  }
+  return dedans ? 0 : d;
+}
+
+let convoyeur = null;
+function arreterConvoyeur(){
+  if (convoyeur) { convoyeur.detruire(); convoyeur = null; }
+}
+
+function rendreConvoyeur(q){
+  const palier = miniJeuCourant.palier;
+  const vitesses = palier.vitesses || [35, 55, 80];
+  let cran = lireCranVitesse();
+
+  const svg = $('svgScene');
+  svg.setAttribute('viewBox', `0 0 ${CONVOYEUR_VB_L} ${CONVOYEUR_VB_H}`);
+  const yBande = 34, hBande = CONVOYEUR_VB_H - 2 * yBande;
+  svg.innerHTML =
+      `<rect class="tapis-fond" x="0" y="0" width="${CONVOYEUR_VB_L}" height="${CONVOYEUR_VB_H}" rx="10"/>`
+    + `<rect class="tapis-bande" x="0" y="${yBande}" width="${CONVOYEUR_VB_L}" height="${hBande}"/>`
+    + `<line class="tapis-rail" x1="6" y1="${yBande}" x2="${CONVOYEUR_VB_L-6}" y2="${yBande}"/>`
+    + `<line class="tapis-rail" x1="6" y1="${yBande+hBande}" x2="${CONVOYEUR_VB_L-6}" y2="${yBande+hBande}"/>`
+    + `<g id="tapisPieces"></g>`
+    + `<g id="voilePause" style="display:none">`
+    + `<rect class="voile-pause" x="0" y="0" width="${CONVOYEUR_VB_L}" height="${CONVOYEUR_VB_H}" rx="10"/>`
+    + `<text class="texte-pause" x="${CONVOYEUR_VB_L/2}" y="${CONVOYEUR_VB_H/2+8}">Pause</text></g>`;
+  svg.classList.add('convoyeur');
+  $('vitrail').hidden = false;
+  const gPieces = svg.querySelector('#tapisPieces');
+
+  /* ---- La barre de l’atelier : manette de vitesse, pause, compteur ---- */
+  const barre = document.createElement('div');
+  barre.className = 'barre-convoyeur';
+  const manette = document.createElement('div');
+  manette.className = 'manette';
+  ['Lent', 'Moyen', 'Rapide'].forEach((nom, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'cran' + (i === cran ? ' on' : '');
+    b.textContent = nom; b.dataset.cran = i;
+    b.addEventListener('click', () => {
+      cran = i; ecrireCranVitesse(i); sonClic();
+      manette.querySelectorAll('.cran').forEach(x => x.classList.toggle('on', x === b));
+    });
+    manette.appendChild(b);
+  });
+  const btnPause = document.createElement('button');
+  btnPause.type = 'button'; btnPause.className = 'btn-pause'; btnPause.textContent = '⏸ Pause';
+  const compteur = document.createElement('span');
+  compteur.className = 'compteur-prises';
+  barre.append(manette, btnPause, compteur);
+  $('answers').innerHTML = '';
+  $('answers').appendChild(barre);
+
+  /* ---- État de la phase ---- */
+  const vivantes = [];            // pièces sur le tapis
+  let suivante = 0;               // index dans le flux
+  let prises = 0, erreurs = 0, oublis = 0;
+  let emissionClose = false, phaseFinie = false, enPause = false;
+  let anim = null, dernierTemps = 0;
+
+  const vitesse = () => vitesses[cran];
+  const majCompteur = () => { compteur.textContent = prises + ' / ' + CONVOYEUR_N; };
+  majCompteur();
+
+  function poserPiece(p){
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('class', 'piece piece-tapis');
+    g.innerHTML = svgPiece(p).replace(/^<g[^>]*>/, '').replace(/<\/g>$/, '');
+    gPieces.appendChild(g);
+    const e = {p, g, x:CONVOYEUR_VB_L + CONVOYEUR_MARGE,
+               y:yBande + hBande/2 + (Math.random() - 0.5) * 16,
+               fige:0, touchee:false};
+    vivantes.push(e);
+    placer(e);
+    return e;
+  }
+  const placer = (e) => e.g.setAttribute('transform',
+    `translate(${e.x.toFixed(2)},${e.y.toFixed(2)})`);
+
+  /* Émission : une pièce nouvelle dès que la précédente a parcouru
+     l’espacement. Aucune pièce n’est donc hors de portée pendant qu’une autre
+     est touchée, et deux pièces ne se recouvrent jamais. */
+  function emettre(){
+    if (emissionClose || suivante >= q.flux.length) return;
+    const derniere = vivantes.length ? vivantes[vivantes.length - 1] : null;
+    if (derniere && derniere.x > CONVOYEUR_VB_L + CONVOYEUR_MARGE - CONVOYEUR_ESPACEMENT) return;
+    poserPiece(q.flux[suivante++]);
+  }
+
+  function sortir(e){
+    /* Une cible sortie sans avoir été touchée est un OUBLI — mais seulement
+       tant que la phase est ouverte : une fois la N-ième prise faite, ce qui
+       reste sur le tapis appartient déjà au passé (§3). */
+    if (e.p._cible && !e.touchee && !emissionClose) {
+      oublis++;
+      score -= MALUS_OUBLI[palier._nom] || 0;
+    }
+    e.g.remove();
+  }
+
+  function avancer(dt){
+    const v = vitesse();
+    for (let i = vivantes.length - 1; i >= 0; i--) {
+      const e = vivantes[i];
+      if (e.fige > 0) { e.fige -= dt; if (e.fige <= 0) e.g.classList.remove('faux'); continue; }
+      e.x -= v * dt;
+      placer(e);
+      if (e.x < -CONVOYEUR_MARGE) { sortir(e); vivantes.splice(i, 1); }
+    }
+  }
+
+  function boucle(t){
+    if (!convoyeur || phaseFinie) return;
+    const dt = Math.min(0.05, (t - dernierTemps) / 1000);   // un onglet réveillé ne téléporte rien
+    dernierTemps = t;
+    if (!enPause) { avancer(dt); emettre(); verifierFinDePhase(); }
+    anim = requestAnimationFrame(boucle);
+  }
+
+  function verifierFinDePhase(){
+    if (phaseFinie) return;
+    const plusRienAEnvoyer = emissionClose || suivante >= q.flux.length;
+    if (!plusRienAEnvoyer || vivantes.length) return;
+    phaseFinie = true;
+    q._bilan = {mot:q.consigne.mot, prises, erreurs, oublis};
+    q._ok = (erreurs === 0 && prises === CONVOYEUR_N);
+    /* Respiration sur tapis vide, puis la consigne suivante — sans action de
+       l’enfant, et sans bouton « Suivant » : le jeu ne s’interrompt pas. */
+    setTimeout(() => {
+      if (!convoyeur) return;
+      pos++;
+      if (pos < file.length) question();
+      else finConvoyeur();
+    }, CONVOYEUR_RESPIRATION);
+  }
+
+  /* ---- Le toucher, résolu à l’instant du doigt ---- */
+  function surAppui(ev){
+    if (enPause || phaseFinie || !convoyeur) return;
+    ev.preventDefault();
+    const pt = svg.createSVGPoint();
+    pt.x = ev.clientX; pt.y = ev.clientY;
+    const m = svg.getScreenCTM();
+    if (!m) return;
+    const c = pt.matrixTransform(m.inverse());
+    /* On rattrape le temps écoulé depuis la dernière image AVANT de chercher
+       la pièce visée : c’est là que se logent les touchers « à côté ». */
+    const retard = Math.max(0, Math.min(0.05, (performance.now() - dernierTemps) / 1000));
+    const v = vitesse();
+    let vise = null, dMin = CONVOYEUR_TOL;
+    vivantes.forEach(e => {
+      if (e.touchee) return;
+      const x = e.x - (e.fige > 0 ? 0 : v * retard);
+      const d = distanceAPiece(e.p, c.x - x, c.y - e.y);
+      if (d <= dMin) { dMin = d; vise = e; }
+    });
+    if (!vise) return;
+    vise.touchee = true;
+    if (vise.p._cible) {
+      prises++; score += 1; majCompteur();
+      sonClic();
+      vise.g.classList.add('bon');
+      vise.g.style.transition = 'opacity .25s';
+      vise.g.style.opacity = '0';
+      const i = vivantes.indexOf(vise);
+      if (i >= 0) vivantes.splice(i, 1);
+      setTimeout(() => vise.g.remove(), 260);
+      if (prises >= CONVOYEUR_N) { emissionClose = true; sonBonneReponse(); }
+      return;
+    }
+    /* Erreur : la pièce s’immobilise, se marque, et SON NOM EST ANNONCÉ —
+       §18, on montre toujours ce qu’il fallait voir. Elle repart ensuite, et
+       ne peut plus être touchée : pas d’essai-erreur sur place. */
+    erreurs++; score -= 1;
+    sonErreur();
+    vise.g.classList.add('faux', 'ratee');
+    vise.fige = CONVOYEUR_GEL / 1000;
+    const nom = vise.p._nomCalcule;
+    message('C’était ' + avecArt(nom) + '.', 'mauvais');
+    lireAVoixHaute('C’était ' + avecArt(nom) + '.');
+    setTimeout(() => { if (convoyeur) message(''); }, CONVOYEUR_GEL + 400);
+  }
+
+  function basculerPause(){
+    enPause = !enPause;
+    svg.querySelector('#voilePause').style.display = enPause ? '' : 'none';
+    btnPause.textContent = enPause ? '▶ Reprendre' : '⏸ Pause';
+    if (enPause) stopperVoix();
+  }
+  btnPause.addEventListener('click', basculerPause);
+  svg.addEventListener('pointerdown', surAppui);
+
+  convoyeur = {
+    detruire(){
+      phaseFinie = true;
+      if (anim) cancelAnimationFrame(anim);
+      svg.removeEventListener('pointerdown', surAppui);
+      svg.classList.remove('convoyeur');
+    },
+    /* Exposé pour les tests et le débogage : ce qui roule sur le tapis ne se
+       devine pas depuis le DOM, où une pièce n’est qu’un `transform`. */
+    etat(){ return {prises, erreurs, oublis, vivantes:vivantes.length,
+                    emises:suivante, emissionClose, enPause, cran, phaseFinie,
+                    pieces:vivantes.map(e => ({cible:e.p._cible, nom:e.p._nomCalcule,
+                                               x:e.x, y:e.y, touchee:e.touchee, fige:e.fige}))}; }
+  };
+  dernierTemps = performance.now();
+  anim = requestAnimationFrame(boucle);
+}
+
+/* L’oubli ne se paie pas au CP. Un enfant de six ans qui hésite est un enfant
+   qui RÉFLÉCHIT : pénaliser l’hésitation à cet âge enseigne la précipitation,
+   exactement le contraire de ce que vise la reconnaissance des formes. La
+   contrainte de temps suffit à créer l’enjeu. L’erreur, elle, se paie
+   partout, et plus cher que l’oubli. */
+const MALUS_OUBLI = {CP:0, CE1:0.25, CE2:0.25};
+
+function finConvoyeur(){
+  /* Les crans rapides valent un léger coefficient favorable — récompenser la
+     prise de risque — mais le score est BORNÉ par le total : jamais la
+     vitesse lente ne devient perdante, et le contrat de session du §11 garde
+     un rapport score/total lisible. */
+  score = Math.max(0, Math.min(total, Math.round(score * CONVOYEUR_COEF[lireCranVitesse()])));
+  arreterConvoyeur();
+  fin();
+}
+
+/* Bilan PAR FORME DEMANDÉE : c’est l’information utile à l’enfant comme au
+   parent — quelle forme pose problème — et non le score global. */
+function bilanConvoyeur(){
+  const lignes = file.filter(q => q._bilan).map(q => q._bilan);
+  if (!lignes.length) return '';
+  return '<table><tr><th>Consigne</th><th>Prises</th><th>Erreurs</th><th>Oublis</th></tr>'
+    + lignes.map(b => `<tr><td>${plurDe(b.mot)}</td><td>${b.prises} / ${CONVOYEUR_N}</td>`
+        + `<td>${b.erreurs}</td><td>${b.oublis}</td></tr>`).join('')
+    + '</table>';
+}
+
 function rendrePortrait(q){
   $('vitrail').hidden = true;
   const zone = $('answers');
@@ -2408,6 +2925,7 @@ function fin(){
   $('endStars').innerHTML = '⭐'.repeat(n).split('').map(s => `<span>${s}</span>`).join('');
   $('endMsg').textContent = n === 3 ? 'Magnifique vitrail !' : n === 2 ? 'Bien joué !' : 'Continue, tu progresses !';
   $('endScore').textContent = score + ' point' + (score > 1 ? 's' : '') + ' sur ' + total + '.';
+  $('endBilan').innerHTML = bilanConvoyeur();
   if (n === 3) sonNiveauParfait(); else sonBonneReponse();
   lancerConfettis(n === 3 ? 90 : 40);
   montreEcran('end');
