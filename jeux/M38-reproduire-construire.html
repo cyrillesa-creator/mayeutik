@@ -821,6 +821,24 @@ const MoteurCompas = (function(){
     const surMove = (ev) => {
       if (!actif || detruit) return;
       const p = versSVG(ev.clientX, ev.clientY);
+      /* ÉCARTEMENT FIGÉ : LE GLISSEMENT DÉPLACE LA POINTE.
+         Sans cela, poser la pointe est un simple tap — l’enfant appuie, et la
+         position est arrêtée avant même qu’il ait pu la voir. La loupe, qui
+         n’existe que pendant l’appui, ne lui montrait alors qu’un endroit
+         qu’il ne pouvait plus corriger : elle était présente et inutile.
+         Désormais il appuie, REGARDE, ajuste, et relâche quand c’est juste —
+         le geste de la loupe de sélection d’un texte, et celui d’un vrai
+         compas qu’on promène avant d’appuyer. Un tap sans déplacement se
+         comporte exactement comme avant. */
+      if (verrouille) {
+        const c = accrocherPointe(p);
+        if (c) centre = c;
+        planifier();
+        majLoupe(centre);
+        if (o.surApercu) o.surApercu(etat());
+        ev.preventDefault();
+        return;
+      }
       angleMine = Math.atan2(p[1] - centre[1], p[0] - centre[0]);
       if (!verrouille) {
         let d = bride(hyp(centre, p), 0, rMax());
