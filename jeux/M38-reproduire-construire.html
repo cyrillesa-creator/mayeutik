@@ -178,6 +178,11 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 .cercle-fait{fill:none; stroke:var(--mandarine); stroke-width:3.2;}
 .cible-pose{fill:transparent; cursor:pointer;}
 .attendu{fill:none; stroke:var(--menthe-t); stroke-width:3; stroke-dasharray:7 5; stroke-linejoin:round;}
+/* La rosace achevée : les pétales prennent le verre, l’hexagone des six
+   centres se montre en plomb — c’est celui que M34 fait nommer. */
+.petale{fill:rgba(255,201,60,.55); stroke:var(--plomb); stroke-width:2.4; stroke-linejoin:round;}
+.hexagone-final{fill:none; stroke:var(--plomb); stroke-width:3.2; stroke-linejoin:round;}
+.trace{fill:none; stroke:rgba(43,58,85,.30); stroke-width:1.8;}
 .sommet-attendu{fill:var(--menthe-t);}
 .sommet-faux{fill:var(--corail);}
 
@@ -461,6 +466,8 @@ const MoteurCompas = (function(){
        spec.branche      longueur des branches (défaut : BRANCHE)
        spec.aimants      [[x,y]…] points d’accrochage de la POINTE
        spec.aimantsMine  [[x,y]…] points d’accrochage de la MINE
+       spec.guide        {c, r} : la pointe se pose SUR ce cercle
+       spec.rayonMax     plafond d’ouverture propre au mini-jeu
        spec.pointeLibre  false → la pointe REFUSE de se planter ailleurs
        spec.rayonAimante true → le rayon s’accroche à l’unité entière (fenêtre)
        spec.rayonCrante  true → le rayon EST toujours un nombre entier d’unités
@@ -482,7 +489,8 @@ const MoteurCompas = (function(){
   function creerCompas(svg, spec){
     poserStyle();
     const o = Object.assign({
-      branche: BRANCHE, aimants: [], aimantsMine: [], pointeLibre: true,
+      branche: BRANCHE, aimants: [], aimantsMine: [], guide: null, rayonMax: 0,
+      pointeLibre: true,
       rayonAimante: false, rayonCrante: false, zone: null, etiquette: true,
       loupe: true, ecartLoupe: ECART_LOUPE
     }, spec || {});
@@ -557,7 +565,10 @@ const MoteurCompas = (function(){
        cercle validé est validé (CHARTE §18, pas d’essai-erreur sur place). */
     let bloque = false;
 
-    const rMax = () => Math.min(R_MAX, 2 * o.branche);
+    /* Le plafond peut être RESSERRÉ par le mini-jeu : une construction dont
+       la figure entière dépend du premier rayon doit pouvoir le borner, plutôt
+       que de recadrer après coup ce que l’enfant a tracé. */
+    const rMax = () => Math.min(R_MAX, 2 * o.branche, o.rayonMax || Infinity);
     const etat = () => ({centre: centre ? centre.slice() : null, r, verrouille, phase});
 
     /* --- Le côté de la charnière : choisi une fois, gardé (cf. en-tête) --- */
@@ -771,6 +782,18 @@ const MoteurCompas = (function(){
       let meilleur = null, d0 = AIMANT_POINTE;
       o.aimants.forEach(a => { const d = hyp(p, a); if (d < d0) { d0 = d; meilleur = a; } });
       if (meilleur) return meilleur.slice();
+      /* LA POINTE PEUT SE POSER SUR UN CERCLE, et pas seulement sur des points
+         énumérés. C’est ce qu’exige une construction au compas : le centre du
+         cercle suivant est « un point quelconque du précédent », et il y en a
+         une infinité. On projette donc le doigt sur le guide. Les points
+         énumérés restent PRIORITAIRES — ce sont les intersections déjà
+         construites, et retomber exactement dessus est ce qui fait tenir la
+         figure. */
+      if (o.guide) {
+        const d = hyp(p, o.guide.c) || 1e-6;
+        return [o.guide.c[0] + (p[0] - o.guide.c[0]) / d * o.guide.r,
+                o.guide.c[1] + (p[1] - o.guide.c[1]) / d * o.guide.r];
+      }
       return o.pointeLibre ? p : null;
     }
     let actif = false;
@@ -883,6 +906,8 @@ const MoteurCompas = (function(){
         if ('loupe' in c) { o.loupe = c.loupe; if (!c.loupe) cacherLoupe(); }
         if ('ecartLoupe' in c) o.ecartLoupe = c.ecartLoupe;
         if ('rayonCrante' in c) o.rayonCrante = c.rayonCrante;
+        if ('guide' in c) o.guide = c.guide;
+        if ('rayonMax' in c) o.rayonMax = c.rayonMax;
       },
       estVerrouille(){ return verrouille; },
       grandOuvert(){ return r >= rMax() - 0.5; },
@@ -1755,38 +1780,224 @@ function geometrieRosace(){
   };
   return {R, cx, cy, hex, pointes, petale};
 }
+/* ============================================================
+   CE2 — LA ROSACE, construite au compas
+   ============================================================
+   MANCHE DE SYNTHÈSE. L’enfant construit ce qu’il a appris à nommer en M34 et
+   à vérifier en M35. Le fait mathématique qu’elle doit faire DÉCOUVRIR : à
+   écartement constant, le rayon se reporte EXACTEMENT SIX FOIS sur le cercle.
+   Ni cinq, ni sept.
+
+   Il ne l’apprend pas par une consigne — c’est pour cela que le nombre six
+   n’est écrit nulle part, ni dans l’énoncé, ni dans l’item. La version
+   précédente demandait de poser six points sur un cercle avec
+   `nbPointsAttendu: 6` : le six était DONNÉ, et il n’y avait plus rien à
+   découvrir. Ici l’enfant enchaîne les arcs et constate que le sixième
+   retombe sur son point de départ.
+
+   TROIS CONSÉQUENCES DE CONCEPTION, qui découlent toutes de ce fait :
+
+     • LE VERROUILLAGE EST NON NÉGOCIABLE. Si l’écartement peut changer entre
+       deux arcs, la figure ne se referme pas et la propriété disparaît. Il se
+       verrouille donc tout seul dès le premier cercle tracé.
+
+     • L’AIMANTATION NE DOIT JAMAIS FABRIQUER LA FERMETURE. Elle accroche les
+       intersections DÉJÀ CONSTRUITES, à une fraction du rayon et non à un
+       nombre de pixels — sinon sa force dépendrait de l’échelle. Trop
+       généreuse, elle refermerait la rosace à la place de l’enfant et
+       détruirait le fait à découvrir.
+
+     • LE PREMIER RAYON EST LIBRE MAIS BORNÉ. La rosace entière tient dans un
+       disque de rayon 2r : au-delà, les pétales sortiraient du panneau. On
+       borne donc l’ouverture plutôt que de recadrer après coup, pour que ce
+       que l’enfant trace soit ce qu’il voit.
+   ============================================================ */
+const ROSACE_TOL = 0.11;          // fraction du rayon : aimant et jugement
+
+function centreDuPanneau(){
+  return [ZONE_PLEINE.x0 + ZONE_PLEINE.l / 2, ZONE_PLEINE.y0 + ZONE_PLEINE.h / 2];
+}
+/* Rayon maximal pour que la rosace entière — un disque de rayon 2r — tienne
+   dans le panneau, marge comprise. */
+function rayonMaxRosace(){
+  return Math.floor((Math.min(ZONE_PLEINE.l, ZONE_PLEINE.h) / 2 - 12) / 2);
+}
+/* Les intersections de deux cercles de MÊME rayon r, centrés en a et b. Elles
+   n’existent que si les centres sont à moins de 2r l’un de l’autre. */
+function intersections(a, b, r){
+  const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy);
+  if (d < 1e-6 || d > 2 * r) return [];
+  const h = Math.sqrt(Math.max(0, r * r - (d / 2) * (d / 2)));
+  const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+  return [[mx - dy / d * h, my + dx / d * h], [mx + dy / d * h, my - dx / d * h]];
+}
+
 function qCe2Rosace(){
-  const g = geometrieRosace();
-  const U = PX_PAR_UNITE;
-  const rayonCm = Math.round(g.R / U);
-  return [
-    mancheBase({
-      support:'uni', libre:false, zone:'pleine',
-      solutions:[], cercles:[{c:[g.cx, g.cy], r:rayonCm * U}],
-      compas:'rayon', rayonDemande:rayonCm, centreImpose:[g.cx, g.cy],
-      q:'Trace le grand cercle de la rosace.',
-      enonce:'Trace le cercle de rayon ' + rayonCm + ', centré sur le point marqué.',
-      sous:'Règle l’écartement du compas, puis touche le centre.'
-    }),
-    mancheBase({
-      support:'uni', libre:false, zone:'pleine',
-      guideCercle:{c:[g.cx, g.cy], r:g.R*0.42},
-      decor:{cercles:[{c:[g.cx, g.cy], r:rayonCm*U}]},
-      solutions:[[g.hex]], tolAngulaire:true, nbPointsAttendu:6,
-      q:'Pose les six sommets de l’hexagone.',
-      enonce:'Place les six sommets de l’hexagone du centre, régulièrement répartis.',
-      sous:'Les points glissent sur le cercle de construction : c’est leur écartement qui compte. Au sixième, la pièce se ferme toute seule.'
-    }),
-    mancheBase({
-      support:'uni', libre:false, zone:'pleine',
-      guideCercle:{c:[g.cx, g.cy], r:g.R*0.93},
-      decor:{cercles:[{c:[g.cx, g.cy], r:rayonCm*U}], contours:[g.hex]},
-      petalesDe:g, solutions:[[g.pointes]], tolAngulaire:true, nbPointsAttendu:6,
-      q:'Pose les six pointes des pétales.',
-      enonce:'Place les six pointes des pétales, une entre chaque paire de sommets.',
-      sous:'Chaque pointe se place face au milieu d’un côté de l’hexagone.'
-    })
-  ];
+  return [mancheBase({
+    mode:'rosace', support:'uni', zone:'pleine', libre:false, solutions:[],
+    q:'Construis la rosace au compas.',
+    enonce:'Trace un premier cercle, puis reporte le même écartement tout autour.',
+    sous:'Plante la pointe sur le point marqué et ouvre le compas.'
+  })];
+}
+
+function rendreRosace(q){
+  fondScene(q);
+  const svg = scene();
+  chantier = nouveauChantier(q);
+  const O = centreDuPanneau();
+  const rMax = rayonMaxRosace();
+  q._O = O;
+  q._centres = [];          // les centres des pétales, dans l’ordre où ils viennent
+  q._r = 0;
+
+  svg.insertAdjacentHTML('beforeend',
+    `<circle class="sommet fixe" cx="${O[0]}" cy="${O[1]}" r="5"/>`);
+
+  const gFig = document.createElementNS(NS, 'g');
+  gFig.setAttribute('id', 'figureRosace');
+  svg.appendChild(gFig);
+
+  const barre = $('barreOutils');
+  barre.hidden = false; barre.innerHTML = '';
+  const btnFini = document.createElement('button');
+  btnFini.type = 'button'; btnFini.className = 'outil';
+  btnFini.textContent = '✓ j’ai fini';
+  btnFini.hidden = true;
+  btnFini.addEventListener('click', () => juger(false));
+  barre.appendChild(btnFini);
+
+  /* Les points sur lesquels la pointe peut retomber EXACTEMENT : le départ,
+     et les intersections des cercles déjà tracés avec le cercle de base. */
+  function ancres(){
+    const pts = q._centres.slice();
+    for (let i = 0; i < q._centres.length; i++)
+      intersections(O, q._centres[i], q._r).forEach(p => pts.push(p));
+    return pts;
+  }
+
+  function juger(ferme){
+    if (verrouille) return;
+    verrouille = true;
+    compasRosace.figer();
+    btnFini.hidden = true;
+    if (ferme && !hexagoneRegulier(q._centres.slice(0, 6), O, q._r)) ferme = false;
+    if (ferme) {
+      /* LE MOMENT DE VÉRITÉ : le sixième arc est retombé sur le départ. Les
+         six centres sont alors les sommets d’un hexagone régulier — celui-là
+         même que M34 fait nommer sur cette rosace. On le montre, et on le
+         NOMME : le mot cesse d’être une étiquette, l’enfant voit d’où il
+         vient. */
+      const hex = q._centres.slice(0, 6);
+      gFig.innerHTML = petalesSvg(hex, O, q._r) + `<polygon class="hexagone-final" points="${
+        hex.map(p => p.map(v => v.toFixed(1)).join(',')).join(' ')}"/>`;
+      chantier.contours = [hex];
+      chantier.cerclesPoses = [{c:O, r:q._r}].concat(q._centres.map(c => ({c, r:q._r})));
+      /* L’instrument se retire de la figure achevée : il a fait son travail,
+         et ses branches barraient la rosace. */
+      compasRosace.detruire();
+      terminerManche(true, null);
+      $('feedback').textContent = 'Six fois exactement ! Tes six centres forment un hexagone.';
+      return;
+    }
+    /* §18 : on montre ce qu’il fallait voir, sans jamais colorer en rouge la
+       bonne réponse. L’enfant a pu aller au bout de sa figure. */
+    const r = q._r || rMax * 0.6;
+    const juste = Array.from({length:6}, (_, i) => {
+      const th = (q._centres.length ? Math.atan2(q._centres[0][1]-O[1], q._centres[0][0]-O[0]) : -Math.PI/2)
+        + i * TAU / 6;
+      return [O[0] + Math.cos(th) * r, O[1] + Math.sin(th) * r];
+    });
+    setTimeout(() => {
+      if (!svg.isConnected) return;
+      compasRosace.detruire();
+      gFig.innerHTML = juste.map(c => cercleSvg(c, r, 'attendu')).join('')
+        + `<polygon class="hexagone-final" points="${juste.map(p => p.map(v => v.toFixed(1)).join(',')).join(' ')}"/>`;
+    }, DELAI_REVELATION);
+    terminerManche(false,
+      'Le même écartement se reporte SIX fois autour du cercle : regarde.');
+  }
+
+  const compasRosace = MoteurCompas.creerCompas(svg, {
+    zone:{x0:ZONE_PLEINE.x0 - 6, y0:ZONE_PLEINE.y0 - 6,
+          x1:ZONE_PLEINE.x0 + ZONE_PLEINE.l + 6, y1:ZONE_PLEINE.y0 + ZONE_PLEINE.h + 6},
+    /* Premier temps : la pointe ne peut se planter QUE sur le point marqué —
+       une rosace a un centre, et le chercher n’est pas la tâche. */
+    aimants:[O], pointeLibre:false, etiquette:false,
+    surPointe: () => sonClic(),
+    surTrace: (e) => {
+      if (verrouille) return;
+      if (!compasRosace.estVerrouille()) {
+        /* Le premier cercle donne l’écartement, et le fige : sans cela la
+           figure ne pourrait pas se refermer. */
+        q._r = e.r;
+        compasRosace.verrouiller();
+        compasRosace.configurer({aimants:[], guide:{c:O, r:q._r}, pointeLibre:false});
+        $('sousConsigne').textContent =
+          'L’écartement est gardé. Replante la pointe sur le cercle et retrace.';
+        return;
+      }
+      const c = e.centre.slice();
+      /* Fermeture : la pointe est retombée sur le tout premier pétale. */
+      const tol = ROSACE_TOL * q._r;
+      if (q._centres.length >= 6 && dist(c, q._centres[0]) <= tol) { juger(true); return; }
+      q._centres.push(c);
+      compasRosace.configurer({aimants:ancres()});
+      btnFini.hidden = q._centres.length < 2;
+      $('sousConsigne').textContent = q._centres.length === 1
+        ? 'Encore. La pointe s’accroche aux croisements que tu viens de créer.'
+        : 'Continue tout autour.';
+      if (q._centres.length >= 6 && dist(q._centres[q._centres.length-1], q._centres[0]) > tol) {
+        /* Six pétales posés sans retomber sur le départ : la figure ne se
+           refermera pas. On laisse ALLER JUSQU’AU BOUT — c’est en constatant
+           que l’enfant apprend — mais on ne l’enferme pas non plus. */
+        if (q._centres.length >= 8) juger(false);
+      }
+    }
+  });
+  /* Le premier cercle est libre, mais borné : au-delà, les pétales
+     sortiraient du panneau. */
+  compasRosace.configurer({rayonMax:rMax});
+}
+
+/* Les six pétales de M34, déduits des centres construits : l’intersection de
+   deux cercles voisins donne la pointe, et le cercle de base la base. */
+/* SIX CENTRES NE FONT PAS UNE ROSACE. Retomber sur le point de départ ne
+   prouve rien en soi : la pointe peut se poser n’importe où sur le cercle de
+   base — c’est ce que `guide` autorise —, si bien qu’un enfant qui place six
+   points au hasard puis revient au départ déclencherait la fermeture sans
+   avoir rien construit. On RELIT donc la figure : les six centres sont-ils
+   à égale distance du centre, et régulièrement espacés de soixante degrés ?
+   La réponse se calcule sur les points posés, elle ne se déduit pas du
+   nombre de clics. */
+function hexagoneRegulier(centres, O, r){
+  if (centres.length !== 6) return false;
+  const tol = ROSACE_TOL * r;
+  if (centres.some(c => Math.abs(dist(c, O) - r) > tol)) return false;
+  const angles = centres.map(c => Math.atan2(c[1] - O[1], c[0] - O[0]))
+    .map(a => (a + TAU) % TAU).sort((x, y) => x - y);
+  const ecartTol = ROSACE_TOL * TAU / 6;   // même tolérance, exprimée en angle
+  for (let i = 0; i < 6; i++) {
+    const d = (angles[(i + 1) % 6] - angles[i] + TAU) % TAU;
+    if (Math.abs(d - TAU / 6) > ecartTol) return false;
+  }
+  return true;
+}
+
+/* Les cercles tracés sont ceux du COMPAS : on n’ajoute que les pétales, sans
+   les redoubler d’un second jeu de cercles. */
+function petalesSvg(centres, O, r){
+  let s = '';
+  for (let i = 0; i < centres.length; i++) {
+    const a = centres[i], b = centres[(i + 1) % centres.length];
+    const pts = intersections(a, b, r);
+    if (pts.length < 2) continue;
+    const loin = dist(pts[0], O) > dist(pts[1], O) ? pts[0] : pts[1];
+    s += `<path class="petale" d="M ${a[0].toFixed(1)} ${a[1].toFixed(1)}`
+      + ` A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${loin[0].toFixed(1)} ${loin[1].toFixed(1)}`
+      + ` A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${b[0].toFixed(1)} ${b[1].toFixed(1)} Z"/>`;
+  }
+  return s;
 }
 
 /* ============================================================
@@ -2136,7 +2347,9 @@ function manche(){
   majDots();
   majVitrail();
   poserConsigne(q.q, q.enonce);
-  if (q.mode === 'pochoir') rendrePochoir(q); else rendrePoser(q);
+  if (q.mode === 'rosace') rendreRosace(q);
+  else if (q.mode === 'pochoir') rendrePochoir(q);
+  else rendrePoser(q);
 }
 
 function fondScene(q){

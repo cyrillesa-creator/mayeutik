@@ -132,6 +132,8 @@ const MoteurCompas = (function(){
        spec.branche      longueur des branches (défaut : BRANCHE)
        spec.aimants      [[x,y]…] points d’accrochage de la POINTE
        spec.aimantsMine  [[x,y]…] points d’accrochage de la MINE
+       spec.guide        {c, r} : la pointe se pose SUR ce cercle
+       spec.rayonMax     plafond d’ouverture propre au mini-jeu
        spec.pointeLibre  false → la pointe REFUSE de se planter ailleurs
        spec.rayonAimante true → le rayon s’accroche à l’unité entière (fenêtre)
        spec.rayonCrante  true → le rayon EST toujours un nombre entier d’unités
@@ -153,7 +155,8 @@ const MoteurCompas = (function(){
   function creerCompas(svg, spec){
     poserStyle();
     const o = Object.assign({
-      branche: BRANCHE, aimants: [], aimantsMine: [], pointeLibre: true,
+      branche: BRANCHE, aimants: [], aimantsMine: [], guide: null, rayonMax: 0,
+      pointeLibre: true,
       rayonAimante: false, rayonCrante: false, zone: null, etiquette: true,
       loupe: true, ecartLoupe: ECART_LOUPE
     }, spec || {});
@@ -228,7 +231,10 @@ const MoteurCompas = (function(){
        cercle validé est validé (CHARTE §18, pas d’essai-erreur sur place). */
     let bloque = false;
 
-    const rMax = () => Math.min(R_MAX, 2 * o.branche);
+    /* Le plafond peut être RESSERRÉ par le mini-jeu : une construction dont
+       la figure entière dépend du premier rayon doit pouvoir le borner, plutôt
+       que de recadrer après coup ce que l’enfant a tracé. */
+    const rMax = () => Math.min(R_MAX, 2 * o.branche, o.rayonMax || Infinity);
     const etat = () => ({centre: centre ? centre.slice() : null, r, verrouille, phase});
 
     /* --- Le côté de la charnière : choisi une fois, gardé (cf. en-tête) --- */
@@ -442,6 +448,18 @@ const MoteurCompas = (function(){
       let meilleur = null, d0 = AIMANT_POINTE;
       o.aimants.forEach(a => { const d = hyp(p, a); if (d < d0) { d0 = d; meilleur = a; } });
       if (meilleur) return meilleur.slice();
+      /* LA POINTE PEUT SE POSER SUR UN CERCLE, et pas seulement sur des points
+         énumérés. C’est ce qu’exige une construction au compas : le centre du
+         cercle suivant est « un point quelconque du précédent », et il y en a
+         une infinité. On projette donc le doigt sur le guide. Les points
+         énumérés restent PRIORITAIRES — ce sont les intersections déjà
+         construites, et retomber exactement dessus est ce qui fait tenir la
+         figure. */
+      if (o.guide) {
+        const d = hyp(p, o.guide.c) || 1e-6;
+        return [o.guide.c[0] + (p[0] - o.guide.c[0]) / d * o.guide.r,
+                o.guide.c[1] + (p[1] - o.guide.c[1]) / d * o.guide.r];
+      }
       return o.pointeLibre ? p : null;
     }
     let actif = false;
@@ -554,6 +572,8 @@ const MoteurCompas = (function(){
         if ('loupe' in c) { o.loupe = c.loupe; if (!c.loupe) cacherLoupe(); }
         if ('ecartLoupe' in c) o.ecartLoupe = c.ecartLoupe;
         if ('rayonCrante' in c) o.rayonCrante = c.rayonCrante;
+        if ('guide' in c) o.guide = c.guide;
+        if ('rayonMax' in c) o.rayonMax = c.rayonMax;
       },
       estVerrouille(){ return verrouille; },
       grandOuvert(){ return r >= rMax() - 0.5; },
