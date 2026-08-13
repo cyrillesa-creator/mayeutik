@@ -169,16 +169,81 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 .piece-tapis{cursor:pointer;}
 .piece-tapis .verre{transition:none;}
 .piece-tapis.ratee .verre{opacity:.4;}
-.barre-convoyeur{display:flex; gap:8px; justify-content:center; align-items:center;
-  flex-wrap:wrap; margin:10px 0 4px;}
-.barre-convoyeur .manette{display:flex; gap:4px; background:#E8EEF7; border-radius:14px; padding:4px;}
-.cran{border:0; background:transparent; border-radius:11px; padding:7px 12px; font:inherit;
-  font-weight:700; font-size:.85rem; color:var(--encre2); cursor:pointer;}
-.cran.on{background:#fff; color:var(--encre); box-shadow:0 2px 6px rgba(29,51,84,.16);}
-.btn-pause{border:0; background:#fff; border-radius:14px; padding:8px 16px; font:inherit;
-  font-weight:700; font-size:.9rem; color:var(--encre); cursor:pointer;
-  box-shadow:0 2px 8px rgba(29,51,84,.12);}
-.compteur-prises{font-weight:800; color:var(--encre); font-size:.95rem;}
+/* LA HAUTEUR DU BLOC DE CONSIGNE EST RÉSERVÉE. Sans cela le tapis SAUTE d’une
+   consigne à l’autre : « Attrape les triangles rectangles ! » passe sur deux
+   lignes quand « Attrape les carrés ! » tient sur une, et la sous-consigne
+   n’existe que pour certaines formes. Mesuré avant correction : jusqu’à 52 px
+   d’écart au CE1, sur un jeu où l’enfant vise une cible en mouvement — un
+   tapis qui se déplace sous le doigt entre deux phases est inacceptable. */
+/* Hauteurs FIXES, pas des minimums : un minimum laisse encore grandir, et
+   c’est la croissance qui déplace le tapis. Les valeurs viennent de la
+   mesure — 74 px pour la consigne la plus longue (« Attrape les triangles
+   rectangles ! », deux lignes) et 37 px pour une sous-consigne de deux
+   lignes — arrondies vers le haut et exprimées en rem pour suivre la taille
+   de police du système. */
+#game.tapis-en-cours #qText{height:5rem; margin:0; display:flex; align-items:center;
+  justify-content:center; gap:6px; flex-wrap:wrap;}
+#game.tapis-en-cours .sous-consigne{height:2.8rem; margin:0 0 10px;
+  display:flex; align-items:center; justify-content:center;}
+
+/* La manette de l’atelier. Trois crans qui se DISTINGUENT au premier coup
+   d’œil — l’enfant ne lit pas « Moyen », il voit le lièvre — et une couleur
+   par cran, du calme à l’urgence. */
+.barre-convoyeur{display:flex; gap:10px; justify-content:center; align-items:center;
+  flex-wrap:wrap; margin:12px 0 4px;}
+.barre-convoyeur .manette{display:flex; gap:5px; background:#E1E9F5; border-radius:16px;
+  padding:5px; box-shadow:inset 0 2px 4px rgba(29,51,84,.10);}
+.cran{border:0; background:transparent; border-radius:12px; padding:7px 11px; font:inherit;
+  font-weight:700; font-size:.82rem; color:var(--encre2); cursor:pointer;
+  display:flex; align-items:center; gap:5px; transition:transform .12s, background .12s;}
+.cran .emo{font-size:1.15rem; line-height:1;}
+.cran:active{transform:scale(.94);}
+.cran.on{color:#fff; box-shadow:0 3px 0 rgba(29,51,84,.16);}
+.cran.on[data-cran="0"]{background:var(--menthe-t);}
+.cran.on[data-cran="1"]{background:var(--mandarine);}
+.cran.on[data-cran="2"]{background:var(--corail-t);}
+.btn-pause{border:0; background:var(--soleil); border-radius:16px; padding:9px 16px; font:inherit;
+  font-weight:800; font-size:.9rem; color:var(--encre); cursor:pointer;
+  display:flex; align-items:center; gap:6px;
+  box-shadow:0 3px 0 rgba(29,51,84,.16); transition:transform .12s;}
+.btn-pause:active{transform:translateY(2px); box-shadow:0 1px 0 rgba(29,51,84,.16);}
+.btn-pause.reprend{background:var(--menthe);}
+.btn-pause .emo{font-size:1.05rem; line-height:1;}
+.compteur-prises{display:flex; align-items:center; gap:5px; font-weight:800;
+  color:var(--encre); font-size:.95rem; background:#fff; border-radius:14px;
+  padding:7px 13px; box-shadow:0 2px 6px rgba(29,51,84,.10);}
+
+/* L’ANNONCE DU CHANGEMENT DE CONSIGNE. Les enfants le rataient : ils
+   continuaient sur la forme précédente et cumulaient les erreurs sans
+   comprendre pourquoi. Deux réponses complémentaires — la consigne GROSSIT
+   et change de couleur au moment du changement, ce qui attrape l’œil ; et
+   une étiquette courte reste POSÉE SUR LE TAPIS, là où l’enfant regarde
+   pendant qu’il joue, parce que l’en-tête sort du champ dès que la partie
+   reprend. */
+/* LA CONSIGNE NE GROSSIT PAS, ELLE CHANGE DE COULEUR. Une première version
+   l’agrandissait de 16 % : sur un écran de 375 px, « Attrape les triangles
+   rectangles ! » occupe déjà toute la largeur, et le texte débordait des deux
+   côtés. Le mouvement est donc porté par l’ÉTIQUETTE DU TAPIS, qui est courte
+   et a de la place — et qui a l’avantage d’être là où l’enfant regarde. */
+#game.tapis-en-cours #qText.annonce{color:var(--mandarine-f);}
+@keyframes annonce-etiquette{
+  0%{transform:scale(1);}
+  26%{transform:scale(1.12);}
+  100%{transform:scale(1);}
+}
+.etiquette-tapis{fill:#fff; stroke:#C3D0E2; stroke-width:2;}
+.etiquette-texte{font-size:17px; font-weight:800; fill:var(--encre); dominant-baseline:middle;}
+.etiquette-oeil{font-size:15px; fill:var(--encre2); dominant-baseline:middle;}
+/* L’étiquette grandit depuis son bord GAUCHE : depuis son centre, une
+   étiquette large sortirait du tapis par la droite. */
+#etiquetteTapis{transform-box:fill-box; transform-origin:left center;}
+#etiquetteTapis.annonce{animation:annonce-etiquette .9s ease-out;}
+#etiquetteTapis.annonce .etiquette-tapis{fill:#FFF3E6; stroke:var(--mandarine);}
+@media (prefers-reduced-motion:reduce){
+  /* Le mouvement disparaît, la couleur reste : le signal ne doit jamais
+     dépendre d’une animation. */
+  #etiquetteTapis.annonce{animation:none;}
+}
 .voile-pause{fill:rgba(29,51,84,.55);}
 .texte-pause{fill:#fff; font-size:22px; font-weight:800; text-anchor:middle;}
 #endBilan{margin:10px auto 18px; max-width:320px;}
@@ -1579,13 +1644,21 @@ function qConvoyeur(cfg, palier){
 /* « les triangles », « les disques » — l’article défini pluriel se calcule,
    il ne s’écrit pas à côté de chaque mot. */
 function lesDe(k){ return 'les ' + plurDe(k); }
+/* CHAQUE consigne en a une. La place lui est réservée pour que le tapis ne
+   bouge pas d’une phase à l’autre ; la laisser vide reviendrait à réserver un
+   blanc, autant qu’elle dise quelque chose d’utile. */
 function sousConvoyeur(mot){
   if (mot === 'quadrilatere') return 'Toutes les pièces à quatre côtés, quelle que soit leur allure.';
-  if (mot === 'triangle') return 'Toutes les pièces à trois côtés.';
+  if (mot === 'triangle') return 'Toutes les pièces à trois côtés, même celles qui ont un angle droit.';
   if (mot === 'cercle') return 'Le cercle est un anneau de plomb vide ; le disque est plein.';
   if (mot === 'disque') return 'Le disque est plein ; le cercle n’est qu’un anneau.';
   if (mot === 'triangleRect') return 'Ceux-là seulement : un angle droit dans le triangle.';
-  return null;
+  if (mot === 'losange') return 'Quatre côtés de même longueur, mais pas d’angle droit.';
+  if (mot === 'rectangle') return 'Quatre angles droits, et des côtés de deux longueurs.';
+  if (mot === 'carre') return 'Quatre angles droits et quatre côtés de même longueur.';
+  if (mot === 'pentagone') return 'Cinq côtés — compte-les avant d’attraper.';
+  if (mot === 'hexagone') return 'Six côtés — compte-les avant d’attraper.';
+  return 'Laisse passer les autres.';
 }
 
 function qPortrait(cfg){
@@ -2555,6 +2628,39 @@ function distanceAPiece(p, x, y){
   return dedans ? 0 : d;
 }
 
+/* L’ÉTIQUETTE POSÉE SUR LE TAPIS. L’en-tête sort du champ dès que la partie
+   reprend : l’enfant regarde le tapis, pas le titre. La consigne courte reste
+   donc là où sont ses yeux, du début à la fin de la phase — elle ne remplace
+   pas l’annonce, elle prend le relais quand l’annonce s’est éteinte.
+
+   Le cartouche est dimensionné sur le texte RÉELLEMENT rendu (`getBBox`) et
+   non sur une estimation au nombre de caractères : « les triangles rectangles »
+   et « les carrés » n’ont pas la même largeur, et une largeur devinée déborde
+   ou flotte. */
+function poserEtiquetteTapis(svg, mot){
+  const g = svg.querySelector('#etiquetteTapis');
+  const texte = 'les ' + plurDe(mot);
+  g.innerHTML = `<rect class="etiquette-tapis" x="10" y="8" rx="13" height="30" width="10"/>`
+    + `<text class="etiquette-oeil" x="24" y="24">👀</text>`
+    + `<text class="etiquette-texte" x="46" y="24">${texte}</text>`;
+  const t = g.querySelector('.etiquette-texte');
+  const l = t.getBBox().width;
+  g.querySelector('.etiquette-tapis').setAttribute('width', Math.round(l + 52));
+}
+
+/* L’annonce : la consigne grossit et vire à l’orange le temps d’un souffle.
+   C’est le moment que les enfants rataient — ils poursuivaient sur la forme
+   précédente et accumulaient les erreurs sans comprendre. */
+function annoncerConsigne(svg){
+  const cibles = [$('qText'), svg && svg.querySelector('#etiquetteTapis')].filter(Boolean);
+  cibles.forEach(e => {
+    e.classList.remove('annonce');
+    void e.getBoundingClientRect();   // on relance l’animation même si elle vient de jouer
+    e.classList.add('annonce');
+  });
+  setTimeout(() => cibles.forEach(e => e.classList.remove('annonce')), 1400);
+}
+
 let convoyeur = null;
 function arreterConvoyeur(){
   if (convoyeur) { convoyeur.detruire(); convoyeur = null; }
@@ -2567,29 +2673,39 @@ function rendreConvoyeur(q){
 
   const svg = $('svgScene');
   svg.setAttribute('viewBox', `0 0 ${CONVOYEUR_VB_L} ${CONVOYEUR_VB_H}`);
-  const yBande = 34, hBande = CONVOYEUR_VB_H - 2 * yBande;
+  /* Bandeau du haut réservé à l’étiquette de consigne, bande du tapis en
+     dessous : la hauteur totale ne bouge pas, seul le partage change. */
+  const yBande = 46, hBande = CONVOYEUR_VB_H - yBande - 22;
   svg.innerHTML =
       `<rect class="tapis-fond" x="0" y="0" width="${CONVOYEUR_VB_L}" height="${CONVOYEUR_VB_H}" rx="10"/>`
     + `<rect class="tapis-bande" x="0" y="${yBande}" width="${CONVOYEUR_VB_L}" height="${hBande}"/>`
     + `<line class="tapis-rail" x1="6" y1="${yBande}" x2="${CONVOYEUR_VB_L-6}" y2="${yBande}"/>`
     + `<line class="tapis-rail" x1="6" y1="${yBande+hBande}" x2="${CONVOYEUR_VB_L-6}" y2="${yBande+hBande}"/>`
+    + `<g id="etiquetteTapis"></g>`
     + `<g id="tapisPieces"></g>`
     + `<g id="voilePause" style="display:none">`
     + `<rect class="voile-pause" x="0" y="0" width="${CONVOYEUR_VB_L}" height="${CONVOYEUR_VB_H}" rx="10"/>`
     + `<text class="texte-pause" x="${CONVOYEUR_VB_L/2}" y="${CONVOYEUR_VB_H/2+8}">Pause</text></g>`;
   svg.classList.add('convoyeur');
+  $('game').classList.add('tapis-en-cours');
   $('vitrail').hidden = false;
   const gPieces = svg.querySelector('#tapisPieces');
+  poserEtiquetteTapis(svg, q.consigne.mot);
+  annoncerConsigne(svg);
 
   /* ---- La barre de l’atelier : manette de vitesse, pause, compteur ---- */
   const barre = document.createElement('div');
   barre.className = 'barre-convoyeur';
   const manette = document.createElement('div');
   manette.className = 'manette';
-  ['Lent', 'Moyen', 'Rapide'].forEach((nom, i) => {
+  /* Un enfant ne lit pas « Moyen » : il voit le lièvre. L’emoji porte le
+     sens, le mot le confirme, et la couleur du cran actif dit où l’on est. */
+  [['🐢','Lent'], ['🐇','Moyen'], ['⚡','Rapide']].forEach(([emo, nom], i) => {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'cran' + (i === cran ? ' on' : '');
-    b.textContent = nom; b.dataset.cran = i;
+    b.innerHTML = `<span class="emo" aria-hidden="true">${emo}</span>${nom}`;
+    b.setAttribute('aria-label', 'Vitesse ' + nom.toLowerCase());
+    b.dataset.cran = i;
     b.addEventListener('click', () => {
       cran = i; ecrireCranVitesse(i); sonClic();
       manette.querySelectorAll('.cran').forEach(x => x.classList.toggle('on', x === b));
@@ -2597,7 +2713,9 @@ function rendreConvoyeur(q){
     manette.appendChild(b);
   });
   const btnPause = document.createElement('button');
-  btnPause.type = 'button'; btnPause.className = 'btn-pause'; btnPause.textContent = '⏸ Pause';
+  btnPause.type = 'button'; btnPause.className = 'btn-pause';
+  btnPause.innerHTML = '<span class="emo" aria-hidden="true">⏸️</span>Pause';
+  btnPause.setAttribute('aria-label', 'Mettre le convoyeur en pause');
   const compteur = document.createElement('span');
   compteur.className = 'compteur-prises';
   barre.append(manette, btnPause, compteur);
@@ -2612,7 +2730,10 @@ function rendreConvoyeur(q){
   let anim = null, dernierTemps = 0;
 
   const vitesse = () => vitesses[cran];
-  const majCompteur = () => { compteur.textContent = prises + ' / ' + CONVOYEUR_N; };
+  const majCompteur = () => {
+    compteur.innerHTML = '<span class="emo" aria-hidden="true">🧺</span>'
+      + prises + ' / ' + CONVOYEUR_N;
+  };
   majCompteur();
 
   function poserPiece(p){
@@ -2737,7 +2858,12 @@ function rendreConvoyeur(q){
   function basculerPause(){
     enPause = !enPause;
     svg.querySelector('#voilePause').style.display = enPause ? '' : 'none';
-    btnPause.textContent = enPause ? '▶ Reprendre' : '⏸ Pause';
+    btnPause.innerHTML = enPause
+      ? '<span class="emo" aria-hidden="true">▶️</span>Reprendre'
+      : '<span class="emo" aria-hidden="true">⏸️</span>Pause';
+    btnPause.classList.toggle('reprend', enPause);
+    btnPause.setAttribute('aria-label', enPause ? 'Reprendre le convoyeur'
+                                                : 'Mettre le convoyeur en pause');
     if (enPause) stopperVoix();
   }
   btnPause.addEventListener('click', basculerPause);
@@ -2749,6 +2875,8 @@ function rendreConvoyeur(q){
       if (anim) cancelAnimationFrame(anim);
       svg.removeEventListener('pointerdown', surAppui);
       svg.classList.remove('convoyeur');
+      $('game').classList.remove('tapis-en-cours');
+      $('qText').classList.remove('annonce');
     },
     /* Exposé pour les tests et le débogage : ce qui roule sur le tapis ne se
        devine pas depuis le DOM, où une pièce n’est qu’un `transform`. */
