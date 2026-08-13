@@ -46,8 +46,15 @@ const MoteurCompas = (function(){
      Un rayon de 4 et un côté de 7 ont ainsi la même taille apparente d’un
      module à l’autre par construction, et non par vigilance. Elle n’affirme
      aucune grandeur réelle : voir SPEC-M38 §3. */
-  const UNITE = 14;
-  const BRANCHE = 9 * UNITE;          // longueur fixe des branches
+  const UNITE = 25;
+  /* LES BRANCHES SONT PROPORTIONNÉES AUX OUVERTURES RÉELLEMENT DEMANDÉES.
+     À neuf unités, elles restaient presque fermées pour un rayon de 2 à 4 :
+     la charnière montait alors très haut — la hauteur du triangle isocèle
+     vaut √(branche² − (r/2)²), donc elle croît quand l’ouverture diminue —
+     et l’instrument débordait du plan par le haut, précisément le risque
+     signalé au prototype. Cinq unités donnent un compas franchement ouvert
+     sur toute la plage utile, sans jamais approcher son plafond. */
+  const BRANCHE = 5 * UNITE;          // longueur fixe des branches
   const R_MAX = 2 * BRANCHE;          // ouverture maximale d’un compas réel
   const R_MIN = 8;
   const DUREE_TRACE = 1150;           // ms
@@ -163,19 +170,19 @@ const MoteurCompas = (function(){
     const idMonde = 'compas-monde-' + (++compteurMonde);
     gMonde.id = idMonde;
     const enfantsHote = [];
-    if (o.loupe) {
-      while (svg.firstChild) { enfantsHote.push(svg.firstChild); gMonde.appendChild(svg.firstChild); }
-      svg.appendChild(gMonde);
-      gMonde.appendChild(gTrace);
-    } else {
-      svg.appendChild(gTrace);
-    }
+    while (svg.firstChild) { enfantsHote.push(svg.firstChild); gMonde.appendChild(svg.firstChild); }
+    svg.appendChild(gMonde);
+    gMonde.appendChild(gTrace);
     svg.appendChild(gApercu); svg.appendChild(g);
 
+    /* La loupe est TOUJOURS montée ; `loupe` n’autorise que son apparition, et
+       peut donc changer en cours de manche. Elle aide quand le doigt cache la
+       cible, elle NUIT quand il faut lire des chiffres : sur une règle
+       graduée, elle recouvrirait précisément les graduations qu’on vise. */
     const gLoupe = document.createElementNS(NS, 'g');
     gLoupe.setAttribute('class', 'compas-loupe');
     gLoupe.setAttribute('display', 'none');
-    if (o.loupe) {
+    {
       const idClip = 'clip-loupe-' + compteurMonde;
       gLoupe.innerHTML =
           `<defs><clipPath id="${idClip}"><circle cx="0" cy="0" r="${R_LOUPE}"/></clipPath></defs>`
@@ -524,7 +531,8 @@ const MoteurCompas = (function(){
         if ('zone' in c) o.zone = c.zone;
         if ('aimants' in c) o.aimants = c.aimants;
         if ('aimantsMine' in c) o.aimantsMine = c.aimantsMine;
-        if ('pointeLibre' in c) o.pointeLibre = c.pointeLibre;
+          if ('pointeLibre' in c) o.pointeLibre = c.pointeLibre;
+        if ('loupe' in c) { o.loupe = c.loupe; if (!c.loupe) cacherLoupe(); }
       },
       estVerrouille(){ return verrouille; },
       grandOuvert(){ return r >= rMax() - 0.5; },

@@ -375,8 +375,15 @@ const MoteurCompas = (function(){
      Un rayon de 4 et un côté de 7 ont ainsi la même taille apparente d’un
      module à l’autre par construction, et non par vigilance. Elle n’affirme
      aucune grandeur réelle : voir SPEC-M38 §3. */
-  const UNITE = 14;
-  const BRANCHE = 9 * UNITE;          // longueur fixe des branches
+  const UNITE = 25;
+  /* LES BRANCHES SONT PROPORTIONNÉES AUX OUVERTURES RÉELLEMENT DEMANDÉES.
+     À neuf unités, elles restaient presque fermées pour un rayon de 2 à 4 :
+     la charnière montait alors très haut — la hauteur du triangle isocèle
+     vaut √(branche² − (r/2)²), donc elle croît quand l’ouverture diminue —
+     et l’instrument débordait du plan par le haut, précisément le risque
+     signalé au prototype. Cinq unités donnent un compas franchement ouvert
+     sur toute la plage utile, sans jamais approcher son plafond. */
+  const BRANCHE = 5 * UNITE;          // longueur fixe des branches
   const R_MAX = 2 * BRANCHE;          // ouverture maximale d’un compas réel
   const R_MIN = 8;
   const DUREE_TRACE = 1150;           // ms
@@ -492,19 +499,19 @@ const MoteurCompas = (function(){
     const idMonde = 'compas-monde-' + (++compteurMonde);
     gMonde.id = idMonde;
     const enfantsHote = [];
-    if (o.loupe) {
-      while (svg.firstChild) { enfantsHote.push(svg.firstChild); gMonde.appendChild(svg.firstChild); }
-      svg.appendChild(gMonde);
-      gMonde.appendChild(gTrace);
-    } else {
-      svg.appendChild(gTrace);
-    }
+    while (svg.firstChild) { enfantsHote.push(svg.firstChild); gMonde.appendChild(svg.firstChild); }
+    svg.appendChild(gMonde);
+    gMonde.appendChild(gTrace);
     svg.appendChild(gApercu); svg.appendChild(g);
 
+    /* La loupe est TOUJOURS montée ; `loupe` n’autorise que son apparition, et
+       peut donc changer en cours de manche. Elle aide quand le doigt cache la
+       cible, elle NUIT quand il faut lire des chiffres : sur une règle
+       graduée, elle recouvrirait précisément les graduations qu’on vise. */
     const gLoupe = document.createElementNS(NS, 'g');
     gLoupe.setAttribute('class', 'compas-loupe');
     gLoupe.setAttribute('display', 'none');
-    if (o.loupe) {
+    {
       const idClip = 'clip-loupe-' + compteurMonde;
       gLoupe.innerHTML =
           `<defs><clipPath id="${idClip}"><circle cx="0" cy="0" r="${R_LOUPE}"/></clipPath></defs>`
@@ -853,7 +860,8 @@ const MoteurCompas = (function(){
         if ('zone' in c) o.zone = c.zone;
         if ('aimants' in c) o.aimants = c.aimants;
         if ('aimantsMine' in c) o.aimantsMine = c.aimantsMine;
-        if ('pointeLibre' in c) o.pointeLibre = c.pointeLibre;
+          if ('pointeLibre' in c) o.pointeLibre = c.pointeLibre;
+        if ('loupe' in c) { o.loupe = c.loupe; if (!c.loupe) cacherLoupe(); }
       },
       estVerrouille(){ return verrouille; },
       grandOuvert(){ return r >= rMax() - 0.5; },
@@ -902,7 +910,14 @@ const MoteurCompas = (function(){
 /* L’échelle vient désormais du moteur de compas, source unique partagée avec
    M38 : le même centimètre d’un jeu à l’autre par construction, et non par
    vigilance. (Le double-décimètre de M23 garde la sienne, décision assumée.) */
-const PX_PAR_CM = MoteurCompas.UNITE;
+/* L’UNITÉ, ET NON LE CENTIMÈTRE. Elle valait 14 px « le même centimètre qu’au
+   double-décimètre de M23 » — mais M23 mesure de vraies longueurs, alors que
+   ce module-ci n’est PAS à l’échelle réelle et ne doit affirmer aucune
+   grandeur (SPEC-M38 §3). Aligner les deux revenait à promettre un centimètre
+   là où il n’y en a pas. L’unité est donc celle du moteur, partagée avec M38
+   pour qu’un rayon de 4 et un côté de 7 aient la même taille apparente d’un
+   module à l’autre, et les consignes ne disent plus « cm ». */
+const PX_PAR_UNITE = MoteurCompas.UNITE;
 /* Le compas est un grand objet : ses branches font 9 unités, et la charnière
    monte jusqu’à √(branche² − (r/2)²) au-dessus du milieu. Les manches au
    compas reçoivent donc un plan PLUS HAUT, et la pointe ne se plante que
@@ -1925,7 +1940,7 @@ const VALIDATEURS = {
   pliage(q){ return []; },
   compasRayon(q){
     const pb = [];
-    if (q.rayonCm * PX_PAR_CM > MoteurCompas.R_MAX)
+    if (q.rayonUnites * PX_PAR_UNITE > MoteurCompas.R_MAX)
       pb.push('rayon hors de portée du compas');
     return pb;
   },
@@ -2027,11 +2042,11 @@ function engendrerFile(cfg){
     ];
   if (cfg.mode === 'compas2')
     return [
-      {mode:'compasRayon', note:true, requiert:true, rayonCm:3},
-      {mode:'compasRayon', note:true, requiert:true, rayonCm:4},
+      {mode:'compasRayon', note:true, requiert:true, rayonUnites:2},
+      {mode:'compasRayon', note:true, requiert:true, rayonUnites:3},
       {mode:'report', note:true, requiert:true},
       {mode:'report', note:true, requiert:true},
-      {mode:'compasRayon', note:true, requiert:true, rayonCm:5}
+      {mode:'compasRayon', note:true, requiert:true, rayonUnites:4}
     ];
   if (cfg.mode === 'codage1')
     return melanger(['carre','rectangle','triangleRect','rectangle','carre'])
@@ -2650,9 +2665,9 @@ function rendrePliage(q){
   });
 }
 
-/* CE2 : cette fois il FAUT fixer une longueur. Échelle graduée reprise du
-   double-décimètre de M23 (14 px/cm) pour que le centimètre soit le même
-   d’un jeu à l’autre. */
+/* CE2 : cette fois il FAUT fixer une longueur. L’échelle est celle du moteur,
+   partagée avec M38 — mais elle ne prétend à aucune grandeur réelle : on parle
+   d’unités, pas de centimètres. */
 function rendreCompasRayon(q){
   /* LA SÉQUENCE DU CE2, INVERSE DE CELLE DU CE1. Au CE1 le rayon est DÉRIVÉ
      d’un point de passage : on plante et on ouvre jusqu’au point. Au CE2 il
@@ -2661,29 +2676,41 @@ function rendreCompasRayon(q){
      est pédagogique et non cosmétique (SPEC-M35 §2), et elle se joue tout
      entière dans l’ORDRE des deux gestes.
 
-     Une première version faisait choisir l’écartement par des BOUTONS « 3 cm,
-     4 cm… ». Un bouton n’est pas un compas : il donne la mesure au lieu de la
-     faire prendre, et la règle graduée n’était plus qu’une illustration. */
-  const c = [entre(150, 250), entre(96, 150)];
+     Une première version faisait choisir l’écartement par des BOUTONS
+     numérotés. Un bouton n’est pas un compas : il donne la mesure au lieu de
+     la faire prendre, et la règle graduée n’était plus qu’une illustration. */
+  const c = [entre(150, 250), entre(128, 158)];
   q._c = c;
-  const CM_MAX = 10, X0 = 34, YR = 336;
-  const rAttendu = q.rayonCm * PX_PAR_CM;
-  const ZONE_REGLE = {x0:X0 - 24, y0:YR - 44, x1:X0 + CM_MAX*PX_PAR_CM + 30, y1:YR + 30};
-  const ZONE_PLAN  = {x0:26, y0:56, x1:374, y1:280};
+  /* LA RÈGLE PORTE JUSTE CE QU’ON PEUT DEMANDER, EN PLUS GRAND. Dix
+     graduations à 14 px faisaient une réglette de 140 px qu’on visait au
+     pixel ; les rayons demandés ne dépassent pas 4, une règle qui monte à 6
+     suffit donc largement — et l’unité passée à 20 px lui donne 120 px de
+     graduations dans un corps deux fois plus haut, avec des chiffres lisibles.
+     L’ÉCHELLE N’EST PAS UN CHOIX DE DESSIN : la règle et le cercle lisent la
+     même unité. L’agrandir ici, c’est l’agrandir partout — c’est pour cela
+     qu’elle est changée dans le moteur et nulle part ailleurs. */
+  const U_MAX = 6, X0 = 200 - U_MAX * PX_PAR_UNITE / 2, YR = 344;
+  const DEBORD = 34;   // la règle déborde de ses graduations, comme un vrai objet
+  const rAttendu = q.rayonUnites * PX_PAR_UNITE;
+  const ZONE_REGLE = {x0:X0 - DEBORD, y0:YR - 50, x1:X0 + U_MAX*PX_PAR_UNITE + DEBORD, y1:YR + 22};
+  const ZONE_PLAN  = {x0:26, y0:58, x1:374, y1:272};
 
-  poserConsigne('Trace un cercle de rayon ' + q.rayonCm + ' cm, centré sur le point.');
+  poserConsigne('Trace un cercle de rayon ' + q.rayonUnites + ', centré sur le point.');
   $('sousConsigne').textContent =
-    'D’abord l’écartement : plante la pointe sur le 0 et ouvre jusqu’au ' + q.rayonCm + '.';
+    'D’abord l’écartement : plante la pointe sur le 0 et ouvre jusqu’au ' + q.rayonUnites + '.';
 
-  /* L’échelle est dessinée à l’ÉCHELLE VRAIE, 14 px/cm — le même centimètre
-     qu’au double-décimètre de M23. Une première version la traçait à 28 px/cm
-     tout en dessinant le cercle à 14 : la règle mentait sur ce qu’elle
-     mesurait. */
+  /* LA RÈGLE ET LE CERCLE LISENT LA MÊME UNITÉ. Une première version traçait
+     la règle à double échelle tout en dessinant le cercle à l’échelle simple :
+     la règle mentait sur ce qu’elle mesurait. C’est aussi pourquoi agrandir
+     la règle passe par l’unité du moteur, et non par un facteur local. */
   const grad = [];
-  for (let cm = 0; cm <= CM_MAX; cm++) {
-    const x = X0 + cm * PX_PAR_CM;
-    grad.push(`<line x1="${x}" y1="${YR}" x2="${x}" y2="${YR - (cm % 5 ? 9 : 15)}" stroke="var(--encre2)" stroke-width="1.6"/>`
-      + `<text x="${x}" y="${YR - 19}" font-size="10.5" text-anchor="middle" fill="var(--encre2)">${cm}</text>`);
+  for (let u = 0; u <= U_MAX; u++) {
+    const x = X0 + u * PX_PAR_UNITE;
+    /* Les demi-unités ne sont pas graduées : l’écartement s’accroche à
+       l’unité entière, une graduation qu’on ne peut pas atteindre ne ferait
+       qu’encombrer. */
+    grad.push(`<line x1="${x}" y1="${YR}" x2="${x}" y2="${YR - 20}" stroke="var(--encre2)" stroke-width="2.4"/>`
+      + `<text x="${x}" y="${YR - 27}" font-size="16" font-weight="700" text-anchor="middle" fill="var(--encre)">${u}</text>`);
   }
   poserScene(
     /* Le centre est une CIBLE : une croix comme partout ailleurs dans le
@@ -2691,12 +2718,13 @@ function rendreCompasRayon(q){
     `<circle cx="${c[0]}" cy="${c[1]}" r="15" fill="rgba(90,180,220,.16)"/>`
     + croix(c) + `<circle class="repere" cx="${c[0]}" cy="${c[1]}" r="3.5"/>`
     + `<text x="${c[0]}" y="${c[1] + 34}" font-size="12" text-anchor="middle" fill="var(--encre2)">centre</text>`
-    + `<rect x="${X0 - 14}" y="${YR - 34}" width="${CM_MAX*PX_PAR_CM + 28}" height="46" rx="5"
-             fill="rgba(120,140,160,.14)" stroke="var(--trait)" stroke-width="1.4"/>`
-    + `<line x1="${X0}" y1="${YR}" x2="${X0 + CM_MAX*PX_PAR_CM}" y2="${YR}" stroke="var(--encre2)" stroke-width="2.4"/>`
-    + grad.join('')
-    + `<text id="lblEcart" x="200" y="${YR + 34}" font-size="14" font-weight="700"
-             text-anchor="middle" fill="var(--encre2)">écartement : à régler</text>`,
+    /* Le CORPS de la règle déborde largement de sa partie graduée — c’est ce
+       qu’est une vraie règle, et c’est ce qui la rend grande à l’écran sans
+       toucher à l’échelle, laquelle est partagée avec le cercle. */
+    + `<rect x="${X0 - DEBORD}" y="${YR - 48}" width="${U_MAX*PX_PAR_UNITE + 2*DEBORD}" height="66" rx="9"
+             fill="rgba(120,140,160,.18)" stroke="var(--trait)" stroke-width="2"/>`
+    + `<line x1="${X0}" y1="${YR}" x2="${X0 + U_MAX*PX_PAR_UNITE}" y2="${YR}" stroke="var(--encre)" stroke-width="3.4"/>`
+    + grad.join(''),
     '0 0 400 380');
   const svg = scene();
 
@@ -2705,16 +2733,24 @@ function rendreCompasRayon(q){
        partir de l’origine. Et l’écartement s’accroche au centimètre entier —
        l’enfant lit une graduation, il ne vise pas au pixel. */
     zone: ZONE_REGLE, aimants: [[X0, YR]], pointeLibre: false, rayonAimante: true,
+    /* Pas de loupe sur la règle : elle recouvrirait les graduations qu’on
+       vient y lire. Elle revient pour la pose de la pointe, où le doigt cache
+       vraiment sa cible. */
+    loupe: false,
     surPointe: () => sonClic(),
     surReglage: (e) => {
-      const cm = Math.round(e.r / PX_PAR_CM);
-      q._ecartCm = cm;
+      const u = Math.round(e.r / PX_PAR_UNITE);
+      q._ecartUnites = u;
       q._instrumentPose = true;
-      svg.getElementById('lblEcart').textContent = 'écartement : ' + cm + ' cm';
+      /* L’écartement pris se lit dans la SOUS-CONSIGNE, hors du plan. Une
+         étiquette posée dans le dessin chevauchait les branches du compas, et
+         doublonnait avec ce que la sous-consigne dit déjà — l’ouverture en
+         cours, elle, s’affiche à côté de la pointe pendant le glissement. */
       /* Le compas quitte la règle pour la feuille, sans rien perdre de sa
          mesure : c’est le même objet, c’est tout l’intérêt. */
-      compasCourant.configurer({zone: ZONE_PLAN, aimants: [c], pointeLibre: true});
-      $('sousConsigne').textContent = 'Écartement pris. Plante maintenant la pointe sur le centre.';
+      compasCourant.configurer({zone: ZONE_PLAN, aimants: [c], pointeLibre: true, loupe: true});
+      $('sousConsigne').textContent =
+        'Écartement pris : ' + u + '. Plante maintenant la pointe sur le centre.';
       sonClic();
     },
     surTrace: (e) => {
@@ -2734,7 +2770,7 @@ function rendreCompasRayon(q){
       }
       terminerManche(bon, bon ? PTS_PLEIN : 0,
         bon ? 'Rayon exact et bien centré !' : null,
-        bon ? null : (!bonRayon ? 'Il fallait ' + q.rayonCm + ' cm d’écartement : le cercle attendu est en vert.'
+        bon ? null : (!bonRayon ? 'Il fallait ' + q.rayonUnites + ' d’écartement : le cercle attendu est en vert.'
                                 : 'La pointe devait se planter sur le centre.'));
     }
   });
