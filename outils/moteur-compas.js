@@ -103,9 +103,11 @@ const MoteurCompas = (function(){
      creerCompas(svg, spec)
        spec.zone         {x0,y0,x1,y1} où la pointe peut se planter
        spec.branche      longueur des branches (défaut : BRANCHE)
-       spec.aimants      [[x,y]…] points d’accrochage de la pointe
+       spec.aimants      [[x,y]…] points d’accrochage de la POINTE
+       spec.aimantsMine  [[x,y]…] points d’accrochage de la MINE
        spec.pointeLibre  false → la pointe REFUSE de se planter ailleurs
        spec.rayonAimante true → le rayon s’accroche à l’unité entière
+       spec.arc          angle (rad) : trace un ARC et non un tour complet
        spec.surPointe    ()            pointe plantée
        spec.surApercu    ({centre,r})  pendant le glissement
        spec.surTrace     ({centre,r})  après l’animation
@@ -121,8 +123,8 @@ const MoteurCompas = (function(){
   function creerCompas(svg, spec){
     poserStyle();
     const o = Object.assign({
-      branche: BRANCHE, aimants: [], pointeLibre: true, rayonAimante: false,
-      zone: null, etiquette: true
+      branche: BRANCHE, aimants: [], aimantsMine: [], pointeLibre: true,
+      rayonAimante: false, zone: null, etiquette: true
     }, spec || {});
 
     const g = document.createElementNS(NS, 'g');
@@ -291,13 +293,21 @@ const MoteurCompas = (function(){
       cercle.setAttribute('class', 'compas-cercle');
       gTrace.appendChild(cercle);
       derniereTrace = cercle;
+      /* UN ARC OU UN TOUR COMPLET. Reporter une longueur, on ne fait pas le
+         tour : on donne un coup d’arc là où la comparaison se lit. Deux
+         cercles entiers superposés encombrent le plan et noient précisément
+         ce qu’on demande de regarder. L’arc est CENTRÉ sur la direction où la
+         mine se trouvait au relâchement — c’est le prolongement du geste, pas
+         un secteur arbitraire. */
+      const etendue = o.arc || Math.PI * 2;
+      const a0 = o.arc ? depart - o.arc / 2 : depart;
       const arc = (t) => {
-        if (t >= 0.9995) return `M ${(centre[0] + r).toFixed(2)} ${centre[1].toFixed(2)}`
+        if (!o.arc && t >= 0.9995) return `M ${(centre[0] + r).toFixed(2)} ${centre[1].toFixed(2)}`
           + ` A ${r.toFixed(2)} ${r.toFixed(2)} 0 1 1 ${(centre[0] - r).toFixed(2)} ${centre[1].toFixed(2)}`
           + ` A ${r.toFixed(2)} ${r.toFixed(2)} 0 1 1 ${(centre[0] + r).toFixed(2)} ${centre[1].toFixed(2)}`;
-        const a1 = depart + t * Math.PI * 2;
-        return `M ${(centre[0] + Math.cos(depart) * r).toFixed(2)} ${(centre[1] + Math.sin(depart) * r).toFixed(2)}`
-          + ` A ${r.toFixed(2)} ${r.toFixed(2)} 0 ${t > 0.5 ? 1 : 0} 1`
+        const a1 = a0 + t * etendue;
+        return `M ${(centre[0] + Math.cos(a0) * r).toFixed(2)} ${(centre[1] + Math.sin(a0) * r).toFixed(2)}`
+          + ` A ${r.toFixed(2)} ${r.toFixed(2)} 0 ${t * etendue > Math.PI ? 1 : 0} 1`
           + ` ${(centre[0] + Math.cos(a1) * r).toFixed(2)} ${(centre[1] + Math.sin(a1) * r).toFixed(2)}`;
       };
       const achever = () => {
@@ -314,7 +324,7 @@ const MoteurCompas = (function(){
         if (detruit || !cercle.isConnected) return;
         const t = bride((maintenant - t0) / DUREE_TRACE, 0, 1);
         cercle.setAttribute('d', arc(t));
-        angleMine = depart + t * Math.PI * 2;
+        angleMine = a0 + t * etendue;
         dessiner();
         if (t < 1) anim = requestAnimationFrame(pas); else { anim = null; achever(); }
       };
@@ -358,6 +368,23 @@ const MoteurCompas = (function(){
       angleMine = Math.atan2(p[1] - centre[1], p[0] - centre[0]);
       if (!verrouille) {
         let d = bride(hyp(centre, p), 0, rMax());
+        /* ACCROCHAGE DE LA MINE. Reporter une longueur, c’est poser la pointe
+           sur un bout et la mine sur l’autre : si la mine arrive près d’un
+           point déclaré, l’écartement devient EXACTEMENT la distance à ce
+           point. Sans cela, un enfant qui ouvre à quelques pixels près
+           reporte une longueur fausse, et la comparaison qu’on lui demande
+           ensuite ne veut plus rien dire — sur deux segments qui diffèrent de
+           moins de 15 %, l’imprécision du geste dépasse l’écart à juger.
+           C’est la POSITION de la mine qu’on teste, pas seulement le rayon :
+           un point situé à la bonne distance mais dans une autre direction
+           n’a aucune raison d’accrocher. */
+        if (o.aimantsMine.length) {
+          const m = [centre[0] + (p[0]-centre[0]) / (hyp(centre, p) || 1) * d,
+                     centre[1] + (p[1]-centre[1]) / (hyp(centre, p) || 1) * d];
+          let meilleur = null, d0 = AIMANT_POINTE;
+          o.aimantsMine.forEach(a => { const e = hyp(m, a); if (e < d0) { d0 = e; meilleur = a; } });
+          if (meilleur) d = bride(hyp(centre, meilleur), 0, rMax());
+        }
         if (o.rayonAimante) {
           const u = Math.round(d / UNITE) * UNITE;
           if (Math.abs(d - u) <= AIMANT_RAYON && u >= UNITE) d = u;
@@ -402,6 +429,7 @@ const MoteurCompas = (function(){
       configurer(c){
         if ('zone' in c) o.zone = c.zone;
         if ('aimants' in c) o.aimants = c.aimants;
+        if ('aimantsMine' in c) o.aimantsMine = c.aimantsMine;
         if ('pointeLibre' in c) o.pointeLibre = c.pointeLibre;
       },
       estVerrouille(){ return verrouille; },
