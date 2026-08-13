@@ -649,13 +649,23 @@ const MoteurCompas = (function(){
       /* §19 accessibilité : sans animation, le cercle apparaît d’un trait. */
       if (reduitMouvement()) { achever(); return; }
       const t0 = performance.now();
+      /* L’ADOUCISSEMENT DU PROTOTYPE. La mine part doucement, prend de la
+         vitesse, puis ralentit en arrivant — un tracé à vitesse constante
+         démarre et s’arrête sec, ce qui se remarque sur un geste d’une
+         seconde. C’est l’animation qui a été jugée sur appareil ; le moteur
+         la reprend telle quelle plutôt qu’une approximation linéaire. */
+      const adoucir = (k) => k < .5 ? 2*k*k : -1 + (4 - 2*k)*k;
       const pas = (maintenant) => {
         if (detruit || !cercle.isConnected) return;
-        const t = bride((maintenant - t0) / DUREE_TRACE, 0, 1);
+        const t = adoucir(bride((maintenant - t0) / DUREE_TRACE, 0, 1));
         cercle.setAttribute('d', arc(t));
         angleMine = a0 + t * etendue;
         dessiner();
-        if (t < 1) anim = requestAnimationFrame(pas); else { anim = null; achever(); }
+        /* On teste le temps ÉCOULÉ, pas la valeur adoucie : `adoucir(1)` vaut
+           bien 1, mais s’arrêter sur la courbe plutôt que sur l’horloge
+           inviterait une erreur d’arrondi à retenir l’animation. */
+        if (maintenant - t0 < DUREE_TRACE) anim = requestAnimationFrame(pas);
+        else { anim = null; achever(); }
       };
       anim = requestAnimationFrame(pas);
     }
