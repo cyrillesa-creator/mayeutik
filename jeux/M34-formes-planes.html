@@ -626,6 +626,15 @@ function recentre(pts){ const [cx, cy] = centre(pts); return pts.map(([x, y]) =>
 
 /* Fabrique une pièce posée : forme + rotation libre + position + couleur. */
 const VERRES = ['#FF8A3D','#5AB4DC','#2EC4A6','#FFC93C','#FF5D5D','#9B5DE5','#4D96FF','#F76BA4'];
+/* LE JAUNE DU REPÈRE EST RÉSERVÉ. Depuis que les consignes de la rosace
+   désignent l’objet visé par sa couleur — « le cercle jaune », « entouré en
+   jaune » —, ce jaune ne doit plus rien désigner d’autre à l’écran. Or la
+   rosace en portait deux : son hexagone central ET son quatrième pétale, tous
+   deux exactement `--soleil`. La liste des verres utilisables se DÉDUIT donc
+   du jaune du repère au lieu d’être recopiée à la main, pour qu’une couleur
+   ajoutée demain ne réintroduise pas la collision en silence. */
+const JAUNE_REPERE = '#FFC93C';
+const VERRES_HORS_REPERE = VERRES.filter(c => c.toUpperCase() !== JAUNE_REPERE);
 let compteurPiece = 0;
 function creerPiece(forme, opts){
   const o = opts || {};
@@ -1325,10 +1334,13 @@ function construireRosace(){
     const loin = [cx + Math.cos(th) * R * 0.93, cy + Math.sin(th) * R * 0.93];
     petales.push({id:'pet' + i, forme:'quadrilatere',
       pts:[a, [ (a[0]+loin[0])/2 - (b[1]-a[1])*0.16, (a[1]+loin[1])/2 + (b[0]-a[0])*0.16 ], loin, b],
-      couleur:VERRES[i % VERRES.length]});
+      couleur:VERRES_HORS_REPERE[i % VERRES_HORS_REPERE.length]});
   }
+  /* Sept verres pour six pétales et un cœur : le cœur prend le septième, donc
+     aucune couleur n’est répétée dans la rosace. */
   return {R, cx, cy, sommetsHex, petales,
-    hexagone:{id:'hex', forme:'hexagone', pts:sommetsHex, couleur:'#FFC93C'}};
+    hexagone:{id:'hex', forme:'hexagone', pts:sommetsHex,
+              couleur:VERRES_HORS_REPERE[6 % VERRES_HORS_REPERE.length]}};
 }
 
 /* ============================================================
@@ -1512,36 +1524,33 @@ function qVocabulaire(cfg){
   const banque = ['centre','rayon','diametre','diagonale','longueur','largeur'];
   return tirerSansRepetition('voc-notions', banque, cfg.nbQuestions).map(notion => ({
     mode:'vocabulaire', notion, q:consigneVocabulaire(notion),
-    /* Deux écrans distincts sous une même compétence : la rosace pour le
-       vocabulaire du cercle, un présentoir de pièces pour le classement
-       par nombre de côtés. La sous-consigne doit dire lequel on regarde. */
-    sous: notion === 'polygone' ? 'Le mot qui les englobe toutes.'
-      : ['triangle','quadrilatere','pentagone','hexagone'].includes(notion)
-        ? 'Compte les côtés de chaque pièce.'
-        : ['diagonale','longueur','largeur'].includes(notion)
-          ? 'Le quadrilatère éclairé. Plusieurs réponses conviennent.'
-          : 'Sur le cercle éclairé. Plusieurs réponses peuvent convenir.'
+    /* La consigne nomme déjà l’objet visé et sa couleur : la sous-consigne
+       n’a plus qu’à prévenir que plusieurs réponses conviennent — un cercle
+       a une infinité de rayons, un rectangle deux longueurs. */
+    sous:'Plusieurs réponses conviennent : touches-en une.'
   }));
 }
 function consigneVocabulaire(n){
-  /* « la rosace » n’est pas un cercle : c’est l’assemblage de pétales. Le
-     centre, le rayon et le diamètre appartiennent au CERCLE qui la
-     délimite, et la consigne doit le dire. De même, la diagonale se
-     demande sur un quadrilatère IDENTIFIÉ — le rectangle posé sous la
-     rosace — et non sur « ce quadrilatère », qui ne désignait rien. */
+  /* DIRE CE QUI SE VOIT, PAS COMMENT ON L’A CODÉ. « En surbrillance » n’est
+     pas compris — c’est un mot d’écran, pas un mot d’enfant, et « éclairé »
+     ne vaut guère mieux. Le repère est jaune à l’écran : la consigne dit
+     donc « jaune », qui se vérifie d’un coup d’œil. Le mot à APPRENDRE reste
+     entier — « quadrilatère », « rayon », « diamètre » —, c’est la façon de
+     DÉSIGNER l’objet visé qui devient concrète.
+
+     « La rosace » n’est pas un cercle : c’est l’assemblage de pétales. Le
+     centre, le rayon et le diamètre appartiennent au CERCLE qui l’entoure,
+     et la consigne doit le dire. De même, la diagonale se demande sur un
+     quadrilatère IDENTIFIÉ — celui qui est entouré de jaune — et non sur
+     « ce quadrilatère », qui ne désignait rien. */
   const m = {
-    centre:'Touche le centre du cercle qui délimite la rosace.',
-    rayon:'Touche un rayon du cercle qui délimite la rosace.',
+    centre:'Touche le centre du cercle jaune qui entoure la rosace.',
+    rayon:'Touche un rayon du cercle jaune qui entoure la rosace.',
     /* Un cercle a une infinité de diamètres : « LE diamètre » n’existe pas. */
-    diametre:'Touche un diamètre du cercle qui délimite la rosace.',
-    diagonale:'Touche une diagonale du quadrilatère en surbrillance.',
-    longueur:'Touche une longueur du quadrilatère en surbrillance.',
-    largeur:'Touche une largeur du quadrilatère en surbrillance.',
-    triangle:'Touche le triangle.',
-    quadrilatere:'Touche un quadrilatère.',
-    pentagone:'Touche le pentagone.',
-    hexagone:'Touche l’hexagone.',
-    polygone:'Quel mot désigne toutes ces formes à la fois ?'
+    diametre:'Touche un diamètre du cercle jaune qui entoure la rosace.',
+    diagonale:'Touche une diagonale du quadrilatère entouré en jaune.',
+    longueur:'Touche une longueur du quadrilatère entouré en jaune.',
+    largeur:'Touche une largeur du quadrilatère entouré en jaune.'
   };
   return m[n];
 }
@@ -2455,39 +2464,17 @@ function rendreVocabulaire(q){
   $('vitrail').hidden = false;
   svg.setAttribute('viewBox', VOC_VB);
 
-  if (['triangle','quadrilatere','pentagone','hexagone'].includes(q.notion)) {
-    const formes = melanger(['triangle','quadrilatere','pentagone','hexagone']);
-    const pieces = formes.map((f, i) => creerPiece(
-      f === 'quadrilatere' ? 'rectangle' : f,
-      {cx:-105 + i * 70, cy:0, taille:64, couleur:VERRES[i % VERRES.length]}));
-    svg.innerHTML = pieces.map((p, i) =>
-      svgPiece(p, formes[i] === q.notion ? 'cible' : '')).join('');
-    svg.querySelectorAll('.piece').forEach((g, i) => {
-      g.addEventListener('click', () => {
-        if (verrouille) return;
-        verrouille = true;
-        const bon = formes[i] === q.notion;
-        g.classList.add(bon ? 'bon' : 'faux');
-        if (!bon) svg.querySelectorAll('.piece')[formes.indexOf(q.notion)].classList.add('bon');
-        terminerManche(bon, bon ? null : 'La bonne pièce est entourée en vert.');
-      });
-    });
-    return;
-  }
-
+  /* Le présentoir de pièces et l’écran « quel mot les englobe toutes ? » ont
+     disparu avec le classement par catégorie, parti au CONVOYEUR : la rosace
+     ne porte plus que la désignation d’éléments. Du code qu’aucune notion
+     n’atteignait plus se lit comme du code vivant, et se maintient comme
+     tel — on le retire. */
   const R = construireRosace(), CY = -18, RR = 86;
   const petales = R.petales.map(p => ({...p, pts:p.pts.map(([x, y]) => [x * RR / R.R, y * RR / R.R + CY])}));
   const hex = {...R.hexagone, pts:R.hexagone.pts.map(([x, y]) => [x * RR / R.R, y * RR / R.R + CY])};
 
-  if (q.notion === 'polygone') {
-    svg.innerHTML = petales.map(p => svgPiece(p)).join('') + svgPiece(hex);
-    rendreQcm(melanger(['polygone','quadrilatère','hexagone','triangle']), 'polygone',
-      bon => terminerManche(bon, bon ? null : 'Le mot juste était : polygone.'));
-    return;
-  }
-
-  /* Le quadrilatère de référence, MIS EN SURBRILLANCE quand la question
-     porte sur lui : « ce quadrilatère » ne désignait rien à l’écran. */
+  /* Le quadrilatère de référence, ENTOURÉ DE JAUNE quand la question porte
+     sur lui : « ce quadrilatère » ne désignait rien à l’écran. */
   const RX = 78, RY0 = 74, RY1 = 118;
   const rect = {id:'rect', forme:'rectangle',
     pts:[[-RX, RY0], [RX, RY0], [RX, RY1], [-RX, RY1]], couleur:'#5AB4DC'};
