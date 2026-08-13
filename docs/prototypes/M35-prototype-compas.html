@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Prototype compas — M35</title>
+<style>
+  :root{
+    --plomb:#2b2f36;
+    --calque:#e8e3d7;
+    --calque-ligne:#cfc7b4;
+    --verre:#3f7d8c;
+    --verre-clair:#8fc2cc;
+    --laiton:#a8863f;
+    --laiton-clair:#d4b978;
+    --rouge:#a63d40;
+    --vert:#4f7942;
+    --papier:#f5f2ea;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--plomb);}
+  body{
+    font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;
+    color:var(--papier);
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    touch-action:pan-y;
+  }
+  header{padding:14px 16px 10px;}
+  h1{
+    font-size:15px;font-weight:600;letter-spacing:.14em;
+    text-transform:uppercase;margin:0 0 3px;color:var(--laiton-clair);
+  }
+  .sub{font-size:12.5px;opacity:.62;margin:0;line-height:1.45;}
+
+  .modes{display:flex;gap:6px;padding:10px 16px 12px;}
+  .mode{
+    flex:1;padding:9px 4px;border:1px solid rgba(212,185,120,.35);
+    background:transparent;color:var(--papier);border-radius:4px;
+    font-family:inherit;font-size:12px;font-weight:600;letter-spacing:.03em;
+    cursor:pointer;
+  }
+  .mode[aria-pressed="true"]{background:var(--laiton);border-color:var(--laiton);color:#1d2026;}
+
+  .stage{
+    position:relative;background:var(--calque);
+    margin:0 10px;border-radius:3px;overflow:hidden;
+    box-shadow:0 2px 14px rgba(0,0,0,.4);
+  }
+  svg{display:block;width:100%;height:auto;touch-action:none;}
+
+  .consigne{
+    padding:11px 16px 4px;font-size:13.5px;line-height:1.5;min-height:44px;
+  }
+  .consigne b{color:var(--laiton-clair);font-weight:600;}
+
+  .bar{display:flex;gap:8px;padding:10px 16px 16px;}
+  .bar button{
+    flex:1;padding:11px;border-radius:4px;border:1px solid rgba(245,242,234,.25);
+    background:rgba(245,242,234,.07);color:var(--papier);
+    font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;
+  }
+  .bar button.primary{background:var(--laiton);border-color:var(--laiton);color:#1d2026;}
+
+  .log{
+    margin:0 16px 20px;padding:9px 11px;border-left:2px solid rgba(212,185,120,.4);
+    font-size:11.5px;line-height:1.55;opacity:.7;min-height:34px;
+    font-variant-numeric:tabular-nums;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Compas — prototype</h1>
+  <p class="sub">Trois modes de saisie à comparer sur l'appareil. Trace un cercle, puis change de mode et recommence.</p>
+</header>
+
+<div class="modes">
+  <button class="mode" data-mode="taps" aria-pressed="true">Deux taps</button>
+  <button class="mode" data-mode="glisser" aria-pressed="false">Glisser</button>
+  <button class="mode" data-mode="pivot" aria-pressed="false">Pouce + index</button>
+</div>
+
+<p class="consigne" id="consigne"></p>
+
+<div class="stage">
+  <svg id="scene" viewBox="0 0 360 360" aria-label="Zone de tracé">
+    <defs>
+      <pattern id="grille" width="30" height="30" patternUnits="userSpaceOnUse">
+        <path d="M30 0H0V30" fill="none" stroke="var(--calque-ligne)" stroke-width="1"/>
+      </pattern>
+      <clipPath id="clipScene"><rect x="0" y="0" width="360" height="360"/></clipPath>
+    </defs>
+    <rect width="360" height="360" fill="url(#grille)"/>
+    <g clip-path="url(#clipScene)">
+      <g id="traces"></g>
+      <g id="guides"></g>
+      <g id="compas"></g>
+      <g id="points"></g>
+    </g>
+  </svg>
+</div>
+
+<div class="bar">
+  <button id="effacer">Effacer</button>
+  <button id="rejouer" class="primary">Rejouer l'animation</button>
+</div>
+
+<p class="log" id="log">Mode « deux taps ». Touche le centre.</p>
+
+<script>
+(function(){
+  "use strict";
+
+  var svg      = document.getElementById('scene');
+  var gTraces  = document.getElementById('traces');
+  var gGuides  = document.getElementById('guides');
+  var gCompas  = document.getElementById('compas');
+  var gPoints  = document.getElementById('points');
+  var elLog    = document.getElementById('log');
+  var elCons   = document.getElementById('consigne');
+
+  var NS = 'http://www.w3.org/2000/svg';
+  var mode = 'taps';
+  var centre = null, rayon = 0, angleDepart = 0;
+  var enCours = false;
+  var pointers = {};          // pointerId -> {x,y}
+  var pivotId = null, rotId = null;
+  var dernierCercle = null;
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var BRANCHE = 130;              // longueur fixe des branches du compas
+  var R_MAX   = 2*BRANCHE - 2;    // rayon maximal : compas grand ouvert
+
+  var TEXTES = {
+    taps:    'Touche le <b>centre</b>, puis un <b>point du cercle</b>.',
+    glisser: 'Pose le doigt sur le <b>centre</b> et <b>glisse</b> jusqu\'au point de passage.',
+    pivot:   'Pose le <b>pouce</b> sur le centre, puis fais tourner l\'<b>index</b> autour.'
+  };
+
+  function el(nom, attrs){
+    var e = document.createElementNS(NS, nom);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+  function vider(g){ while (g.firstChild) g.removeChild(g.firstChild); }
+  function log(t){ elLog.textContent = t; }
+
+  // Coordonnées SVG à partir d'un évènement pointeur
+  function pos(evt){
+    var r = svg.getBoundingClientRect();
+    return {
+      x: (evt.clientX - r.left) / r.width  * 360,
+      y: (evt.clientY - r.top)  / r.height * 360
+    };
+  }
+  function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+
+  function marqueur(p, couleur){
+    gPoints.appendChild(el('circle',{cx:p.x, cy:p.y, r:4, fill:couleur||'var(--rouge)'}));
+  }
+
+  // ---------- Dessin du compas ----------
+  // Deux branches partant d'une charnière, pointe au centre, mine sur le cercle.
+  function dessinerCompas(c, r, angle){
+    vider(gCompas);
+    if (!c || r < 6) return;
+
+    var mine = { x: c.x + r*Math.cos(angle), y: c.y + r*Math.sin(angle) };
+    // Branches de longueur FIXE : seul l'angle d'ouverture varie.
+    // La charnière est au sommet du triangle isocèle de côtés L et de base r.
+    var mx = (c.x + mine.x)/2, my = (c.y + mine.y)/2;
+    var demi = Math.min(r/2, BRANCHE - 1);          // r plafonné à 2*BRANCHE
+    var h  = Math.sqrt(BRANCHE*BRANCHE - demi*demi);
+    var dx = mine.x - c.x, dy = mine.y - c.y;
+    var L  = Math.hypot(dx,dy) || 1;
+    var nx = -dy/L, ny = dx/L;              // normale au segment
+    if (ny > 0){ nx = -nx; ny = -ny; }       // charnière toujours vers le haut
+    var ch = { x: mx + nx*h, y: my + ny*h };
+
+    var g = el('g',{opacity:'.95'});
+    // branches
+    g.appendChild(el('line',{x1:ch.x,y1:ch.y,x2:c.x,y2:c.y,
+      stroke:'var(--laiton)','stroke-width':'4.5','stroke-linecap':'round'}));
+    g.appendChild(el('line',{x1:ch.x,y1:ch.y,x2:mine.x,y2:mine.y,
+      stroke:'var(--laiton)','stroke-width':'4.5','stroke-linecap':'round'}));
+    // charnière
+    g.appendChild(el('circle',{cx:ch.x,cy:ch.y,r:6,fill:'var(--laiton-clair)',
+      stroke:'var(--plomb)','stroke-width':'1.5'}));
+    // tige de tête
+    var tx = ch.x + nx*16, ty = ch.y + ny*16;
+    g.appendChild(el('line',{x1:ch.x,y1:ch.y,x2:tx,y2:ty,
+      stroke:'var(--laiton-clair)','stroke-width':'3','stroke-linecap':'round'}));
+    // pointe
+    g.appendChild(el('circle',{cx:c.x,cy:c.y,r:2.5,fill:'var(--plomb)'}));
+    // mine
+    g.appendChild(el('circle',{cx:mine.x,cy:mine.y,r:3,fill:'var(--plomb)'}));
+
+    gCompas.appendChild(g);
+  }
+
+  function apercuRayon(c, p){
+    vider(gGuides);
+    gGuides.appendChild(el('line',{x1:c.x,y1:c.y,x2:p.x,y2:p.y,
+      stroke:'var(--laiton)','stroke-width':'1.5','stroke-dasharray':'4 4',opacity:'.8'}));
+  }
+
+  // ---------- Animation du tracé ----------
+  function tracerAnime(c, r, depart, arcDejaFait){
+    enCours = true;
+    vider(gGuides);
+    var path = el('path',{fill:'none',stroke:'var(--verre)','stroke-width':'2.5',
+      'stroke-linecap':'round'});
+    gTraces.appendChild(path);
+    dernierCercle = {c:c, r:r, depart:depart};
+
+    if (reduceMotion){
+      path.setAttribute('d', cheminArc(c,r,depart,depart+2*Math.PI));
+      dessinerCompas(c,r,depart);
+      enCours = false;
+      log('Cercle tracé. Rayon ' + Math.round(r) + '.');
+      return;
+    }
+
+    var t0 = null;
+    var duree = 1150;
+    var depuis = arcDejaFait || 0;         // portion déjà parcourue par le doigt
+    function pas(ts){
+      if (t0 === null) t0 = ts;
+      var k = Math.min(1, (ts - t0)/duree);
+      var e = k<.5 ? 2*k*k : -1+(4-2*k)*k;             // ease in-out
+      var balaye = depuis + (2*Math.PI - depuis)*e;
+      path.setAttribute('d', cheminArc(c, r, depart, depart+balaye));
+      dessinerCompas(c, r, depart+balaye);
+      if (k < 1) requestAnimationFrame(pas);
+      else {
+        path.setAttribute('d', cheminArc(c,r,depart,depart+2*Math.PI));
+        enCours = false;
+        log('Cercle tracé. Rayon ' + Math.round(r) + '.');
+      }
+    }
+    requestAnimationFrame(pas);
+  }
+
+  function cheminArc(c, r, a0, a1){
+    var span = a1 - a0;
+    if (span >= 2*Math.PI - 1e-3){
+      return 'M '+(c.x+r)+' '+c.y+
+             ' A '+r+' '+r+' 0 1 1 '+(c.x-r)+' '+c.y+
+             ' A '+r+' '+r+' 0 1 1 '+(c.x+r)+' '+c.y+' Z';
+    }
+    var x0 = c.x + r*Math.cos(a0), y0 = c.y + r*Math.sin(a0);
+    var x1 = c.x + r*Math.cos(a1), y1 = c.y + r*Math.sin(a1);
+    var grand = span > Math.PI ? 1 : 0;
+    return 'M '+x0+' '+y0+' A '+r+' '+r+' 0 '+grand+' 1 '+x1+' '+y1;
+  }
+
+  // ---------- Gestion des modes ----------
+  function reinit(){
+    centre = null; rayon = 0; angleDepart = 0;
+    pointers = {}; pivotId = null; rotId = null;
+    vider(gGuides); vider(gCompas); vider(gPoints);
+  }
+  function toutEffacer(){
+    reinit(); vider(gTraces); dernierCercle = null;
+    log(consigneCourte());
+  }
+  function consigneCourte(){
+    if (mode==='taps')    return 'Mode « deux taps ». Touche le centre.';
+    if (mode==='glisser') return 'Mode « glisser ». Pose le doigt sur le centre.';
+    return 'Mode « pouce + index ». Pose le pouce sur le centre.';
+  }
+
+  document.querySelectorAll('.mode').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('.mode').forEach(function(o){
+        o.setAttribute('aria-pressed', String(o===b));
+      });
+      mode = b.dataset.mode;
+      elCons.innerHTML = TEXTES[mode];
+      toutEffacer();
+    });
+  });
+
+  // ---------- Pointeurs ----------
+  svg.addEventListener('pointerdown', function(e){
+    if (enCours) return;
+    e.preventDefault();
+    var p = pos(e);
+    pointers[e.pointerId] = p;
+
+    if (mode === 'taps'){
+      if (!centre){
+        centre = p; marqueur(centre,'var(--rouge)');
+        dessinerCompas(centre, 0, 0);
+        log('Centre posé. Touche maintenant un point du cercle.');
+      } else {
+        var r = dist(centre, p);
+        if (r < 8){ log('Trop près du centre.'); return; }
+        marqueur(p,'var(--verre)');
+        var a = Math.atan2(p.y-centre.y, p.x-centre.x);
+        tracerAnime(centre, r, a, 0);
+        centre = null;
+      }
+      return;
+    }
+
+    if (mode === 'glisser'){
+      centre = p; marqueur(centre,'var(--rouge)');
+      svg.setPointerCapture(e.pointerId);
+      log('Glisse pour ouvrir le compas.');
+      return;
+    }
+
+    if (mode === 'pivot'){
+      if (pivotId === null){
+        pivotId = e.pointerId; centre = p;
+        marqueur(centre,'var(--rouge)');
+        dessinerCompas(centre, 0, 0);
+        log('Pouce posé. Pose l\'index et tourne.');
+      } else if (rotId === null){
+        rotId = e.pointerId;
+        rayon = dist(centre, p);
+        angleDepart = Math.atan2(p.y-centre.y, p.x-centre.x);
+        dessinerCompas(centre, rayon, angleDepart);
+        log('Écartement ' + Math.round(rayon) + '. Tourne.');
+      }
+    }
+  }, {passive:false});
+
+  var angleCumule = 0, angleAncien = null;
+
+  svg.addEventListener('pointermove', function(e){
+    if (enCours) return;
+    if (!(e.pointerId in pointers)) return;
+    e.preventDefault();
+    var p = pos(e);
+    pointers[e.pointerId] = p;
+
+    if (mode === 'glisser' && centre){
+      var rBrut = dist(centre, p);
+      var r = Math.min(rBrut, R_MAX);
+      apercuRayon(centre, p);
+      dessinerCompas(centre, r, Math.atan2(p.y-centre.y, p.x-centre.x));
+      log(rBrut > R_MAX
+        ? 'Compas grand ouvert — écartement maximal.'
+        : 'Écartement ' + Math.round(r) + '.');
+      return;
+    }
+
+    if (mode === 'pivot' && e.pointerId === rotId && centre){
+      var a = Math.atan2(p.y-centre.y, p.x-centre.x);
+      if (angleAncien === null) angleAncien = a;
+      var d = a - angleAncien;
+      while (d >  Math.PI) d -= 2*Math.PI;
+      while (d < -Math.PI) d += 2*Math.PI;
+      angleCumule += Math.abs(d);
+      angleAncien = a;
+      rayon = dist(centre, p);
+
+      // arc partiel suivi par le doigt
+      vider(gGuides);
+      var arc = el('path',{d:cheminArc(centre, rayon, angleDepart, angleDepart+angleCumule),
+        fill:'none',stroke:'var(--verre-clair)','stroke-width':'2.5','stroke-linecap':'round'});
+      gGuides.appendChild(arc);
+      dessinerCompas(centre, rayon, angleDepart+angleCumule);
+      log('Arc ' + Math.round(angleCumule*180/Math.PI) + '°');
+
+      if (angleCumule > Math.PI*0.55){       // seuil : ~100°, l'app achève
+        var c=centre, r=rayon, a0=angleDepart, fait=angleCumule;
+        reinit();
+        angleCumule = 0; angleAncien = null;
+        tracerAnime(c, r, a0, fait);
+      }
+    }
+  }, {passive:false});
+
+  function finPointeur(e){
+    if (!(e.pointerId in pointers)) return;
+    var p = pointers[e.pointerId];
+    delete pointers[e.pointerId];
+
+    if (mode === 'glisser' && centre && !enCours){
+      var r = Math.min(dist(centre, p), R_MAX);
+      if (r < 8){ log('Écartement trop petit.'); reinit(); return; }
+      marqueur(p,'var(--verre)');
+      tracerAnime(centre, r, Math.atan2(p.y-centre.y, p.x-centre.x), 0);
+      centre = null;
+      return;
+    }
+
+    if (mode === 'pivot'){
+      if (e.pointerId === rotId){ rotId = null; angleAncien = null; }
+      if (e.pointerId === pivotId){
+        pivotId = null;
+        if (!enCours){ vider(gGuides); vider(gCompas); vider(gPoints);
+          centre=null; angleCumule=0; angleAncien=null;
+          log('Pouce relevé. Recommence.'); }
+      }
+    }
+  }
+  svg.addEventListener('pointerup', finPointeur);
+  svg.addEventListener('pointercancel', finPointeur);
+
+  document.getElementById('effacer').addEventListener('click', toutEffacer);
+  document.getElementById('rejouer').addEventListener('click', function(){
+    if (!dernierCercle || enCours) return;
+    vider(gTraces);
+    tracerAnime(dernierCercle.c, dernierCercle.r, dernierCercle.depart, 0);
+  });
+
+  // Bloque le zoom double-tap sur iOS
+  var dernierTap = 0;
+  document.addEventListener('touchend', function(e){
+    var t = Date.now();
+    if (t - dernierTap < 320) e.preventDefault();
+    dernierTap = t;
+  }, {passive:false});
+
+  elCons.innerHTML = TEXTES.taps;
+  log(consigneCourte());
+})();
+</script>
+</body>
+</html>
