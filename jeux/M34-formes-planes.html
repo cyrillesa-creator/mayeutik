@@ -164,8 +164,22 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
   vector-effect:non-scaling-stroke; pointer-events:none;}
 .piece.sel .halo{stroke:#FFFFFF;}
 .piece.sel .verre{stroke:var(--selection); stroke-width:6; stroke-dasharray:13 8;}
-.piece.bon .verre{stroke:var(--menthe); stroke-width:6;}
-.piece.faux .verre{stroke:var(--corail); stroke-width:6;}
+/* LE VERDICT SE LIT SUR N’IMPORTE QUEL VERRE. `--menthe` et `--corail` sont
+   EXACTEMENT deux des huit teintes de VERRES (#2EC4A6 et #FF5D5D) : une pièce
+   menthe marquée juste, une pièce corail marquée fausse, et le marqueur
+   disparaissait dans son propre fond. On prend donc les variantes foncées, qui
+   ne figurent dans aucun verre, et on les pose sur le HALO BLANC — le même
+   ressort que le marqueur de sélection et que le marqueur d’angle : c’est le
+   halo qui fait tenir la couleur, pas la couleur seule. */
+.piece.bon .verre{stroke:var(--menthe-t); stroke-width:7;}
+.piece.faux .verre{stroke:var(--corail-t); stroke-width:7;}
+.piece.bon .halo, .piece.faux .halo, .piece.manque .halo{stroke:#FFFFFF;}
+/* LES PIÈCES QUI NE SONT PAS EN CAUSE S’EFFACENT. Dans un assemblage, les
+   voisines touchent la pièce jugée : leur verre saturé mangeait le verdict.
+   On les grise pour de bon — le `fill` est un attribut de présentation, donc
+   la règle CSS l’emporte — au lieu de les rendre translucides, ce qui aurait
+   laissé la couleur transparaître et le vitrail bariolé. */
+.piece.neutre .verre{fill:#C4CEDD; stroke:#94A6BE;}
 
 /* ---- LE CONVOYEUR ----
    `touch-action:none` sur la SEULE zone du tapis : ailleurs la page défile
@@ -264,7 +278,10 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 #endBilan td{padding:3px 6px; text-align:center; color:var(--encre);}
 #endBilan td:first-child{text-align:left; font-weight:600;}
 #endBilan tr+tr{border-top:1px solid #E3EAF4;}
-.piece.manque .verre{stroke:var(--menthe); stroke-width:6; stroke-dasharray:9 6;}
+/* « Il manquait celle-ci » : même vert que le juste, mais en pointillé — la
+   nuance est dans le trait, pas dans la couleur, pour ne pas ajouter une
+   troisième teinte à décoder. */
+.piece.manque .verre{stroke:var(--menthe-t); stroke-width:7; stroke-dasharray:9 6;}
 /* Repères tactiles (litige, rosace). La CIBLE n’est plus un élément du DOM
    mais de la géométrie : on mesure la distance du toucher à chaque cible et
    on tranche (cf. `cibleTouchee`). Ne restent ici que les REPÈRES visibles,
@@ -2731,6 +2748,7 @@ function rendreReconnaitre(q){
       if (pris && att) g.classList.add('bon');
       else if (pris && !att) g.classList.add('faux');
       else if (!pris && att) g.classList.add('manque');
+      else g.classList.add('neutre');   // ni choisie ni attendue : hors sujet
     });
     terminerManche(bon, bon ? null : 'Les pièces entourées en vert étaient les bonnes.');
   };
