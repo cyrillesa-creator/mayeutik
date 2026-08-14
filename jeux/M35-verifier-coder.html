@@ -102,7 +102,9 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 .card:active{transform:translateY(3px);}
 .card .ico{font-size:2rem; line-height:1;}
 .card .nom{font-weight:600; font-size:1.02rem;}
-.card .det{font-size:.78rem; color:var(--encre2);}
+/* `pre-line` : une vignette peut porter deux lignes quand la consigne le
+   demande, sans balise dans la donnée. */
+.card .det{font-size:.78rem; color:var(--encre2); white-space:pre-line;}
 .card .stars{font-size:.85rem; letter-spacing:2px; min-height:1.1em;}
 
 .bloc-bonus{
@@ -187,6 +189,9 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 .posable .poignee-halo{fill:rgba(255,138,61,.20);}
 .posable .poignee-fleche{fill:none; stroke:#fff; stroke-width:2.2; stroke-linecap:round;}
 .posable.aimante .bord{stroke:var(--menthe-t);}
+/* Règle calée : ses poignées de rotation s’effacent, sinon elles invitent
+   encore à un geste qui n’a plus d’effet. */
+.posable.calee .poignee{display:none;}
 .posable.exact .corps{fill:rgba(46,196,166,.22);}
 .posable.exact .bord{stroke:var(--menthe-t);}
 
@@ -1280,6 +1285,11 @@ function creerPosable(svg, spec){
   };
   const surMove = (e) => {
     if (!mode) return;
+    /* FIGÉ ≠ VERROUILLÉ. Verrouillé, l’instrument ne répond plus du tout —
+       c’est l’état de fin de manche. Figé, il ne se déplace plus mais reste
+       tactile : c’est ce qu’il faut pour qu’un appui sur le bord soit un
+       tracé et rien d’autre. */
+    if (g.dataset.fige === '1') { e.preventDefault(); return; }
     const p = versSVG(svg, e.clientX, e.clientY);
     if (mode === 'trans') { x = p.x - depart.dx; y = p.y - depart.dy; ancrer(); }
     else {
@@ -1320,6 +1330,7 @@ function creerPosable(svg, spec){
     ancre(){ return ancreCourante; },
     surBord(){ return pointsSurBord(); },
     verrouiller(){ g.dataset.verrouille = '1'; g.style.cursor = 'default'; },
+    figer(){ g.dataset.fige = '1'; g.style.cursor = 'default'; g.classList.add('calee'); },
     /* Révélation différée (§18) : l’instrument rejoint tout seul la position
        exacte, pour montrer ce qu’il fallait voir. */
     placerExact(nx, ny, na){
@@ -1391,7 +1402,10 @@ const CONTENU = {
         {id:'cp-alignement', mode:'alignement', titre:'Les pointes de l’établi', icone:'📌',
          description:'Alignés, ou pas ?', nbQuestions:5, etabli:2, dosageEvident:1/3},
         {id:'cp-tracer-droite', mode:'tracer', titre:'Le trait du verrier', icone:'📏',
-         description:'Trace le plomb.', nbQuestions:5}
+         /* La vignette dit ce que l’énoncé dit. « Tracer le plomb » ne veut
+            rien dire pour un enfant de six ans — l’énoncé avait été repris,
+            la vignette non, et le menu annonçait encore l’ancienne tâche. */
+         description:'Une droite qui passe par deux points.', nbQuestions:5}
       ]
     },
     CE1: {
@@ -1411,7 +1425,11 @@ const CONTENU = {
       sousTitre: 'L’équerre, l’écartement, et le plan certifié.',
       miniJeux: [
         {id:'ce2-alignement', mode:'alignement', titre:'L’expertise', icone:'🔬',
-         description:'Plus rien d’évident.', nbQuestions:5, dosageEvident:0},
+         /* Deux lignes : la première prévient, la seconde dit quoi faire.
+            « Plus rien d’évident » décrivait le réglage du mini-jeu, pas la
+            consigne de travail. */
+         description:'Les apparences peuvent être trompeuses.\nUtilise tes outils pour vérifier.',
+         nbQuestions:5, dosageEvident:0},
         {id:'ce2-angles', mode:'anglesPoly', titre:'L’équerre du contrôleur', icone:'📐',
          description:'Chaque angle du polygone.', nbQuestions:3, outil:'equerre'},
         {id:'ce2-compas', mode:'compas2', titre:'L’écartement', icone:'🧭',
@@ -2422,7 +2440,7 @@ function rendreTracer(q){
      programme emploie justement les mots justes : « tracer une droite
      passant par deux points ». */
   poserConsigne('Trace une droite qui passe par ces deux points.');
-  $('sousConsigne').textContent = 'Cale la règle sur les deux points, puis appuie sur son bord.';
+  $('sousConsigne').textContent = 'Cale la règle sur les deux points, puis valide sa position.';
   let a, b;
   if (q.orientation === 'horizontale') { const y = entre(110, 190); a = [70, y]; b = [330, y]; }
   else if (q.orientation === 'verticale') { const x = entre(140, 260); a = [x, 50]; b = [x, 250]; }
@@ -2437,10 +2455,31 @@ function rendreTracer(q){
       const ok = e.surBord.length >= 2;
       q._alignee = ok; q._instrumentPose = q._instrumentPose || ok;
     },
-    /* On appuie sur le bord pour tracer : plus de bouton, et relâcher la
-       règle ne trace rien. */
-    surTap:() => { if (!verrouille) tracerLaDroite(); }
+    /* LE TRACÉ SE FAIT EN DEUX TEMPS. On appuie sur le bord pour tracer —
+       c’est le geste réel, et un bouton « tracer » l’aurait remplacé par une
+       déclaration. Mais poser une règle demande plusieurs reprises : on la
+       glisse, on la tourne, on la reglisse. Or un appui sans déplacement est
+       lu comme un toucher, si bien qu’un simple recalage valait tracé, et la
+       manche se terminait au milieu du placement.
+       D’où un cran intermédiaire : tant que la position n’est pas validée, le
+       bord ne trace pas. Une fois validée, la règle est FIGÉE — elle ne peut
+       plus bouger, donc l’appui suivant ne peut plus être qu’un tracé. */
+    surTap:() => { if (!verrouille && q._calee) tracerLaDroite(); }
   });
+  /* §18 : valider la POSITION n’est pas répondre — on ne juge rien ici, et
+     aucune position n’est refusée. C’est l’enfant qui dit « j’ai fini de
+     placer », pas le jeu qui approuve. */
+  const btnCaler = $('btnValider');
+  btnCaler.style.display = 'block';
+  btnCaler.textContent = '📏 Ma règle est bien placée';
+  btnCaler.onclick = () => {
+    if (verrouille || q._calee) return;
+    q._calee = true;
+    sonClic();
+    posableCourant.figer();
+    btnCaler.style.display = 'none';
+    $('sousConsigne').textContent = 'Appuie maintenant sur le bord de la règle pour tracer le trait.';
+  };
   const tracerLaDroite = () => {
     if (verrouille) return;
     verrouille = true;
@@ -3067,16 +3106,40 @@ function dessinerCodage(q, tampons){
     simple:`<svg viewBox="0 0 26 22"><line x1="13" y1="4" x2="13" y2="18" stroke="#FF8A3D" stroke-width="3.2"/></svg>`,
     double:`<svg viewBox="0 0 26 22"><line x1="10" y1="4" x2="10" y2="18" stroke="#FF8A3D" stroke-width="3.2"/><line x1="17" y1="4" x2="17" y2="18" stroke="#FF8A3D" stroke-width="3.2"/></svg>`
   };
-  let choisi = tampons[0];
+  /* UN SEUL OUTIL EN MAIN, ET UNE SEULE VARIABLE POUR LE DIRE. Le compas et
+     les tampons étaient deux états séparés — `choisi` d’un côté, `compasActif`
+     de l’autre — et ils divergeaient : choisir un tampon éteignait le BOUTON
+     du compas (la boucle de classes le balayait avec les autres) sans éteindre
+     le compas lui-même. Il restait installé et captait le pointeur, si bien
+     qu’après un report plus aucune marque ne se posait, alors que le tampon
+     s’allumait normalement. Deux vérités pour un seul fait, c’est la panne
+     garantie ; il n’y en a plus qu’une. */
   const barre = $('barreOutils');
   barre.hidden = false;
   barre.innerHTML = tampons.map(t =>
-    `<button type="button" class="outil${t === choisi ? ' on' : ''}" data-t="${t}">${apercu[t]}${nomsTampon[t]}</button>`).join('')
-    + (q._exigeVerif ? `<button type="button" class="outil" id="btnCompas">🧭 compas</button>` : '');
-  barre.querySelectorAll('.outil[data-t]').forEach(b => b.addEventListener('click', () => {
-    choisi = b.dataset.t;
-    barre.querySelectorAll('.outil').forEach(x => x.classList.toggle('on', x === b));
-  }));
+    `<button type="button" class="outil${t === tampons[0] ? ' on' : ''}" data-t="${t}">${apercu[t]}${nomsTampon[t]}</button>`).join('')
+    + (q._exigeVerif ? `<button type="button" class="outil" id="btnCompas" data-t="compas">🧭 compas</button>` : '');
+  let outil = tampons[0];
+  const btnC = $('btnCompas');
+  barre.querySelectorAll('.outil[data-t]').forEach(b =>
+    b.addEventListener('click', () => choisirOutil(b.dataset.t)));
+
+  function choisirOutil(nom){
+    if (verrouille) return;
+    sonClic();
+    outil = nom;
+    barre.querySelectorAll('.outil[data-t]').forEach(x => x.classList.toggle('on', x.dataset.t === nom));
+    if (nom !== 'compas') {
+      /* Reprendre un tampon RANGE le compas : c’est le même geste qu’à
+         l’établi, on ne tient qu’un outil à la fois. */
+      if (compasCourant) { compasCourant.detruire(); compasCourant = null; }
+      $('sousConsigne').textContent = 'Choisis un tampon, puis touche un sommet ou un côté.';
+      return;
+    }
+    if (compasCourant) return;                 // déjà en main
+    $('sousConsigne').textContent = 'Plante la pointe sur un sommet et ouvre jusqu’au voisin.';
+    compasCourant = ouvrirCompasDeCodage(svg, q);
+  }
 
   /* LE REPORT DE LONGUEUR EST UN INSTRUMENT, PAS UN BOUTON. « Reporter »
      était un bouton sans effet visible : il déclarait la vérification faite
@@ -3089,20 +3152,8 @@ function dessinerCodage(q, tampons){
      Le compas s’allume et s’éteint, parce qu’il capte le pointeur : tant
      qu’il est là, les tampons ne se posent pas, et c’est le bouton qui dit
      lequel des deux outils on tient. */
-  let compasActif = false;
-  const btnC = $('btnCompas');
-  if (btnC) btnC.addEventListener('click', () => {
-    if (verrouille) return;
-    sonClic();
-    compasActif = !compasActif;
-    btnC.classList.toggle('on', compasActif);
-    if (!compasActif) {
-      if (compasCourant) { compasCourant.detruire(); compasCourant = null; }
-      $('sousConsigne').textContent = 'Choisis un tampon, puis touche un sommet ou un côté.';
-      return;
-    }
-    $('sousConsigne').textContent = 'Plante la pointe sur un sommet et ouvre jusqu’au voisin.';
-    compasCourant = MoteurCompas.creerCompas(svg, {
+  function ouvrirCompasDeCodage(svg, q){
+    return MoteurCompas.creerCompas(svg, {
       /* La pointe ne se plante que sur un SOMMET : reporter une longueur,
          c’est aller d’un sommet à un autre, pas mesurer au hasard. */
       aimants: q.pts, pointeLibre: false,
@@ -3110,26 +3161,32 @@ function dessinerCodage(q, tampons){
          SANS mesurer : afficher « 15,4 » à côté du compas donnerait la
          réponse dans une unité qui ne veut rien dire sur cette figure. */
       etiquette: false,
+      /* UN ARC, PAS UN TOUR COMPLET — même geste, même dessin qu’au report de
+         longueur : la main qui compare donne un coup d’arc là où la
+         comparaison se lit. Un cercle entier par côté vérifié recouvrait la
+         figure qu’on demande justement de coder, et les traits du codage
+         devenaient illisibles sous les traits du contrôle. */
+      arc: radians(64),
       surPointe: () => sonClic(),
       surTrace: () => {
         q._instrumentPose = true;
-        if (!compasCourant.estVerrouille()) {
+        if (compasCourant && !compasCourant.estVerrouille()) {
           compasCourant.verrouiller();
           $('sousConsigne').textContent =
             'Écartement gardé : replante la pointe sur un autre sommet pour comparer.';
         }
       }
     });
-  });
+  }
 
   const posees = {};   // clé de cible -> type de tampon
   svg.querySelectorAll('.cible-tactile').forEach(c => c.addEventListener('click', () => {
-    if (verrouille || compasActif) return;
+    if (verrouille || outil === 'compas') return;
     const k = c.dataset.t;
     if (posees[k]) { delete posees[k]; }
-    else if (k[0] === 'a' && choisi !== 'droit') return;   // un trait ne se pose pas sur un sommet
-    else if (k[0] === 'c' && choisi === 'droit') return;   // un carré d’angle ne se pose pas sur un côté
-    else { posees[k] = choisi; sonClic(); }
+    else if (k[0] === 'a' && outil !== 'droit') return;   // un trait ne se pose pas sur un sommet
+    else if (k[0] === 'c' && outil === 'droit') return;   // un carré d’angle ne se pose pas sur un côté
+    else { posees[k] = outil; sonClic(); }
     redessinerMarques();
   }));
   function redessinerMarques(){
@@ -3152,7 +3209,7 @@ function dessinerCodage(q, tampons){
     $('btnValider').style.display = 'none';
     /* Le compas se range à la certification : §18, on ne revient pas dessus. */
     if (compasCourant) { compasCourant.detruire(); compasCourant = null; }
-    if (btnC) { compasActif = false; btnC.classList.remove('on'); btnC.disabled = true; }
+    if (btnC) { btnC.classList.remove('on'); btnC.disabled = true; }
     const attenduAngles = new Set(q.droits.map(i => 'a' + i));
     const posesAngles = new Set(Object.keys(posees).filter(k => k[0] === 'a'));
     const anglesOk = attenduAngles.size === posesAngles.size && [...attenduAngles].every(k => posesAngles.has(k));
