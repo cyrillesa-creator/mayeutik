@@ -952,23 +952,103 @@ const pioche = a => a[Math.floor(Math.random() * a.length)];
    même figure, ni le même nombre attendu, ni la même formulation ne
    reviennent tant que le stock n’est pas épuisé, y compris d’une partie à
    la suivante. Le mélange ne reprend qu’une fois le stock vidé. */
-const memoireTirages = {};
+const memoireTirages = {}, memoireDernier = {};
 function tirerSansRepetition(cle, stock, n){
   let reste = memoireTirages[cle];
+  let precedent = memoireDernier[cle];
   const sortie = [];
   for (let i = 0; i < n; i++) {
     if (!reste || !reste.length) {
-      /* Au remélange, ce qui vient d’être tiré part EN FIN de pioche :
-         sinon un élément servi en début de partie pourrait revenir dès la
-         partie suivante, et « sans répétition » ne vaudrait qu’à
-         l’intérieur d’un cycle. */
-      const dejaVus = sortie.slice();
-      reste = melanger(stock.filter(x => dejaVus.indexOf(x) === -1)).concat(melanger(dejaVus));
+      /* CHAQUE CYCLE EST UNE PERMUTATION DU STOCK — chaque élément une fois
+         et une seule. La version précédente concaténait tout ce qui avait
+         été servi DANS L’APPEL, ce qui pouvait dépasser le stock : la pile
+         accumulait des doublons, sa longueur dérivait, et elle finissait par
+         ne plus contenir qu’une seule valeur, égale à la précédente. La
+         clause 2 n’avait alors plus aucune issue et laissait passer la
+         répétition qu’elle devait empêcher.
+
+         Clause 3 : ce qui vient d’être servi repart EN FIN de pioche. La
+         fenêtre couvre TOUT ce qui a déjà été servi dans l’appel — sans quoi
+         un élément servi au début revient avant la fin du même appel, et le
+         sans-remise ne vaut plus à l’échelle d’une file. Elle s’arrête à
+         `stock - 1` pour que la tête de pioche ne soit jamais vide. */
+      const recents = sortie.slice(-Math.max(1, stock.length - 1));
+      reste = melanger(stock.filter(x => recents.indexOf(x) === -1))
+        .concat(melanger(stock.filter(x => recents.indexOf(x) !== -1)));
     }
-    sortie.push(reste.shift());
+    /* CLAUSE 2 (§13 bis) : jamais deux fois de suite, Y COMPRIS À LA
+       JOINTURE DE DEUX CYCLES — c’est le seul endroit que le sans-remise ne
+       couvre pas, et il tombe au milieu d’une file dès que le stock est
+       plus court qu’elle. Un stock d’un seul élément ne laisse évidemment
+       pas le choix. */
+    let k = 0;
+    while (k < reste.length && reste[k] === precedent) k++;
+    if (k === reste.length) k = 0;
+    precedent = reste.splice(k, 1)[0];
+    sortie.push(precedent);
   }
   memoireTirages[cle] = reste;
+  memoireDernier[cle] = precedent;
   return sortie;
+}
+
+/* CLAUSE 2 À L’ÉCHELLE DE LA FILE. Certaines dimensions ne se tirent pas :
+   elles DÉCOULENT d’un autre tirage — le motif du litige découle du couple,
+   la figure de `cp-decrire` découle de la tâche. On ne peut alors pas les
+   piocher autrement, seulement RÉORDONNER la file pour qu’elles ne se
+   suivent pas. On sert à chaque pas la valeur la plus fréquente parmi celles
+   qui ne répètent pas la précédente : c’est elle qui bloquerait la fin de
+   liste si on la gardait pour plus tard. */
+function sansDeuxDeSuite(liste, cle){
+  const reste = liste.slice(), sortie = [];
+  let precedent = null;
+  while (reste.length) {
+    const compte = {};
+    reste.forEach(x => { const k = cle(x); compte[k] = (compte[k] || 0) + 1; });
+    let choix = -1, meilleur = -1;
+    reste.forEach((x, i) => {
+      const k = cle(x);
+      if (k === precedent || compte[k] <= meilleur) return;
+      meilleur = compte[k]; choix = i;
+    });
+    if (choix < 0) choix = 0;            // une seule valeur restante : rien à faire
+    precedent = cle(reste[choix]);
+    sortie.push(reste.splice(choix, 1)[0]);
+  }
+  return sortie;
+}
+
+/* Quand DEUX critères doivent différer à la fois — le modèle de relation ET
+   les pièces employées —, un tri glouton sur une seule clé ne suffit plus. Les
+   files font cinq à huit manches : une recherche exhaustive avec retour
+   arrière y est instantanée, et l’ordre glouton reste le repli quand aucune
+   solution n’existe. */
+function ordonnerDistinctes(liste, distinctes, cle){
+  const n = liste.length, pris = new Array(n).fill(false), ordre = [];
+  const poser = () => {
+    if (ordre.length === n) return true;
+    for (let i = 0; i < n; i++) {
+      if (pris[i]) continue;
+      const p = ordre[ordre.length - 1];
+      if (p !== undefined && !distinctes(p, liste[i])) continue;
+      pris[i] = true; ordre.push(liste[i]);
+      if (poser()) return true;
+      pris[i] = false; ordre.pop();
+    }
+    return false;
+  };
+  return poser() ? ordre : sansDeuxDeSuite(liste, cle);
+}
+
+/* Choisir dans un petit ensemble QUI VARIE d’une manche à l’autre — les
+   motifs valables dépendent de la figure engendrée, il n’y a donc pas de
+   stock stable à épuiser. On préfère ce qui n’a pas encore servi dans la
+   file, et à défaut ce qui ne répète pas la manche précédente. */
+function choisirVarie(candidats, dejaVus, precedent){
+  const neufs = candidats.filter(c => dejaVus.indexOf(c) < 0);
+  if (neufs.length) return pioche(neufs);
+  const autres = candidats.filter(c => c !== precedent);
+  return pioche(autres.length ? autres : candidats);
 }
 const entre = (a, b) => a + Math.random() * (b - a);
 
@@ -1200,6 +1280,13 @@ function poserEnGrille(formes, opts){
    quadrillage : l’interdire rendrait tout pavage impossible.
    ============================================================ */
 
+/* Toutes les commandes de `k` formes qu’un vitrail permet, dans l’ordre de
+   préférence reçu — c’est lui qui porte le tirage sans remise entre manches. */
+function combinaisons(liste, k){
+  if (k === 0) return [[]];
+  return liste.flatMap((x, i) => combinaisons(liste.slice(i + 1), k - 1).map(c => [x].concat(c)));
+}
+
 /* Découpe un entier en `n` parts entières non nulles. */
 function decouper(total, n){
   const parts = Array.from({length: Math.max(1, Math.min(n, total))}, () => 1);
@@ -1344,7 +1431,7 @@ function monterVitrail(palier, o){
   return colorierVitrail(piecesDuVitrail(contours, palier.vocabulaire));
 }
 
-function assemblageCommande(palier, preferences, nb){
+function assemblageCommande(palier, preferences, nb, interdit){
   let secours = null;
   for (let essai = 0; essai < 120; essai++) {
     /* Un vitrail sur deux est monté sans cellule carrée : c’est ce qui rend
@@ -1360,20 +1447,50 @@ function assemblageCommande(palier, preferences, nb){
        distinguer est justement l’exercice. */
     let candidates = preferences.filter(f => noms.includes(f));
     if (noms.includes('carre')) candidates = candidates.filter(f => f !== 'rectangle');
-    const dem = candidates.slice(0, nb);
-    if (!dem.length) continue;
+    /* §13 bis, clause 2 : la commande de la manche précédente est écartée
+       tant qu’une autre forme est disponible. Le tirage sans remise porte sur
+       l’ORDRE DE PRÉFÉRENCE, mais la forme retenue est « la première
+       PRÉSENTE » dans le vitrail — et les triangles y sont majoritaires, si
+       bien que la même commande revenait sans cesse : 378 répétitions
+       immédiates pour 300 files. Un tirage sans remise en amont ne suffit pas
+       quand un filtre passe derrière lui. */
+    /* La contrainte porte sur la COMMANDE ENTIÈRE — « les carrés et les
+       triangles » — et non sur chacune de ses formes. Interdire toute forme
+       déjà vue rendait la seconde commande double impossible au CP, où trois
+       formes seulement pavent : les deux dernières manches redemandaient
+       alors exactement la même paire. */
+    const memeQueLaPrecedente = (d) =>
+      d.slice().sort().join('+') === (interdit || []).slice().sort().join('+');
+
+    /* On ne se rabat PAS tout de suite sur la commande précédente : on remonte
+       plutôt un autre vitrail, où une autre forme sera présente. Se contenter
+       de filtrer les candidates laissait passer 193 répétitions sur 300 files,
+       parce que le filtre s’appliquait après coup à un vitrail déjà tiré. */
+
     /* Un vitrail se REGARDE avant de se fouiller. Au-delà d’une dizaine de
        pièces le CP ne lit plus l’assemblage, il balaie ; et « touche tous les
        triangles » quand il y en a neuf devient une corvée d’endurance, pas un
-       exercice de reconnaissance. */
-    if (pieces.length < 5 || pieces.length > 10) continue;
-    const cibles = noms.filter(n => dem.includes(n)).length;
-    if (cibles > 5) continue;
-    /* Il faut des intrus : un vitrail dont TOUTES les pièces conviennent ne
-       demande plus de reconnaître quoi que ce soit. */
-    if (!noms.some(n => !dem.includes(n))) continue;
-    if (dem.length === nb) return {pieces, demandees:dem};
-    if (!secours) secours = {pieces, demandees:dem};
+       exercice de reconnaissance. Il faut par ailleurs des intrus : un vitrail
+       dont TOUTES les pièces conviennent ne demande plus rien. */
+    const recevable = (d) => d.length === nb
+      && pieces.length >= 5 && pieces.length <= 10
+      && noms.filter(n => d.includes(n)).length <= 5
+      && noms.some(n => !d.includes(n));
+    /* UN SEUL JUGE POUR LES DEUX CHEMINS. Le repli — celui qui accepte de
+       reprendre la commande précédente — passait auparavant à côté de ces
+       contrôles, et laissait sortir des vitraux de dix-sept pièces ou sans
+       aucun intrus. Une porte de secours qui ne vérifie rien finit par être
+       la seule empruntée. */
+    /* On n’essaie pas QUE la tête de préférence : on parcourt les commandes
+       possibles DANS CET ORDRE, et on retient la première qui convienne sans
+       répéter la précédente. Se limiter à `candidates.slice(0, nb)` faisait
+       dépendre la commande d’un ordre fixé avant la boucle, que les cent
+       vingt reprises ne pouvaient pas changer — les deux manches à double
+       commande redemandaient toujours la même paire. */
+    const choix = combinaisons(candidates, nb).filter(recevable);
+    const neuf = choix.find(d => !memeQueLaPrecedente(d));
+    if (neuf) return {pieces, demandees:neuf};
+    if (!secours && choix.length) secours = {pieces, demandees:choix[0]};
   }
   return secours;
 }
@@ -1384,9 +1501,34 @@ function assemblageCommande(palier, preferences, nb){
    la phrase vraie l’est parce que la figure a été bâtie ainsi, pas parce
    qu’on l’a affirmé à côté.
    ============================================================ */
-function scenarioRelation(){
-  const type = pioche(['forment','cote-commun','sommet-commun',
-                       'triangle-carre','triangle-carre']);
+/* LES FAMILLES DE MANCHE SONT UN STOCK (§13 bis). Elles étaient tirées par
+   `pioche` — avec remise — et `triangle-carre` y figurait DEUX FOIS pour être
+   pondérée : trois manches identiques d’affilée ont été constatées en jeu, et
+   la mesure en donnait 331 pour 300 files. La pondération par duplication est
+   par ailleurs incompatible avec le sans-remise, les doublons s’épuisant
+   ensemble.
+
+   La forme employée par `cote-commun` et `sommet-commun` remonte DANS LA CLÉ
+   de famille : c’est elle que l’enfant lit dans la phrase (« 2 carrés ont un
+   côté en commun »), donc c’est elle le contenu. Le stock passe ainsi de 4 à
+   6 pour une file de 5, sans une seule figure nouvelle — la §13 bis demande
+   un stock strictement supérieur à la file. */
+/* La proposition fausse est un contenu : la même servie deux manches de
+   suite, et l’enfant apprend la phrase au lieu de lire la figure. */
+const FAUSSES_TRI_CARRE = [
+  {modele:'sommets-sur', k:3, a:'triangle', b:'carre'},
+  {modele:'dans', a:'carre', b:'triangle'},
+  {modele:'cote-commun', n:2, a:'carre'}
+];
+const FAMILLES_RELATION = [
+  {type:'forment'},
+  {type:'cote-commun', a:'carre'},   {type:'cote-commun', a:'rectangle'},
+  {type:'sommet-commun', a:'carre'}, {type:'sommet-commun', a:'rectangle'},
+  {type:'triangle-carre'}
+];
+function scenarioRelation(famille){
+  const f = famille || pioche(FAMILLES_RELATION);
+  const type = f.type;
   const th = entre(0, TAU), T = pts => tournerPts(pts, th);
   const co = [VERRES[0], VERRES[1], VERRES[2]];
   const A = 100;
@@ -1403,7 +1545,7 @@ function scenarioRelation(){
     };
   }
   if (type === 'cote-commun') {
-    const a = pioche(['carre','rectangle']);
+    const a = f.a;
     const l = a === 'carre' ? A : A * 1.4, h = A;
     const g = T([[-l,-h/2],[0,-h/2],[0,h/2],[-l,h/2]]);
     const d = T([[0,-h/2],[l,-h/2],[l,h/2],[0,h/2]]);
@@ -1414,7 +1556,7 @@ function scenarioRelation(){
     };
   }
   if (type === 'sommet-commun') {
-    const a = pioche(['carre','rectangle']);
+    const a = f.a;
     const l = a === 'carre' ? A : A * 1.4, h = A;
     const g = T([[-l,-h],[0,-h],[0,0],[-l,0]]);
     const d = T([[0,0],[l,0],[l,h],[0,h]]);
@@ -1447,11 +1589,7 @@ function scenarioRelation(){
   ];
   /* Une seule fausse : à quatre propositions l’écran tient encore, et les
      trois vraies restent l’essentiel de la manche. */
-  const fausse = pioche([
-    {modele:'sommets-sur', k:3, a:'triangle', b:'carre'},
-    {modele:'dans', a:'carre', b:'triangle'},
-    {modele:'cote-commun', n:2, a:'carre'}
-  ]);
+  const fausse = tirerSansRepetition('relation-fausse', FAUSSES_TRI_CARRE, 1)[0];
   return {pieces, multi:true,
     props: melanger(vraies.map(e => ({e, bon:true})).concat([{e:fausse, bon:false}]))};
 }
@@ -1590,6 +1728,7 @@ function construireRosace(){
    ============================================================ */
 function qReconnaitre(cfg, palier){
   const simples = palier.formes.filter(f => f !== 'cercle' && f !== 'disque');
+  let dernieresDemandes = [];
   return Array.from({length: cfg.nbQuestions}, (_, i) => {
     // Progression : une seule forme demandée, puis deux ensemble.
     const nb = i >= 3 ? 2 : 1;
@@ -1599,10 +1738,29 @@ function qReconnaitre(cfg, palier){
        prend la forme d’une VERRIÈRE — des ronds sertis dans un réseau de
        plomb, chacun dans sa case. */
     if (palier.formes.includes('cercle') && i === 2) return mancheSertie();
-    const monte = assemblageCommande(palier, tirerSansRepetition('reco-formes', simples, simples.length), nb);
+    /* L’ordre de préférence se retire À CHAQUE MANCHE. Tiré une seule fois
+       pour la file, il faisait de « les deux premières formes présentes » une
+       constante : les deux manches à double commande redemandaient
+       exactement la même paire, et aucune reprise ne pouvait y changer quoi
+       que ce soit. */
+    const prefs = () => tirerSansRepetition('reco-formes', simples, simples.length);
+    let monte = assemblageCommande(palier, prefs(), nb, dernieresDemandes);
+    /* AU CP, LA SECONDE COMMANDE DOUBLE N’EXISTE PAS. Trois formes seulement
+       pavent, et dès qu’un carré est là on ne peut plus demander les
+       rectangles : il ne reste qu’une paire demandable, « carrés et
+       triangles » — l’autre, « rectangles et triangles », ne laisserait
+       aucune pièce intruse. Plutôt que de reposer la même commande deux fois,
+       la manche redevient simple. Le générateur le DÉCOUVRE au lieu de porter
+       une règle par palier : au CE1, quatre formes pavent et les deux manches
+       doubles diffèrent sans rien changer ici. */
+    const memeCommande = (a, b) =>
+      a.slice().sort().join('+') === (b || []).slice().sort().join('+');
+    if (!monte || memeCommande(monte.demandees, dernieresDemandes))
+      monte = assemblageCommande(palier, prefs(), 1, dernieresDemandes) || monte;
     const dem = monte.demandees;
+    dernieresDemandes = dem;
     return {mode:'reconnaitre', pieces:monte.pieces, demandees:dem, assemblage:true,
-      _vocabulaire:palier.vocabulaire,
+      _vocabulaire:palier.vocabulaire, _demande:dem.slice().sort().join('+'),
       q: 'Touche ' + (dem.length === 1
             ? 'tous les ' + plurDe(dem[0])
             : 'tous les ' + plurDe(dem[0]) + ' et tous les ' + plurDe(dem[1])) + ' !',
@@ -1629,22 +1787,32 @@ function mancheSertie(){
     const c = i % cols, l = Math.floor(i / cols);
     return `<rect class="serti" x="${c*pas - pas/2}" y="${l*pas - pas/2}" width="${pas}" height="${pas}"/>`;
   }).join('');
-  const dem = pioche(['cercle','disque']);
-  return {mode:'reconnaitre', pieces, demandees:[dem], serti:reseau,
+  const dem = tirerSansRepetition('serti-demande', ['cercle','disque'], 1)[0];
+  return {mode:'reconnaitre', pieces, demandees:[dem], serti:reseau, _demande:dem,
     q:'Touche tous les ' + plurDe(dem) + ' !',
     sous:'Sélectionne les pièces, puis Vérifier.'};
 }
 
 function qRelations(cfg){
-  return Array.from({length: cfg.nbQuestions}, () => {
-    const sc = scenarioRelation();
+  /* Deux lectures du même contenu, et il faut les deux : la variante
+     (« 2 carrés ont un côté en commun ») ne doit pas se répéter, et le MODÈLE
+     de relation non plus — deux manches « côté en commun » d’affilée, même
+     avec des pièces différentes, se ressemblent trop. Le tirage sans remise
+     tient la première, le réordonnancement tient la seconde. */
+  const familles = ordonnerDistinctes(
+    tirerSansRepetition('relation-familles', FAMILLES_RELATION, cfg.nbQuestions),
+    (x, y) => x.type !== y.type && (x.a === undefined || y.a === undefined || x.a !== y.a),
+    f => f.type);
+  return familles.map(famille => {
+    const sc = scenarioRelation(famille);
+    const cle = famille.type + (famille.a ? ':' + famille.a : '');
     if (sc.multi) {
-      return {mode:'relations', pieces:sc.pieces, props:sc.props, multi:true,
+      return {mode:'relations', pieces:sc.pieces, props:sc.props, multi:true, _famille:cle,
         q:'Touche toutes les phrases vraies.',
         sous:'Coche-les toutes, puis Vérifier.'};
     }
     const props = melanger([{e:sc.vrai, bon:true}, ...distracteursRelation(sc.vrai).map(e => ({e, bon:false}))]);
-    return {mode:'relations', pieces:sc.pieces, props,
+    return {mode:'relations', pieces:sc.pieces, props, _famille:cle,
       q:'Quelle phrase est vraie ?',
       sous:'Choisis la bonne phrase. 🔊 pour l’écouter.'};
   });
@@ -1676,8 +1844,14 @@ function qDecrire(cfg, palier){
   const comptes = petits.map(x => ({type:'compte', f:x.f, connue:true}))
     .concat(grands.map(f => ({type:'compte', f, connue:false})));
   const nbNoms = Math.max(1, cfg.nbQuestions - comptes.length);
-  const plan = melanger(tirerSansRepetition('decrire-nom', nommables, Math.min(nbNoms, nommables.length))
-    .map(f => ({type:'nom', f})).concat(comptes));
+  /* §13 bis, clause 2 : la TÂCHE ne se répétait déjà pas, mais la FIGURE si —
+     nommer un triangle puis compter ses côtés, ce sont deux tâches et un seul
+     dessin, et l’enfant voit le même dessin deux fois de suite. La figure
+     découle du plan, elle ne se tire pas : on réordonne. */
+  const plan = sansDeuxDeSuite(
+    melanger(tirerSansRepetition('decrire-nom', nommables, Math.min(nbNoms, nommables.length))
+      .map(f => ({type:'nom', f})).concat(comptes)),
+    e => e.f);
 
   const quoiUtilise = [];
   return plan.slice(0, cfg.nbQuestions).map((etape, i) => {
@@ -1736,7 +1910,8 @@ function qJustifier(cfg, palier){
   const aRefuter = tirerSansRepetition('justif-refuter',
     palier.formes.filter(f => f !== 'carre'), nbRefut);
   const aNommer = tirerSansRepetition('justif-nommer', palier.formes, cfg.nbQuestions - nbRefut);
-  return Array.from({length: cfg.nbQuestions}, (_, i) => {
+  const motifsServis = [];
+  const manches = Array.from({length: cfg.nbQuestions}, (_, i) => {
     const refutation = i >= aNommer.length;
     const forme = refutation ? aRefuter[(i - aNommer.length) % aRefuter.length] : aNommer[i % aNommer.length];
     const piece = creerPiece(forme, {cx:0, cy:0, taille:150, couleur:VERRES[i % VERRES.length]});
@@ -1755,7 +1930,12 @@ function qJustifier(cfg, palier){
          rectangle n’a ni quatre côtés ni quatre angles droits — et celles qui
          ne sont pas retenues sortent d’office des distracteurs, filtrés sur
          `!vrai(p)`. */
-      const motif = pioche(ASSERTIONS_CARRE.filter(x => x.refute && x.vrai(p))).t;
+      /* Le motif DÉPEND de la pièce : l’ensemble des raisons valables change
+         d’une manche à l’autre, il n’y a donc pas de stock stable à épuiser.
+         On prend ce qui n’a pas encore servi dans la file (§13 bis). */
+      const motif = choisirVarie(ASSERTIONS_CARRE.filter(x => x.refute && x.vrai(p)).map(x => x.t),
+        motifsServis, motifsServis[motifsServis.length - 1]);
+      motifsServis.push(motif);
       /* Les deux distracteurs sont RELUS sur la pièce : seules des
          assertions fausses ici peuvent être proposées. */
       const faux = melanger(ASSERTIONS_CARRE.filter(x => x.t !== motif && !x.vrai(p)).map(x => x.t)).slice(0, 2);
@@ -1769,24 +1949,52 @@ function qJustifier(cfg, palier){
       _signature:(refutation ? 'refuter:' : 'nommer:') + forme,
       q:etape1.q, sous:'D’abord le nom, ensuite la preuve.'};
   });
+  /* Deux formes peuvent partager leur unique raison — un disque et un cercle
+     n’ont ni l’un ni l’autre de sommet — et le choix varié ne peut alors rien
+     y faire : il n’y a qu’un motif possible. On réordonne donc le BLOC DE
+     RÉFUTATION, sans toucher à l’ordre des phases : nommer d’abord, réfuter
+     ensuite, c’est la progression du mini-jeu. */
+  const nommer = manches.filter(q => q._signature.startsWith('nommer'));
+  const refuter = sansDeuxDeSuite(manches.filter(q => q._signature.startsWith('refuter')),
+    q => q.etape2.ans);
+  return nommer.concat(refuter);
 }
 
 function qAngles(cfg){
+  const formesServies = [];
   return Array.from({length: cfg.nbQuestions}, (_, i) => {
     /* On tire une figure jusqu’à trouver un angle FRANC de la classe
        voulue : jamais de cas limite, la vérification à l’équerre relève
        de M35. */
+    /* La CLASSE d’angle tourne exprès (droit, aigu, obtus) : trois classes,
+       c’est un stock FERMÉ PAR NATURE, qu’aucun élargissement ne peut agrandir
+       — la §13 bis ne lui demande donc pas un stock plus grand que la file.
+       La FIGURE, elle, se tirait avec remise : 121 répétitions immédiates pour
+       300 files. */
     const vise = ['droit','aigu','obtus'][i % 3];
+    const candidates = vise === 'droit' ? ['carre','rectangle','triangleRect']
+      : ['triangle','losange','pentagone','triangleRect'];
     let piece = null, idx = -1;
-    for (let essai = 0; essai < 400 && idx === -1; essai++) {
-      const f = vise === 'droit' ? pioche(['carre','rectangle','triangleRect'])
-        : pioche(['triangle','losange','pentagone','triangleRect']);
-      const cand = creerPiece(f, {cx:0, cy:0, taille:150, couleur:VERRES[i % VERRES.length]});
-      const a = anglesDeg(cand.pts);
-      const j = a.findIndex(x => classeAngle(x) === vise && angleFranc(x));
-      if (j !== -1) { piece = cand; idx = j; }
+    /* UNE FORME VARIÉE, PUIS UN ANGLE FRANC DE LA CLASSE VOULUE — et si cette
+       forme n’en porte pas, on l’écarte et on en essaie une autre. Un triangle
+       rectangle n’a JAMAIS d’angle obtus : contraindre la variété sans prévoir
+       ce cas épuisait les essais et retombait sur un carré, donc sur une autre
+       classe que celle annoncée. La variété avait alors cassé la rotation
+       qu’elle était censée servir. */
+    const ecartees = [];
+    while (idx === -1 && ecartees.length < candidates.length) {
+      const restantes = candidates.filter(f => ecartees.indexOf(f) < 0);
+      const f = choisirVarie(restantes, formesServies, formesServies[formesServies.length - 1]);
+      for (let essai = 0; essai < 120 && idx === -1; essai++) {
+        const cand = creerPiece(f, {cx:0, cy:0, taille:150, couleur:VERRES[i % VERRES.length]});
+        const a = anglesDeg(cand.pts);
+        const j = a.findIndex(x => classeAngle(x) === vise && angleFranc(x));
+        if (j !== -1) { piece = cand; idx = j; }
+      }
+      if (idx === -1) ecartees.push(f);
     }
     if (!piece) { piece = creerPiece('carre', {cx:0, cy:0, taille:150}); idx = 0; }
+    formesServies.push(piece.forme);
     return {mode:'angles', pieces:[piece], sommet:idx,
       q:'Regarde l’angle marqué sur la pièce. Comment est-il ?',
       sous:'À l’œil : pas besoin d’équerre ici.',
@@ -2122,7 +2330,12 @@ function cibleLitige(genre, p){
 
 function qLitige(cfg){
   const couples = tirerSansRepetition('litige-couples', LITIGES, cfg.nbQuestions);
-  return couples.map((couple, i) => {
+  /* Le couple ne se répète pas — mais le MOTIF, lui, découle du couple et
+     deux couples différents peuvent le partager (« carré/rectangle » et
+     « losange/rectangle » reprochent tous deux des côtés inégaux). Or c’est
+     le motif que l’enfant lit et choisit : 172 répétitions immédiates pour
+     300 files. Il se réordonne, il ne se tire pas (§13 bis). */
+  return sansDeuxDeSuite(couples.map((couple, i) => {
     /* La pièce est tirée jusqu’à porter une raison ET deux distracteurs
        tenables. Un distracteur est une clause qui N’EST PAS une raison : soit
        elle n’est pas une propriété du modèle annoncé, soit la pièce la
@@ -2147,7 +2360,7 @@ function qLitige(cfg){
       etape2:{q:'Et pourquoi ce n’est pas ' + avecArt(couple.affirme) + ' ?',
               opts:melanger([phrase(motif), ...melanger(tenues).slice(0, 2).map(phrase)]),
               ans:phrase(motif)}};
-  });
+  }), q => q.motif);
 }
 
 /* ============================================================
@@ -2329,6 +2542,68 @@ const VALIDATEURS = {
     return pb;
   }
 };
+/* ============================================================
+   LES DIMENSIONS DE CONTENU D’UNE MANCHE (CHARTE §13 bis)
+   ------------------------------------------------------------
+   Ce dont la répétition SE VOIT. Déclarées ici et non dans la suite de
+   tests : c’est le module qui sait ce qu’il montre, et un mini-jeu ajouté
+   demain devra le dire pour être contrôlé. `de(q)` lit la valeur sur la
+   manche engendrée — jamais sur l’intention du générateur.
+
+   `ferme` marque un stock FERMÉ PAR NATURE, qu’aucun élargissement de banque
+   ne peut agrandir : la clause « stock strictement supérieur à la file » ne
+   s’y applique pas, mais il faut alors dire pourquoi, ici, en toutes lettres.
+   La clause « jamais deux fois de suite », elle, vaut pour tout le monde.
+
+   N’y figurent pas, parce qu’ils tombent dans les exclusions du §13 bis :
+   l’ordre des propositions à l’écran, les paramètres continus (rotation,
+   proportions, teintes, découpe du vitrail), et la composition du flux du
+   convoyeur, qui tient un RATIO de cibles et non un cycle.
+   ============================================================ */
+const DIMENSIONS_CONTENU = {
+  relations:[
+    {nom:'famille de manche', de:q => q._famille},
+    {nom:'modèle de relation', de:q => String(q._famille).split(':')[0],
+     ferme:'le programme CP décrit quatre relations entre figures ; il n’y en a pas de cinquième à inventer'},
+    {nom:'proposition fausse', de:q => q.props.filter(p => !p.bon)
+      .map(p => texteRelation(p.e)).sort().join(' | ')}
+  ],
+  reconnaitre:[
+    {nom:'forme demandée', de:q => q._demande,
+     ferme:'le CP ne nomme que le carré, le rectangle et le triangle — et un disque ne pave pas'}
+  ],
+  decrire:[
+    {nom:'tâche', de:q => q._signature},
+    {nom:'figure montrée', de:q => q.pieces[0].forme,
+     ferme:'huit manches se partagent les formes nommables du palier'}
+  ],
+  justifier:[
+    {nom:'tâche', de:q => q._signature},
+    {nom:'raison énoncée', de:q => q.etape2.ans,
+     ferme:'les raisons valables dépendent de la figure : un disque et un cercle n’ont ni l’un ni l’autre de sommet, et partagent donc leur unique raison'}
+  ],
+  angles:[
+    {nom:'figure montrée', de:q => q.pieces[0].forme,
+     ferme:'chaque classe d’angle n’admet qu’une partie des figures — un triangle rectangle n’a jamais d’angle obtus'},
+    {nom:'classe d’angle', de:q => q.ans,
+     ferme:'il n’existe que trois classes d’angle : droit, aigu, obtus'}
+  ],
+  vocabulaire:[
+    {nom:'notion visée', de:q => q.notion,
+     ferme:'le vocabulaire de la rosace compte exactement six éléments au programme CE2, et la partie les parcourt tous'}
+  ],
+  portrait:[{nom:'pièce décrite', de:q => q.cible}],
+  litige:[
+    {nom:'couple contesté', de:q => q._signature},
+    {nom:'raison énoncée', de:q => q.motif,
+     ferme:'six couples se partagent quatre raisons : deux couples peuvent reprocher le même défaut'}
+  ],
+  convoyeur:[
+    {nom:'catégorie demandée', de:q => q.consigne.mot,
+     ferme:'la partie parcourt EXACTEMENT une fois chaque catégorie du palier, puis s’arrête'}
+  ]
+};
+
 function verifierItem(q){
   const f = VALIDATEURS[q.mode];
   return f ? f(q) : [];
