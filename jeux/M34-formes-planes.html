@@ -29,6 +29,9 @@
   --mandarine:#FF8A3D; --mandarine-f:#E5701F;
   --menthe:#2EC4A6; --menthe-t:#0B8A70; --corail:#FF5D5D; --corail-t:#D93636; --soleil:#FFC93C;
   --plomb:#2B3A55;
+  /* La sélection : violet franc, ni vert ni rouge (§18), doublé d’un halo
+     blanc — les huit verres sont saturés et aucune teinte seule n’y tient. */
+  --selection:#6D28D9;
   --r:20px; --ombre:0 4px 0 rgba(29,51,84,.12);
   font-size:16px;
 }
@@ -150,9 +153,17 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
   vector-effect:non-scaling-stroke;}
 /* La sélection ne peut PAS être orange : le verre l’est aussi (VERRES[0]
    vaut exactement --mandarine), et le marqueur disparaissait sur les pièces
-   orange. Encre foncée + pointillé : lisible sur les huit teintes de verre,
-   et impossible à confondre avec le vert du juste ou le rouge du faux. */
-.piece.sel .verre{stroke:#12233C; stroke-width:6; stroke-dasharray:13 8;}
+   orange. Elle ne peut pas non plus être verte ni rouge, réservés au juste et
+   au faux (§18). L’encre foncée seule, essayée d’abord, se lisait mal sur le
+   violet et le bleu ; on double donc le trait d’un HALO BLANC, exactement
+   comme le marqueur d’angle — c’est le halo qui fait tenir la couleur sur
+   n’importe quel fond, pas la couleur elle-même.
+   Le halo est un second contour dessiné SOUS le verre : invisible tant que la
+   pièce n’est pas choisie, il n’encombre rien. */
+.piece .halo{fill:none; stroke:transparent; stroke-width:12; stroke-linejoin:round;
+  vector-effect:non-scaling-stroke; pointer-events:none;}
+.piece.sel .halo{stroke:#FFFFFF;}
+.piece.sel .verre{stroke:var(--selection); stroke-width:6; stroke-dasharray:13 8;}
 .piece.bon .verre{stroke:var(--menthe); stroke-width:6;}
 .piece.faux .verre{stroke:var(--corail); stroke-width:6;}
 
@@ -258,8 +269,15 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
    mais de la géométrie : on mesure la distance du toucher à chaque cible et
    on tranche (cf. `cibleTouchee`). Ne restent ici que les REPÈRES visibles,
    fins — sans eux l’enfant taperait au hasard, trop épais ils
-   étoufferaient la figure. */
-  vector-effect:non-scaling-stroke;}
+   étoufferaient la figure.
+   (Une déclaration orpheline traînait ici, reste d’une règle supprimée : sans
+   sélecteur ni accolade ouvrante, le parseur CSS l’avalait AVEC la règle
+   suivante — `.indice` était donc sans effet, et les repères de sommet
+   s’affichaient en noir par défaut. Une erreur de syntaxe CSS ne se signale
+   nulle part : elle se voit à l’écran, ou pas du tout.) */
+/* Le réseau de plomb de la verrière CE1 : un décor, jamais une cible. */
+.serti{fill:none; stroke:var(--plomb); stroke-width:5; stroke-linejoin:round;
+  pointer-events:none; vector-effect:non-scaling-stroke; opacity:.55;}
 .indice{fill:rgba(29,51,84,.30); stroke:rgba(29,51,84,.30); stroke-width:3.5; stroke-linecap:round; pointer-events:none; vector-effect:non-scaling-stroke;}
 .indice-trait{fill:none; stroke:rgba(29,51,84,.34); stroke-width:3.5; stroke-dasharray:7 6; stroke-linecap:round; pointer-events:none; vector-effect:non-scaling-stroke;}
 /* Le quadrilatère visé est ÉCLAIRÉ : « ce quadrilatère » ne désignait rien. */
@@ -267,7 +285,13 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 .anneau-vise{stroke:var(--soleil) !important; stroke-width:6 !important;}
 .trace-bon{stroke:var(--menthe-t) !important; fill:var(--menthe-t) !important; stroke-width:6 !important; stroke-dasharray:none !important; opacity:1 !important;}
 .trace-faux{stroke:var(--corail) !important; fill:var(--corail) !important; stroke-width:6 !important; stroke-dasharray:none !important; opacity:1 !important;}
-.trace-choisi{stroke:#12233C !important; fill:#12233C !important; stroke-width:6 !important; stroke-dasharray:none !important; opacity:1 !important;}
+.trace-choisi{stroke:var(--selection) !important; fill:var(--selection) !important; stroke-width:6 !important; stroke-dasharray:none !important; opacity:1 !important;}
+.trace-halo{fill:none; stroke:transparent; stroke-width:13; stroke-linecap:round; pointer-events:none; vector-effect:non-scaling-stroke;}
+/* Le halo reste BLANC quoi qu’il porte : sélection, juste ou faux. Sans
+   cette règle il héritait de la couleur du verdict et redoublait le trait au
+   lieu de le détacher du verre. */
+.trace-halo.trace-choisi, .trace-halo.trace-bon, .trace-halo.trace-faux{
+  stroke:#FFFFFF !important; fill:none !important; stroke-width:13 !important;}
 /* Le décompte animé de cp-decrire : côtés colorés un à un, sommets pointés. */
 .trait-compte{stroke:var(--corail); stroke-width:6; stroke-linecap:round; vector-effect:non-scaling-stroke;}
 .point-compte{fill:var(--corail); stroke:#fff; stroke-width:2; vector-effect:non-scaling-stroke;}
@@ -329,6 +353,18 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 #btnValider{background:var(--menthe); box-shadow:0 4px 0 var(--menthe-t);}
 #btnNext{background:var(--mandarine); box-shadow:0 4px 0 var(--mandarine-f);}
 #btnValider:active, #btnNext:active{transform:translateY(3px);}
+/* RETOUR ARRIÈRE AVANT VALIDATION (B4.2). Le §18 interdit l’essai-erreur
+   APRÈS la réponse, pas la relecture de son propre brouillon avant de la
+   rendre : c’est le raisonnement déjà retenu en M38 pour la pose des
+   sommets. Discret — c’est un outil, pas la réponse — et verrouillé avec le
+   reste à la validation. */
+#btnEffacer{
+  display:block; margin:8px auto 0; border:2px solid var(--encre2); border-radius:14px;
+  background:transparent; color:var(--encre2); font-family:inherit; font-size:.85rem;
+  font-weight:700; padding:7px 18px; cursor:pointer; min-height:40px;
+}
+#btnEffacer[hidden]{display:none;}
+#btnEffacer:active{transform:translateY(2px);}
 
 /* ---------- Fin ---------- */
 #end{text-align:center; padding-top:8vh;}
@@ -443,6 +479,7 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
       <div class="vitrail" id="vitrail" hidden><svg id="svgScene" viewBox="0 0 400 320"></svg></div>
       <div id="answers"></div>
       <button id="btnValider" type="button">Vérifier ✓</button>
+      <button id="btnEffacer" type="button" hidden>Effacer ma sélection</button>
       <p id="feedback"></p>
       <button id="btnNext" type="button">Suivant ➜</button>
     </section>
@@ -664,15 +701,21 @@ function creerPiece(forme, opts){
 function svgPiece(p, classes){
   const cl = 'piece' + (classes ? ' ' + classes : '');
   if (p.forme === 'disque')
-    return `<g class="${cl}" data-piece="${p.id}"><circle class="verre" cx="${p.centre[0]}" cy="${p.centre[1]}" r="${p.rayon}" fill="${p.couleur}"/></g>`;
+    return `<g class="${cl}" data-piece="${p.id}">`
+      + `<circle class="halo" cx="${p.centre[0]}" cy="${p.centre[1]}" r="${p.rayon}"/>`
+      + `<circle class="verre" cx="${p.centre[0]}" cy="${p.centre[1]}" r="${p.rayon}" fill="${p.couleur}"/></g>`;
   if (p.forme === 'cercle')
     /* Le cercle est le fil de plomb qui fait le tour ; le disque est le
        verre coloré à l’intérieur. Un trait fin étant une cible tactile
        exécrable, un anneau transparent de 24 px double le trait visible. */
     return `<g class="${cl}" data-piece="${p.id}">`
       + `<circle cx="${p.centre[0]}" cy="${p.centre[1]}" r="${p.rayon}" fill="none" stroke="transparent" stroke-width="24"/>`
+      + `<circle class="halo" cx="${p.centre[0]}" cy="${p.centre[1]}" r="${p.rayon}"/>`
       + `<circle class="verre" cx="${p.centre[0]}" cy="${p.centre[1]}" r="${p.rayon}" fill="none"/></g>`;
-  return `<g class="${cl}" data-piece="${p.id}"><polygon class="verre" points="${p.pts.map(q => q.join(',')).join(' ')}" fill="${p.couleur}"/></g>`;
+  const pts = p.pts.map(q => q.join(',')).join(' ');
+  return `<g class="${cl}" data-piece="${p.id}">`
+    + `<polygon class="halo" points="${pts}"/>`
+    + `<polygon class="verre" points="${pts}" fill="${p.couleur}"/></g>`;
 }
 function boiteEnglobante(pieces){
   let x1 = 1e9, y1 = 1e9, x2 = -1e9, y2 = -1e9;
@@ -827,7 +870,7 @@ const CONTENU = {
         {id:'cp-relations', mode:'relations', titre:'Assemblages', icone:'👀',
          description:'Quelle phrase est vraie ?', nbQuestions:5},
         {id:'cp-decrire', mode:'decrire', titre:'La fiche du verrier', icone:'📋',
-         description:'Côtés et sommets.', nbQuestions:5}
+         description:'Côtés et sommets.', nbQuestions:8}
       ]
     },
     CE1: {
@@ -841,8 +884,8 @@ const CONTENU = {
          description:'Cercle ou disque, à la volée.'},
         {id:'ce1-reconnaitre', mode:'reconnaitre', titre:'Les pièces de verre', icone:'🧺',
          description:'Cercle ou disque ?', nbQuestions:5},
-        {id:'ce1-justifier', mode:'justifier', titre:'Le contrôle qualité', icone:'🔎',
-         description:'Nomme, puis prouve-le.', nbQuestions:5},
+        {id:'ce1-justifier', mode:'justifier', titre:'Propriétés des pièces', icone:'🔎',
+         description:'Nomme, puis prouve-le.', nbQuestions:8},
         {id:'ce1-angles', mode:'angles', titre:'L’angle de la pièce', icone:'📐',
          description:'Droit, aigu ou obtus ?', nbQuestions:5}
       ]
@@ -1117,23 +1160,205 @@ function poserEnGrille(formes, opts){
   });
 }
 
-/* Assemblage CONSCIENT DE LA COMMANDE : si l’on demande les rectangles,
-   aucun carré n’entre dans le vitrail. L’inclusion carré ⊂ rectangle est
-   hors programme au cycle 2 — on l’évite activement dans la fabrication
-   des items, pas seulement dans le discours. */
-function assemblageCommande(palier, demandees){
-  /* Un carré est aussi un rectangle au sens des propriétés, mais le cycle 2
-     n’enseigne pas cette inclusion : dès que la commande porte sur les
-     rectangles, le carré disparaît du vitrail. L’inverse n’est pas un
-     piège — un rectangle n’est pas un carré, le distinguer est justement
-     l’exercice. */
-  const dispo = palier.formes.filter(f => !(demandees.includes('rectangle') && f === 'carre'));
-  const intrus = dispo.filter(f => !demandees.includes(f));
-  const liste = [];
-  demandees.forEach(f => { const n = 1 + Math.floor(Math.random() * 2); for (let i = 0; i < n; i++) liste.push(f); });
-  const nbIntrus = Math.max(3, 7 - liste.length);
-  for (let i = 0; i < nbIntrus && intrus.length; i++) liste.push(pioche(intrus));
-  return poserEnGrille(liste, {cols:3, taille:76});
+/* ============================================================
+   LE VITRAIL : UN VRAI ASSEMBLAGE, PAS UNE GRILLE (B1)
+   ------------------------------------------------------------
+   SPEC §3.1 : « le vitrail est monté à l’écran ; l’enfant touche DANS
+   L’ASSEMBLAGE toutes les pièces demandées. » La fonction s’appelait
+   `assemblageCommande` mais finissait par `poserEnGrille` : les pièces
+   étaient posées isolées, côte à côte. Le mini-jeu refaisait donc le travail
+   du convoyeur en plus lent, et l’exigence la plus riche du programme CP —
+   reconnaître une forme DANS un assemblage — n’était couverte nulle part.
+
+   Le vitrail se construit sur un quadrillage de mailles : des rangées, des
+   cellules dans chaque rangée, et certaines cellules recoupées en triangles.
+   Le pavage est donc exact par construction — pas de trou, pas de
+   recouvrement — et chaque pièce touche ses voisines par un BORD.
+
+   L’INVARIANT VÉRIFIÉ est celui que M38 applique réellement à ses
+   assemblages CP : aucun recouvrement, et un graphe de contacts par bords
+   CONNEXE — donc aucune pièce accrochée au reste par un seul point, qui
+   était l’un des deux défauts corrigés là-bas. Deux pièces peuvent en
+   revanche se toucher par un coin, comme deux cases en diagonale d’un
+   quadrillage : l’interdire rendrait tout pavage impossible.
+   ============================================================ */
+
+/* Découpe un entier en `n` parts entières non nulles. */
+function decouper(total, n){
+  const parts = Array.from({length: Math.max(1, Math.min(n, total))}, () => 1);
+  for (let k = parts.length; k < total; k++) parts[Math.floor(Math.random() * parts.length)]++;
+  return melanger(parts);
+}
+
+/* Une cellule devient un rectangle, deux triangles rectangles (une
+   diagonale), ou trois triangles dont un NON RECTANGLE (un éventail depuis
+   un point du bord haut) — c’est le seul moyen d’obtenir sur un quadrillage
+   un triangle que le CE1 nomme « triangle » et non « triangle rectangle ». */
+function decoupeCellule(x, y, w, h, o){
+  const carree = w === h;
+  const r = Math.random();
+  const eventail = o.triangles && w >= 2 && (r < o.pEventail);
+  const diagonale = o.triangles && !eventail && (r < o.pEventail + o.pDiagonale || (o.sansCarre && carree));
+  if (eventail) {
+    const a = 1 + Math.floor(Math.random() * (w - 1));
+    return [[[x, y+h], [x+w, y+h], [x+a, y]],
+            [[x, y], [x+a, y], [x, y+h]],
+            [[x+a, y], [x+w, y], [x+w, y+h]]];
+  }
+  if (diagonale)
+    return Math.random() < 0.5
+      ? [[[x, y], [x+w, y], [x+w, y+h]], [[x, y], [x+w, y+h], [x, y+h]]]
+      : [[[x, y], [x+w, y], [x, y+h]], [[x+w, y], [x+w, y+h], [x, y+h]]];
+  return [[[x, y], [x+w, y], [x+w, y+h], [x, y+h]]];
+}
+
+function decoupeVitrail(o){
+  const contours = [];
+  let y = 0;
+  decouper(o.H, o.rangees).forEach(h => {
+    let x = 0;
+    decouper(o.W, o.colonnes()).forEach(w => {
+      contours.push(...decoupeCellule(x, y, w, h, o));
+      x += w;
+    });
+    y += h;
+  });
+  return contours;
+}
+
+/* ---- Contacts, recouvrement, connexité : relus sur la GÉOMÉTRIE ---- */
+function longueurCommune(a1, a2, b1, b2){
+  const dx = a2[0]-a1[0], dy = a2[1]-a1[1], L = Math.hypot(dx, dy);
+  if (L < 1e-9) return 0;
+  const croix = (p) => ((p[0]-a1[0])*dy - (p[1]-a1[1])*dx) / L;
+  if (Math.abs(croix(b1)) > 0.5 || Math.abs(croix(b2)) > 0.5) return 0;
+  const t = (p) => ((p[0]-a1[0])*dx + (p[1]-a1[1])*dy) / (L*L);
+  const t1 = t(b1), t2 = t(b2);
+  const lo = Math.max(0, Math.min(t1, t2)), hi = Math.min(1, Math.max(t1, t2));
+  return hi > lo ? (hi - lo) * L : 0;
+}
+function contactBords(A, B){
+  let total = 0;
+  for (let i = 0; i < A.length; i++)
+    for (let j = 0; j < B.length; j++)
+      total += longueurCommune(A[i], A[(i+1)%A.length], B[j], B[(j+1)%B.length]);
+  return total;
+}
+/* Théorème des axes séparateurs — les pièces d’un vitrail sont convexes
+   (rectangles et triangles). Deux pièces qui se TOUCHENT ont un écart nul,
+   et ne se recouvrent donc pas. */
+function seChevauchent(A, B){
+  const normales = P => P.map((p, i) => {
+    const q = P[(i+1)%P.length];
+    return [-(q[1]-p[1]), q[0]-p[0]];
+  });
+  for (const n of normales(A).concat(normales(B))) {
+    const L = Math.hypot(n[0], n[1]);
+    if (L < 1e-9) continue;
+    const u = [n[0]/L, n[1]/L];
+    const pa = A.map(p => p[0]*u[0] + p[1]*u[1]);
+    const pb = B.map(p => p[0]*u[0] + p[1]*u[1]);
+    if (Math.min(...pa) >= Math.max(...pb) - 0.5 || Math.min(...pb) >= Math.max(...pa) - 0.5) return false;
+  }
+  return true;
+}
+/* Chaque pièce doit tenir au vitrail par un BORD, pas par un coin. */
+function assemblageConnexe(pieces){
+  const n = pieces.length;
+  if (!n) return false;
+  const parent = Array.from({length:n}, (_, i) => i);
+  const racine = i => { while (parent[i] !== i) i = parent[i] = parent[parent[i]]; return i; };
+  for (let i = 0; i < n; i++)
+    for (let j = i+1; j < n; j++)
+      if (contactBords(pieces[i].pts, pieces[j].pts) > 1) parent[racine(i)] = racine(j);
+  return pieces.every((_, i) => racine(i) === racine(0));
+}
+
+/* Les pièces voisines ne portent JAMAIS le même verre : sur une grille les
+   couleurs n’avaient qu’à être variées, dans un assemblage elles portent la
+   frontière. Coloration gloutonne sur le graphe des contacts. */
+function colorierVitrail(pieces){
+  pieces.forEach((p, i) => {
+    const prises = new Set();
+    pieces.slice(0, i).forEach(q => {
+      if (contactBords(p.pts, q.pts) > 1) prises.add(q.couleur);
+    });
+    p.couleur = VERRES.find(c => !prises.has(c)) || VERRES[i % VERRES.length];
+  });
+  return pieces;
+}
+
+/* Du quadrillage à la scène : mise à l’échelle, rotation libre de TOUT
+   l’assemblage — un carré posé sur un sommet reste un carré —, puis lecture
+   du nom de chaque pièce sur ses sommets. */
+const MAILLE = 46;
+function piecesDuVitrail(contours, vocabulaire){
+  const theta = Math.random() * TAU;
+  const tous = contours.reduce((a, c) => a.concat(c), []);
+  const cx = (Math.min(...tous.map(p => p[0])) + Math.max(...tous.map(p => p[0]))) / 2;
+  const cy = (Math.min(...tous.map(p => p[1])) + Math.max(...tous.map(p => p[1]))) / 2;
+  return contours.map(c => {
+    const pts = tournerPts(c.map(([x, y]) => [(x - cx) * MAILLE, (y - cy) * MAILLE]), theta);
+    const p = {id:'p' + (++compteurPiece), pts, couleur:VERRES[0]};
+    p.forme = nommerCalcule(p, vocabulaire);
+    return p;
+  });
+}
+
+/* LA COMMANDE SE LIT SUR LE VITRAIL, elle ne lui est pas imposée. On monte
+   d’abord l’assemblage, on relit le nom de chaque pièce, et on demande une
+   forme qui s’y trouve vraiment — c’est le seul ordre qui garantisse que la
+   commande ait des réponses. `preferences` porte l’anti-redondance (§13) :
+   on prend la première forme non encore servie qui soit présente.
+
+   L’inclusion carré ⊂ rectangle reste évitée ACTIVEMENT : dès que la commande
+   porte sur les rectangles, on remonte un vitrail où aucune cellule carrée ne
+   subsiste — les carrées sont recoupées en triangles. Le cycle 2 n’enseigne
+   pas cette inclusion, et la trancher n’est pas l’exercice. */
+function monterVitrail(palier, o){
+  const contours = decoupeVitrail({
+    W: 5 + Math.floor(Math.random() * 3),
+    H: 4 + Math.floor(Math.random() * 2),
+    rangees: 2 + Math.floor(Math.random() * 2),
+    colonnes: () => 2 + Math.floor(Math.random() * 2),
+    triangles: true, pEventail: 0.14, pDiagonale: 0.22,
+    sansCarre: !!(o && o.sansCarre)
+  });
+  return colorierVitrail(piecesDuVitrail(contours, palier.vocabulaire));
+}
+
+function assemblageCommande(palier, preferences, nb){
+  let secours = null;
+  for (let essai = 0; essai < 120; essai++) {
+    /* Un vitrail sur deux est monté sans cellule carrée : c’est ce qui rend
+       la commande « les rectangles » possible. Ce n’est PAS un état qui se
+       verrouille — une première version le latchait dès la première collision
+       et ne produisait plus que deux formes, si bien qu’une commande à deux
+       termes n’avait plus jamais d’intrus et ne se résolvait pas. */
+    const pieces = monterVitrail(palier, {sansCarre: essai % 2 === 1});
+    const noms = pieces.map(p => p.forme);
+    /* L’inclusion carré ⊂ rectangle est hors programme au cycle 2 : tant
+       qu’un carré est présent, on ne demande pas les rectangles. Le carré,
+       lui, reste demandable — un rectangle n’est pas un carré, et les
+       distinguer est justement l’exercice. */
+    let candidates = preferences.filter(f => noms.includes(f));
+    if (noms.includes('carre')) candidates = candidates.filter(f => f !== 'rectangle');
+    const dem = candidates.slice(0, nb);
+    if (!dem.length) continue;
+    /* Un vitrail se REGARDE avant de se fouiller. Au-delà d’une dizaine de
+       pièces le CP ne lit plus l’assemblage, il balaie ; et « touche tous les
+       triangles » quand il y en a neuf devient une corvée d’endurance, pas un
+       exercice de reconnaissance. */
+    if (pieces.length < 5 || pieces.length > 10) continue;
+    const cibles = noms.filter(n => dem.includes(n)).length;
+    if (cibles > 5) continue;
+    /* Il faut des intrus : un vitrail dont TOUTES les pièces conviennent ne
+       demande plus de reconnaître quoi que ce soit. */
+    if (!noms.some(n => !dem.includes(n))) continue;
+    if (dem.length === nb) return {pieces, demandees:dem};
+    if (!secours) secours = {pieces, demandees:dem};
+  }
+  return secours;
 }
 
 /* ============================================================
@@ -1347,30 +1572,50 @@ function construireRosace(){
    GÉNÉRATEURS DE MANCHES — un par mini-jeu
    ============================================================ */
 function qReconnaitre(cfg, palier){
-  const simples = palier.formes.filter(f => f !== 'cercle');
+  const simples = palier.formes.filter(f => f !== 'cercle' && f !== 'disque');
   return Array.from({length: cfg.nbQuestions}, (_, i) => {
     // Progression : une seule forme demandée, puis deux ensemble.
-    const deux = i >= 3;
-    let dem = melanger(simples).slice(0, deux ? 2 : 1);
-    /* On ne demande JAMAIS « les rectangles et les carrés » ensemble : la
-       consigne obligerait alors à trancher l’inclusion carré ⊂ rectangle,
-       hors programme au cycle 2. On remplace le carré par une autre forme. */
-    if (dem.includes('rectangle') && dem.includes('carre')) {
-      const remplacant = melanger(simples.filter(f => f !== 'rectangle' && f !== 'carre'))[0];
-      dem = remplacant ? ['rectangle', remplacant] : ['rectangle'];
-    }
-    // Au CE1, on ménage une manche cercle/disque : la distinction est
-    // abstraite sur papier, évidente en vitrail.
-    if (palier.formes.includes('cercle') && i === 2) dem.splice(0, dem.length, 'cercle');
-    const pieces = dem[0] === 'cercle'
-      ? poserEnGrille(['cercle','cercle','disque','disque','carre','triangle'], {cols:3, taille:76})
-      : assemblageCommande(palier, dem);
-    return {mode:'reconnaitre', pieces, demandees:dem,
+    const nb = i >= 3 ? 2 : 1;
+    /* Au CE1, on ménage une manche cercle/disque : la distinction est
+       abstraite sur papier, évidente en vitrail. ELLE RESTE HORS ASSEMBLAGE,
+       et c’est une exception assumée : un disque ne pave pas. Le vitrail y
+       prend la forme d’une VERRIÈRE — des ronds sertis dans un réseau de
+       plomb, chacun dans sa case. */
+    if (palier.formes.includes('cercle') && i === 2) return mancheSertie();
+    const monte = assemblageCommande(palier, tirerSansRepetition('reco-formes', simples, simples.length), nb);
+    const dem = monte.demandees;
+    return {mode:'reconnaitre', pieces:monte.pieces, demandees:dem, assemblage:true,
+      _vocabulaire:palier.vocabulaire,
       q: 'Touche ' + (dem.length === 1
             ? 'tous les ' + plurDe(dem[0])
             : 'tous les ' + plurDe(dem[0]) + ' et tous les ' + plurDe(dem[1])) + ' !',
-      sous:'Sélectionne les pièces, puis Vérifier.'};
+      /* AUCUN COMPTE N’EST ANNONCÉ : l’exhaustivité fait partie de la
+         compétence, et dire « il y en a trois » la remplacerait par un
+         décompte. Le bouton Vérifier suffit, et le retour §18 montre déjà en
+         pointillé vert ce qui manquait. */
+      sous:'Sélectionne les pièces dans le vitrail, puis Vérifier.'};
   });
+}
+
+/* La verrière du CE1 : des cercles et des disques sertis dans les cases d’un
+   réseau de plomb. Les cases sont un DÉCOR — seules les pièces rondes se
+   touchent, et l’invariant d’assemblage ne s’y applique pas. */
+function mancheSertie(){
+  const rondes = melanger(['cercle','cercle','cercle','disque','disque','disque']);
+  const cols = 3, pas = 104, r = 38;
+  const pieces = rondes.map((f, i) => {
+    const c = i % cols, l = Math.floor(i / cols);
+    return creerPiece(f, {cx:c * pas, cy:l * pas, taille:r * 2,
+      couleur:VERRES_HORS_REPERE[i % VERRES_HORS_REPERE.length]});
+  });
+  const reseau = rondes.map((_, i) => {
+    const c = i % cols, l = Math.floor(i / cols);
+    return `<rect class="serti" x="${c*pas - pas/2}" y="${l*pas - pas/2}" width="${pas}" height="${pas}"/>`;
+  }).join('');
+  const dem = pioche(['cercle','disque']);
+  return {mode:'reconnaitre', pieces, demandees:[dem], serti:reseau,
+    q:'Touche tous les ' + plurDe(dem) + ' !',
+    sous:'Sélectionne les pièces, puis Vérifier.'};
 }
 
 function qRelations(cfg){
@@ -1404,11 +1649,18 @@ function qDecrire(cfg, palier){
   ].filter(Boolean));
   const grands = melanger(['pentagone','hexagone']);
 
-  const plan = [];
-  plan.push({type:'nom', f:tirerSansRepetition('decrire-nom', nommables, 1)[0]});
-  petits.forEach(x => plan.push({type:'compte', f:x.f, connue:true}));
-  grands.forEach(f => plan.push({type:'compte', f, connue:false}));
-  while (plan.length < cfg.nbQuestions) plan.push({type:'nom', f:tirerSansRepetition('decrire-nom', nommables, 1)[0]});
+  /* B2 — huit manches. Les COMPTAGES restent quatre, un par nombre attendu
+     (3, 4, 5, 6) : c’est ce qui garantit que deux questions n’aient jamais la
+     même réponse. Le reste est du nommage, et les noms sont tirés EN UNE SEULE
+     FOIS — `tirerSansRepetition` ne garantit l’absence de doublon qu’à
+     l’intérieur d’un appel, si bien que quatre appels d’un élément pouvaient
+     servir deux fois la même forme dès que la pioche se rechargeait en cours
+     de file. */
+  const comptes = petits.map(x => ({type:'compte', f:x.f, connue:true}))
+    .concat(grands.map(f => ({type:'compte', f, connue:false})));
+  const nbNoms = Math.max(1, cfg.nbQuestions - comptes.length);
+  const plan = melanger(tirerSansRepetition('decrire-nom', nommables, Math.min(nbNoms, nommables.length))
+    .map(f => ({type:'nom', f})).concat(comptes));
 
   const quoiUtilise = [];
   return plan.slice(0, cfg.nbQuestions).map((etape, i) => {
@@ -1416,7 +1668,7 @@ function qDecrire(cfg, palier){
     const p = proprietes(piece);
     if (etape.type === 'nom') {
       const autres = melanger(nommables.filter(f => f !== etape.f)).slice(0, 3);
-      return {mode:'decrire', pieces:[piece],
+      return {mode:'decrire', pieces:[piece], _signature:'nom:' + etape.f,
         q:'Comment s’appelle cette pièce ?', sous:'',
         opts:melanger([etape.f, ...autres].map(nomDe)), ans:nomDe(etape.f)};
     }
@@ -1430,6 +1682,7 @@ function qDecrire(cfg, palier){
       ? 'Combien ' + leDe(etape.f) + ' a-t-il ' + (quoi === 'cotes' ? 'de côtés' : 'de sommets') + ' ?'
       : 'Combien cette forme a-t-elle ' + (quoi === 'cotes' ? 'de côtés' : 'de sommets') + ' ?';
     return {mode:'decrire', pieces:[piece], compte:quoi, bonNombre:bon,
+      _signature:'compte:' + etape.f + '/' + quoi,
       q, sous:'Compte bien tout autour.',
       opts:melanger([bon, bon + 1, bon - 1, bon + 2].map(String)), ans:String(bon)};
   });
@@ -1440,28 +1693,35 @@ function qDecrire(cfg, palier){
    pas une liste écrite à la main. Un distracteur est une assertion FAUSSE
    sur la pièce affichée — « l’un de ses angles n’est pas droit » était
    proposé comme faux devant un triangle, où il est manifestement vrai. */
+/* `refute` distingue une raison d’un simple constat : « elle a quatre
+   sommets » peut être VRAIE de la pièce sans être un motif — un carré en a
+   quatre lui aussi. Sans ce départage, choisir la raison parmi les assertions
+   vraies aurait pu désigner un fait compatible avec le carré. */
 const ASSERTIONS_CARRE = [
-  {t:'elle n’a que trois côtés',                    vrai:p => p.nbCotes === 3},
-  {t:'ses quatre côtés n’ont pas la même longueur', vrai:p => p.nbCotes === 4 && !p.tousCotesEgaux},
-  {t:'l’un de ses angles n’est pas droit',          vrai:p => !p.rond && !p.tousAnglesDroits},
-  {t:'elle a plus de quatre côtés',                 vrai:p => p.nbCotes > 4},
-  {t:'elle n’a aucun sommet',                       vrai:p => p.nbSommets === 0},
+  {t:'elle n’a que trois côtés',                    vrai:p => p.nbCotes === 3,                       refute:true},
+  {t:'ses quatre côtés n’ont pas la même longueur', vrai:p => p.nbCotes === 4 && !p.tousCotesEgaux,  refute:true},
+  {t:'l’un de ses angles n’est pas droit',          vrai:p => !p.rond && !p.tousAnglesDroits,        refute:true},
+  {t:'elle a plus de quatre côtés',                 vrai:p => p.nbCotes > 4,                         refute:true},
+  {t:'elle n’a aucun sommet',                       vrai:p => p.nbSommets === 0,                     refute:true},
   {t:'elle a quatre sommets',                       vrai:p => p.nbSommets === 4}
 ];
 
 function qJustifier(cfg, palier){
-  /* CHARTE §13 : les pièces ne se répètent pas d’une manche à l’autre. */
-  /* La réfutation a besoin du rectangle et du triangle : la phase « nommer »
-     se sert donc dans le reste, sans quoi la même pièce reviendrait deux
-     fois dans la partie. La variété inter-sessions (§13) vient de l’ordre,
-     des rotations, des proportions et des couleurs, pas du tirage des
-     formes — elles sont cinq pour cinq manches. */
-  const aRefuter = melanger(['rectangle','triangle']);
-  const aNommer = melanger(['carre','triangleRect','disque']);
+  /* B3 — huit manches, moitié « nommer puis prouver », moitié « réfuter ».
+     Les deux listes sont tirées SANS RÉPÉTITION dans les formes du palier
+     (§13), en un seul appel chacune : une liste écrite en dur — deux formes à
+     réfuter, trois à nommer — n’allait pas au-delà de cinq manches et faisait
+     revenir le rectangle une manche sur deux.
+     Une même forme peut apparaître dans les deux phases : la nommer et
+     réfuter qu’elle soit un carré sont deux tâches distinctes, et c’est la
+     redondance la moins coûteuse quand huit manches se partagent six formes. */
+  const nbRefut = Math.floor(cfg.nbQuestions / 2);
+  const aRefuter = tirerSansRepetition('justif-refuter',
+    palier.formes.filter(f => f !== 'carre'), nbRefut);
+  const aNommer = tirerSansRepetition('justif-nommer', palier.formes, cfg.nbQuestions - nbRefut);
   return Array.from({length: cfg.nbQuestions}, (_, i) => {
-    // Manches 1-3 : nommer puis prouver. Manches 4-5 : réfuter.
-    const refutation = i >= 3;
-    const forme = refutation ? aRefuter[(i - 3) % aRefuter.length] : aNommer[i % aNommer.length];
+    const refutation = i >= aNommer.length;
+    const forme = refutation ? aRefuter[(i - aNommer.length) % aRefuter.length] : aNommer[i % aNommer.length];
     const piece = creerPiece(forme, {cx:0, cy:0, taille:150, couleur:VERRES[i % VERRES.length]});
     const p = proprietes(piece);
     const autres = melanger(palier.formes.filter(f => f !== forme)).slice(0, 3);
@@ -1471,9 +1731,14 @@ function qJustifier(cfg, palier){
       opts:melanger([forme, ...autres].map(nomDe)), ans:nomDe(forme)};
     let etape2;
     if (refutation) {
-      const motif = forme === 'rectangle'
-        ? 'ses quatre côtés n’ont pas la même longueur'
-        : 'elle n’a que trois côtés';
+      /* LA RAISON EST LUE SUR LA PIÈCE, pas associée à un nom de forme : une
+         table écrite à la main ne couvrait que le rectangle et le triangle, et
+         toute forme ajoutée à la phase de réfutation y aurait reçu la raison
+         du triangle. Plusieurs assertions peuvent être vraies — un triangle
+         rectangle n’a ni quatre côtés ni quatre angles droits — et celles qui
+         ne sont pas retenues sortent d’office des distracteurs, filtrés sur
+         `!vrai(p)`. */
+      const motif = pioche(ASSERTIONS_CARRE.filter(x => x.refute && x.vrai(p))).t;
       /* Les deux distracteurs sont RELUS sur la pièce : seules des
          assertions fausses ici peuvent être proposées. */
       const faux = melanger(ASSERTIONS_CARRE.filter(x => x.t !== motif && !x.vrai(p)).map(x => x.t)).slice(0, 2);
@@ -1484,6 +1749,7 @@ function qJustifier(cfg, palier){
       etape2 = {q:'Qu’est-ce qui le prouve ?', opts:melanger([bonne, ...faux]), ans:bonne};
     }
     return {mode:'justifier', pieces:[piece], etape1, etape2, etape:1,
+      _signature:(refutation ? 'refuter:' : 'nommer:') + forme,
       q:etape1.q, sous:'D’abord le nom, ensuite la preuve.'};
   });
 }
@@ -1646,8 +1912,9 @@ function qConvoyeur(cfg, palier){
   return melanger(consignes.slice()).map(c => ({
     mode:'convoyeur', consigne:c, points:CONVOYEUR_N,
     flux:fluxDePhase(c, pool, palier.vocabulaire),
+    palier:palier._nom,
     q:'Attrape ' + lesDe(c.mot) + ' !',
-    sous:sousConvoyeur(c.mot)
+    sous:sousConvoyeur(c.mot, palier._nom)
   }));
 }
 /* « les triangles », « les disques » — l’article défini pluriel se calcule,
@@ -1655,19 +1922,62 @@ function qConvoyeur(cfg, palier){
 function lesDe(k){ return 'les ' + plurDe(k); }
 /* CHAQUE consigne en a une. La place lui est réservée pour que le tapis ne
    bouge pas d’une phase à l’autre ; la laisser vide reviendrait à réserver un
-   blanc, autant qu’elle dise quelque chose d’utile. */
-function sousConvoyeur(mot){
-  if (mot === 'quadrilatere') return 'Toutes les pièces à quatre côtés, quelle que soit leur allure.';
-  if (mot === 'triangle') return 'Toutes les pièces à trois côtés, même celles qui ont un angle droit.';
-  if (mot === 'cercle') return 'Le cercle est un anneau de plomb vide ; le disque est plein.';
-  if (mot === 'disque') return 'Le disque est plein ; le cercle n’est qu’un anneau.';
-  if (mot === 'triangleRect') return 'Ceux-là seulement : un angle droit dans le triangle.';
-  if (mot === 'losange') return 'Quatre côtés de même longueur, mais pas d’angle droit.';
-  if (mot === 'rectangle') return 'Quatre angles droits, et des côtés de deux longueurs.';
-  if (mot === 'carre') return 'Quatre angles droits et quatre côtés de même longueur.';
-  if (mot === 'pentagone') return 'Cinq côtés — compte-les avant d’attraper.';
-  if (mot === 'hexagone') return 'Six côtés — compte-les avant d’attraper.';
-  return 'Laisse passer les autres.';
+   blanc, autant qu’elle dise quelque chose d’utile.
+
+   MAIS ELLE EST INDEXÉE SUR LE PALIER, PAS SEULEMENT SUR LA FORME (A1). Une
+   table unique servait les trois niveaux, et le CP lisait donc « quatre angles
+   droits » — notion CE1. Le cas du triangle était doublement fautif : « même
+   celles qui ont un angle droit » renvoyait, au CP, à des pièces ABSENTES du
+   tapis, puisque `formesConvoyeur` n’y contient pas de triangle rectangle.
+
+   Le module connaissait déjà le principe et l’appliquait ailleurs — « polygone »
+   est réservé au CE2. Il n’avait simplement pas été appliqué ici.
+
+   Au CP, le programme demande « une première description du carré, du
+   rectangle, du triangle en utilisant les termes SOMMET et CÔTÉ » : la
+   sous-consigne y travaille au lieu de gêner. */
+const SOUS_CONVOYEUR_AVANCE = {
+  quadrilatere:'Toutes les pièces à quatre côtés, quelle que soit leur allure.',
+  triangle:    'Toutes les pièces à trois côtés, même celles qui ont un angle droit.',
+  cercle:      'Le cercle est un anneau de plomb vide ; le disque est plein.',
+  disque:      'Le disque est plein ; le cercle n’est qu’un anneau.',
+  triangleRect:'Ceux-là seulement : un angle droit dans le triangle.',
+  losange:     'Quatre côtés de même longueur, mais pas d’angle droit.',
+  rectangle:   'Quatre angles droits, et des côtés de deux longueurs.',
+  carre:       'Quatre angles droits et quatre côtés de même longueur.',
+  pentagone:   'Cinq côtés — compte-les avant d’attraper.',
+  hexagone:    'Six côtés — compte-les avant d’attraper.'
+};
+const SOUS_CONVOYEUR = {
+  CP: {
+    triangle: 'Toutes les pièces à trois côtés et trois sommets.',
+    carre:    'Quatre côtés de la même longueur.',
+    rectangle:'Quatre côtés et quatre sommets, comme une porte.',
+    disque:   'Il est tout rond, sans côté ni sommet.'
+  },
+  CE1: SOUS_CONVOYEUR_AVANCE,
+  CE2: SOUS_CONVOYEUR_AVANCE
+};
+function sousConvoyeur(mot, palierNom){
+  return (SOUS_CONVOYEUR[palierNom] || SOUS_CONVOYEUR_AVANCE)[mot] || 'Laisse passer les autres.';
+}
+
+/* LE LEXIQUE QUE LE PALIER N’A PAS ENCORE. Un garde-fou vaut mieux que la
+   vigilance : c’est la leçon du codage CE1 de M35, où la palette était bien
+   bornée mais la correction ne l’était pas. Le contrôle porte sur les textes
+   RÉELLEMENT produits, relus par le validateur d’items. */
+const TERMES_HORS_PALIER = {
+  CP:  ['angle', 'angle droit', 'polygone', 'quadrilatère', 'diagonale'],
+  CE1: ['polygone', 'quadrilatère', 'diagonale']
+};
+function motsHorsPalier(texte, palierNom){
+  const interdits = TERMES_HORS_PALIER[palierNom] || [];
+  const t = (texte || '').toLowerCase();
+  /* Frontière de mot des deux côtés : « triangle » ne doit pas déclencher sur
+     « angle », ni « rectangle » sur « angle ». */
+  return interdits.filter(m => new RegExp('(^|[^a-zàâäéèêëïîôöùûüç])'
+    + m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    + '(s?)([^a-zàâäéèêëïîôöùûüç]|$)', 'i').test(t));
 }
 
 function qPortrait(cfg){
@@ -1690,42 +2000,136 @@ const PORTRAITS = {
   cercle:'Tout rond, mais seulement le tour : pas de verre au milieu.'
 };
 
+/* ---- LE LITIGE : une banque de COUPLES (pièce réelle, forme affirmée) ----
+   L’anti-redondance (§13) ne portait sur rien : `cas = i % 2` alternait
+   rectangle et losange, et le client affirmait TOUJOURS « c’est un carré ».
+   Sur cinq manches, trois étaient identiques dans leur structure. Le tirage
+   sans répétition, employé partout ailleurs dans le module, ne l’était pas
+   ici. Il porte désormais sur le COUPLE, seule unité qui décrive vraiment
+   une manche. */
+const LITIGES = [
+  {affirme:'carre',        reel:'rectangle'},
+  {affirme:'carre',        reel:'losange'},
+  {affirme:'rectangle',    reel:'losange'},
+  {affirme:'losange',      reel:'rectangle'},
+  {affirme:'triangleRect', reel:'triangle'},
+  {affirme:'quadrilatere', reel:'pentagone'}
+];
+
+/* Les raisons possibles. Chacune porte SON PRÉDICAT — c’est la figure qui
+   décide, jamais une étiquette posée à côté. Et `cible` dit ce qu’il faut
+   MONTRER pour l’établir : la désignation de l’étape 1 et la raison de
+   l’étape 2 parlent ainsi forcément de la même chose. */
+const CLAUSES_LITIGE = [
+  {t:'a trois côtés',                       ok:p => p.nbCotes === 3,                       cible:'tous-cotes'},
+  {t:'a quatre côtés',                      ok:p => p.nbCotes === 4,                       cible:'tous-cotes'},
+  {t:'a quatre sommets',                    ok:p => p.nbSommets === 4,                     cible:'tous-sommets'},
+  {t:'a ses quatre côtés de même longueur', ok:p => p.nbCotes === 4 && p.tousCotesEgaux,   cible:'cotes-inegaux'},
+  {t:'a ses quatre angles droits',          ok:p => p.nbCotes === 4 && p.tousAnglesDroits, cible:'angle-non-droit'},
+  {t:'a un angle droit',
+   ok:p => !p.rond && p.angles.some(a => classeAngle(a) === 'droit'),                      cible:'tous-angles'}
+];
+
+/* EST-CE UNE PROPRIÉTÉ DU MODÈLE ANNONCÉ ? On ne l’écrit pas : on la LIT sur
+   des pièces témoins de ce modèle. Une clause n’est retenue que si elle tient
+   sur toutes — un quadrilatère quelconque tiré au hasard peut naître presque
+   régulier, et une seule pièce témoin ferait passer « a ses quatre côtés de
+   même longueur » pour une propriété du quadrilatère. */
+const TEMOINS = 24;
+const memoireModele = {};
+function clausesDuModele(forme){
+  if (memoireModele[forme]) return memoireModele[forme];
+  const temoins = Array.from({length: TEMOINS},
+    () => proprietes(creerPiece(forme, {cx:0, cy:0, taille:150})));
+  return (memoireModele[forme] = CLAUSES_LITIGE.filter(c => temoins.every(p => c.ok(p))));
+}
+
+/* PLUSIEURS PROPRIÉTÉS PEUVENT MANQUER À LA FOIS, parce que les clauses ne
+   sont pas indépendantes : « a ses quatre angles droits » entraîne « a un
+   angle droit », et un pentagone manque aussi bien les quatre côtés que les
+   quatre sommets. Ce ne sont pas des raisons concurrentes mais une raison et
+   ses conséquences — le QCM n’en propose donc qu’UNE, les autres n’étant
+   offertes ni comme réponse ni comme distracteur.
+
+   Reste à savoir laquelle nommer. La plus EXIGEANTE : c’est celle qui apprend
+   le plus. On ne la classe pas à la main, on la mesure — la clause satisfaite
+   par le moins de pièces, sur une population tirée dans toutes les formes du
+   module. « Quatre angles droits » passe ainsi devant « un angle droit »
+   sans qu’aucun ordre ait été écrit. */
+const FORMES_CONNUES = ['disque','cercle','carre','rectangle','triangle','triangleRect',
+                        'losange','quadrilatere','pentagone','hexagone'];
+let memoireRarete = null;
+function rarete(clause){
+  if (!memoireRarete) {
+    const population = [];
+    FORMES_CONNUES.forEach(f => { for (let i = 0; i < 12; i++)
+      population.push(proprietes(creerPiece(f, {cx:0, cy:0, taille:150}))); });
+    memoireRarete = new Map(CLAUSES_LITIGE.map(c =>
+      [c, population.filter(p => c.ok(p)).length / population.length]));
+  }
+  return memoireRarete.get(clause);
+}
+/* La raison à énoncer, et les clauses qu’elle rend redondantes. */
+function raisonDuLitige(duModele, p){
+  const manquantes = duModele.filter(c => !c.ok(p));
+  if (!manquantes.length) return null;
+  const motif = manquantes.slice().sort((a, b) => rarete(a) - rarete(b)
+    || CLAUSES_LITIGE.indexOf(a) - CLAUSES_LITIGE.indexOf(b))[0];
+  return {motif, manquantes};
+}
+
+/* Ce qu’il faut désigner pour établir la raison. PLUSIEURS DÉSIGNATIONS SONT
+   JUSTES et toutes sont acceptées (cf. `selectionSatisfait`) : un losange a
+   quatre angles non droits, n’importe lequel dénonce le défaut. */
+function cibleLitige(genre, p){
+  const idsAngles = p.angles.map((_, j) => 'a' + j);
+  const idsCotes = p.cotes.map((_, j) => 'c' + j);
+  if (genre === 'cotes-inegaux') {
+    const maxi = Math.max(...p.cotes), mini = Math.min(...p.cotes);
+    return {exigences:[{parmi:idsCotes.filter((_, j) => presqueEgal(p.cotes[j], maxi)), nb:1},
+                       {parmi:idsCotes.filter((_, j) => presqueEgal(p.cotes[j], mini)), nb:1}],
+            sous:'Touche au moins un grand côté ET un petit côté, puis appuie sur Vérifier.'};
+  }
+  if (genre === 'angle-non-droit')
+    return {exigences:[{parmi:idsAngles.filter((_, j) => classeAngle(p.angles[j]) !== 'droit'), nb:1}],
+            sous:'Touche au moins un angle qui ne va pas, puis appuie sur Vérifier.'};
+  if (genre === 'tous-angles')
+    return {exigences:[{parmi:idsAngles, nb:idsAngles.length}],
+            sous:'Touche tous les angles : pas un seul n’est droit.'};
+  if (genre === 'tous-sommets')
+    return {exigences:[{parmi:idsAngles, nb:idsAngles.length}],
+            sous:'Touche tous les sommets pour les compter, puis appuie sur Vérifier.'};
+  return {exigences:[{parmi:idsCotes, nb:idsCotes.length}],
+          sous:'Touche tous les côtés pour les compter, puis appuie sur Vérifier.'};
+}
+
 function qLitige(cfg){
-  return Array.from({length: cfg.nbQuestions}, (_, i) => {
-    /* Le client affirme « carré » ; la pièce n’en est pas un. Deux cas :
-       elle a bien quatre angles droits mais des côtés inégaux (rectangle),
-       ou quatre côtés égaux mais des angles non droits (losange). C’est ce
-       qui décide de ce qu’il faut toucher, et de la sous-consigne. */
-    const cas = i % 2 === 0 ? 'rectangle' : 'losange';
-    const piece = creerPiece(cas, {cx:0, cy:0, taille:150, couleur:VERRES[i % VERRES.length]});
-    const p = proprietes(piece);
-    const angles = p.angles.map(classeAngle);
-    const cotes = p.cotes;
-    /* PLUSIEURS DÉSIGNATIONS SONT JUSTES, et les refuser serait faux : un
-       losange a QUATRE angles non droits, n’importe lequel dénonce le
-       défaut ; un rectangle a deux longs côtés et deux courts, et toute
-       paire « un long + un court » montre l’inégalité. On décrit donc des
-       EXIGENCES — tant de zones à prendre dans tel groupe — et non une
-       liste unique de bonnes cases. */
-    let exigences, sous, motif, faux;
-    if (cas === 'losange') {
-      const nonDroits = angles.map((a, j) => a !== 'droit' ? 'a' + j : null).filter(Boolean);
-      exigences = [{parmi:nonDroits, nb:1}];
-      sous = 'Touche UN angle qui ne va pas, puis appuie sur Vérifier.';
-      motif = 'Or un carré a ses quatre angles droits.';
-      faux = ['Or un carré a quatre côtés.', 'Or un carré a ses côtés de même longueur.'];
-    } else {
-      const maxi = Math.max(...cotes), mini = Math.min(...cotes);
-      const longs = cotes.map((l, j) => presqueEgal(l, maxi) ? 'c' + j : null).filter(Boolean);
-      const courts = cotes.map((l, j) => presqueEgal(l, mini) ? 'c' + j : null).filter(Boolean);
-      exigences = [{parmi:longs, nb:1}, {parmi:courts, nb:1}];
-      sous = 'Touche UN grand côté ET UN petit côté, puis appuie sur Vérifier.';
-      motif = 'Or un carré a ses quatre côtés de même longueur.';
-      faux = ['Or un carré a ses quatre angles droits.', 'Or un carré a quatre sommets.'];
+  const couples = tirerSansRepetition('litige-couples', LITIGES, cfg.nbQuestions);
+  return couples.map((couple, i) => {
+    /* La pièce est tirée jusqu’à porter une raison ET deux distracteurs
+       tenables. Un distracteur est une clause qui N’EST PAS une raison : soit
+       elle n’est pas une propriété du modèle annoncé, soit la pièce la
+       respecte déjà. Le validateur relit exactement ce départage. */
+    let piece = null, p = null, motif = null, tenues = [];
+    const duModele = clausesDuModele(couple.affirme);
+    for (let essai = 0; essai < 60; essai++) {
+      piece = creerPiece(couple.reel, {cx:0, cy:0, taille:150, couleur:VERRES[i % VERRES.length]});
+      p = proprietes(piece);
+      const r = raisonDuLitige(duModele, p);
+      if (!r) continue;
+      tenues = CLAUSES_LITIGE.filter(c => !r.manquantes.includes(c));
+      if (tenues.length >= 2) { motif = r.motif; break; }
     }
-    return {mode:'litige', pieces:[piece], cas, exigences, etape:1,
-      q:'Le client dit : « cette pièce est un carré. » Montre où ça coince.',
-      sous, etape2:{q:'Et pourquoi ce n’est pas un carré ?', opts:melanger([motif, ...faux]), ans:motif}};
+    const phrase = c => 'Or ' + avecArt(couple.affirme) + ' ' + c.t + '.';
+    const cible = cibleLitige(motif.cible, p);
+    return {mode:'litige', pieces:[piece], affirme:couple.affirme, reel:couple.reel,
+      motif:motif.t, exigences:cible.exigences, etape:1,
+      _signature:'litige:' + couple.affirme + '/' + couple.reel,
+      q:'Le client dit : « cette pièce est ' + avecArt(couple.affirme) + '. » Montre où ça coince.',
+      sous:cible.sous,
+      etape2:{q:'Et pourquoi ce n’est pas ' + avecArt(couple.affirme) + ' ?',
+              opts:melanger([phrase(motif), ...melanger(tenues).slice(0, 2).map(phrase)]),
+              ans:phrase(motif)}};
   });
 }
 
@@ -1825,31 +2229,64 @@ const VALIDATEURS = {
     const pb = [];
     const p = proprietes(q.pieces[0]);
     if (!q.exigences || !q.exigences.length) { pb.push('aucune cible'); return pb; }
-    q.exigences.forEach(e => {
-      if (!e.parmi.length) pb.push('groupe de cibles vide');
-      e.parmi.forEach(id => {
-        const i = +id.slice(1);
-        if (id[0] === 'a' && classeAngle(p.angles[i]) === 'droit') pb.push('un angle droit proposé comme fautif');
-      });
+    q.exigences.forEach(e => { if (!e.parmi.length) pb.push('groupe de cibles vide'); });
+
+    /* La pièce doit VRAIMENT manquer la propriété annoncée. */
+    const duModele = clausesDuModele(q.affirme);
+    const r = raisonDuLitige(duModele, p);
+    if (!r) pb.push('la pièce satisfait toutes les propriétés du modèle : il n’y a pas de litige');
+    else if (r.motif.t !== q.motif)
+      pb.push('la raison annoncée (' + q.motif + ') n’est pas celle à nommer (' + r.motif.t + ')');
+
+    /* UNE SEULE OPTION DOIT ÊTRE UNE RAISON. Les propriétés qui manquent par
+       voie de conséquence — « un angle droit » quand « quatre angles droits »
+       manque déjà — sont des raisons elles aussi : les proposer comme
+       distracteurs donnerait deux bonnes réponses. */
+    const manquantes = r ? r.manquantes : [];
+    q.etape2.opts.forEach(o => {
+      const c = CLAUSES_LITIGE.find(x => o.indexOf(x.t) >= 0);
+      if (!c) { pb.push('option hors banque : ' + o); return; }
+      if (manquantes.includes(c) !== (o === q.etape2.ans)) pb.push('option mal étiquetée : ' + o);
     });
-    /* Invariant 2 : TOUTES les cibles équivalentes sont acceptées. */
-    if (q.cas === 'rectangle') {
-      const maxi = Math.max(...p.cotes), mini = Math.min(...p.cotes);
-      const longs = p.cotes.filter(l => presqueEgal(l, maxi)).length;
-      const courts = p.cotes.filter(l => presqueEgal(l, mini)).length;
-      if (q.exigences[0].parmi.length !== longs || q.exigences[1].parmi.length !== courts)
-        pb.push('des côtés équivalents sont refusés');
-    } else {
-      const nonDroits = p.angles.filter(a => classeAngle(a) !== 'droit').length;
-      if (q.exigences[0].parmi.length !== nonDroits) pb.push('des angles équivalents sont refusés');
-    }
+    if (new Set(q.etape2.opts).size !== q.etape2.opts.length) pb.push('deux options identiques');
+
+    /* Invariant 2 : TOUTES les cibles équivalentes sont acceptées. On le
+       relit sur la figure, sans refaire le chemin du générateur — les groupes
+       posés doivent recouvrir exactement les zones qui conviennent. */
+    const attendu = cibleLitige((CLAUSES_LITIGE.find(c => c.t === q.motif) || {}).cible, p);
+    const signature = ex => ex.map(e => e.parmi.slice().sort().join(',') + '#' + e.nb).sort().join(' | ');
+    if (signature(attendu.exigences) !== signature(q.exigences))
+      pb.push('les cibles acceptées ne recouvrent pas toutes les zones équivalentes');
     return pb;
   },
   reconnaitre(q){
     const pb = [];
     if (!q.pieces.some(p => q.demandees.includes(p.forme))) pb.push('aucune pièce demandée n’est présente');
+    if (!q.pieces.some(p => !q.demandees.includes(p.forme))) pb.push('toutes les pièces conviennent : rien à reconnaître');
     if (q.demandees.includes('rectangle') && q.demandees.includes('carre'))
       pb.push('rectangle et carré demandés ensemble (inclusion hors programme)');
+    if (q.demandees.includes('rectangle') && q.pieces.some(p => p.forme === 'carre'))
+      pb.push('un carré dans un vitrail où l’on demande les rectangles');
+    /* Le nom de chaque pièce est RELU sur ses sommets — jamais sur
+       l’étiquette posée à la fabrication. */
+    q.pieces.forEach(p => {
+      if (!p.pts) return;
+      const calcule = nommerCalcule(p, q._vocabulaire || []);
+      if (q._vocabulaire && calcule !== p.forme)
+        pb.push('pièce étiquetée ' + p.forme + ' mais dessinée en ' + calcule);
+    });
+    /* B1 : l’invariant d’assemblage, sur la géométrie réelle. La verrière
+       sertie du CE1 en est explicitement dispensée — un disque ne pave pas. */
+    if (q.assemblage) {
+      const poly = q.pieces.filter(p => p.pts);
+      if (poly.length !== q.pieces.length) pb.push('une pièce ronde dans un assemblage');
+      for (let i = 0; i < poly.length; i++)
+        for (let j = i+1; j < poly.length; j++)
+          if (seChevauchent(poly[i].pts, poly[j].pts))
+            pb.push('les pièces ' + (i+1) + ' et ' + (j+1) + ' se chevauchent');
+      if (!assemblageConnexe(poly))
+        pb.push('une pièce ne tient au vitrail que par un point, ou pas du tout');
+    }
     return pb;
   },
   vocabulaire(q){ return []; },  // ses cibles naissent au rendu, testées à part
@@ -1868,6 +2305,10 @@ const VALIDATEURS = {
       if (q.flux[i]._cible !== (q.consigne.accepte.indexOf(n) >= 0))
         pb.push('pièce ' + (i+1) + ' : son étiquette de cible contredit sa géométrie');
     });
+    /* A1 : le vocabulaire des DEUX lignes de consigne est borné par le
+       palier. On relit le texte affiché, pas la table dont il sort. */
+    [q.q, q.sous].forEach(texte => motsHorsPalier(texte, q.palier).forEach(m =>
+      pb.push('« ' + m +' » n’est pas au programme du ' + q.palier + ' : ' + texte)));
     return pb;
   }
 };
@@ -1876,23 +2317,47 @@ function verifierItem(q){
   return f ? f(q) : [];
 }
 function verifierFile(f){
-  return f.map((q, i) => ({i, mode:q.mode, pb:verifierItem(q)})).filter(x => x.pb.length);
+  const pb = f.map((q, i) => ({i, mode:q.mode, pb:verifierItem(q)})).filter(x => x.pb.length);
+  /* ANTI-REDONDANCE À L’ÉCHELLE DE LA FILE (§13). Un item peut être
+     irréprochable et la partie répétitive : c’est ce qui arrivait au litige,
+     dont les cinq manches posaient toutes la même question.
+
+     Le contrôle est DÉCLARÉ, pas deviné : chaque générateur qui promet des
+     manches distinctes pose une `_signature`. Déduire l’identité d’une manche
+     de son seul énoncé serait faux ici — `cp-relations` demande exprès
+     « Quelle phrase est vraie ? » à chaque fois, et `ce1-angles` « Droit, aigu
+     ou obtus ? » : leur variété est dans la figure, pas dans le texte. */
+  const vues = new Map();
+  f.forEach((q, i) => {
+    if (!q._signature) return;
+    if (vues.has(q._signature))
+      pb.push({i, mode:q.mode, pb:['manche identique à la n° ' + (vues.get(q._signature) + 1)]});
+    else vues.set(q._signature, i);
+  });
+  return pb;
 }
 
-/* Une sélection convient si elle prend exactement le nombre voulu de zones
-   dans CHAQUE groupe, et rien d’autre. */
+/* UNE EXIGENCE EST UN MINIMUM, PAS UN COMPTE EXACT (A2). La version
+   précédente refusait toute sélection dont la taille n’était pas exactement
+   la somme des `nb` : sur le losange, désigner DEUX angles non droits était
+   compté faux alors que chacun est un contre-exemple valable et qu’en montrer
+   plusieurs est irréprochable. C’est le défaut déjà corrigé sur les cibles de
+   la rosace, sous une autre forme — l’ensemble des réponses était bien décrit,
+   mais la QUANTITÉ restait figée.
+
+   Trois règles, et aucun plafond :
+     1. toute zone choisie appartient à AU MOINS UN groupe d’exigence ;
+     2. chaque exigence reçoit AU MOINS `nb` zones ;
+     3. rien d’autre n’est imposé.
+
+   Les deux cas se traitent sans être distingués : sur le losange, un à quatre
+   angles non droits conviennent ; sur le rectangle, deux longs sans aucun
+   court restent refusés — l’exigence « au moins un court » n’est pas
+   satisfaite, et c’est juste : deux côtés égaux ne prouvent rien. */
 function selectionSatisfait(choisies, exigences){
-  const total = exigences.reduce((n, e) => n + e.nb, 0);
-  if (choisies.length !== total) return false;
-  const restantes = choisies.slice();
-  for (const e of exigences) {
-    let pris = 0;
-    for (let i = restantes.length - 1; i >= 0; i--) {
-      if (e.parmi.includes(restantes[i]) && pris < e.nb) { pris++; restantes.splice(i, 1); }
-    }
-    if (pris !== e.nb) return false;
-  }
-  return restantes.length === 0;
+  if (!choisies.length) return false;
+  if (!choisies.every(id => exigences.some(e => e.parmi.includes(id)))) return false;
+  return exigences.every(e => choisies.filter(id => e.parmi.includes(id)).length >= e.nb);
 }
 
 function engendrerFile(cfg, palier){
@@ -2062,9 +2527,15 @@ function lance(id){
   question();
 }
 
+/* La pastille reflète LES POINTS OBTENUS, pas le seul verdict de la dernière
+   étape (B4.3). Depuis que le retour de l’étape 2 ne juge que l’étape 2, une
+   manche en deux temps où seule la désignation était juste rapportait 1 point
+   et affichait pourtant une pastille rouge. */
 function majDots(){
-  $('dots').innerHTML = file.map((q, i) =>
-    `<span class="dot ${i < pos ? (q._ok ? 'ok' : 'ko') : i === pos ? 'cur' : ''}"></span>`).join('');
+  $('dots').innerHTML = file.map((q, i) => {
+    const acquis = q._pts !== undefined ? q._pts > 0 : q._ok;
+    return `<span class="dot ${i < pos ? (acquis ? 'ok' : 'ko') : i === pos ? 'cur' : ''}"></span>`;
+  }).join('');
 }
 function message(txt, cl, correction){
   const f = $('feedback');
@@ -2086,6 +2557,7 @@ function question(){
   $('feedback').textContent = ''; $('feedback').className = '';
   $('btnNext').style.display = 'none';
   $('btnValider').style.display = 'none';
+  $('btnEffacer').hidden = true;
   $('answers').innerHTML = ''; $('answers').className = '';
   $('vitrail').hidden = true;
   $('svgScene').classList.remove('convoyeur');
@@ -2233,8 +2705,9 @@ function rendreReconnaitre(q){
      leur taille, et un cadre de 236 les réduisait à des vignettes que le
      doigt d’un CP rate. L’écran n’a pas d’autre contenu qu’un bouton, on
      peut donc s’étendre. */
-  afficherScene(q.pieces, '', 306);
+  afficherScene(q.pieces, q.serti || '', 306);
   $('btnValider').style.display = 'block';
+  brancherEffacer();
   $('svgScene').querySelectorAll('.piece').forEach(g => {
     g.addEventListener('click', () => {
       if (verrouille) return;
@@ -2247,6 +2720,7 @@ function rendreReconnaitre(q){
     if (verrouille) return;
     verrouille = true;
     $('btnValider').style.display = 'none';
+    $('btnEffacer').hidden = true;
     const choisies = [...selection];
     const bon = choisies.length === attendues.length && choisies.every(id => attendues.includes(id));
     /* §18 : on montre l’état complet — ce qui était juste, ce qui était de
@@ -2355,7 +2829,9 @@ function rendreJustifier(q){
       armerAutoSuivant();
     } else {
       q._pts = (q._pts || 0) + (bon ? POINTS_ETAPE2 : 0);
-      terminerManche(q._ok1 && bon, bon ? null : 'La bonne raison est en vert.', q._pts);
+      /* Même correctif qu’au litige (B4.3) : la preuve se juge seule. */
+      terminerManche(bon, bon ? null : 'La bonne raison est en vert.', q._pts,
+        bon && !q._ok1 ? 'Mais le nom, lui, restait à trouver.' : null);
     }
   });
 }
@@ -2950,28 +3426,36 @@ function rendreLitige(q){
      dessiné qui gagnait. Un sommet est un POINT et l’emporte donc sur les
      côtés qui y aboutissent. */
   const cibles = [];
-  let indices = '';
+  let halos = '', indices = '';
   p.pts.forEach((a, i) => {
     const b = p.pts[(i + 1) % n];
     const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
     const L = hyp(a, b), ux = (b[0]-a[0]) / L, uy = (b[1]-a[1]) / L, d = 11;
+    /* Le halo porte le MÊME `data-c` que le repère : marquer une zone les
+       marque tous les deux, sans que le code de sélection ait à connaître
+       leur nombre. */
+    halos += `<line class="trace-halo" data-c="c${i}" x1="${mx - ux*d}" y1="${my - uy*d}" x2="${mx + ux*d}" y2="${my + uy*d}"/>`;
+    halos += `<circle class="trace-halo" data-c="a${i}" cx="${a[0]}" cy="${a[1]}" r="4.5"/>`;
     indices += `<line class="indice-trait" data-c="c${i}" x1="${mx - ux*d}" y1="${my - uy*d}" x2="${mx + ux*d}" y2="${my + uy*d}"/>`;
     indices += `<circle class="indice" data-c="a${i}" cx="${a[0]}" cy="${a[1]}" r="4.5"/>`;
     cibles.push({id:'c' + i, type:'segment', a, b});
   });
+  indices = halos + indices;
   p.pts.forEach((a, i) => cibles.push({id:'a' + i, type:'point', p:a}));
   afficherScene(q.pieces, indices, 210);
   $('btnValider').style.display = 'block';
+  brancherEffacer();
   const svg = $('svgScene');
   brancherCibles(svg, cibles, (c) => {
-    const e = svg.querySelector(`[data-c="${c.id}"]`);
-    if (selection.has(c.id)) { selection.delete(c.id); if (e) e.classList.remove('trace-choisi'); }
-    else { selection.add(c.id); if (e) e.classList.add('trace-choisi'); sonClic(); }
+    const zone = svg.querySelectorAll(`[data-c="${c.id}"]`);
+    if (selection.has(c.id)) { selection.delete(c.id); zone.forEach(e => e.classList.remove('trace-choisi')); }
+    else { selection.add(c.id); zone.forEach(e => e.classList.add('trace-choisi')); sonClic(); }
   }, svg.getElementById('scenePieces'));
   $('btnValider').onclick = () => {
     if (verrouille) return;
     verrouille = true;
     $('btnValider').style.display = 'none';
+    $('btnEffacer').hidden = true;
     const ch = [...selection];
     const bon = selectionSatisfait(ch, q.exigences);
     /* §18 : on montre UNE désignation valable — montrer les quatre côtés
@@ -3008,8 +3492,33 @@ function rendreLitigeEtape2(q){
   $('sousConsigne').textContent = 'Cette réponse compte double.';
   rendreQcm(q.etape2.opts, q.etape2.ans, bon => {
     q._pts = (q._pts || 0) + (bon ? POINTS_ETAPE2 : 0);
-    terminerManche(q._ok1 && bon, bon ? null : 'La bonne raison est en vert.', q._pts);
+    /* LE RETOUR DE L’ÉTAPE 2 NE JUGE QUE L’ÉTAPE 2 (B4.3). `terminerManche`
+       affiche « Presque ! » dès que son premier argument est faux : passer
+       `q._ok1 && bon` faisait donc lire « Presque ! » à l’enfant qui avait
+       désigné au mauvais endroit mais donné la BONNE raison. C’est l’erreur
+       corrigée en M35 B10 — mêler deux compétences dans un seul retour
+       empêche de savoir laquelle a manqué. Elles sont ici explicitement
+       distinctes, et déjà notées séparément (1 point + 2 points).
+       Le score, lui, reste la somme des deux. */
+    terminerManche(bon, bon ? null : 'La bonne raison est en vert.', q._pts,
+      bon && !q._ok1 ? 'Mais l’endroit qui coince, lui, était ailleurs.' : null);
   });
+}
+
+/* EFFACER SA SÉLECTION (B4.2). Les deux mini-jeux à sélection multiple —
+   le vitrail et le litige — partagent le même geste : retoucher une zone la
+   retire, et ce bouton remet tout à zéro. Il vit tant que la réponse n’est
+   pas rendue, et disparaît avec le bouton Vérifier. */
+function brancherEffacer(){
+  const b = $('btnEffacer');
+  b.hidden = false;
+  b.onclick = () => {
+    if (verrouille) return;
+    selection.clear();
+    $('svgScene').querySelectorAll('.sel, .trace-choisi')
+      .forEach(e => e.classList.remove('sel', 'trace-choisi'));
+    sonClic();
+  };
 }
 
 /* ---- Fin de manche ---- */
