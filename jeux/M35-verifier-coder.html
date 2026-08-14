@@ -2012,9 +2012,12 @@ const VALIDATEURS = {
       if (Math.abs(ang - 90) > 1) pb.push('sommet ' + i + ' annoncé droit sans l’être');
     });
     /* Au CE1, le programme ne prévoit QUE le code des angles droits : le
-       codage des égalités de longueur est une compétence CE2. */
-    if (q.groupes && q.groupes.length && q.mode === 'codage1' && q._tamponsEgalite)
-      pb.push('des marques d’égalité sont proposées au CE1');
+       codage des égalités de longueur est une compétence CE2. Une notation
+       peut se montrer à DEUX moments, et il faut les surveiller tous les deux
+       — la version précédente ne regardait que la palette, et interrogeait de
+       surcroît un champ que rien n’écrivait : elle ne pouvait pas se
+       déclencher, y compris pendant que le défaut était là. */
+    pb.push(...horsProgramme(q, 'codage1'));
     return pb;
   },
   codage2(q){
@@ -2036,9 +2039,32 @@ const VALIDATEURS = {
         if (Math.abs(l - L[g[0]]) / L[g[0]] < 0.02) pb.push('un côté égal à un côté marqué reste sans marque');
       });
     });
+    pb.push(...horsProgramme(q, 'codage2'));
     return pb;
   }
 };
+
+/* Aucune notation ne doit apparaître hors du palier qui l’enseigne, NI EN
+   SAISIE NI EN CORRECTION. Les deux moments se contrôlent de la même façon,
+   sur ce que le rendu a réellement posé — `_tamponsOfferts` pour la palette,
+   `_codeAffiche` relu sur le dessin de correction. Avant le rendu ces deux
+   champs sont absents et le contrôle se tait : il porte sur l’affichage, pas
+   sur la figure, et une figure qui possède des égalités reste légitime au CE1
+   — on ne les code simplement pas. */
+const CODE_DU_TAMPON = {droit:'droit', simple:'egalite', double:'egalite'};
+function horsProgramme(q, mode){
+  const permis = new Set(NOTATIONS[mode].map(t => CODE_DU_TAMPON[t]));
+  const pb = [];
+  (q._tamponsOfferts || []).forEach(t => {
+    if (!permis.has(CODE_DU_TAMPON[t]))
+      pb.push('le tampon « ' + t +' » est proposé hors de son palier');
+  });
+  (q._codeAffiche || []).forEach(c => {
+    if (!permis.has(c))
+      pb.push('la correction affiche le codage « ' + c + ' », qui n’est pas au programme de ce palier');
+  });
+  return pb;
+}
 function verifierItem(q){
   const f = VALIDATEURS[q.mode];
   return f ? f(q) : [];
@@ -2944,6 +2970,21 @@ function rendreReport(q){
 /* ============================================================
    CODAGE — le tampon, jamais le tracé
    ============================================================ */
+/* LES NOTATIONS QU’UN PALIER ENSEIGNE, ÉCRITES UNE SEULE FOIS. Le CE1 ne
+   connaît que le carré d’angle droit ; la marque d’égalité de longueur est
+   une notation CE2 (BO : « le codage d’un angle droit ET celui qui indique
+   que des segments ont la même longueur »).
+
+   Cette liste commande TOUT ce qui laisse voir une notation : la palette de
+   tampons, les cibles actives — et la figure de correction. C’est ce dernier
+   point qui manquait : la correction dessinait les égalités de la figure sans
+   regarder le palier, si bien qu’au CE1 l’enfant ne pouvait pas poser ces
+   marques mais les voyait apparaître à la validation. Ne pas pouvoir écrire
+   un signe qu’on vous montre, c’est l’apprendre de travers. */
+const NOTATIONS = {codage1:['droit'], codage2:['droit','simple','double']};
+const TAMPONS_EGALITE = ['simple','double'];
+const codeLesEgalites = tampons => tampons.some(t => TAMPONS_EGALITE.includes(t));
+
 function marqueAngleDroit(pts, i){
   const n = pts.length, s = pts[i], a = pts[(i-1+n)%n], b = pts[(i+1)%n];
   const u = [(a[0]-s[0]), (a[1]-s[1])], v = [(b[0]-s[0]), (b[1]-s[1])];
@@ -2951,7 +2992,11 @@ function marqueAngleDroit(pts, i){
   const p1 = [s[0] + u[0]/lu*d, s[1] + u[1]/lu*d];
   const p2 = [s[0] + v[0]/lv*d, s[1] + v[1]/lv*d];
   const p3 = [p1[0] + v[0]/lv*d, p1[1] + v[1]/lv*d];
-  return `<path class="marque" fill="none" stroke="var(--corail)" stroke-width="3"
+  /* `data-code` nomme la notation portée par la marque. Un contrôle qui
+     recalculerait ce qui « devrait » être dessiné partagerait l’hypothèse du
+     dessin et validerait donc ses erreurs ; en lisant cet attribut il relit
+     le résultat. */
+  return `<path class="marque" data-code="droit" fill="none" stroke="var(--corail)" stroke-width="3"
             d="M ${p1[0]} ${p1[1]} L ${p3[0]} ${p3[1]} L ${p2[0]} ${p2[1]}"/>`;
 }
 /* La marque d’égalité s’oriente seule : perpendiculaire au côté, en son
@@ -2966,7 +3011,7 @@ function marqueEgalite(pts, i, nbTraits){
   for (let k = 0; k < nbTraits; k++) {
     const off = (k - (nbTraits-1)/2) * 7;
     const cx = m[0] + dx/L*off, cy = m[1] + dy/L*off;
-    s += `<line class="marque" x1="${cx - nx*e}" y1="${cy - ny*e}" x2="${cx + nx*e}" y2="${cy + ny*e}" stroke="var(--mandarine)" stroke-width="3.2" stroke-linecap="round"/>`;
+    s += `<line class="marque" data-code="egalite" x1="${cx - nx*e}" y1="${cy - ny*e}" x2="${cx + nx*e}" y2="${cy + ny*e}" stroke="var(--mandarine)" stroke-width="3.2" stroke-linecap="round"/>`;
   }
   return s;
 }
@@ -2974,7 +3019,7 @@ function marqueEgalite(pts, i, nbTraits){
 function rendreCodage1(q){
   poserConsigne('Marque tous les angles droits de cette figure — et seulement eux.');
   $('sousConsigne').textContent = 'Choisis le tampon, puis touche un sommet.';
-  dessinerCodage(q, ['droit']);
+  dessinerCodage(q, NOTATIONS.codage1);
 }
 /* La figure est ANNONCÉE avant la tâche. Coder, c’est écrire ce qu’on sait
    d’une figure qu’on a déjà reconnue : demander « certifie ce plan » devant
@@ -2991,16 +3036,20 @@ function rendreCodage2(q){
     ? 'Ici les longueurs se ressemblent : prends le compas pour les comparer avant de marquer.'
     : 'Choisis un tampon, puis touche un sommet ou un côté.';
   q._exigeVerif = aVerifier;
-  dessinerCodage(q, ['droit','simple','double']);
+  dessinerCodage(q, NOTATIONS.codage2);
 }
 
 function dessinerCodage(q, tampons){
   const n = q.pts.length;
   const d = 'M ' + q.pts.map(p => p.join(' ')).join(' L ') + ' Z';
  let cibles = '', indices = '';
-  /* Un côté ne se marque que si un tampon d’égalité est disponible : au CE1,
-     seuls les sommets sont actifs, et seuls eux s’annoncent. */
-  const cotesActifs = tampons.length > 1;
+  /* UNE SEULE LECTURE DU PALIER pour les trois moments où l’égalité de
+     longueur peut se montrer : les cibles de côté, l’attente à la validation,
+     et la figure de correction. Trois conditions séparées, c’était trois
+     occasions d’en oublier une — et c’est exactement ce qui était arrivé à la
+     correction. */
+  const egalitesAuProgramme = codeLesEgalites(tampons);
+  const cotesActifs = egalitesAuProgramme;
   q.pts.forEach((p, i) => {
     cibles  += `<circle class="cible-tactile" data-t="a${i}" cx="${p[0]}" cy="${p[1]}" r="20"/>`;
     indices += `<circle class="indice-cible" data-i="a${i}" cx="${p[0]}" cy="${p[1]}" r="11"/>`;
@@ -3114,7 +3163,7 @@ function dessinerCodage(q, tampons){
        identiques pour qu’un codage ait un sens, et deux notations
        distinctes pour deux groupes distincts. */
     let egalitesOk = true, motif = null;
-    if (tampons.length > 1) {
+    if (egalitesAuProgramme) {
       const parType = {};
       Object.keys(posees).filter(k => k[0] === 'c').forEach(k => {
         (parType[posees[k]] = parType[posees[k]] || []).push(+k.slice(1));
@@ -3134,11 +3183,26 @@ function dessinerCodage(q, tampons){
     }
     const bon = anglesOk && egalitesOk;
     const manque = bon && q._exigeVerif && !q._instrumentPose;
-    // Correction : on montre le codage attendu (§18).
+    /* Correction : on montre le codage attendu (§18) — mais AU PALIER. Les
+       égalités de la figure ne s’affichent que si le palier les enseigne :
+       sans ce garde, le carré et le rectangle du CE1 (quatre items sur cinq)
+       exhibaient une notation que l’enfant n’avait aucun moyen de poser. */
     const g = svg.getElementById('marques');
     svg.querySelectorAll('.indice-cible').forEach(e => e.classList.add('pris'));
     g.innerHTML = q.droits.map(i => marqueAngleDroit(q.pts, i)).join('')
-      + q.groupes.map((grp, gi) => grp.map(i => marqueEgalite(q.pts, i, gi + 1)).join('')).join('');
+      + (egalitesAuProgramme
+          ? q.groupes.map((grp, gi) => grp.map(i => marqueEgalite(q.pts, i, gi + 1)).join('')).join('')
+          : '');
+    /* Ce que la correction montre EFFECTIVEMENT, relu sur le dessin fini et
+       consigné sur l’item : le validateur n’a plus à deviner l’intention du
+       rendu, il lit son résultat. */
+    q._codeAffiche = [...new Set([...g.querySelectorAll('[data-code]')].map(e => e.dataset.code))].sort();
+    q._tamponsOfferts = tampons.slice();
+    /* Le contrôle s’exécute pour de vrai, à chaque manche jouée : un garde-fou
+       qui n’est appelé que par la suite de tests finit par ne plus rien garder.
+       Toute violation devient une erreur de console, que les tests refusent. */
+    const pbCodage = verifierItem(q);
+    if (pbCodage.length) console.error('codage — ' + pbCodage.join(' ; '));
     terminerManche(bon, !bon ? 0 : (manque ? PTS_SANS_VERIF : PTS_PLEIN),
       bon && !manque ? 'Plan certifié !' : null,
       !bon ? (motif || 'Voici le codage attendu.')
