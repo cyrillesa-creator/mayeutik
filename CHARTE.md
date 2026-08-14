@@ -465,6 +465,81 @@ Règle absolue : on ne touche **jamais** au format (nombre d'items, chronométra
 
 ---
 
+## 13 bis. Tirages : sans remise, et vérifié par test (obligatoire)
+
+Le §13 demande de la variété. Cette exigence n'a de valeur que si elle est **mécanique** : trois revues successives de M34 ont produit le même défaut sous trois formes différentes — une même famille de manches tirée trois fois d'affilée, un même distracteur répété, une même figure servie deux fois — alors que le module disposait déjà d'un tirage sans remise, simplement non appliqué à ces endroits. Une règle qu'on applique de mémoire est une règle qu'on oublie.
+
+### La règle
+
+**Tout tirage portant sur un CONTENU se fait sans remise, jusqu'à épuisement du stock.**
+
+Est un contenu : une famille de manches, une figure, une notion, une forme visée, une proposition fausse, un objet du décor — tout ce dont la répétition **se voit**.
+
+Trois clauses, indissociables :
+
+1. **Sans remise.** Le tirage passe par un utilitaire à mémoire de session, indexé par une clé propre à ce stock. Aucun élément ne revient tant que le stock n'est pas épuisé.
+2. **Pas deux fois de suite.** Deux manches consécutives ne portent jamais le même contenu — y compris à la jointure de deux cycles, et y compris quand une entrée est dupliquée dans le stock pour la pondérer. Le sans-remise seul ne l'interdit pas.
+3. **Au remélange, ce qui vient d'être servi part en fin de pioche**, sans quoi « sans répétition » ne vaudrait qu'à l'intérieur d'un cycle.
+
+Fonction utilitaire de référence à copier dans chaque nouveau jeu (elle s'appuie sur le `melanger` du §13) :
+
+```js
+/* Tirage SANS REMISE à mémoire de session. `cle` identifie le stock : deux
+   stocks distincts ne doivent jamais la partager. */
+const memoireTirages = {}, memoireDernier = {};
+function tirerSansRepetition(cle, stock, n) {
+  let reste = memoireTirages[cle];
+  let precedent = memoireDernier[cle];
+  const sortie = [];
+  for (let i = 0; i < n; i++) {
+    if (!reste || !reste.length) {
+      /* Clause 3 : ce qui vient d'être servi repart EN FIN de pioche. */
+      const dejaVus = sortie.slice();
+      reste = melanger(stock.filter((x) => dejaVus.indexOf(x) === -1)).concat(melanger(dejaVus));
+    }
+    /* Clause 2 : on saute le premier candidat s'il répète le précédent —
+       y compris à la jointure de deux cycles, que le sans-remise ne couvre
+       pas. Un stock d'un seul élément ne laisse évidemment pas le choix. */
+    let k = 0;
+    while (k < reste.length && reste[k] === precedent) k++;
+    if (k === reste.length) k = 0;
+    precedent = reste.splice(k, 1)[0];
+    sortie.push(precedent);
+  }
+  memoireTirages[cle] = reste;
+  memoireDernier[cle] = precedent;
+  return sortie;
+}
+```
+
+**Pondérer en dupliquant une entrée du stock est incompatible avec le sans-remise** : les doublons s'épuisent ensemble et la pondération disparaît au premier cycle. Un dosage voulu se déclare à part (`dosageEvident`, part de cibles dans un flux) et se compose avec le tirage, il ne se cache pas dedans.
+
+### Ce à quoi la règle ne s'applique pas
+
+Trois exclusions, sans lesquelles la règle produirait son propre défaut :
+
+- **La position des réponses à l'écran.** Tirée sans remise, elle devient *prévisible* : un enfant attentif déduit que la bonne réponse n'a pas encore occupé la troisième case. Le §13 y demande l'indépendance, pas le cycle.
+- **Les paramètres continus** — angle de rotation d'une figure, position d'un sommet dans un intervalle, teinte : il n'y a pas de stock à épuiser.
+- **Les proportions voulues** — le mélange cibles/distracteurs d'un flux, par exemple, où l'on tient un ratio et non un cycle.
+
+### Deux conséquences de conception
+
+**Un stock plus petit que la file signale un problème de contenu, pas de tirage.** Si un mini-jeu de 8 manches ne dispose que de 8 items, la file consomme exactement le stock : aucune marge, et la partie suivante rejoue le même matériel dans un autre ordre. Le bon réflexe est d'élargir la banque, pas d'assouplir la règle.
+
+**Exiger un stock strictement supérieur à la longueur de la file.** Un stock de 2 tiré sans remise donne une alternance stricte ABABAB, plus repérable qu'un tirage aléatoire.
+
+### Le test
+
+Le validateur d'items vérifie chaque manche **prise isolément** — c'est nécessaire et insuffisant : la justesse d'une manche et la variété d'une file sont deux propriétés distinctes, et la seconde ne se voit qu'à l'échelle de la partie. Relire le code d'un item ne la révélera jamais.
+
+Ajouter donc un auto-test qui **engendre des dizaines de files par mini-jeu** et échoue si :
+
+- deux manches consécutives portent le même contenu ;
+- un contenu revient avant épuisement de son stock ;
+- un stock est plus petit ou égal à la longueur de la file.
+
+---
+
 ## Résumé technique
 
 | Aspect | Choix |
@@ -482,6 +557,7 @@ Règle absolue : on ne touche **jamais** au format (nombre d'items, chronométra
 | Progression & acquis | Contrat de données v1 : sessions brutes écrites par les jeux, statuts calculés côté coquille |
 | Mode chronométré | Modules "E" uniquement : temps imparti par exercice (référentiel), arrêt net à expiration, pas de rattrapage |
 | Variété & randomisation | QCM mélangés (Fisher-Yates), questions mélangées par partie SANS redondance jusqu'à épuisement de la banque, banque ≥ 2-3× le nombre posé ou génération procédurale |
+| Tirages de contenu | Sans remise via `tirerSansRepetition`, jamais deux fois de suite, stock > longueur de la file ; hors position des réponses, paramètres continus et proportions voulues ; auto-test à l'échelle de la FILE |
 | Modules adaptatifs par niveau | Un seul fichier, contenu JSON par palier, niveau du profil actif lu au démarrage, palier bonus optionnel au-delà de la maîtrise |
 | Navigation automatique | Bouton « Suivant » : avance automatique 2 s après son affichage, sauf clic manuel ou sortie du jeu avant ce délai |
 
