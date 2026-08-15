@@ -435,19 +435,40 @@ const CONTENU = {
           {nom:"Le banc", pieces:[
             {type:"pave",x:0,y:1,z:0,dx:2,dy:1},{type:"cube",x:2,y:1,z:0,dx:1,dy:1},
             {type:"cube",x:0,y:1,z:1,dx:1,dy:1},{type:"cube",x:2,y:1,z:1,dx:1,dy:1}]},
-          /* 3 — le petit escalier : trois marches qui montent. */
+          /* 3 — L’ÉQUERRE : les deux orientations du pavé, et le seul assemblage
+             où le bouton « posé en largeur / en profondeur » sert vraiment.
+             La validation étant invariante par rotation, un pavé vertical seul
+             se reproduit à l’horizontale en tournant toute la construction ;
+             il en faut DEUX À ANGLE DROIT pour qu’aucune rotation globale ne
+             les ramène tous deux à plat. Quatre pièces et non trois : la
+             taille des assemblages doit croître, et « Le banc » en compte
+             déjà quatre. */
+          {nom:"L’équerre", pieces:[
+            {type:"pave",x:1,y:1,z:0,dx:2,dy:1},{type:"pave",x:1,y:2,z:0,dx:1,dy:2},
+            {type:"cube",x:1,y:1,z:1,dx:1,dy:1},{type:"cube",x:1,y:2,z:1,dx:1,dy:1}]},
+          /* 4 — le petit escalier : trois marches qui montent. */
           {nom:"Le petit escalier", pieces:[
             {type:"cube",x:0,y:1,z:0,dx:1,dy:1},{type:"cube",x:1,y:1,z:0,dx:1,dy:1},
             {type:"cube",x:2,y:1,z:0,dx:1,dy:1},
             {type:"cube",x:0,y:1,z:1,dx:1,dy:1},{type:"cube",x:1,y:1,z:1,dx:1,dy:1},
             {type:"cube",x:0,y:1,z:2,dx:1,dy:1}]},
-          /* 4 — la tour en L (prototype, testé sur appareil). */
+          /* 5 — la tour en L (prototype, testé sur appareil). */
           {nom:"La tour en L", pieces:[
             {type:"cube",x:0,y:1,z:0,dx:1,dy:1},{type:"cube",x:1,y:1,z:0,dx:1,dy:1},
             {type:"cube",x:2,y:1,z:0,dx:1,dy:1},{type:"cube",x:1,y:2,z:0,dx:1,dy:1},
             {type:"cube",x:1,y:1,z:1,dx:1,dy:1},{type:"cube",x:2,y:1,z:1,dx:1,dy:1},
             {type:"cube",x:1,y:1,z:2,dx:1,dy:1}]},
-          /* 5 — cubes et pavés mêlés (prototype, testé sur appareil). */
+          /* 6 — LA CHEMINÉE : des pavés croisés au sol, un troisième pavé à
+             l’étage au-dessus dans une autre direction. Il faut tenir
+             l’orientation d’un étage à l’autre, ce qu’aucune manche ne
+             demandait. Trois étages, sept pièces, aucun cube caché — le CP
+             n’en rencontre pas. */
+          {nom:"La cheminée", pieces:[
+            {type:"pave",x:0,y:1,z:0,dx:2,dy:1},{type:"pave",x:2,y:0,z:0,dx:1,dy:2},
+            {type:"cube",x:1,y:2,z:0,dx:1,dy:1},{type:"cube",x:0,y:2,z:0,dx:1,dy:1},
+            {type:"pave",x:1,y:1,z:1,dx:1,dy:2},
+            {type:"cube",x:1,y:1,z:2,dx:1,dy:1},{type:"cube",x:1,y:2,z:2,dx:1,dy:1}]},
+          /* 7 — cubes et pavés mêlés (prototype, testé sur appareil). */
           {nom:"Le château", pieces:[
             {type:"pave",x:0,y:1,z:0,dx:2,dy:1},{type:"cube",x:2,y:1,z:0,dx:1,dy:1},
             {type:"cube",x:1,y:2,z:0,dx:1,dy:1},
@@ -484,7 +505,20 @@ const CONTENU = {
             {type:"cube",x:1,y:0,z:0,dx:1,dy:1},{type:"cube",x:1,y:2,z:0,dx:1,dy:1},
             {type:"cube",x:1,y:1,z:1,dx:1,dy:1},
             {type:"cube",x:1,y:1,z:2,dx:1,dy:1}]},
-          /* 4 — base pleine 3×3, une rangée dessus, une tour : le centre du
+          /* 4 — LE COUVERCLE : même croix, mais coiffée d’un PAVÉ. Le
+             raisonnement change de forme — ce n’est plus « un cube tient
+             dessus, donc il y a un cube dessous », c’est « les deux cases
+             sous le pavé sont occupées, sinon il pencherait ». La règle
+             d’appui exige en effet que CHAQUE cellule d’une pièce repose sur
+             une cellule occupée : un pavé témoigne pour deux cases à la
+             fois. */
+          {nom:"Le couvercle", cache:true, pieces:[
+            {type:"cube",x:1,y:1,z:0,dx:1,dy:1},
+            {type:"cube",x:0,y:1,z:0,dx:1,dy:1},{type:"cube",x:2,y:1,z:0,dx:1,dy:1},
+            {type:"cube",x:1,y:0,z:0,dx:1,dy:1},{type:"cube",x:1,y:2,z:0,dx:1,dy:1},
+            {type:"pave",x:1,y:1,z:1,dx:2,dy:1},
+            {type:"cube",x:1,y:1,z:2,dx:1,dy:1}]},
+          /* 5 — base pleine 3×3, une rangée dessus, une tour : le centre du
              bas reste caché. */
           {nom:"La tour sur socle", cache:true, pieces:[
             {type:"cube",x:0,y:0,z:0,dx:1,dy:1},{type:"cube",x:1,y:0,z:0,dx:1,dy:1},
@@ -495,7 +529,7 @@ const CONTENU = {
             {type:"cube",x:0,y:1,z:1,dx:1,dy:1},{type:"cube",x:1,y:1,z:1,dx:1,dy:1},
             {type:"cube",x:2,y:1,z:1,dx:1,dy:1},
             {type:"cube",x:1,y:1,z:2,dx:1,dy:1}]},
-          /* 5 — le plus exigeant (prototype, testé sur appareil). */
+          /* 6 — le plus exigeant (prototype, testé sur appareil). */
           {nom:"Le gros bloc", cache:true, pieces:[
             {type:"cube",x:0,y:0,z:0,dx:1,dy:1},{type:"cube",x:1,y:0,z:0,dx:1,dy:1},
             {type:"cube",x:2,y:0,z:0,dx:1,dy:1},{type:"cube",x:0,y:1,z:0,dx:1,dy:1},
@@ -504,11 +538,49 @@ const CONTENU = {
             {type:"cube",x:2,y:2,z:0,dx:1,dy:1},
             {type:"cube",x:0,y:0,z:1,dx:1,dy:1},{type:"cube",x:1,y:0,z:1,dx:1,dy:1},
             {type:"cube",x:0,y:1,z:1,dx:1,dy:1},{type:"cube",x:1,y:1,z:1,dx:1,dy:1},
-            {type:"cube",x:0,y:0,z:2,dx:1,dy:1}]}
+            {type:"cube",x:0,y:0,z:2,dx:1,dy:1}]},
+          /* 7 — LE GRAND COUVERCLE : un seul pavé prouve DEUX cubes cachés.
+             Les cases (1,1) et (2,1) de la base sont entourées de tous côtés,
+             et le pavé posé dessus témoigne pour les deux à la fois. Une
+             pièce, deux déductions : c’est le sommet logique du palier, et
+             rien dans le jeu n’allait aussi loin. */
+          {nom:"Le grand couvercle", cache:true, pieces:[
+            {type:"cube",x:0,y:0,z:0,dx:1,dy:1},{type:"cube",x:1,y:0,z:0,dx:1,dy:1},
+            {type:"cube",x:2,y:0,z:0,dx:1,dy:1},{type:"cube",x:3,y:0,z:0,dx:1,dy:1},
+            {type:"cube",x:0,y:1,z:0,dx:1,dy:1},{type:"cube",x:1,y:1,z:0,dx:1,dy:1},
+            {type:"cube",x:2,y:1,z:0,dx:1,dy:1},{type:"cube",x:3,y:1,z:0,dx:1,dy:1},
+            {type:"cube",x:0,y:2,z:0,dx:1,dy:1},{type:"cube",x:1,y:2,z:0,dx:1,dy:1},
+            {type:"cube",x:2,y:2,z:0,dx:1,dy:1},{type:"cube",x:3,y:2,z:0,dx:1,dy:1},
+            {type:"pave",x:1,y:1,z:1,dx:2,dy:1},
+            {type:"cube",x:1,y:1,z:2,dx:1,dy:1}]}
         ]
       }]
     }
   }
+};
+
+/* ============================================================
+   LES ASSEMBLAGES : UN STOCK FERMÉ ET ORDONNÉ (hors CHARTE §13 bis)
+   ------------------------------------------------------------
+   Le §13 bis exige que tout tirage de contenu se fasse sans remise. Il ne
+   s’applique pas ici, et il faut le dire explicitement — sans quoi une
+   application mécanique de la charte casserait le mini-jeu.
+
+   Ce n’est pas un tirage : la partie joue LES SEPT assemblages, TOUS, DANS
+   L’ORDRE DE LA LISTE. Cet ordre porte la progression de difficulté — deux
+   étages, puis trois, puis un cube caché, puis deux cubes cachés prouvés par
+   un seul pavé — et l’écran d’explication des cubes cachés s’ouvre à la
+   PREMIÈRE rencontre. Mélanger la liste détruirait la progression et ferait
+   tomber cet écran n’importe où, par exemple devant « Le gros bloc » et ses
+   quatorze pièces.
+
+   Ce que la déclaration ENGAGE, et que l’auto-test relit sur une partie
+   jouée pour de bon : l’ordre annoncé est l’ordre joué, rien n’est tiré,
+   rien n’est omis. */
+const TIRAGE_ASSEMBLAGES = {
+  ordonne: true,
+  raison: 'stock fermé et ordonné, joué intégralement : l’ordre porte la progression '
+        + 'de difficulté et déclenche l’écran des cubes cachés à la première rencontre'
 };
 
 /* ============================================================
