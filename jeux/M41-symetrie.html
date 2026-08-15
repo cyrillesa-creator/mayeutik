@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>La Symétrie — Mayeutik</title>
+<!-- ============================================================
+     M41 — SYMÉTRIE AXIALE (CE2)
+     ------------------------------------------------------------
+     Fichier unique et autonome (CHARTE) : aucune dépendance réseau,
+     SVG pur. CE2 SEUL — donc pas de paliers, pas d’onglets, pas de
+     paquet cadeau : ce module est plus simple que ses trois voisins
+     du sous-thème, et sa coquille doit l’être aussi.
+
+     Ce fichier porte pour l’instant le SEUL mini-jeu « Le monde à
+     moitié effacé » (ce2-symetrie-completer). Le second, « Symboles
+     miroirs », viendra sur le même socle une fois le geste de tracé
+     validé sur appareil — c’est lui qui en dépend, pas l’inverse.
+     ============================================================ -->
+<style>
+:root{
+  color-scheme: light only;
+  --ciel:#EAF2FC; --carte:#FFFFFF; --encre:#1D3354; --encre2:#41577A;
+  --mandarine:#FF8A3D; --mandarine-f:#E5701F;
+  --menthe:#2EC4A6; --menthe-t:#0B8A70; --corail:#FF5D5D; --corail-t:#D93636; --soleil:#FFC93C;
+  --plomb:#2B3A55;
+  --r:20px; --ombre:0 4px 0 rgba(29,51,84,.12);
+  font-size:16px;
+}
+
+/* ---------- Protections tactiles (CHARTE §19) ----------
+   `touch-action` ne s’hérite PAS : le sélecteur universel est le seul
+   moyen de couvrir toute l’interface, et la zone de tracé doit le
+   redéclarer sur elle-même ET sur ses enfants. */
+*{ box-sizing:border-box; touch-action:pan-y; -webkit-tap-highlight-color:transparent; }
+html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; background:var(--ciel); color-scheme:light only; }
+html,body{margin:0; padding:0; min-height:100%;}
+body{
+  -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none;
+  -webkit-touch-callout:none;
+  font-family:'Fredoka', ui-rounded, 'Segoe UI', system-ui, sans-serif;
+  background:var(--ciel); color:var(--encre);
+  background-image:radial-gradient(rgba(29,51,84,.05) 1.5px, transparent 1.5px);
+  background-size:26px 26px;
+  display:flex; justify-content:center;
+}
+img, svg{ -webkit-user-drag:none; }
+#app{width:100%; max-width:520px; min-height:100dvh; display:flex; flex-direction:column; padding:10px 14px 18px;}
+
+/* ---------- Header ---------- */
+header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-height:54px;}
+#btnBack{
+  width:42px; height:42px; border-radius:14px; border:none; flex:none;
+  background:var(--carte); color:var(--encre); font-size:20px; font-weight:700;
+  box-shadow:var(--ombre); cursor:pointer;
+}
+#btnBack:active{transform:translateY(2px); box-shadow:0 2px 0 rgba(29,51,84,.12);}
+#hdrTitle{font-weight:600; font-size:1.15rem; flex:1; line-height:1.1;}
+#dots{display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end; max-width:46%;}
+.dot{width:10px; height:10px; border-radius:50%; background:#C9D6E8;}
+.dot.ok{background:var(--menthe);} .dot.ko{background:var(--corail);} .dot.cur{background:var(--mandarine);}
+
+/* ---------- Accueil ---------- */
+#home h1{font-size:1.7rem; margin:4px 0 2px; font-weight:700;}
+#home .sub{color:var(--encre2); margin:0 0 12px; font-size:.95rem;}
+.cards{display:grid; grid-template-columns:1fr; gap:12px;}
+.card{
+  background:var(--carte); border:none; border-radius:var(--r); padding:16px 12px 14px;
+  box-shadow:var(--ombre); cursor:pointer; text-align:center;
+  font-family:inherit; color:var(--encre);
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  transition:transform .08s;
+}
+.card:active{transform:translateY(3px); box-shadow:0 1px 0 rgba(29,51,84,.12);}
+.card .ico{font-size:2rem; line-height:1;}
+.card .nom{font-weight:600; font-size:1.02rem;}
+.card .det{font-size:.78rem; color:var(--encre2); white-space:pre-line;}
+.card .stars{font-size:.85rem; letter-spacing:2px; min-height:1.1em;}
+.card[disabled]{opacity:.55; cursor:not-allowed;}
+
+/* ---------- Écran de jeu ---------- */
+#qText{
+  font-size:1.05rem; font-weight:600; text-align:center; margin:4px 4px 3px;
+  line-height:1.35; display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;
+}
+.sous-consigne{text-align:center; font-size:.85rem; color:var(--encre2); margin:0 0 8px; line-height:1.35;}
+.btn-voix{
+  border:none; background:var(--carte); box-shadow:var(--ombre); border-radius:12px;
+  min-width:40px; min-height:40px; font-size:1.05rem; cursor:pointer; font-family:inherit; padding:0 10px;
+}
+.btn-voix:active{transform:translateY(2px);}
+
+/* ---------- Le plan quadrillé ----------
+   `touch-action:none` sur la zone de tracé ET sur ses enfants : sans le
+   second sélecteur, le universel plus haut remettrait chaque trait en
+   `pan-y` et le doigt ferait défiler la page au lieu de dessiner. */
+.plan{background:var(--carte); border-radius:var(--r); box-shadow:var(--ombre); padding:8px; margin-bottom:10px;}
+.plan svg{display:block; width:100%; height:auto;}
+#grille, #grille *{touch-action:none;}
+.maille{stroke:#D8E2F0; stroke-width:1; vector-effect:non-scaling-stroke;}
+.axe{stroke:var(--mandarine); stroke-width:3; stroke-dasharray:8 5; stroke-linecap:round; vector-effect:non-scaling-stroke;}
+.pre{stroke:var(--plomb); stroke-width:6; stroke-linecap:round; vector-effect:non-scaling-stroke;}
+.trace{stroke-width:6; stroke-linecap:round; vector-effect:non-scaling-stroke;}
+/* Le segment sous le doigt : un repère, pas une réponse. */
+.vise{stroke:rgba(255,138,61,.45); stroke-width:8; stroke-linecap:round; vector-effect:non-scaling-stroke;}
+.noeud{fill:#C9D6E8;}
+/* Réussite : les traits noirs se colorient. */
+.plan.reussi .pre{stroke:var(--menthe-t); transition:stroke .5s ease;}
+.plan.reussi .trace{transition:stroke .5s ease;}
+
+/* ---------- Barre d’outils ---------- */
+.outils{display:flex; gap:8px; justify-content:center; align-items:center; flex-wrap:wrap; margin-bottom:8px;}
+.outil{
+  min-height:46px; min-width:52px; border-radius:16px; border:2.5px solid transparent;
+  background:var(--carte); box-shadow:var(--ombre); cursor:pointer; font-family:inherit;
+  font-size:1.25rem; padding:0 12px; display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  -webkit-touch-callout:none; user-select:none;
+}
+.outil.on{border-color:var(--mandarine);}
+.outil:active{transform:translateY(2px);}
+.pastille{width:22px; height:22px; border-radius:50%; border:2px solid rgba(29,51,84,.25); display:inline-block;}
+.palette{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:0 0 8px;}
+.palette button{
+  width:40px; height:40px; border-radius:50%; border:3px solid transparent;
+  cursor:pointer; box-shadow:var(--ombre);
+}
+.palette button.on{border-color:var(--encre);}
+#btnPasser{
+  display:block; margin:2px auto 0; border:2px solid color-mix(in srgb, var(--encre) 25%, white);
+  border-radius:14px; background:transparent; color:var(--encre2); font-family:inherit;
+  font-weight:700; font-size:.85rem; padding:7px 18px; cursor:pointer; min-height:40px;
+}
+#feedback{text-align:center; font-weight:700; margin:6px 0 0; min-height:1.4em;}
+#feedback.bon{color:var(--menthe-t);} #feedback.mauvais{color:var(--corail-t);}
+#btnNext{
+  display:none; margin:9px auto 0; border:none; border-radius:18px;
+  padding:11px 32px; font-family:inherit; font-size:1.05rem; font-weight:700;
+  color:#fff; background:var(--mandarine); box-shadow:0 4px 0 var(--mandarine-f); cursor:pointer;
+}
+#btnNext:active{transform:translateY(3px);}
+
+/* ---------- L’effet de fin : les pages se referment puis se rouvrent ---------- */
+@keyframes page-tourne{
+  0%{ transform:perspective(700px) rotateY(0deg); }
+  45%{ transform:perspective(700px) rotateY(-72deg); }
+  100%{ transform:perspective(700px) rotateY(0deg); }
+}
+.plan.pages{ animation:page-tourne .9s ease-in-out; transform-origin:left center; }
+/* Sous `prefers-reduced-motion`, le signal de réussite ne dépend d’AUCUNE
+   animation : il reste le changement de couleur, franc. */
+@media (prefers-reduced-motion:reduce){ .plan.pages{animation:none;} }
+
+/* ---------- Fin ---------- */
+#end{text-align:center; padding-top:8vh;}
+#endStars{font-size:3.4rem; letter-spacing:8px; margin:10px 0;}
+#endStars span{display:inline-block; animation:pop .5s backwards;}
+#endStars span:nth-child(2){animation-delay:.25s;} #endStars span:nth-child(3){animation-delay:.5s;}
+@keyframes pop{0%{transform:scale(0)}70%{transform:scale(1.35)}100%{transform:scale(1)}}
+#endMsg{font-size:1.3rem; font-weight:700;}
+#endScore{color:var(--encre2); margin:6px 0 22px;}
+#end .actions-fin{display:flex; gap:12px; justify-content:center;}
+#end .actions-fin button{
+  border:none; border-radius:18px; padding:13px 26px; font-family:inherit;
+  font-size:1.05rem; font-weight:700; cursor:pointer; box-shadow:var(--ombre); min-height:44px;
+}
+#bRejouer{background:var(--mandarine); color:#fff; box-shadow:0 4px 0 var(--mandarine-f);}
+#bMenu{background:var(--carte); color:var(--encre);}
+
+/* ---------- Retour à la coquille (CHARTE §7) ---------- */
+.barre-accueil{display:flex; margin:0 0 8px;}
+.bouton-menu{
+  min-height:44px; border-radius:14px; padding:0 14px; cursor:pointer; font-family:inherit;
+  border:2px solid color-mix(in srgb, var(--encre) 25%, white);
+  background:var(--carte); color:var(--encre); font-weight:600; font-size:.95rem;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.bouton-menu:active{transform:translateY(2px);}
+.modale-fond{
+  position:fixed; inset:0; z-index:1000; padding:1.2rem;
+  background:color-mix(in srgb, var(--encre) 55%, transparent);
+  display:flex; align-items:center; justify-content:center;
+}
+.modale-boite{
+  background:var(--carte); border-radius:20px; padding:22px 18px; max-width:20rem; width:100%;
+  text-align:center; box-shadow:0 12px 34px rgba(29,51,84,.3);
+}
+.modale-boite p{font-size:1.05rem; font-weight:600; margin:0 0 18px; color:var(--encre);}
+.modale-boutons{display:flex; gap:10px; justify-content:center; flex-wrap:wrap;}
+.modale-boutons button{
+  border:none; border-radius:16px; padding:12px 20px; font-family:inherit;
+  font-size:1rem; font-weight:700; cursor:pointer; min-height:44px;
+}
+.modale-boutons .m-rester{background:var(--carte); color:var(--encre); border:2px solid var(--encre);}
+.modale-boutons .m-revenir{background:var(--mandarine); color:#fff; box-shadow:0 4px 0 var(--mandarine-f);}
+
+/* ---------- Confettis (CHARTE §4) ---------- */
+#confettis-conteneur{position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:999;}
+.confetti{position:absolute; top:-12px; width:9px; height:14px; border-radius:2px;
+  animation-name:chute-confetti; animation-timing-function:ease-in; animation-fill-mode:forwards;}
+@keyframes chute-confetti{ to{ transform:translateY(105vh) rotate(340deg); opacity:.75; } }
+@media (prefers-reduced-motion:reduce){ .confetti{display:none; animation:none;} }
+
+[hidden]{display:none !important;}
+@media (prefers-color-scheme: dark){
+  html, body{background:var(--ciel) !important; color:var(--encre) !important;}
+  .card, .plan, .outil, #btnBack{background:var(--carte) !important; color:var(--encre) !important;}
+}
+@media (prefers-reduced-motion:reduce){ *{animation:none !important;} }
+</style>
+</head>
+<body>
+<div id="confettis-conteneur" aria-hidden="true"></div>
+
+<div class="modale-fond" id="modale-menu" hidden>
+  <div class="modale-boite" role="dialog" aria-modal="true" aria-labelledby="modale-menu-texte">
+    <p id="modale-menu-texte">Revenir au menu principal ? Ta partie en cours sera perdue.</p>
+    <div class="modale-boutons">
+      <button type="button" class="m-rester" id="modale-menu-rester">Rester</button>
+      <button type="button" class="m-revenir" id="modale-menu-revenir">Revenir au menu</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <button id="btnBack" hidden aria-label="Retour">←</button>
+    <div id="hdrTitle">La Symétrie</div>
+    <div id="dots"></div>
+  </header>
+
+  <section id="home">
+    <div class="barre-accueil"><button type="button" class="bouton-menu" id="bouton-menu">← Menu</button></div>
+    <h1>La Symétrie</h1>
+    <p class="sub" id="sous-titre-accueil"></p>
+    <div class="cards" id="grille-jeux"></div>
+  </section>
+
+  <section id="game" hidden>
+    <div id="qText"></div>
+    <p class="sous-consigne" id="sousConsigne"></p>
+    <div class="plan" id="plan"><svg id="grille" viewBox="-0.4 -0.4 8.8 10.8" aria-label="Plan quadrillé"></svg></div>
+    <div class="palette" id="palette" hidden></div>
+    <div class="outils" id="outils"></div>
+    <button type="button" id="btnPasser">Passer cette figure</button>
+    <p id="feedback"></p>
+    <button id="btnNext" type="button">Suivant ➜</button>
+  </section>
+
+  <section id="end" hidden>
+    <div id="endStars"></div>
+    <div id="endMsg"></div>
+    <div id="endScore"></div>
+    <div class="actions-fin">
+      <button id="bRejouer" type="button">Rejouer</button>
+      <button id="bMenu" type="button">Menu</button>
+    </div>
+  </section>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+
+/* ============================================================
+   LE PLAN : UN QUADRILLAGE, ET UN ENSEMBLE FINI DE SEGMENTS
+   ------------------------------------------------------------
+   Le tracé suit les lignes et les diagonales du quadrillage. L’ensemble
+   des segments possibles est donc FINI — c’est ce qui rend le geste au
+   doigt praticable : le doigt balaie, le segment le plus proche s’allume,
+   et la précision de la main n’entre jamais dans la géométrie obtenue.
+   ============================================================ */
+const NX = 8, NY = 10;          // cellules
+const AXE_V = NX / 2, AXE_H = NY / 2;
+/* LA VUE DÉBORDE LE QUADRILLAGE D’UNE DEMI-MAILLE (cf. `viewBox`). Sans cette
+   marge, les segments du BORD — le bout de la queue du poisson, par exemple —
+   tombent sur l’arête exacte de la surface tactile : le doigt les manque, et
+   la figure devient impossible à finir. La marge n’est pas décorative. */
+
+/* Une clé de segment est canonique : le plus petit bout d’abord, pour que
+   (a,b) et (b,a) soient le même segment. */
+function cle(a, b){
+  const [p, q] = (a[0] < b[0] || (a[0] === b[0] && a[1] <= b[1])) ? [a, b] : [b, a];
+  return p[0] + ',' + p[1] + '|' + q[0] + ',' + q[1];
+}
+const bouts = k => k.split('|').map(s => s.split(',').map(Number));
+
+/* Tous les segments légaux : côtés de maille et diagonales de cellule. */
+function segmentsPossibles(){
+  const out = [];
+  for (let j = 0; j <= NY; j++) for (let i = 0; i < NX; i++) out.push(cle([i,j],[i+1,j]));
+  for (let i = 0; i <= NX; i++) for (let j = 0; j < NY; j++) out.push(cle([i,j],[i,j+1]));
+  for (let i = 0; i < NX; i++) for (let j = 0; j < NY; j++) {
+    out.push(cle([i,j],[i+1,j+1]));
+    out.push(cle([i+1,j],[i,j+1]));
+  }
+  return out;
+}
+const SEGMENTS = segmentsPossibles();
+const EST_LEGAL = new Set(SEGMENTS);
+
+const reflechirPoint = ([x,y], axe) => axe === 'v' ? [NX - x, y] : [x, NY - y];
+const reflechirSeg = (k, axe) => {
+  const [a, b] = bouts(k);
+  return cle(reflechirPoint(a, axe), reflechirPoint(b, axe));
+};
+
+/* ============================================================
+   BANQUE DE DEMI-FIGURES
+   ------------------------------------------------------------
+   Chaque figure ne donne QUE sa moitié de référence — à gauche pour un
+   axe vertical, en haut pour un axe horizontal. La figure complète est
+   `demi ∪ σ(demi)` : elle est symétrique PAR CONSTRUCTION, jamais par
+   déclaration, et le contrôle de données le relit.
+
+   Un stock de sept pour une file de six (CHARTE §13 bis) : deux parties
+   de suite ne rejouent pas le même matériel.
+   ============================================================ */
+const FIGURES = [
+  {nom:'la maison', axe:'v', demi:[
+    [4,2,3,3],[3,3,2,4],[2,4,1,5],
+    [1,5,1,6],[1,6,1,7],[1,7,1,8],
+    [1,8,2,8],[2,8,3,8],[3,8,4,8],
+    [3,8,3,7],[3,7,3,6],[3,6,4,6]]},
+  {nom:'le sapin', axe:'v', demi:[
+    [4,1,3,2],[3,2,4,2],
+    [4,2,3,3],[3,3,2,4],[2,4,3,4],[3,4,4,4],
+    [4,4,3,5],[3,5,2,6],[2,6,3,6],[3,6,4,6],
+    [3,6,3,7],[3,7,3,8],[3,8,4,8]]},
+  {nom:'la fusée', axe:'v', demi:[
+    [4,1,3,2],
+    [3,2,3,3],[3,3,3,4],[3,4,3,5],[3,5,3,6],
+    [3,6,2,7],[2,7,1,8],[1,8,2,8],[2,8,3,8],
+    [3,6,3,7],[3,7,3,8],
+    [3,3,4,3]]},
+  {nom:'la couronne', axe:'v', demi:[
+    [1,7,2,7],[2,7,3,7],[3,7,4,7],
+    [1,7,1,6],[1,6,1,5],
+    [1,5,2,6],[2,6,3,5],[3,5,4,6]]},
+  {nom:'le papillon', axe:'v', demi:[
+    [4,4,4,5],
+    [4,4,3,3],[3,3,2,3],[2,3,1,4],[1,4,2,5],[2,5,3,5],[3,5,4,4],
+    [4,5,3,6],[3,6,2,6],[2,6,1,7],[1,7,2,8],[2,8,3,8],[3,8,4,7]]},
+  {nom:'le poisson', axe:'h', demi:[
+    [1,5,2,4],[2,4,3,3],[3,3,4,3],[4,3,5,3],[5,3,6,4],[6,4,7,5],
+    [7,5,8,4],[8,4,8,5],
+    /* L’œil s’accroche au corps en (3,3) : posé en (3,4)-(4,4) il flottait,
+       et la figure complète n’était plus connexe. */
+    [3,3,3,4]]},
+  {nom:'le cerf-volant', axe:'h', demi:[
+    [4,1,3,2],[3,2,2,3],[2,3,1,4],[1,4,0,5],
+    [4,1,5,2],[5,2,6,3],[6,3,7,4],[7,4,8,5],
+    /* La traverse se découpe en segments d’UNE maille : un trait de deux
+       mailles n’est pas un segment légal du quadrillage. */
+    [2,3,3,3],[3,3,4,3],[4,3,5,3],[5,3,6,3]]}
+];
+
+/* ============================================================
+   LA FIGURE CIBLE, ET LES DEUX MANIÈRES DE L’EFFACER
+   ------------------------------------------------------------
+   Bloc 1 — LE REPORT : une moitié complète, l’autre vide.
+   Bloc 2 — LA FUSION : les deux moitiés sont incomplètes, et
+
+       la figure cible est l’UNION DES DEUX MOITIÉS RABATTUES.
+
+   Ce que porte la gauche doit apparaître à droite, et réciproquement.
+   Aucune moitié n’est le modèle ; le modèle est leur réunion — c’est ce
+   qui fait la valeur du second bloc, et ce qui le rend nettement plus
+   riche qu’un report.
+
+   D’où la règle de génération qui décide de tout : POUR CHAQUE PAIRE
+   MIROIR {s, σ(s)}, AU PLUS UN DES DEUX PEUT ÊTRE EFFACÉ. Effacer les
+   deux rendrait le segment irrécupérable — l’union ne le contiendrait
+   plus — et la manche deviendrait insoluble. Les segments portés par
+   l’axe sont leur propre miroir : ils ne s’effacent jamais.
+   ============================================================ */
+function cibleDe(fig){
+  const T = new Set();
+  fig.demi.forEach(([a,b,c,d]) => { const k = cle([a,b],[c,d]); T.add(k); T.add(reflechirSeg(k, fig.axe)); });
+  return T;
+}
+/* Les paires miroir, et les segments qui sont leur propre miroir. */
+function pairesDe(fig, T){
+  const paires = [], surAxe = [], vus = new Set();
+  [...T].forEach(k => {
+    if (vus.has(k)) return;
+    const m = reflechirSeg(k, fig.axe);
+    vus.add(k); vus.add(m);
+    if (m === k) surAxe.push(k); else paires.push([k, m]);
+  });
+  return {paires, surAxe};
+}
+/* Le côté de référence : gauche pour un axe vertical, haut pour un axe
+   horizontal. Sert à répartir les effacements des deux côtés. */
+function estDuCoteReference(k, axe){
+  const [a, b] = bouts(k);
+  return axe === 'v' ? (a[0] + b[0]) / 2 < AXE_V : (a[1] + b[1]) / 2 < AXE_H;
+}
+
+function construireManche(fig, mode){
+  const T = cibleDe(fig);
+  const {paires, surAxe} = pairesDe(fig, T);
+  const pre = new Set(surAxe);          // l’axe est toujours donné
+  if (mode === 'report') {
+    /* Une moitié entière est donnée, l’autre est à reporter. */
+    paires.forEach(([k, m]) => pre.add(estDuCoteReference(k, fig.axe) ? k : m));
+  } else {
+    /* On efface des paires DES DEUX CÔTÉS, jamais les deux moitiés d’une
+       même paire, et au moins une de chaque côté — sans quoi il n’y aurait
+       rien à ajouter d’un côté et le niveau retomberait sur un report. */
+    const melangees = melanger(paires);
+    const aEffacer = Math.max(2, Math.round(melangees.length * 0.45));
+    melangees.forEach(([k, m], i) => {
+      const ref = estDuCoteReference(k, fig.axe) ? k : m;
+      const autre = ref === k ? m : k;
+      if (i >= aEffacer) { pre.add(ref); pre.add(autre); return; }
+      /* i pair : on efface du côté miroir ; i impair : du côté référence. */
+      pre.add(i % 2 === 0 ? ref : autre);
+    });
+  }
+  const aTracer = new Set([...T].filter(k => !pre.has(k)));
+  return {fig, mode, cible:T, pre, aTracer};
+}
+
+/* ============================================================
+   CONTENU (CHARTE §6) — CE2 seul, deux mini-jeux annoncés
+   ============================================================ */
+const CONTENU = {
+  sousTitre: 'Un mage a effacé la moitié du monde. À toi de le reconstruire !',
+  miniJeux: [
+    {id:'ce2-symetrie-completer', mode:'completer', titre:'Le monde à moitié effacé', icone:'🪄',
+     description:'Complète la figure de l’autre côté de l’axe.', nbQuestions:6},
+    {id:'ce2-symetrie-reconnaitre', mode:'reconnaitre', titre:'Symboles miroirs', icone:'🃏',
+     description:'Trace un axe de symétrie…\n(bientôt)', nbQuestions:6, aVenir:true}
+  ]
+};
+
+/* ============================================================
+   TIRAGES DE CONTENU (CHARTE §13 bis)
+   ------------------------------------------------------------
+   Sans remise, jamais deux fois de suite, et au remélange ce qui vient
+   d’être servi repart en fin de pioche.
+   ============================================================ */
+function melanger(t){
+  const c = [...t];
+  for (let i = c.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [c[i], c[j]] = [c[j], c[i]]; }
+  return c;
+}
+const pioche = a => a[Math.floor(Math.random()*a.length)];
+const memoireTirages = {}, memoireDernier = {};
+function tirerSansRepetition(cleStock, stock, n){
+  let reste = memoireTirages[cleStock];
+  let precedent = memoireDernier[cleStock];
+  const sortie = [];
+  for (let i = 0; i < n; i++) {
+    if (!reste || !reste.length) {
+      /* Chaque cycle est une PERMUTATION du stock : y concaténer tout ce
+         qui a été servi ferait accumuler des doublons dans la pile. */
+      const recents = sortie.slice(-Math.max(1, stock.length - 1));
+      reste = melanger(stock.filter(x => recents.indexOf(x) === -1))
+        .concat(melanger(stock.filter(x => recents.indexOf(x) !== -1)));
+    }
+    let k = 0;
+    while (k < reste.length && reste[k] === precedent) k++;
+    if (k === reste.length) k = 0;
+    precedent = reste.splice(k, 1)[0];
+    sortie.push(precedent);
+  }
+  memoireTirages[cleStock] = reste;
+  memoireDernier[cleStock] = precedent;
+  return sortie;
+}
+
+/* LES DIMENSIONS DE CONTENU (CHARTE §13 bis) : ce dont la répétition se
+   voit. La FIGURE en est une. Le MODE — report puis fusion — n’en est pas
+   une : c’est une progression écrite, jouée dans cet ordre. */
+const DIMENSIONS_CONTENU = {
+  completer:[{nom:'figure à compléter', de:q => q.fig.nom}]
+};
+const PROGRESSIONS_DECLAREES = {
+  mode:'les trois manches de report précèdent toujours les trois de fusion : '
+     + 'la fusion demande de lire les DEUX moitiés, ce qui n’a de sens qu’une '
+     + 'fois le report acquis'
+};
+
+function engendrerFile(cfg){
+  const figures = tirerSansRepetition('figures', FIGURES, cfg.nbQuestions);
+  return figures.map((fig, i) => construireManche(fig, i < 3 ? 'report' : 'fusion'));
+}
+
+/* ============================================================
+   ÉTOILES (CHARTE §9)
+   ============================================================ */
+const CLE_STOCKAGE = 'mayeutik-m41-symetrie-etoiles';
+let memoireEtoiles = null;
+function lireEtoiles(){
+  if (memoireEtoiles === null) {
+    memoireEtoiles = {};
+    try { const b = window.localStorage.getItem(CLE_STOCKAGE); if (b) memoireEtoiles = JSON.parse(b); }
+    catch(e){ memoireEtoiles = {}; }
+  }
+  return memoireEtoiles;
+}
+function enregistrerEtoiles(jeuId, valeur){
+  const tout = lireEtoiles();
+  tout[jeuId] = Math.max(tout[jeuId] || 0, valeur);
+  memoireEtoiles = tout;
+  try { window.localStorage.setItem(CLE_STOCKAGE, JSON.stringify(tout)); } catch(e){}
+}
+
+/* ============================================================
+   SESSIONS : contrat de données v1 (CHARTE §11)
+   ============================================================ */
+const CLE_SESSIONS = 'mayeutik-sessions';
+const CLE_PROFIL_ACTIF = 'mayeutik-profil-actif';
+const MODULE_ID = 'M41';
+const MAX_SESSIONS_PAR_PROFIL = 500;
+let memoireSessions = null;
+function lireProfilActifId(){
+  try { return window.localStorage.getItem(CLE_PROFIL_ACTIF) || 'p1'; } catch(e){ return 'p1'; }
+}
+function lireSessions(){
+  if (memoireSessions === null) {
+    memoireSessions = [];
+    try { const b = window.localStorage.getItem(CLE_SESSIONS); if (b) memoireSessions = JSON.parse(b); }
+    catch(e){ memoireSessions = []; }
+  }
+  return memoireSessions;
+}
+function enregistrerSession(competence, score, total, duree){
+  const profilId = lireProfilActifId();
+  const toutes = lireSessions();
+  toutes.push({profilId, module:MODULE_ID, competence, score, total, date:new Date().toISOString(), duree});
+  let n = 0;
+  for (let i = toutes.length - 1; i >= 0; i--) {
+    if (toutes[i].profilId === profilId) { n++; if (n > MAX_SESSIONS_PAR_PROFIL) toutes.splice(i, 1); }
+  }
+  memoireSessions = toutes;
+  try { window.localStorage.setItem(CLE_SESSIONS, JSON.stringify(toutes)); } catch(e){}
+}
+function parametreURL(nom){
+  try { return new URLSearchParams(window.location.search).get(nom); } catch(e){ return null; }
+}
+
+/* ============================================================
+   SONS (CHARTE §5) ET CONFETTIS (CHARTE §4)
+   ============================================================ */
+let actx = null;
+function jouerNote(freq, debut, duree, volume, forme){
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = forme || 'sine'; o.frequency.value = freq;
+    const t = actx.currentTime + debut;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(volume, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + duree);
+    o.connect(g); g.connect(actx.destination);
+    o.start(t); o.stop(t + duree + 0.02);
+  }catch(e){}
+}
+const NOTES_BONNE_REPONSE = [523.25, 659.25, 783.99, 1046.5];
+const NOTES_NIVEAU_PARFAIT = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
+function sonBonneReponse(){ NOTES_BONNE_REPONSE.forEach((f, i) => jouerNote(f, i*0.11, 0.11, 0.22)); }
+function sonNiveauParfait(){
+  const pas = 0.1;
+  NOTES_NIVEAU_PARFAIT.forEach((f, i) => jouerNote(f, i*pas, 0.12, 0.2));
+  NOTES_BONNE_REPONSE.forEach(f => jouerNote(f, NOTES_NIVEAU_PARFAIT.length*pas + 0.04, 0.75, 0.12, 'triangle'));
+}
+function sonErreur(){ [392.0, 293.66].forEach((f, i) => jouerNote(f, i*0.17, 0.17, 0.22)); }
+function sonTrait(){ jouerNote(700, 0, 0.05, 0.11); }
+function sonGomme(){ jouerNote(300, 0, 0.06, 0.10, 'triangle'); }
+
+const COULEURS_CONFETTIS = ['#FF8A3D','#2EC4A6','#FFC93C','#5AB4DC','#FF5D5D'];
+function lancerConfettis(nb){
+  const c = $('confettis-conteneur'); if (!c) return;
+  for (let i = 0; i < (nb || 30); i++) {
+    const p = document.createElement('span');
+    p.className = 'confetti';
+    p.style.left = Math.random()*100 + '%';
+    p.style.background = COULEURS_CONFETTIS[i % COULEURS_CONFETTIS.length];
+    p.style.animationDuration = (1.1 + Math.random()*0.9) + 's';
+    p.style.animationDelay = (Math.random()*0.35) + 's';
+    c.appendChild(p);
+    p.addEventListener('animationend', () => p.remove());
+    setTimeout(() => p.remove(), 2600);
+  }
+}
+
+/* ---- Voix (CHARTE §5) : la consigne est lue et réécoutable ---- */
+function voixFrancaises(){
+  try { return (window.speechSynthesis.getVoices()||[]).filter(v => /^fr/i.test(v.lang)); }
+  catch(e){ return []; }
+}
+function lire(texte){
+  try{
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(texte);
+    u.lang = 'fr-FR'; u.rate = 0.95;
+    const locales = voixFrancaises().filter(v => v.localService);
+    const v = locales[0] || voixFrancaises()[0];
+    if (v) u.voice = v;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+function stopperVoix(){ try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch(e){} }
+
+/* ============================================================
+   ÉTAT DE LA PARTIE
+   ============================================================ */
+const ecrans = {home:$('home'), game:$('game'), end:$('end')};
+let miniJeuCourant = null, file = [], pos = 0, score = 0, total = 0, demarreLe = 0;
+let traces = new Map();          // clé de segment -> couleur
+let gommages = 0, mancheFinie = false;
+let outil = 'feutre', couleur = '#2F6FED';
+
+const COULEURS_FEUTRE = ['#2F6FED','#E5399B','#12A150','#F2A100','#8B5CF6'];
+
+function remonterEnHaut(){
+  try { window.scrollTo({top:0, left:0, behavior:'auto'}); } catch(e){ window.scrollTo(0,0); }
+}
+function montreEcran(n){
+  desarmerAutoSuivant(); stopperVoix();
+  Object.values(ecrans).forEach(e => e.hidden = true);
+  ecrans[n].hidden = false;
+  $('btnBack').hidden = (n === 'home');
+  if (n === 'home') $('dots').innerHTML = '';
+  remonterEnHaut();
+}
+function retourAccueil(){
+  desarmerAutoSuivant(); stopperVoix();
+  montreEcran('home'); construireAccueil();
+}
+$('btnBack').addEventListener('click', retourAccueil);
+
+/* Navigation automatique (CHARTE §20) : 2 s après l’affichage du bouton. */
+const DELAI_AUTO_SUIVANT = 2000;
+let minuteurAutoSuivant = null;
+function armerAutoSuivant(){
+  clearTimeout(minuteurAutoSuivant);
+  const b = $('btnNext');
+  minuteurAutoSuivant = setTimeout(() => {
+    if (b.style.display === 'none' || b.disabled || !b.isConnected) return;
+    b.click();
+  }, DELAI_AUTO_SUIVANT);
+}
+function desarmerAutoSuivant(){ clearTimeout(minuteurAutoSuivant); }
+
+/* ============================================================
+   ACCUEIL
+   ============================================================ */
+function creerCarte(cfg){
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'card'; b.dataset.jeu = cfg.id;
+  const i = document.createElement('span'); i.className = 'ico'; i.textContent = cfg.icone;
+  const n = document.createElement('span'); n.className = 'nom'; n.textContent = cfg.titre;
+  const d = document.createElement('span'); d.className = 'det'; d.textContent = cfg.description;
+  const s = document.createElement('span'); s.className = 'stars';
+  const e = lireEtoiles()[cfg.id] || 0;
+  s.textContent = e ? '⭐'.repeat(e) : '';
+  b.append(i, n, d, s);
+  if (cfg.aVenir) b.disabled = true;
+  else b.addEventListener('click', () => lance(cfg.id));
+  return b;
+}
+function construireAccueil(){
+  $('hdrTitle').textContent = 'La Symétrie';
+  $('sous-titre-accueil').textContent = CONTENU.sousTitre;
+  const g = $('grille-jeux'); g.innerHTML = '';
+  CONTENU.miniJeux.forEach(c => g.appendChild(creerCarte(c)));
+}
+
+/* ============================================================
+   RENDU DU PLAN
+   ============================================================ */
+function segSvg(k, classe, couleurTrait){
+  const [a, b] = bouts(k);
+  return '<line class="' + classe + '" x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1] + '"'
+    + (couleurTrait ? ' stroke="' + couleurTrait + '"' : '') + '/>';
+}
+let segmentVise = null;
+function rendrePlan(){
+  const q = file[pos];
+  let s = '';
+  for (let i = 0; i <= NX; i++) s += '<line class="maille" x1="' + i + '" y1="0" x2="' + i + '" y2="' + NY + '"/>';
+  for (let j = 0; j <= NY; j++) s += '<line class="maille" x1="0" y1="' + j + '" x2="' + NX + '" y2="' + j + '"/>';
+  s += q.fig.axe === 'v'
+    ? '<line class="axe" x1="' + AXE_V + '" y1="0" x2="' + AXE_V + '" y2="' + NY + '"/>'
+    : '<line class="axe" x1="0" y1="' + AXE_H + '" x2="' + NX + '" y2="' + AXE_H + '"/>';
+  if (segmentVise && !mancheFinie) s += segSvg(segmentVise, 'vise');
+  [...q.pre].forEach(k => { s += segSvg(k, 'pre'); });
+  traces.forEach((c, k) => { s += segSvg(k, 'trace', c); });
+  $('grille').innerHTML = s;
+}
+
+/* ============================================================
+   LE GESTE : LE DOIGT DÉSIGNE, IL NE DESSINE PAS
+   ------------------------------------------------------------
+   À chaque position du doigt on cherche le segment LÉGAL le plus proche,
+   et c’est ce segment idéal qui s’inscrit — jamais la trajectoire. La
+   précision de la main n’entre donc pas dans la figure obtenue.
+
+   Le tracé se distingue d’un simple appui par un SEUIL DE DÉPLACEMENT,
+   jamais par une temporisation : un appui pose un segment, un glissement
+   en pose une suite.
+   ============================================================ */
+const SEUIL_GESTE = 6;          // px écran
+const RAYON_ACCROCHE = 0.42;    // en mailles
+
+function distanceAuSegment(p, a, b){
+  const dx = b[0]-a[0], dy = b[1]-a[1], L2 = dx*dx + dy*dy;
+  if (L2 < 1e-9) return Math.hypot(p[0]-a[0], p[1]-a[1]);
+  let t = ((p[0]-a[0])*dx + (p[1]-a[1])*dy) / L2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(p[0]-a[0]-dx*t, p[1]-a[1]-dy*t);
+}
+/* LE CENTRE D’UNE CELLULE EST À DISTANCE NULLE DE SES DEUX DIAGONALES : la
+   seule distance ne peut donc pas trancher là, et le doigt qui passe au
+   milieu obtiendrait une diagonale au hasard. Quand le geste a une
+   DIRECTION — c’est-à-dire dès qu’on glisse —, on départage les candidats
+   à égalité par celui qui lui est le plus parallèle : on trace la diagonale
+   qu’on suit, pas sa jumelle. Un appui simple n’a pas de direction ; il
+   reste ambigu au centre exact, et nulle part ailleurs. */
+const EGALITE = 0.02;
+function segmentLePlusProche(p, dir){
+  let d0 = Infinity;
+  const proches = [];
+  for (const k of SEGMENTS) {
+    const [a, b] = bouts(k);
+    /* Rejet rapide : inutile de mesurer un segment à l’autre bout du plan. */
+    if (Math.min(a[0],b[0]) - p[0] > 1 || p[0] - Math.max(a[0],b[0]) > 1) continue;
+    if (Math.min(a[1],b[1]) - p[1] > 1 || p[1] - Math.max(a[1],b[1]) > 1) continue;
+    const d = distanceAuSegment(p, a, b);
+    if (d < d0 - EGALITE) { d0 = d; proches.length = 0; proches.push(k); }
+    else if (d <= d0 + EGALITE) { d0 = Math.min(d0, d); proches.push(k); }
+  }
+  if (d0 > RAYON_ACCROCHE || !proches.length) return null;
+  if (proches.length === 1 || !dir) return proches[0];
+  const n = Math.hypot(dir[0], dir[1]) || 1;
+  let meilleur = proches[0], score = -Infinity;
+  proches.forEach(k => {
+    const [a, b] = bouts(k);
+    const L = Math.hypot(b[0]-a[0], b[1]-a[1]) || 1;
+    const cos = Math.abs(((b[0]-a[0])*dir[0] + (b[1]-a[1])*dir[1]) / (L*n));
+    if (cos > score) { score = cos; meilleur = k; }
+  });
+  return meilleur;
+}
+function versPlan(clientX, clientY){
+  const svg = $('grille'), m = svg.getScreenCTM();
+  if (!m) return null;
+  const pt = svg.createSVGPoint(); pt.x = clientX; pt.y = clientY;
+  const q = pt.matrixTransform(m.inverse());
+  return [q.x, q.y];
+}
+
+function appliquer(k){
+  const q = file[pos];
+  if (!k || mancheFinie) return;
+  if (q.pre.has(k)) return;                 // le pré-rempli n’est ni effaçable ni redessinable
+  if (outil === 'gomme') {
+    if (traces.has(k)) { traces.delete(k); gommages++; sonGomme(); rendrePlan(); verifierComplete(); }
+    return;
+  }
+  if (traces.has(k)) return;                // déjà tracé : on ne repasse pas
+  traces.set(k, couleur);
+  sonTrait();
+  rendrePlan();
+  verifierComplete();
+}
+
+(function brancherTrace(){
+  const svg = $('grille');
+  let actif = false, depart = null, bouge = false, dernier = null;
+  const traiter = (p, dir) => {
+    const k = segmentLePlusProche(p, dir);
+    if (k) appliquer(k);
+  };
+  svg.addEventListener('pointerdown', (e) => {
+    if (mancheFinie) return;
+    actif = true; bouge = false;
+    depart = [e.clientX, e.clientY];
+    dernier = versPlan(e.clientX, e.clientY);
+    try { svg.setPointerCapture(e.pointerId); } catch(err){}
+    e.preventDefault();
+  });
+  svg.addEventListener('pointermove', (e) => {
+    if (!actif) return;
+    const p = versPlan(e.clientX, e.clientY);
+    if (!p) return;
+    if (!bouge && Math.hypot(e.clientX - depart[0], e.clientY - depart[1]) < SEUIL_GESTE) {
+      /* Sous le seuil, on ne trace pas encore : on montre seulement ce qu’on
+         viserait. Le seuil, et non une durée, sépare l’appui du glissement. */
+      const k = segmentLePlusProche(p);
+      if (k !== segmentVise) { segmentVise = k; rendrePlan(); }
+      return;
+    }
+    bouge = true;
+    /* Un doigt rapide saute des segments : on échantillonne le chemin. */
+    if (dernier) {
+      const dir = [p[0]-dernier[0], p[1]-dernier[1]];
+      const n = Math.max(1, Math.ceil(Math.hypot(dir[0], dir[1]) / 0.3));
+      for (let i = 1; i <= n; i++)
+        traiter([dernier[0] + dir[0]*i/n, dernier[1] + dir[1]*i/n], dir);
+    }
+    dernier = p;
+    e.preventDefault();
+  });
+  const relacher = (e) => {
+    if (!actif) return;
+    actif = false;
+    const p = versPlan(e.clientX, e.clientY);
+    if (!bouge && p) traiter(p);            // appui simple : un segment
+    segmentVise = null;
+    rendrePlan();
+    try { svg.releasePointerCapture(e.pointerId); } catch(err){}
+  };
+  svg.addEventListener('pointerup', relacher);
+  svg.addEventListener('pointercancel', relacher);
+})();
+
+/* ============================================================
+   DÉTECTION DE LA COMPLÉTION (pas de bouton Valider)
+   ------------------------------------------------------------
+   La figure est complète quand l’ensemble tracé est EXACTEMENT
+   l’ensemble attendu — ni moins, ni plus. Un segment en trop empêche
+   donc la complétion : c’est à cela que sert la gomme, et c’est
+   cohérent avec le §18, le retour arrière AVANT validation étant
+   légitime — ici il n’y a pas d’après.
+
+   LA COULEUR NE PORTE AUCUN SENS : un segment tracé en vert ou en rose
+   compte comme un segment tracé. On ne compare que des clés.
+   ============================================================ */
+function verifierComplete(){
+  const q = file[pos];
+  if (traces.size !== q.aTracer.size) return false;
+  for (const k of traces.keys()) if (!q.aTracer.has(k)) return false;
+  reussir();
+  return true;
+}
+
+function reussir(){
+  mancheFinie = true;
+  score += 2;
+  file[pos]._ok = true;
+  segmentVise = null;
+  rendrePlan();
+  const plan = $('plan');
+  plan.classList.add('reussi', 'pages');
+  setTimeout(() => plan.classList.remove('pages'), 950);
+  sonBonneReponse(); lancerConfettis(30);
+  message('La figure est complète !', 'bon');
+  majDots();
+  finirManche();
+}
+
+function passer(){
+  if (mancheFinie) return;
+  mancheFinie = true;
+  file[pos]._ok = false;
+  /* §18 : on montre ce qu’il fallait tracer, sans le compter juste. */
+  file[pos].aTracer.forEach(k => { if (!traces.has(k)) traces.set(k, '#9AA9BE'); });
+  segmentVise = null;
+  rendrePlan();
+  sonErreur();
+  message('Voici ce qu’il manquait.', 'mauvais');
+  majDots();
+  finirManche();
+}
+$('btnPasser').addEventListener('click', passer);
+
+function finirManche(){
+  $('btnPasser').hidden = true;
+  $('outils').hidden = true;
+  $('palette').hidden = true;
+  $('btnNext').style.display = 'block';
+  $('btnNext').textContent = pos === file.length - 1 ? 'Voir mon score ⭐' : 'Suivant ➜';
+  armerAutoSuivant();
+}
+$('btnNext').addEventListener('click', () => {
+  desarmerAutoSuivant();
+  pos++;
+  if (pos < file.length) manche(); else fin();
+});
+
+function message(txt, cl){
+  const f = $('feedback');
+  f.textContent = txt || '';
+  f.className = cl || '';
+}
+function majDots(){
+  $('dots').innerHTML = file.map((q, i) =>
+    '<span class="dot ' + (i < pos || (i === pos && mancheFinie) ? (q._ok ? 'ok' : 'ko')
+      : (i === pos ? 'cur' : '')) + '"></span>').join('');
+}
+
+/* ============================================================
+   BARRE D’OUTILS : feutre, palette (appui long), gomme
+   ============================================================ */
+function construireOutils(){
+  const b = $('outils');
+  b.hidden = false;
+  b.innerHTML =
+    '<button type="button" class="outil on" id="btnFeutre" aria-label="Feutre">'
+    + '<span class="pastille" id="pastilleFeutre"></span>✏️</button>'
+    + '<button type="button" class="outil" id="btnGomme" aria-label="Gomme">🧽</button>';
+  $('pastilleFeutre').style.background = couleur;
+  const majOutil = () => {
+    $('btnFeutre').classList.toggle('on', outil === 'feutre');
+    $('btnGomme').classList.toggle('on', outil === 'gomme');
+  };
+  $('btnGomme').addEventListener('click', () => { outil = 'gomme'; majOutil(); });
+
+  /* Appui long sur le feutre → palette. Le menu contextuel et la sélection
+     iOS sont neutralisés (`-webkit-touch-callout`, `user-select`), sans quoi
+     la palette entrerait en conflit avec le comportement natif. */
+  const feutre = $('btnFeutre');
+  let minuteur = null, longPress = false;
+  feutre.addEventListener('contextmenu', e => e.preventDefault());
+  feutre.addEventListener('pointerdown', () => {
+    longPress = false;
+    clearTimeout(minuteur);
+    minuteur = setTimeout(() => { longPress = true; ouvrirPalette(); }, 450);
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(ev =>
+    feutre.addEventListener(ev, () => clearTimeout(minuteur)));
+  feutre.addEventListener('click', () => {
+    if (longPress) { longPress = false; return; }
+    outil = 'feutre'; majOutil();
+  });
+  majOutil();
+}
+function ouvrirPalette(){
+  const p = $('palette');
+  p.hidden = false;
+  p.innerHTML = COULEURS_FEUTRE.map(c =>
+    '<button type="button" data-c="' + c + '" style="background:' + c + '"'
+    + (c === couleur ? ' class="on"' : '') + ' aria-label="Couleur"></button>').join('');
+  p.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    couleur = b.dataset.c;
+    outil = 'feutre';
+    $('pastilleFeutre').style.background = couleur;
+    $('btnFeutre').classList.add('on'); $('btnGomme').classList.remove('on');
+    p.hidden = true;
+  }));
+}
+
+/* ============================================================
+   DÉROULÉ
+   ============================================================ */
+function lance(id){
+  const cfg = CONTENU.miniJeux.find(m => m.id === id);
+  if (!cfg || cfg.aVenir) return;
+  miniJeuCourant = cfg;
+  file = engendrerFile(cfg);
+  pos = 0; score = 0;
+  total = file.length * 2;      // demi-points entiers (CHARTE §11), comme M35
+  demarreLe = Date.now();
+  manche();
+}
+function manche(){
+  desarmerAutoSuivant(); stopperVoix();
+  const q = file[pos];
+  traces = new Map(); gommages = 0; mancheFinie = false;
+  outil = 'feutre'; segmentVise = null;
+  $('plan').classList.remove('reussi', 'pages');
+  $('palette').hidden = true;
+  $('btnPasser').hidden = false;
+  $('btnNext').style.display = 'none';
+  message('');
+  $('hdrTitle').textContent = 'Le monde à moitié effacé';
+  const consigne = q.mode === 'report'
+    ? 'Complète ' + q.fig.nom + ' de l’autre côté de l’axe.'
+    : 'Les deux moitiés sont incomplètes : réunis-les.';
+  poserConsigne(consigne);
+  $('sousConsigne').textContent = q.mode === 'report'
+    ? 'Glisse le doigt sur le quadrillage pour tracer les traits qui manquent.'
+    : 'Ce que porte un côté doit apparaître de l’autre — et réciproquement.';
+  construireOutils();
+  majDots();
+  rendrePlan();
+  montreEcran('game');
+}
+function poserConsigne(texte){
+  $('qText').innerHTML = '';
+  const s = document.createElement('span'); s.textContent = texte;
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'btn-voix'; b.setAttribute('aria-label', 'Écouter la consigne');
+  b.textContent = '🔊';
+  b.addEventListener('click', () => lire(texte));
+  $('qText').append(s, b);
+  lire(texte);
+}
+
+function fin(){
+  desarmerAutoSuivant(); stopperVoix();
+  const ratio = total ? score / total : 0;
+  const n = ratio >= 0.85 ? 3 : ratio >= 0.6 ? 2 : 1;
+  enregistrerEtoiles(miniJeuCourant.id, n);
+  enregistrerSession(miniJeuCourant.id, score, total, Math.round((Date.now() - demarreLe)/1000));
+  $('hdrTitle').textContent = 'Résultat';
+  $('endStars').innerHTML = '⭐'.repeat(n).split('').map(s => '<span>' + s + '</span>').join('');
+  $('endMsg').textContent = n === 3 ? 'Le monde est réparé !' : n === 2 ? 'Bien joué !' : 'Continue, tu progresses !';
+  const reussies = file.filter(q => q._ok).length;
+  $('endScore').textContent = reussies + ' figure' + (reussies > 1 ? 's' : '')
+    + ' sur ' + file.length + ' complétée' + (reussies > 1 ? 's' : '') + '.';
+  if (n === 3) sonNiveauParfait(); else sonBonneReponse();
+  lancerConfettis(n === 3 ? 90 : 40);
+  montreEcran('end');
+}
+$('bRejouer').addEventListener('click', () => lance(miniJeuCourant.id));
+$('bMenu').addEventListener('click', retourAccueil);
+
+/* ============================================================
+   DÉMARRAGE
+   ============================================================ */
+construireAccueil();
+montreEcran('home');
+
+/* Lancement paramétré (CHARTE §16) : un paramètre inconnu est ignoré en
+   silence — ce n’est qu’un raccourci d’entrée. */
+(function(){
+  const d = parametreURL('competence');
+  if (!d) return;
+  const cfg = CONTENU.miniJeux.find(m => m.id === d);
+  if (!cfg || cfg.aVenir) return;
+  lance(d);
+})();
+
+/* Bouton « ← Menu » : retour à la coquille avec confirmation (CHARTE §7). */
+(function(){
+  const modale = $('modale-menu');
+  const ouvrir = () => { modale.hidden = false; };
+  const fermer = () => { modale.hidden = true; };
+  $('bouton-menu').addEventListener('click', ouvrir);
+  $('modale-menu-rester').addEventListener('click', fermer);
+  $('modale-menu-revenir').addEventListener('click', () => {
+    fermer();
+    try { window.location.href = '../index.html'; } catch(e){}
+  });
+})();
+</script>
+</body>
+</html>

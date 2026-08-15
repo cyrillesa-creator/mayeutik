@@ -620,27 +620,30 @@
     },
     {
       "id": "M41",
-      "titre": "Symétrie axiale",
-      "description": "Repère les axes de symétrie d'une figure et complète des figures symétriques sur quadrillage.",
-      "icone": "🦋",
+      "titre": "La Symétrie",
+      "description": "Un mage a effacé la moitié du monde : reconstruis les figures de l’autre côté de l’axe.",
+      "icone": "🪄",
       "niveau": "CE2",
       "domaine": "Espace et géométrie",
       "domaineProgramme": "Espace et géométrie",
-      "theme": "Symétrie axiale",
+      "theme": "Géométrie plane",
       "programme": "BO-2024",
       "type": "entrainement",
-      "statut": "À faire",
       "competences": [
         {
-          "id": "axes-symetrie",
-          "libelle": "Reconnaître si une figure a un ou plusieurs axes de symétrie (pliage, papier calque)"
+          "id": "ce2-symetrie-completer",
+          "libelle": "Compléter une figure sur quadrillage pour la rendre symétrique par rapport à un axe vertical ou horizontal (CE2)"
         },
         {
-          "id": "completer-symetrique",
-          "libelle": "Compléter une figure sur quadrillage ou papier pointé pour la rendre symétrique par rapport à un axe donné (horizontal ou vertical)"
+          "id": "ce2-symetrie-reconnaitre",
+          "libelle": "Reconnaître si une figure possède un ou plusieurs axes de symétrie, et les tracer (CE2)"
         }
       ],
-      "rangProgramme": 2103
+      "rangProgramme": 2103,
+      "niveaux": [
+        "CE2"
+      ],
+      "fichier": "jeux/M41-symetrie.html"
     }
   ]
 }
