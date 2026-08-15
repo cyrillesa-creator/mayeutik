@@ -493,9 +493,17 @@ function tirerSansRepetition(cle, stock, n) {
   const sortie = [];
   for (let i = 0; i < n; i++) {
     if (!reste || !reste.length) {
-      /* Clause 3 : ce qui vient d'être servi repart EN FIN de pioche. */
-      const dejaVus = sortie.slice();
-      reste = melanger(stock.filter((x) => dejaVus.indexOf(x) === -1)).concat(melanger(dejaVus));
+      /* CHAQUE CYCLE EST UNE PERMUTATION DU STOCK — chaque élément une fois
+         et une seule. Concaténer tout ce qui a été servi dans l'appel, comme
+         le faisait une première version de cet utilitaire, fait accumuler des
+         DOUBLONS dans la pile : sa longueur dérive, elle finit par ne plus
+         offrir qu'une seule valeur, et la clause 2 n'a alors plus d'issue.
+         Clause 3 : ce qui vient d'être servi repart EN FIN de pioche. La
+         fenêtre couvre tout ce qui a déjà été servi dans l'appel, bornée à
+         `stock - 1` pour que la tête de pioche ne soit jamais vide. */
+      const recents = sortie.slice(-Math.max(1, stock.length - 1));
+      reste = melanger(stock.filter((x) => recents.indexOf(x) === -1))
+        .concat(melanger(stock.filter((x) => recents.indexOf(x) !== -1)));
     }
     /* Clause 2 : on saute le premier candidat s'il répète le précédent —
        y compris à la jointure de deux cycles, que le sans-remise ne couvre
@@ -518,7 +526,7 @@ function tirerSansRepetition(cle, stock, n) {
 
 Trois exclusions, sans lesquelles la règle produirait son propre défaut :
 
-- **La position des réponses à l'écran.** Tirée sans remise, elle devient *prévisible* : un enfant attentif déduit que la bonne réponse n'a pas encore occupé la troisième case. Le §13 y demande l'indépendance, pas le cycle.
+- **La position des réponses à l'écran — et, plus largement, LA RÉPONSE elle-même quand elle n'est pas lisible sans travail.** Tirée sans remise, la position devient *prévisible* : un enfant attentif déduit que la bonne réponse n'a pas encore occupé la troisième case. Le §13 y demande l'indépendance, pas le cycle. La même chose vaut pour la valeur attendue lorsque l'exercice consiste précisément à la CHERCHER : faire tourner « droit / aigu / obtus » sans remise dans un mini-jeu qui demande de vérifier à l'équerre, c'est offrir la réponse à qui compte les manches, et lui épargner l'instrument. Le critère n'est pas la nature de la donnée mais ce qu'elle coûte à trouver : là où la réponse se lit d'un coup d'œil, la faire tourner ne donne rien et garantit que chaque cas soit travaillé.
 - **Les paramètres continus** — angle de rotation d'une figure, position d'un sommet dans un intervalle, teinte : il n'y a pas de stock à épuiser.
 - **Les proportions voulues** — le mélange cibles/distracteurs d'un flux, par exemple, où l'on tient un ratio et non un cycle.
 
