@@ -705,7 +705,8 @@ function rendrePlan(){
    en pose une suite.
    ============================================================ */
 const SEUIL_GESTE = 6;          // px écran
-const RAYON_ACCROCHE = 0.42;    // en mailles
+const RAYON_ACCROCHE = 0.42;    // en mailles, pour l’appui simple
+const RAYON_NOEUD = 0.40;       // en mailles, pour atteindre un nœud
 
 function distanceAuSegment(p, a, b){
   const dx = b[0]-a[0], dy = b[1]-a[1], L2 = dx*dx + dy*dy;
@@ -769,18 +770,51 @@ function appliquer(k){
   verifierComplete();
 }
 
+/* ------------------------------------------------------------
+   LE TRAIT SUIT UN CHEMIN DE NŒUDS, il ne ramasse pas ce qu’il frôle.
+   ------------------------------------------------------------
+   Première version : à chaque position du doigt on allumait le segment le
+   plus proche. Testée à l’appareil, elle s’est révélée fausse — un enfant
+   ne tape pas case par case, il GLISSE. Or un doigt qui glisse traverse
+   l’intérieur des cellules, et là le segment le plus proche est une
+   diagonale : le trait voulu arrivait noyé sous une résille de croix.
+
+   Le bon modèle est celui du crayon sur papier quadrillé : on part d’un
+   nœud, et on ne peut aller qu’à un nœud VOISIN — les huit voisins sont
+   exactement les segments légaux. Le doigt qui dérive au milieu d’une
+   cellule ne trace donc rien tant qu’il n’a pas atteint un nœud, et le
+   tracé reste un trait continu au lieu d’un ramassage.
+   ------------------------------------------------------------ */
+function noeudProche(p){
+  const x = Math.round(p[0]), y = Math.round(p[1]);
+  if (x < 0 || x > NX || y < 0 || y > NY) return null;
+  return Math.hypot(p[0]-x, p[1]-y) <= RAYON_NOEUD ? [x, y] : null;
+}
+const memeNoeud = (a, b) => a && b && a[0] === b[0] && a[1] === b[1];
+const voisins = (a, b) => {
+  const dx = Math.abs(a[0]-b[0]), dy = Math.abs(a[1]-b[1]);
+  return dx <= 1 && dy <= 1 && dx + dy > 0;
+};
+
 (function brancherTrace(){
   const svg = $('grille');
-  let actif = false, depart = null, bouge = false, dernier = null;
-  const traiter = (p, dir) => {
-    const k = segmentLePlusProche(p, dir);
-    if (k) appliquer(k);
+  let actif = false, depart = null, bouge = false, dernier = null, noeud = null;
+  const traiter = (p) => {
+    const n = noeudProche(p);
+    if (!n) return;
+    if (!noeud) { noeud = n; return; }
+    if (memeNoeud(n, noeud)) return;
+    /* Un nœud non voisin veut dire que le doigt a sauté — on s’y replace
+       sans rien tracer plutôt que d’inventer un segment. */
+    if (voisins(noeud, n)) appliquer(cle(noeud, n));
+    noeud = n;
   };
   svg.addEventListener('pointerdown', (e) => {
     if (mancheFinie) return;
     actif = true; bouge = false;
     depart = [e.clientX, e.clientY];
     dernier = versPlan(e.clientX, e.clientY);
+    noeud = dernier ? noeudProche(dernier) : null;
     try { svg.setPointerCapture(e.pointerId); } catch(err){}
     e.preventDefault();
   });
@@ -791,17 +825,17 @@ function appliquer(k){
     if (!bouge && Math.hypot(e.clientX - depart[0], e.clientY - depart[1]) < SEUIL_GESTE) {
       /* Sous le seuil, on ne trace pas encore : on montre seulement ce qu’on
          viserait. Le seuil, et non une durée, sépare l’appui du glissement. */
-      const k = segmentLePlusProche(p);
+      const k = segmentLePlusProche(p, null);
       if (k !== segmentVise) { segmentVise = k; rendrePlan(); }
       return;
     }
     bouge = true;
-    /* Un doigt rapide saute des segments : on échantillonne le chemin. */
+    /* Un doigt rapide franchit plusieurs nœuds entre deux événements : on
+       échantillonne le chemin pour ne manquer aucun passage. */
     if (dernier) {
-      const dir = [p[0]-dernier[0], p[1]-dernier[1]];
-      const n = Math.max(1, Math.ceil(Math.hypot(dir[0], dir[1]) / 0.3));
-      for (let i = 1; i <= n; i++)
-        traiter([dernier[0] + dir[0]*i/n, dernier[1] + dir[1]*i/n], dir);
+      const dx = p[0]-dernier[0], dy = p[1]-dernier[1];
+      const n = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 0.2));
+      for (let i = 1; i <= n; i++) traiter([dernier[0] + dx*i/n, dernier[1] + dy*i/n]);
     }
     dernier = p;
     e.preventDefault();
@@ -810,8 +844,11 @@ function appliquer(k){
     if (!actif) return;
     actif = false;
     const p = versPlan(e.clientX, e.clientY);
-    if (!bouge && p) traiter(p);            // appui simple : un segment
-    segmentVise = null;
+    /* L’appui SIMPLE garde l’accrochage au segment le plus proche : c’est le
+       recours de précision quand un seul trait manque, et il n’a pas de
+       trajectoire qui puisse déraper. */
+    if (!bouge && p) { const k = segmentLePlusProche(p, null); if (k) appliquer(k); }
+    noeud = null; segmentVise = null;
     rendrePlan();
     try { svg.releasePointerCapture(e.pointerId); } catch(err){}
   };
