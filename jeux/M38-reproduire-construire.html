@@ -999,6 +999,70 @@ function melanger(t){
   for (let i = c.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [c[i], c[j]] = [c[j], c[i]]; }
   return c;
 }
+
+/* ============================================================
+   TIRAGES DE CONTENU (CHARTE §13 bis)
+   ------------------------------------------------------------
+   Tout tirage portant sur un CONTENU — une famille de manches, une figure,
+   une orientation, tout ce dont la répétition se voit — passe par ici.
+   Trois clauses : sans remise jusqu’à épuisement du stock, jamais deux fois
+   de suite (y compris à la jointure de deux cycles), et au remélange ce qui
+   vient d’être servi repart en fin de pioche.
+
+   Ne relèvent PAS de cette règle : la position des réponses à l’écran et la
+   réponse elle-même quand l’exercice consiste à la chercher — les faire
+   tourner les rendrait devinables —, les paramètres continus, et les
+   proportions voulues.
+   ============================================================ */
+const memoireTirages = {}, memoireDernier = {};
+function tirerSansRepetition(cle, stock, n){
+  let reste = memoireTirages[cle];
+  let precedent = memoireDernier[cle];
+  const sortie = [];
+  for (let i = 0; i < n; i++) {
+    if (!reste || !reste.length) {
+      /* Chaque cycle est une PERMUTATION du stock. Y concaténer tout ce qui a
+         été servi dans l’appel ferait accumuler des doublons dans la pile,
+         qui finirait par n’offrir qu’une seule valeur — et la clause 2
+         n’aurait alors plus d’issue. */
+      const recents = sortie.slice(-Math.max(1, stock.length - 1));
+      reste = melanger(stock.filter(x => recents.indexOf(x) === -1))
+        .concat(melanger(stock.filter(x => recents.indexOf(x) !== -1)));
+    }
+    let k = 0;
+    while (k < reste.length && reste[k] === precedent) k++;
+    if (k === reste.length) k = 0;              // stock d’un seul élément
+    precedent = reste.splice(k, 1)[0];
+    sortie.push(precedent);
+  }
+  memoireTirages[cle] = reste;
+  memoireDernier[cle] = precedent;
+  return sortie;
+}
+
+/* Certaines dimensions ne se tirent pas : elles DÉCOULENT d’un autre choix.
+   On ne peut alors que réordonner la file. On sert à chaque pas la valeur la
+   plus fréquente parmi celles qui ne répètent pas la précédente : c’est elle
+   qui bloquerait la fin de liste si on la gardait pour plus tard. */
+function sansDeuxDeSuite(liste, cle){
+  const reste = liste.slice(), sortie = [];
+  let precedent = null;
+  while (reste.length) {
+    const compte = {};
+    reste.forEach(x => { const k = cle(x); compte[k] = (compte[k] || 0) + 1; });
+    let choix = -1, meilleur = -1;
+    reste.forEach((x, i) => {
+      const k = cle(x);
+      if (k === precedent || compte[k] <= meilleur) return;
+      meilleur = compte[k]; choix = i;
+    });
+    if (choix < 0) choix = 0;
+    precedent = cle(reste[choix]);
+    sortie.push(reste.splice(choix, 1)[0]);
+  }
+  return sortie;
+}
+
 /* Le verre coloré, repris de M34 : c’est le même vitrail d’un module à
    l’autre. */
 const VERRES = ['#FF8A3D','#5AB4DC','#2EC4A6','#FFC93C','#FF5D5D','#9B5DE5','#4D96FF','#F76BA4'];
@@ -1458,6 +1522,45 @@ function mancheBase(o){
   }, o);
 }
 
+/* CE QU’UNE MANCHE MONTRE, lu sur la GÉOMÉTRIE et non sur l’intention du
+   générateur : nombre de sommets et longueurs de côtés arrondies, triées.
+   Deux manches de même signature montrent la même figure, où qu’elle soit
+   posée sur le panneau. C’est la dimension de contenu du module (§13 bis). */
+function signatureFigure(contours){
+  if (!contours || !contours.length) return '-';
+  return contours.map(c => c.length + ':' + c.map((p, i) => {
+    const q = c[(i + 1) % c.length];
+    return Math.round(Math.hypot(q[0] - p[0], q[1] - p[1]));
+  }).sort((a, b) => a - b).join(',')).sort().join(' | ');
+}
+
+/* ============================================================
+   LES DIMENSIONS DE CONTENU D’UNE MANCHE (CHARTE §13 bis)
+   ------------------------------------------------------------
+   Ici tout se ramène à UNE dimension — la figure montrée —, lue sur sa
+   géométrie par `signatureFigure`. Les consignes sont fixes par mini-jeu et
+   le support suit une progression écrite (quadrillé, pointé, uni) : ni l’une
+   ni l’autre n’est un tirage. `ferme` marque les files dont la composition
+   est imposée et dit pourquoi.
+   ============================================================ */
+const DIMENSIONS_CONTENU = {
+  'cp-reproduire':[{nom:'figure à reproduire', de:q => signatureFigure(q.modele)}],
+  'cp-completer':[{nom:'figure à compléter', de:q => signatureFigure(q.solutions[0]),
+    ferme:'trois rectangles et deux carrés par partie, et les rectangles se partagent quatre formats sur le quadrillage'}],
+  'cp-assembler':[{nom:'assemblage à monter', de:q => signatureFigure(q.modele)}],
+  'ce1-reproduire':[{nom:'figure à reproduire', de:q => signatureFigure(q.modele),
+    ferme:'la file EST la progression du CE1 — 45° d’abord, puis les pentes 2/1 et 3/1, dans cet ordre et une fois chacune'}],
+  'ce1-completer':[{nom:'figure à compléter', de:q => signatureFigure(q.solutions[0]),
+    ferme:'la progression est écrite — fermer, puis placer le sommet, puis passer au papier uni — et ne se réordonne pas'}],
+  'ce1-construire':[{nom:'figure commandée', de:q => signatureFigure(q.solutions[0]),
+    ferme:'trois commandes, une par construction que le programme nomme au CE1 : rectangle et cercle, carré et cercle au milieu, triangle rectangle'}],
+  'ce2-reproduire':[{nom:'figure à reproduire', de:q => signatureFigure(q.modele)}],
+  'ce2-construire-uni':[{nom:'figure commandée', de:q => signatureFigure(q.solutions[0]),
+    ferme:'les trois exemples de réussite du programme, mot pour mot — en inventer un quatrième sortirait du texte'}],
+  'ce2-rosace':[{nom:'figure construite', de:q => signatureFigure(q.solutions && q.solutions[0]),
+    ferme:'une seule manche de synthèse : il n’y a rien à faire tourner'}]
+};
+
 /* ---- CP : reproduire ---- */
 const FIGURES_CP = [
   () => carre(3), () => carre(2), () => rectangle(4, 2), () => rectangle(3, 2),
@@ -1465,12 +1568,17 @@ const FIGURES_CP = [
 ];
 function qCpReproduire(){
   const liste = [];
+  /* La figure à reproduire se tirait par `pioche`, avec remise : 207
+     répétitions immédiates pour 300 files, et jusqu’à trois fois le même
+     carré dans une partie de cinq manches. Six figures pour cinq manches,
+     le stock est plus grand que la file (§13 bis). */
+  const figures = tirerSansRepetition('cp-figures', FIGURES_CP, 5);
   /* Trois manches au POCHOIR d’abord : « l’élève trace des figures simples
      à l’aide de gabarits et de pochoirs » est la porte d’entrée du texte.
      Le pochoir se translate seulement — sur un quadrillage où les côtés
      suivent les lignes, le faire tourner n’aurait aucun sens. */
   for (let i = 0; i < 3; i++) {
-    const f = pioche(FIGURES_CP)();
+    const f = figures[i]();
     const sol = poserDansZone(ZONE_TRAVAIL, [f]);
     liste.push(mancheBase({
       mode:'pochoir', support: i < 2 ? 'quadrille' : 'pointe',
@@ -1481,7 +1589,7 @@ function qCpReproduire(){
     }));
   }
   for (let i = 0; i < 2; i++) {
-    const f = pioche(FIGURES_CP)();
+    const f = figures[3 + i]();
     liste.push(mancheBase({
       support: i === 0 ? 'quadrille' : 'pointe',
       modele:poserDansZone(ZONE_MODELE, [f]),
@@ -1532,25 +1640,46 @@ function qCpCompleter(){
       sous:'Un seul côté est tracé. Place les deux coins qui manquent, puis ferme la pièce.'
     }));
   }
-  return melanger(liste);
+  /* Trois rectangles et deux carrés : le simple mélange en posait deux
+     identiques côte à côte une fois sur deux. La figure DÉCOULE de la
+     composition voulue — on ne peut pas la tirer autrement, seulement
+     réordonner la file (§13 bis). */
+  return sansDeuxDeSuite(melanger(liste), m => m.q);
 }
 
 /* ---- CP : assembler ---- */
+/* LA BANQUE EST AU NIVEAU DU MODULE, pas dans la fonction. Reconstruite à
+   chaque appel, elle produisait des fermetures NEUVES à chaque partie : le
+   tirage sans remise, qui compare par identité, ne reconnaissait plus rien —
+   sa mémoire gardait celles de la partie précédente et les resservait en
+   tête. Un stock doit être stable pour qu’on puisse l’épuiser. */
+const MODELES_ASSEMBLAGE = [
+  () => [rectangle(4,2), translater(rectangle(4,2), 0, 2)],
+  () => [carre(2), translater(carre(2), 2, 0), translater(rectangle(4,2), 0, 2)],
+  /* Un rectangle coupé en deux triangles par sa diagonale : la relation
+     même que M34 faisait DÉCRIRE en `cp-relations`, et qu’on produit ici. */
+  () => [[[0,0],[4,0],[4,3]], [[0,0],[4,3],[0,3]]],
+  () => [carre(3), [[0,3],[3,3],[0,5]]],
+  () => [rectangle(3,2), translater(carre(2), 3, 0), translater(rectangle(5,2), 0, 2)],
+  /* Sixième modèle : la §13 bis demande un stock STRICTEMENT plus grand que la
+     file, sans quoi chaque partie rejoue le même matériel dans un autre ordre.
+     Il doit être VRAIMENT nouveau — deux carrés empilés contre un rectangle
+     debout, essayés d’abord, ne sont que le deuxième modèle tourné d’un quart
+     de tour, et se reconnaissent comme tel. Il doit aussi rester à deux ou
+     trois pièces, comme les cinq autres : une version à quatre carrés, tentée
+     ensuite, sortait de ce cadre. Deux rectangles empilés coiffés d’un carré :
+     une composition qu’aucun autre ne reprend. */
+  () => [rectangle(4,2), translater(rectangle(4,2), 0, 2), translater(carre(2), 0, 4)]
+];
+
 function qCpAssembler(){
   /* Les pièces d’un vitrail se JOIGNENT : elles partagent un côté entier et
      ne se chevauchent jamais. Deux modèles d’une première version étaient
      fautifs — deux triangles qui se recouvraient, et un triangle accroché
      au carré par un seul point, ce qui ne fait pas un assemblage. */
-  const modeles = [
-    () => [rectangle(4,2), translater(rectangle(4,2), 0, 2)],
-    () => [carre(2), translater(carre(2), 2, 0), translater(rectangle(4,2), 0, 2)],
-    /* Un rectangle coupé en deux triangles par sa diagonale : la relation
-       même que M34 faisait DÉCRIRE en `cp-relations`, et qu’on produit ici. */
-    () => [[[0,0],[4,0],[4,3]], [[0,0],[4,3],[0,3]]],
-    () => [carre(3), [[0,3],[3,3],[0,5]]],
-    () => [rectangle(3,2), translater(carre(2), 3, 0), translater(rectangle(5,2), 0, 2)]
-  ];
-  return melanger(modeles).map((f, i) => {
+  /* La banque compte six modèles, la partie en joue CINQ : c’est l’écart qui
+     fait qu’une partie ne rejoue pas la précédente. */
+  return tirerSansRepetition('assembler-modeles', MODELES_ASSEMBLAGE, 5).map((f, i) => {
     const contours = f();
     return mancheBase({
       support: i < 3 ? 'quadrille' : 'pointe',
@@ -1620,6 +1749,12 @@ function qCe1Completer(){
   /* L’hypoténuse est tracée : il faut PLACER le sommet de l’angle droit.
      Nettement plus dur, et l’équerre y devient utile. */
   {
+    /* L’ordre de ce mini-jeu est une PROGRESSION voulue — fermer, puis placer,
+       puis passer au papier uni — donc on ne réordonne pas : on écarte le
+       tirage qui redirait le triangle de la manche précédente. Sans cela, la
+       manche « place le sommet » retombait sur le 3-4-5 qu’on venait de
+       fermer, trois fois sur cent. */
+    const precedent = signatureFigure(liste[liste.length - 1].solutions[0]);
     let item = null;
     for (let essai = 0; essai < 200 && !item; essai++) {
       const dx = 2 + Math.floor(entre(0, 4)), dy = 2 + Math.floor(entre(0, 3));
@@ -1628,7 +1763,9 @@ function qCe1Completer(){
       const c = sommetsAngleDroit(ZONE_PLEINE, a, b);
       /* On écarte les tirages qui en offriraient une nuée : deux ou trois
          nœuds font un exercice, huit en feraient une loterie. */
-      if (c.length >= 2 && c.length <= 3) item = {a, b, c};
+      if (c.length < 2 || c.length > 3) continue;
+      if (signatureFigure([[a, b, c[0]]]) === precedent) continue;
+      item = {a, b, c};
     }
     if (item) liste.push(mancheBase({
       support:'quadrille', libre:false, zone:'pleine',
@@ -1709,12 +1846,18 @@ function qCe1Construire(){
 }
 
 /* ---- CE2 : reproduire, à main levée ou à la règle ---- */
+/* Même hissage qu’au petit vitrail : un stock reconstruit à chaque partie
+   n’est pas un stock. */
+const FIGURES_CE2_REPRO = [
+  () => [carre(3)], () => [rectangle(5,3)], () => [carreOblique(2,1)],
+  () => [rectangle(3,2), translater(carre(2), 3, 0)], () => [carreOblique(2,2)],
+  /* Sixième figure, même raison qu’au petit vitrail : cinq figures pour cinq
+     manches, c’était la même partie à chaque fois. La pente 3/1 est déjà celle
+     du CE1 — elle se réinvestit ici à main levée. */
+  () => [carreOblique(3,1)]
+];
 function qCe2Reproduire(){
-  const suite = [
-    () => [carre(3)], () => [rectangle(5,3)], () => [carreOblique(2,1)],
-    () => [rectangle(3,2), translater(carre(2), 3, 0)], () => [carreOblique(2,2)]
-  ];
-  return melanger(suite).map(f => {
+  return tirerSansRepetition('ce2-repro-figures', FIGURES_CE2_REPRO, 5).map(f => {
     const c = f();
     return mancheBase({
       support:'quadrille', esquissePossible:true,
@@ -2709,7 +2852,10 @@ function terminerManche(bon, motif){
     vitrail.push({contours:chantier.contours.slice(), cercles:chantier.cerclesPoses.slice(),
                   petalesDe:q.petalesDe || null, sommets:q.petalesDe ? chantier.contours[0] : null});
     sonBonneReponse(); lancerConfettis(28);
-    message(pioche(['Belle pièce !', 'Le verre est en place !', 'Montage impeccable !']), 'bon');
+    /* Même une félicitation est un contenu : trois manches réussies et le
+       même « Belle pièce ! » trois fois, l’encouragement devient un bruit. */
+    message(tirerSansRepetition('felicitations',
+      ['Belle pièce !', 'Le verre est en place !', 'Montage impeccable !'], 1)[0], 'bon');
   } else {
     sonErreur();
     message('Presque ! ', 'mauvais', motif || '');
