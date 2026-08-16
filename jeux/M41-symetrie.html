@@ -231,6 +231,55 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
   .plan.rabat-v #grille, .plan.rabat-h #grille{clip-path:none;}
 }
 
+/* ---------- Jeu #1 : la scène, la figure, le calque ----------
+   Même dispositif que le plan quadrillé : une carte, un SVG qui prend
+   toute la largeur, et un calque en surimpression exactement calé
+   dessus. `touch-action:none` sur la zone de tracé ET sur ses enfants —
+   la propriété ne s’hérite pas (§19). */
+.scene{background:var(--carte); border-radius:var(--r); box-shadow:var(--ombre);
+  padding:8px; margin-bottom:10px; position:relative;}
+.scene svg{display:block; width:100%; height:auto;}
+#figure, #figure *{touch-action:none;}
+#calque{position:absolute; left:8px; top:8px; right:8px; width:auto; height:auto;
+  pointer-events:none; backface-visibility:visible;
+  /* `transform-box` EXPLICITE. Sur un élément `<svg>`, la boîte de
+     référence d’une transformation est par défaut sa `viewBox` : une
+     origine posée en pourcentage s’y résout en unités utilisateur, pas en
+     pixels d’écran, et le calque retombe à côté. On demande donc
+     franchement la boîte CSS, la même que celle que l’on mesure. */
+  transform-box:border-box;}
+.trait-fig{stroke:var(--plomb); stroke-width:6; stroke-linecap:round; stroke-linejoin:round;
+  fill:none; vector-effect:non-scaling-stroke; transition:stroke .45s ease;}
+.scene.reussi .trait-fig{stroke:var(--menthe-t);}
+/* Le trait de l’enfant, et — après coup seulement — les axes réels (§18).
+   Le rouge ne désigne jamais la bonne réponse : les axes vrais se montrent
+   en menthe, la couleur de ce qui est juste. */
+.axe-trace{stroke:var(--mandarine); stroke-width:5; stroke-linecap:round; vector-effect:non-scaling-stroke;}
+.axe-ok{stroke:var(--menthe); stroke-width:5; stroke-linecap:round; vector-effect:non-scaling-stroke;}
+.axe-vrai{stroke:var(--menthe-t); stroke-width:4; stroke-dasharray:8 6; stroke-linecap:round;
+  vector-effect:non-scaling-stroke;}
+/* Le contour à révéler : pâle tant qu’il attend le doigt, franc ensuite. */
+.guide{stroke:#C2D2E6; stroke-width:3; stroke-linecap:round; vector-effect:non-scaling-stroke;}
+.revele{stroke:var(--mandarine); stroke-width:5; stroke-linecap:round; vector-effect:non-scaling-stroke;}
+/* La bascule du calque tourne autour de la DROITE TRACÉE, quelle que soit
+   son inclinaison : `rotate3d` accepte n’importe quel axe du plan, et les
+   deux composantes arrivent en variables CSS posées par le script. */
+#calque.bascule{animation:basculer-calque var(--pli) ease-in-out forwards;}
+@keyframes basculer-calque{
+  from{transform:perspective(2200px) rotate3d(var(--ax,1),var(--ay,0),0,0deg);}
+  to  {transform:perspective(2200px) rotate3d(var(--ax,1),var(--ay,0),0,180deg);}
+}
+@media (prefers-reduced-motion:reduce){
+  #calque.bascule{transform:perspective(2200px) rotate3d(var(--ax,1),var(--ay,0),0,180deg);}
+}
+.actions{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:10px;}
+.act{border:none; border-radius:14px; padding:12px 16px; font-family:inherit; font-size:.98rem;
+  font-weight:600; background:var(--carte); color:var(--encre); box-shadow:var(--ombre); cursor:pointer;}
+.act.primaire{background:var(--mandarine); color:#fff;}
+.act:active{transform:translateY(2px);}
+.act[disabled]{opacity:.5; cursor:not-allowed;}
+.act-info{font-size:.9rem; color:var(--encre2); align-self:center;}
+
 /* ---------- Fin ---------- */
 #end{text-align:center; padding-top:8vh;}
 #endStars{font-size:3.4rem; letter-spacing:8px; margin:10px 0;}
@@ -323,6 +372,11 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
       <svg id="grille" aria-label="Plan quadrillé"></svg>
       <svg id="rabat" aria-hidden="true"></svg>
     </div>
+    <div class="scene" id="scene" hidden>
+      <svg id="figure" aria-label="Figure à examiner"></svg>
+      <svg id="calque" aria-hidden="true" hidden></svg>
+    </div>
+    <div class="actions" id="actions1" hidden></div>
     <div class="palette" id="palette" hidden></div>
     <div class="outils" id="outils"></div>
     <button type="button" id="btnPasser">Passer cette figure</button>
@@ -579,7 +633,7 @@ const CONTENU = {
     {id:'ce2-symetrie-completer', mode:'completer', titre:'Le monde à moitié effacé', icone:'🪄',
      description:'Complète la figure de l’autre côté de l’axe.', nbQuestions:6},
     {id:'ce2-symetrie-reconnaitre', mode:'reconnaitre', titre:'Symboles miroirs', icone:'🃏',
-     description:'Trace un axe de symétrie…\n(bientôt)', nbQuestions:6, aVenir:true}
+     description:'Trace un axe de symétrie — ou dis qu’il n’y en a aucun.', nbQuestions:6}
   ]
 };
 
@@ -635,6 +689,191 @@ function engendrerFile(cfg){
   const figures = tirerSansRepetition('figures', FIGURES, cfg.nbQuestions);
   return figures.map((fig, i) => construireManche(fig, i < 3 ? 'report' : 'fusion'));
 }
+
+/* ============================================================
+   JEU #1 — « SYMBOLES MIROIRS » (ce2-symetrie-reconnaitre)
+   ------------------------------------------------------------
+   LA GÉOMÉTRIE D’ABORD. Une figure n’est qu’une liste de SEGMENTS —
+   rien d’autre, pas même un cercle : une courbe s’écrit ici en polygone.
+   Ce choix n’est pas une économie de code, c’est ce qui permet de
+   RECALCULER les axes de chaque figure depuis son dessin au lieu de les
+   croire déclarés (§2.5 de la spec). Le nombre annoncé dans la banque ne
+   sert qu’au contrôle de données : c’est un commentaire qui a des dents.
+   ============================================================ */
+const chemin = (pts) => pts.slice(0, -1).map((p, i) => ['S', p, pts[i + 1]]);
+const contour = (pts) => chemin(pts.concat([pts[0]]));
+/* Un disque s’écrit en polygone à nombre PAIR de côtés, échantillonné à
+   partir de l’angle zéro : l’ensemble des sommets est alors stable par
+   θ → −θ et par θ → π−θ, donc le lobe est symétrique comme le vrai cercle
+   qu’il représente. Un échantillonnage quelconque inventerait ou
+   supprimerait des axes. */
+const echantillonDisque = (cx, cy, r, n) => Array.from({length: n}, (_, k) => {
+  const a = 2 * Math.PI * k / n;
+  return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+});
+/* LA RÉUNION DE PLUSIEURS LOBES, et non leurs contours empilés. Dessinés
+   séparément, les trois lobes du trèfle se lisent comme trois anneaux qui
+   se chevauchent : ce sont leurs arcs INTÉRIEURS qui trahissent. On ne
+   garde donc que les points hors des autres lobes, et on les recoud dans
+   l’ordre angulaire — la réunion de trois disques ainsi disposés est
+   étoilée depuis son centre, chaque rayon n’en coupant le bord qu’une fois.
+   La construction ne casse pas la symétrie : partant d’un jeu de points
+   symétrique, elle rend un jeu de segments symétrique. */
+function reunionDeLobes(lobes, n){
+  const pts = [];
+  lobes.forEach((L, i) => echantillonDisque(L[0], L[1], L[2], n).forEach(p => {
+    const dedansUnAutre = lobes.some((M, j) =>
+      j !== i && Math.hypot(p[0]-M[0], p[1]-M[1]) < M[2] - 1e-9);
+    if (!dedansUnAutre) pts.push(p);
+  }));
+  const c = centreDe(pts);
+  pts.sort((a, b) =>
+    Math.atan2(a[1]-c[1], a[0]-c[0]) - Math.atan2(b[1]-c[1], b[0]-c[0]));
+  return contour(pts);
+}
+
+const dist2p = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+function sommetsDe(fig){
+  const out = [];
+  fig.prims.forEach(s => { out.push(s[1]); out.push(s[2]); });
+  return out;
+}
+function centreDe(pts){
+  let x = 0, y = 0;
+  pts.forEach(p => { x += p[0]; y += p[1]; });
+  return [x / pts.length, y / pts.length];
+}
+function diametreDe(fig){
+  const p = sommetsDe(fig);
+  let d = 0;
+  for (let i = 0; i < p.length; i++) for (let j = i + 1; j < p.length; j++) d = Math.max(d, dist2p(p[i], p[j]));
+  return d;
+}
+
+/* Une droite : un point et une direction UNITAIRE. */
+function droite(p, d){
+  const n = Math.hypot(d[0], d[1]) || 1;
+  return {p: [p[0], p[1]], d: [d[0] / n, d[1] / n]};
+}
+function refletPoint(p, L){
+  const t = (p[0] - L.p[0]) * L.d[0] + (p[1] - L.p[1]) * L.d[1];
+  const px = L.p[0] + t * L.d[0], py = L.p[1] + t * L.d[1];
+  return [2 * px - p[0], 2 * py - p[1]];
+}
+const cote = (p, L) => (p[0] - L.p[0]) * L.d[1] - (p[1] - L.p[1]) * L.d[0];   // distance signée
+
+/* Écart entre deux segments NON ORIENTÉS : on essaie les deux appariements
+   de bouts et on garde le meilleur — (a,b) et (b,a) sont le même trait. */
+function ecartSegments(u, v){
+  return Math.min(
+    Math.max(dist2p(u[1], v[1]), dist2p(u[2], v[2])),
+    Math.max(dist2p(u[1], v[2]), dist2p(u[2], v[1])));
+}
+/* L’ERREUR DE SYMÉTRIE d’une droite pour une figure, rapportée au diamètre
+   de la figure : 0 si la droite est un axe exact, et d’autant plus grande
+   que la droite s’en éloigne — en ANGLE comme en POSITION, les deux à la
+   fois, sans avoir à les séparer.
+
+   UNE SEULE FONCTION POUR DEUX USAGES : le contrôle de données l’appelle
+   avec une tolérance infime pour établir les axes vrais, et le verdict
+   l’appelle avec une tolérance d’enfant. Deux mesures différentes de « être
+   un axe » finiraient par se contredire. */
+function erreurDeSymetrie(fig, L){
+  const D = diametreDe(fig) || 1;
+  let pire = 0;
+  fig.prims.forEach(u => {
+    const r = ['S', refletPoint(u[1], L), refletPoint(u[2], L)];
+    let d0 = Infinity;
+    fig.prims.forEach(v => { d0 = Math.min(d0, ecartSegments(r, v)); });
+    pire = Math.max(pire, d0);
+  });
+  return pire / D;
+}
+
+/* LES AXES, RECALCULÉS.
+   Un axe de symétrie passe forcément par le centre des sommets — la
+   réflexion permute les sommets, donc fixe leur moyenne. Et il envoie le
+   sommet LE PLUS ÉLOIGNÉ du centre sur un sommet aussi éloigné : les
+   candidats sont donc les bissectrices des rayons (centre→V0, centre→Vk)
+   pour les seuls Vk à la même distance. Il y en a au plus autant que de
+   sommets, et la liste est complète — aucune recherche à l’aveugle sur
+   360 degrés, aucun pas d’échantillonnage qui manquerait un axe oblique. */
+const TOL_AXE_EXACT = 1e-6;
+function axesDe(fig, tol){
+  const pts = sommetsDe(fig);
+  const c = centreDe(pts);
+  let d0 = 0;
+  pts.forEach(p => { d0 = Math.max(d0, dist2p(p, c)); });
+  if (d0 < 1e-9) return [];
+  const angles = [];
+  const t0 = pts.filter(p => Math.abs(dist2p(p, c) - d0) <= d0 * 1e-9);
+  const theta0 = Math.atan2(t0[0][1] - c[1], t0[0][0] - c[0]);
+  t0.forEach(p => {
+    const th = Math.atan2(p[1] - c[1], p[0] - c[0]);
+    angles.push((theta0 + th) / 2, (theta0 + th) / 2 + Math.PI / 2);
+  });
+  const vus = [], axes = [];
+  angles.forEach(a0 => {
+    const a = ((a0 % Math.PI) + Math.PI) % Math.PI;
+    if (vus.some(b => Math.abs(a - b) < 1e-7 || Math.abs(Math.abs(a - b) - Math.PI) < 1e-7)) return;
+    vus.push(a);
+    const L = droite(c, [Math.cos(a), Math.sin(a)]);
+    if (erreurDeSymetrie(fig, L) <= (tol === undefined ? TOL_AXE_EXACT : tol)) axes.push(L);
+  });
+  return axes;
+}
+
+/* ------------------------------------------------------------
+   LA BANQUE — dix-neuf figures, toutes tirées du texte officiel
+   (enseignes de cartes, panneaux, lettres majuscules) ou du piège nommé
+   par la spec. UN TIERS SANS AUCUN AXE : sans elles l’enfant ne
+   reconnaîtrait rien, il localiserait un axe dont l’existence lui est
+   acquise. N, S et Z ont la symétrie du demi-tour et aucun axe — c’est
+   exactement la confusion à trancher.
+
+   `axes` n’est PAS la source : le contrôle de données recalcule ce nombre
+   depuis les segments et refuse la figure s’il ne retrouve pas le compte.
+   ------------------------------------------------------------ */
+const FIGURES1 = [
+  /* ---- aucun axe : six figures, soit le tiers demandé ---- */
+  {nom:'la lettre N', axes:0, prims: chemin([[25,80],[25,20],[75,80],[75,20]])},
+  {nom:'la lettre S', axes:0, prims: chemin([[78,22],[22,22],[22,50],[78,50],[78,78],[22,78]])},
+  {nom:'la lettre Z', axes:0, prims: chemin([[22,22],[78,22],[22,78],[78,78]])},
+  {nom:'la lettre F', axes:0, prims: chemin([[30,80],[30,20],[74,20]]).concat(chemin([[30,50],[66,50]]))},
+  {nom:'la lettre L', axes:0, prims: chemin([[30,18],[30,82],[66,82]])},
+  {nom:'la lettre P', axes:0, prims: chemin([[30,18],[30,82]])
+    .concat(chemin([[30,18],[62,18],[72,28],[72,40],[62,50],[30,50]]))},
+  {nom:'le parallélogramme', axes:0, prims: contour([[20,74],[50,26],[86,26],[56,74]])},
+  /* ---- un axe ---- */
+  {nom:'le cœur', axes:1, prims: contour([
+    [50,88],[30,68],[18,54],[18,40],[26,30],[38,30],[46,36],
+    [50,44],[54,36],[62,30],[74,30],[82,40],[82,54],[70,68]])},
+  {nom:'le pique', axes:1, prims: contour([
+    [50,16],[32,38],[22,52],[22,62],[30,70],[42,70],
+    [50,62],[58,70],[70,70],[78,62],[78,52],[68,38]])
+    .concat(contour([[50,60],[42,84],[58,84]]))},
+  {nom:'le trèfle', axes:1, prims: reunionDeLobes([[50,32,17],[34,56,17],[66,56,17]], 24)
+    .concat(contour([[50,62],[44,88],[56,88]]))},
+  {nom:'le cerf-volant', axes:1, prims: contour([[50,14],[78,44],[50,86],[22,44]])},
+  {nom:'la lettre A', axes:1, prims: chemin([[24,82],[50,18],[76,82]]).concat(chemin([[34,58],[66,58]]))},
+  {nom:'la lettre T', axes:1, prims: chemin([[20,24],[80,24]]).concat(chemin([[50,24],[50,82]]))},
+  {nom:'la lettre U', axes:1, prims: chemin([[26,20],[26,60],[32,72],[42,78],[58,78],[68,72],[74,60],[74,20]])},
+  {nom:'la lettre B', axes:1, prims: chemin([[30,18],[30,82]])
+    .concat(chemin([[30,18],[62,18],[72,28],[72,40],[62,50],[30,50]]))
+    .concat(chemin([[30,50],[62,50],[72,60],[72,72],[62,82],[30,82]]))},
+  {nom:'la lettre D', axes:1, prims: chemin([[30,18],[30,82]])
+    .concat(chemin([[30,18],[58,18],[74,34],[74,66],[58,82],[30,82]]))},
+  /* ---- deux axes ---- */
+  {nom:'le carreau', axes:2, prims: contour([[50,14],[80,50],[50,86],[20,50]])},
+  {nom:'le rectangle', axes:2, prims: contour([[22,32],[78,32],[78,68],[22,68]])},
+  {nom:'la lettre H', axes:2, prims: chemin([[30,18],[30,82]])
+    .concat(chemin([[70,18],[70,82]])).concat(chemin([[30,50],[70,50]]))},
+  {nom:'la lettre X', axes:2, prims: chemin([[26,20],[74,80]]).concat(chemin([[74,20],[26,80]]))}
+];
+/* Les axes servis au jeu sont les axes CALCULÉS, jamais le nombre écrit
+   au-dessus : deux vérités pour un même fait finissent toujours par
+   diverger, et c’est la déclaration qui aurait tort. */
+FIGURES1.forEach(f => { f._axes = axesDe(f); });
 
 /* ============================================================
    ÉTOILES (CHARTE §9)
@@ -1187,7 +1426,10 @@ function passer(){
   majDots();
   finirManche();
 }
-$('btnPasser').addEventListener('click', passer);
+$('btnPasser').addEventListener('click', () => {
+  if (miniJeuCourant && miniJeuCourant.mode === 'reconnaitre') return passer1();
+  passer();
+});
 
 /* `differer` : le bouton paraît tout de suite — le clic manuel reste
    prioritaire et immédiat (§20) — mais le minuteur, lui, attend la fin de
@@ -1269,21 +1511,458 @@ function ouvrirPalette(){
 }
 
 /* ============================================================
+   JEU #1 — LA SCÈNE, LE GESTE, LE CALQUE
+   ============================================================ */
+const VUE1 = [-6, -6, 112, 112];
+const TOL_BALAYAGE = 7;        // en unités de figure : le doigt révèle large
+const PAS_MORCEAU = 3;         // longueur d’un morceau de contour à révéler
+/* Tolérance du VERDICT, en fraction du diamètre de la figure — MESURÉE,
+   non choisie au jugé. Sur la banque : incliner un axe vrai de 2° coûte
+   0,035 à 0,051 ; de 4°, 0,07 à 0,103. Le décaler de 2 unités coûte 0,052
+   à 0,061. Et la MEILLEURE droite possible sur une figure sans axe vaut
+   0,093 — c’est le parallélogramme, le piège du module, qui fixe le
+   plafond : toute tolérance doit rester nettement en dessous, sinon le
+   piège devient acceptable. D’où 0,075 : environ 3° ou 2,5 unités de jeu
+   pour le doigt, et un quart de marge sous le parallélogramme.
+
+   L’enfant n’est pas laissé seul avec cette exigence : son trait s’affiche
+   pendant qu’il le pose, il peut le refaire avant de valider, et le calque
+   lui montre l’écart avant le verdict. */
+const TOL_ENFANT = 0.075;
+
+let etape1 = 'tracer';         // tracer | calque | verdict | fini
+let ligne1 = null;             // la droite que l’enfant vient de tracer
+let trouves1 = [];             // les axes déjà validés dans cette manche
+let morceaux1 = [];            // le contour à révéler, morceau par morceau
+let montrerVrais = false;      // §18 : après un échec, on montre les axes réels
+
+function ligneSvg(L, classe){
+  const T = 400;
+  return '<line class="' + classe
+    + '" x1="' + (L.p[0] - T*L.d[0]) + '" y1="' + (L.p[1] - T*L.d[1])
+    + '" x2="' + (L.p[0] + T*L.d[0]) + '" y2="' + (L.p[1] + T*L.d[1]) + '"/>';
+}
+function segSvg1(s, classe, style){
+  return '<line class="' + classe + '" x1="' + s[1][0] + '" y1="' + s[1][1]
+    + '" x2="' + s[2][0] + '" y2="' + s[2][1] + '"'
+    + (style ? ' style="' + style + '"' : '') + '/>';
+}
+
+function rendreFigure(){
+  const q = file[pos];
+  /* Au succès, la couleur gagne la figure EN PARTANT DE L’AXE : le retard
+     de chaque trait croît avec sa distance à la droite trouvée. L’effet
+     redit ce que l’enfant vient de démontrer. */
+  const ref = trouves1[0] || ligne1;
+  const dTrait = (u) => ref ? Math.abs(cote(u[1], ref) + cote(u[2], ref)) / 2 : 0;
+  const dMax = Math.max(1e-6, ...q.fig.prims.map(dTrait));
+  let s = q.fig.prims.map(u =>
+    segSvg1(u, 'trait-fig', 'transition-delay:' + (dTrait(u) / dMax * 0.4).toFixed(3) + 's')).join('');
+  if (montrerVrais) q.fig._axes.forEach(L => { s += ligneSvg(L, 'axe-vrai'); });
+  trouves1.forEach(L => { s += ligneSvg(L, 'axe-ok'); });
+  if (ligne1 && etape1 !== 'fini') s += ligneSvg(ligne1, 'axe-trace');
+  $('figure').innerHTML = s;
+}
+/* `hidden` N’EST PAS UNE PROPRIÉTÉ DES ÉLÉMENTS SVG : `element.hidden = false`
+   y pose une propriété JavaScript quelconque et laisse l’ATTRIBUT en place,
+   donc la règle `[hidden]{display:none}` continue de s’appliquer. Le calque
+   restait invisible tout en se déclarant visible — et un contrôle qui
+   n’interrogeait que le DOM n’y voyait rien. On passe donc par l’attribut. */
+function montrerCalque(visible){
+  const c = $('calque');
+  if (visible) c.removeAttribute('hidden'); else c.setAttribute('hidden', '');
+}
+function rendreCalque(){
+  $('calque').innerHTML = morceaux1.map(m =>
+    segSvg1(m.s, m.vu ? 'revele' : 'guide')).join('');
+}
+
+/* ------------------------------------------------------------
+   LA RÉGULARISATION DU TRAIT — ET CE QU’ELLE NE FAIT PAS
+   ------------------------------------------------------------
+   Le trait à main levée devient une droite par MOINDRES CARRÉS
+   ORTHOGONAUX : la droite qui minimise la distance des points relevés à
+   elle-même. C’est le vecteur propre principal de la matrice de
+   covariance, et il se lit en une ligne d’arc-tangente.
+
+   Ce qui compte est ce que cette formule IGNORE : elle ne connaît ni les
+   axes vrais de la figure, ni la verticale, ni l’horizontale. Elle ne
+   reçoit que les points du doigt. Un axe tracé de travers reste donc de
+   travers, et le calque le révèle — c’est tout l’enjeu du mini-jeu. Une
+   aimantation vers la bonne réponse ferait de la vérification un théâtre.
+
+   Elle refuse en revanche un geste qui n’est pas un trait : un point, un
+   gribouillis rond n’ont pas de direction, et en inventer une reviendrait
+   à répondre au hasard. On redemande alors le geste.
+   ------------------------------------------------------------ */
+const LONGUEUR_MIN_GESTE = 18;      // en unités de figure
+const ELONGATION_MIN = 3;           // rapport des deux inerties principales
+function droiteDuGeste(pts){
+  if (pts.length < 2) return null;
+  const c = centreDe(pts);
+  let sxx = 0, sxy = 0, syy = 0;
+  pts.forEach(p => {
+    const dx = p[0] - c[0], dy = p[1] - c[1];
+    sxx += dx*dx; sxy += dx*dy; syy += dy*dy;
+  });
+  const n = pts.length;
+  sxx /= n; sxy /= n; syy /= n;
+  const tr = sxx + syy;
+  const det = sxx*syy - sxy*sxy;
+  const racine = Math.sqrt(Math.max(0, tr*tr/4 - det));
+  const l1 = tr/2 + racine, l2 = tr/2 - racine;
+  if (Math.sqrt(Math.max(l1, 0)) * 3.4 < LONGUEUR_MIN_GESTE) return null;   // trait trop court
+  if (l2 > 1e-9 && l1 / l2 < ELONGATION_MIN) return null;                   // geste sans direction
+  return droite(c, [Math.cos(0.5 * Math.atan2(2*sxy, sxx - syy)),
+                    Math.sin(0.5 * Math.atan2(2*sxy, sxx - syy))]);
+}
+
+/* ------------------------------------------------------------
+   LE CALQUE : LE DOIGT RÉVÈLE, IL NE DESSINE PAS
+   ------------------------------------------------------------
+   Repasser au doigt le contour d’un cœur sur un téléphone est une tâche
+   MOTRICE. Si le calque reproduisait les écarts de la main, un axe juste
+   donnerait une mauvaise superposition et l’enfant serait puni pour son
+   doigt. Le contour IDÉAL est donc découpé d’avance en morceaux, montrés
+   en pointillé pâle ; le doigt qui passe à leur portée les allume. Le
+   geste garde son sens — il force à parcourir la forme et à en voir le
+   détail — sans entrer dans le jugement.
+
+   La moitié à repasser est découpée par LA DROITE DE L’ENFANT, pas par un
+   axe vrai : c’est ce qui permet au calque de démentir un axe faux.
+   ------------------------------------------------------------ */
+function demiFigure(fig, L){
+  const out = [];
+  fig.prims.forEach(u => {
+    const a = cote(u[1], L), b = cote(u[2], L);
+    if (a >= 0 && b >= 0) { out.push(u); return; }
+    if (a <= 0 && b <= 0) return;
+    const t = a / (a - b);
+    const m = [u[1][0] + t*(u[2][0]-u[1][0]), u[1][1] + t*(u[2][1]-u[1][1])];
+    out.push(a > 0 ? ['S', u[1], m] : ['S', m, u[2]]);
+  });
+  return out;
+}
+function decouperEnMorceaux(segs){
+  const out = [];
+  segs.forEach(u => {
+    const L = dist2p(u[1], u[2]);
+    const n = Math.max(1, Math.round(L / PAS_MORCEAU));
+    for (let i = 0; i < n; i++) {
+      const t0 = i/n, t1 = (i+1)/n;
+      out.push({vu:false, s:['S',
+        [u[1][0] + t0*(u[2][0]-u[1][0]), u[1][1] + t0*(u[2][1]-u[1][1])],
+        [u[1][0] + t1*(u[2][0]-u[1][0]), u[1][1] + t1*(u[2][1]-u[1][1])]]});
+    }
+  });
+  return out;
+}
+function revelerAutour(p){
+  if (etape1 !== 'calque') return;      // la bascule est passée : plus rien à révéler
+  let change = false;
+  morceaux1.forEach(m => {
+    if (m.vu) return;
+    const c = [(m.s[1][0]+m.s[2][0])/2, (m.s[1][1]+m.s[2][1])/2];
+    if (dist2p(p, c) <= TOL_BALAYAGE) { m.vu = true; change = true; }
+  });
+  if (!change) return;
+  rendreCalque();
+  if (morceaux1.every(m => m.vu)) basculerCalque();
+}
+
+/* La bascule : le calque tourne d’un demi-tour AUTOUR DE LA DROITE TRACÉE,
+   quelle que soit son inclinaison — `rotate3d` accepte n’importe quel axe
+   dans le plan. L’origine est le point de la droite le plus proche du
+   centre de la scène, pour que le mouvement reste centré. */
+function basculerCalque(){
+  if (etape1 !== 'calque') return;
+  etape1 = 'verdict';
+  const c = $('calque');
+  const t = (50 - ligne1.p[0]) * ligne1.d[0] + (50 - ligne1.p[1]) * ligne1.d[1];
+  const px = ligne1.p[0] + t*ligne1.d[0], py = ligne1.p[1] + t*ligne1.d[1];
+  /* L’origine se pose en POURCENTAGES et non en pixels : sur un élément
+     `<svg>`, la boîte de référence d’une transformation CSS est sa propre
+     `viewBox`, et « 150px » s’y lit en unités utilisateur, pas en pixels
+     d’écran. Le pourcentage, lui, veut dire la même chose des deux côtés. */
+  c.style.transformOrigin =
+    ((px - VUE1[0]) / VUE1[2] * 100).toFixed(4) + '% ' +
+    ((py - VUE1[1]) / VUE1[3] * 100).toFixed(4) + '%';
+  c.style.setProperty('--ax', ligne1.d[0]);
+  c.style.setProperty('--ay', ligne1.d[1]);
+  c.classList.add('bascule');
+  sonTrait();
+  message('Le calque est retourné. Les deux moitiés se superposent-elles ?', '');
+  majActions1();
+}
+
+/* ------------------------------------------------------------
+   LE GESTE SUR LA SCÈNE
+   ------------------------------------------------------------ */
+function versFigure(clientX, clientY){
+  const svg = $('figure'), m = svg.getScreenCTM();
+  if (!m) return null;
+  const pt = svg.createSVGPoint(); pt.x = clientX; pt.y = clientY;
+  const q = pt.matrixTransform(m.inverse());
+  return [q.x, q.y];
+}
+(function brancherScene(){
+  const svg = $('figure');
+  /* UN GESTE GARDE LE SENS QU’IL AVAIT EN COMMENÇANT. Sans ce `mode`
+     figé à l’appui, le doigt qui finissait de révéler le contour voyait la
+     bascule se déclencher SOUS LUI : l’étape passait à « verdict », et la
+     suite du même mouvement retombait dans la branche de tracé — elle
+     remplaçait alors en silence l’axe de l’enfant par une droite calculée
+     sur son balayage, et c’est cette droite-là qui aurait été jugée. */
+  let actif = false, mode = null, points = [], dernier = null;
+  svg.addEventListener('pointerdown', (e) => {
+    if (etape1 !== 'tracer' && etape1 !== 'calque') return;
+    const p = versFigure(e.clientX, e.clientY);
+    if (!p) return;
+    actif = true; mode = etape1; points = [p]; dernier = p;
+    if (mode === 'calque') revelerAutour(p);
+    try { svg.setPointerCapture(e.pointerId); } catch(err){}
+    e.preventDefault();
+  });
+  svg.addEventListener('pointermove', (e) => {
+    if (!actif) return;
+    const p = versFigure(e.clientX, e.clientY);
+    if (!p) return;
+    if (mode === 'calque') {
+      /* Un doigt rapide saute plusieurs morceaux entre deux événements :
+         on échantillonne le chemin, sinon le contour se révèle en pointillé. */
+      const dx = p[0]-dernier[0], dy = p[1]-dernier[1];
+      const n = Math.max(1, Math.ceil(Math.hypot(dx, dy) / (PAS_MORCEAU/2)));
+      for (let i = 1; i <= n; i++) revelerAutour([dernier[0]+dx*i/n, dernier[1]+dy*i/n]);
+    } else {
+      points.push(p);
+      const L = droiteDuGeste(points);
+      if (L) { ligne1 = L; rendreFigure(); }
+    }
+    dernier = p;
+    e.preventDefault();
+  });
+  const relacher = (e) => {
+    if (!actif) return;
+    actif = false;
+    try { svg.releasePointerCapture(e.pointerId); } catch(err){}
+    if (mode !== 'tracer') return;
+    const L = droiteDuGeste(points);
+    if (!L) { message('Trace un trait bien droit, d’un bord à l’autre.', ''); return; }
+    ligne1 = L;
+    message('');
+    rendreFigure(); majActions1();
+  };
+  svg.addEventListener('pointerup', relacher);
+  svg.addEventListener('pointercancel', relacher);
+})();
+
+/* ------------------------------------------------------------
+   LES BOUTONS DE LA MANCHE, SELON L’ÉTAPE
+   ------------------------------------------------------------ */
+function majActions1(){
+  const b = $('actions1');
+  if (etape1 === 'fini') { b.hidden = true; b.innerHTML = ''; return; }
+  b.hidden = false;
+  if (etape1 === 'tracer') {
+    b.innerHTML = '<button type="button" class="act" id="b1Aucun">Aucun axe</button>'
+      + '<button type="button" class="act primaire" id="b1Verifier"'
+      + (ligne1 ? '' : ' disabled') + '>Vérifier au calque 🔎</button>';
+    $('b1Aucun').addEventListener('click', () => verdict1(true));
+    $('b1Verifier').addEventListener('click', ouvrirCalque);
+  } else if (etape1 === 'calque') {
+    b.innerHTML = '<span class="act-info">Repasse le contour de cette moitié.</span>';
+  } else {
+    b.innerHTML = '<button type="button" class="act" id="b1Recommencer">Je recommence</button>'
+      + '<button type="button" class="act primaire" id="b1Bon">C’est bon !</button>';
+    $('b1Recommencer').addEventListener('click', recommencer1);
+    $('b1Bon').addEventListener('click', () => verdict1(false));
+  }
+}
+function ouvrirCalque(){
+  if (!ligne1) return;
+  etape1 = 'calque';
+  morceaux1 = decouperEnMorceaux(demiFigure(file[pos].fig, ligne1));
+  const c = $('calque');
+  c.classList.remove('bascule'); montrerCalque(true);
+  rendreCalque(); majActions1();
+  message('');
+  lire('Repasse au doigt le contour de cette moitié.');
+}
+function recommencer1(){
+  etape1 = 'tracer';
+  ligne1 = null; morceaux1 = [];
+  const c = $('calque');
+  c.classList.remove('bascule'); montrerCalque(false); c.innerHTML = '';
+  message('');
+  rendreFigure(); majActions1();
+}
+
+/* ------------------------------------------------------------
+   LE VERDICT
+   ------------------------------------------------------------
+   « Une et non l’axe » : sur une figure à deux axes, les deux sont
+   acceptés, et le premier trouvé n’épuise pas la manche — la consigne
+   enchaîne sur « il y en a un autre ». Le second ne peut pas être le
+   premier redit autrement, d’où la comparaison des droites déjà trouvées.
+   ------------------------------------------------------------ */
+function memeDroite(A, B){
+  const a = Math.abs(A.d[0]*B.d[1] - A.d[1]*B.d[0]);          // |sin de l’écart|
+  return a < 0.26 && Math.abs(cote(A.p, B)) < 12;              // ~15° et 12 unités
+}
+function verdict1(aucunAxe){
+  if (etape1 === 'fini') return;
+  const q = file[pos], fig = q.fig, vrais = fig._axes;
+  let juste;
+  if (aucunAxe) juste = vrais.length === 0;
+  else juste = vrais.length > 0
+    && erreurDeSymetrie(fig, ligne1) <= TOL_ENFANT
+    && !trouves1.some(L => memeDroite(L, ligne1));
+  const attendus = Math.max(1, Math.min(2, vrais.length));
+  const parAxe = 2 / attendus;
+
+  const c = $('calque');
+  c.classList.remove('bascule'); montrerCalque(false); c.innerHTML = '';
+
+  if (!juste) {
+    montrerVrais = true;
+    q._points = q._points || 0;
+    q._ok = false;
+    ligne1 = null;
+    rendreFigure();
+    sonErreur();
+    message(vrais.length === 0
+      ? 'Cette figure n’a aucun axe de symétrie.'
+      : (aucunAxe ? 'Il y avait un axe : le voici.' : 'Cet axe n’en est pas un. Voici le ou les axes.'), 'mauvais');
+    finirManche1();
+    return;
+  }
+
+  /* « Aucun axe » est une réponse juste SANS droite : rien à mémoriser.
+     Pousser un `null` ici faisait planter le rendu de la récompense. */
+  if (ligne1) trouves1.push(ligne1);
+  ligne1 = null;
+  q._points = (q._points || 0) + parAxe;
+  score += parAxe;
+
+  if (!aucunAxe && trouves1.length < attendus) {
+    /* Un axe trouvé, un autre à trouver : la manche continue. */
+    etape1 = 'tracer';
+    rendreFigure(); majActions1();
+    sonBonneReponse();
+    message('Bravo ! Il y en a un autre : trouve-le.', 'bon');
+    poserConsigne('Il y a un deuxième axe. Trace-le !');
+    return;
+  }
+  q._ok = true;
+  reussir1();
+}
+
+function reussir1(){
+  const scene = $('scene');
+  scene.classList.add('reussi');
+  rendreFigure();
+  sonBonneReponse(); lancerConfettis(30);
+  message(file[pos]._points === 2 ? 'Bien vu !' : 'Bien vu !', 'bon');
+  finirManche1(true);
+}
+
+/* La récompense dure le temps que la couleur gagne toute la figure : les
+   2 s du §20 se comptent à partir de là, comme dans l’autre mini-jeu. */
+const ETALEMENT_COULEUR_MS = 400;
+function finirManche1(fete){
+  etape1 = 'fini';
+  mancheFinie = true;
+  majActions1(); majDots();
+  $('btnPasser').hidden = true;
+  $('btnNext').style.display = 'block';
+  $('btnNext').textContent = pos === file.length - 1 ? 'Voir mon score ⭐' : 'Suivant ➜';
+  if (fete && !mouvementReduit()) {
+    minuteriesPli.push(setTimeout(armerAutoSuivant,
+      ETALEMENT_COULEUR_MS + dureeCss('--eclosion')));
+  } else {
+    armerAutoSuivant();
+  }
+}
+function passer1(){
+  if (etape1 === 'fini') return;
+  const q = file[pos];
+  q._points = q._points || 0;
+  q._ok = false;
+  montrerVrais = true;
+  ligne1 = null;
+  const c = $('calque'); c.classList.remove('bascule'); montrerCalque(false); c.innerHTML = '';
+  rendreFigure();
+  sonErreur();
+  message(q.fig._axes.length === 0
+    ? 'Cette figure n’a aucun axe de symétrie.'
+    : 'Voici le ou les axes de cette figure.', 'mauvais');
+  finirManche1();
+}
+
+/* ------------------------------------------------------------
+   LA FILE (CHARTE §13 bis)
+   ------------------------------------------------------------
+   Trois stocks séparés — sans axe, un axe, deux axes — tirés chacun sans
+   remise. La PROPORTION (deux figures sans axe sur six) n’est pas tirée :
+   c’est une proportion voulue, l’une des trois exclusions du §13 bis. Ce
+   qui se tire, c’est quelle figure occupe chaque place, et l’ordre des six.
+   ------------------------------------------------------------ */
+const REPARTITION1 = [{axes:0, n:2}, {axes:1, n:3}, {axes:2, n:1}];
+function engendrerFile1(cfg){
+  let tirees = [];
+  REPARTITION1.forEach(r => {
+    const stock = FIGURES1.filter(f => f._axes.length === r.axes);
+    tirees = tirees.concat(tirerSansRepetition('fig1-' + r.axes, stock, r.n));
+  });
+  return melanger(tirees).slice(0, cfg.nbQuestions)
+    .map(fig => ({fig, _points:0, _ok:false}));
+}
+
+function manche1(){
+  desarmerAutoSuivant(); stopperVoix(); arreterPli();
+  const q = file[pos];
+  etape1 = 'tracer'; ligne1 = null; trouves1 = []; morceaux1 = [];
+  montrerVrais = false; mancheFinie = false;
+  $('scene').classList.remove('reussi');
+  $('plan').hidden = true; $('scene').hidden = false;
+  $('outils').hidden = true; $('palette').hidden = true;
+  $('btnPasser').hidden = false;
+  $('btnNext').style.display = 'none';
+  const c = $('calque'); c.classList.remove('bascule'); montrerCalque(false); c.innerHTML = '';
+  [$('figure'), c].forEach(e => {
+    if (e.getAttribute('viewBox') !== VUE1.join(' ')) e.setAttribute('viewBox', VUE1.join(' '));
+  });
+  message('');
+  $('hdrTitle').textContent = 'Symboles miroirs';
+  poserConsigne('Trace UN axe de symétrie — ou dis qu’il n’y en a aucun.');
+  $('sousConsigne').textContent = 'Ici : ' + q.fig.nom + '. Glisse le doigt en travers.';
+  rendreFigure(); majActions1(); majDots();
+  montreEcran('game');
+}
+
+/* ============================================================
    DÉROULÉ
    ============================================================ */
 function lance(id){
   const cfg = CONTENU.miniJeux.find(m => m.id === id);
   if (!cfg || cfg.aVenir) return;
   miniJeuCourant = cfg;
-  file = engendrerFile(cfg);
+  file = cfg.mode === 'reconnaitre' ? engendrerFile1(cfg) : engendrerFile(cfg);
   pos = 0; score = 0;
   total = file.length * 2;      // demi-points entiers (CHARTE §11), comme M35
   demarreLe = Date.now();
   manche();
 }
+/* Les deux mini-jeux partagent la coquille — consigne, pastilles, bouton
+   Suivant, avance automatique — et rien d’autre : chacun a sa manche. */
 function manche(){
+  if (miniJeuCourant.mode === 'reconnaitre') return manche1();
+  return manche2();
+}
+function manche2(){
   desarmerAutoSuivant(); stopperVoix();
   const q = file[pos];
+  $('scene').hidden = true; $('plan').hidden = false;
   traces = new Map(); gommages = 0; mancheFinie = false;
   outil = 'feutre'; segmentVise = null; colorierDedans = false;
   arreterPli();
@@ -1326,8 +2005,9 @@ function fin(){
   $('endStars').innerHTML = '⭐'.repeat(n).split('').map(s => '<span>' + s + '</span>').join('');
   $('endMsg').textContent = n === 3 ? 'Le monde est réparé !' : n === 2 ? 'Bien joué !' : 'Continue, tu progresses !';
   const reussies = file.filter(q => q._ok).length;
+  const fait = miniJeuCourant.mode === 'reconnaitre' ? 'réussie' : 'complétée';
   $('endScore').textContent = reussies + ' figure' + (reussies > 1 ? 's' : '')
-    + ' sur ' + file.length + ' complétée' + (reussies > 1 ? 's' : '') + '.';
+    + ' sur ' + file.length + ' ' + fait + (reussies > 1 ? 's' : '') + '.';
   if (n === 3) sonNiveauParfait(); else sonBonneReponse();
   lancerConfettis(n === 3 ? 90 : 40);
   montreEcran('end');
