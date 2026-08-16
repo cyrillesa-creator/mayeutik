@@ -98,7 +98,7 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
    second sélecteur, le universel plus haut remettrait chaque trait en
    `pan-y` et le doigt ferait défiler la page au lieu de dessiner. */
 .plan{background:var(--carte); border-radius:var(--r); box-shadow:var(--ombre); padding:8px; margin-bottom:10px; position:relative;}
-.plan svg{display:block; width:100%; height:auto;}
+
 #grille, #grille *{touch-action:none;}
 .maille{stroke:#D8E2F0; stroke-width:1; vector-effect:non-scaling-stroke;}
 .axe{stroke:var(--mandarine); stroke-width:3; stroke-dasharray:8 5; stroke-linecap:round; vector-effect:non-scaling-stroke;}
@@ -160,9 +160,25 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
    deux côtés — donc l’origine du pli est le centre de l’élément, dans les
    deux orientations. Seul l’AXE DE ROTATION change : on tourne autour de la
    verticale quand l’axe est vertical, autour de l’horizontale sinon. */
+/* ---------- LE CADRE : UNE SEULE BOÎTE POUR LE PLAN ET SON CALQUE ----------
+   Le calque déduisait sa boîte de son côté : largeur donnée par les bords,
+   HAUTEUR laissée à `auto`, donc tirée du rapport de la `viewBox` par le
+   moteur. Deux façons d’obtenir la même boîte, c’est encore deux vérités
+   pour un seul fait — et il suffit qu’un moteur résolve autrement la taille
+   intrinsèque d’un `<svg>` positionné pour que le calque prenne une boîte
+   légèrement différente. La `viewBox` s’y recentre alors, et TOUT LE DESSIN
+   se retrouve décalé, avant même le moindre pliage.
+
+   Un cadre porte donc les deux : le plan, dans le flux, lui donne sa taille ;
+   le calque, par-dessus, la prend en POURCENTAGE — cent pour cent de la
+   boîte du plan, sans plus rien à déduire. Quoi qu’un moteur décide de la
+   hauteur du plan, le calque le suit exactement. */
+.cadre{position:relative;}
+.cadre > svg{display:block; width:100%; height:auto;}
+#rabat, #calque{position:absolute; left:0; top:0; width:100%; height:100%;}
 #rabat{
-  position:absolute; left:8px; top:8px; right:8px; width:auto; height:auto;
-  display:none; pointer-events:none; transform-origin:50% 50%; backface-visibility:visible;
+  transform-origin:50% 50%;
+  display:none; pointer-events:none; backface-visibility:visible;
   /* UNE FEUILLE EST OPAQUE. Sans fond, la moitié posée laisse transparaître,
      au bord de chaque trait, la couleur de celui qu’elle recouvre : deux
      disques identiques superposés se bordent d’un liseré de l’un sous
@@ -238,7 +254,6 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
    la propriété ne s’hérite pas (§19). */
 .scene{background:var(--carte); border-radius:var(--r); box-shadow:var(--ombre);
   padding:8px; margin-bottom:10px; position:relative;}
-.scene svg{display:block; width:100%; height:auto;}
 /* TOUTE LA CARTE EST UNE SURFACE DE DESSIN, pas seulement le SVG : un
    geste qui commence dans les 8 px de marge ne doit pas davantage faire
    défiler la page. `touch-action` ne s’héritant pas, il faut le dire aussi
@@ -253,7 +268,7 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
    surface explicite qui couvre toute la vue : `pointer-events:all` la rend
    cible quel que soit son remplissage, sans rien peindre. */
 .surface{fill:none; pointer-events:all;}
-#calque{position:absolute; left:8px; top:8px; right:8px; width:auto; height:auto;
+#calque{
   pointer-events:none; backface-visibility:visible;
   /* `transform-box` EXPLICITE. Sur un élément `<svg>`, la boîte de
      référence d’une transformation est par défaut sa `viewBox` : une
@@ -383,12 +398,16 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
     <div id="qText"></div>
     <p class="sous-consigne" id="sousConsigne"></p>
     <div class="plan" id="plan">
-      <svg id="grille" aria-label="Plan quadrillé"></svg>
-      <svg id="rabat" aria-hidden="true"></svg>
+      <div class="cadre">
+        <svg id="grille" aria-label="Plan quadrillé"></svg>
+        <svg id="rabat" aria-hidden="true"></svg>
+      </div>
     </div>
     <div class="scene" id="scene" hidden>
-      <svg id="figure" aria-label="Figure à examiner"></svg>
-      <svg id="calque" aria-hidden="true" hidden></svg>
+      <div class="cadre">
+        <svg id="figure" aria-label="Figure à examiner"></svg>
+        <svg id="calque" aria-hidden="true" hidden></svg>
+      </div>
     </div>
     <div class="actions" id="actions1" hidden></div>
     <div class="palette" id="palette" hidden></div>
