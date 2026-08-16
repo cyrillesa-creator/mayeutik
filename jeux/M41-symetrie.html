@@ -2168,8 +2168,7 @@ function manche1(){
   etape1 = 'tracer'; ligne1 = null; trouves1 = []; morceaux1 = [];
   montrerVrais = false; mancheFinie = false; dejaBalaye = false;
   $('scene').classList.remove('reussi');
-  $('plan').hidden = true; $('scene').hidden = false;
-  $('outils').hidden = true; $('palette').hidden = true;
+  preparerEcran('reconnaitre');
   $('btnPasser').hidden = false;
   $('btnNext').style.display = 'none';
   const c = $('calque'); c.classList.remove('bascule'); montrerCalque(false); c.innerHTML = '';
@@ -2197,6 +2196,23 @@ function lance(id){
   demarreLe = Date.now();
   manche();
 }
+/* CE QUI APPARTIENT À UN MINI-JEU DISPARAÎT AVEC LUI. Chaque manche montrait
+   ses propres éléments et laissait à l’autre le soin de ranger les siens :
+   personne ne rangeait. On a donc vu la barre du jeu des axes — « Aucun
+   axe », « Vérifier au calque » — rester posée sur le quadrillage de l’autre
+   mini-jeu. La mise en place se fait maintenant en UN SEUL endroit, à partir
+   du mode : ce qui n’est pas au mode courant est caché, sans qu’une manche
+   ait à connaître l’autre. */
+function preparerEcran(mode){
+  const dessine = mode === 'completer';
+  $('plan').hidden = !dessine;
+  $('outils').hidden = !dessine;
+  $('scene').hidden = dessine;
+  $('actions1').hidden = dessine;
+  if (dessine) $('actions1').innerHTML = '';
+  $('palette').hidden = true;
+}
+
 /* Les deux mini-jeux partagent la coquille — consigne, pastilles, bouton
    Suivant, avance automatique — et rien d’autre : chacun a sa manche. */
 function manche(){
@@ -2206,7 +2222,7 @@ function manche(){
 function manche2(){
   desarmerAutoSuivant(); stopperVoix();
   const q = file[pos];
-  $('scene').hidden = true; $('plan').hidden = false;
+  preparerEcran('completer');
   traces = new Map(); gommages = 0; mancheFinie = false;
   outil = 'feutre'; segmentVise = null; colorierDedans = false;
   arreterPli();
