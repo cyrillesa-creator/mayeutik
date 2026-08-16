@@ -1967,7 +1967,8 @@ function majActions1(){
   if (etape1 === 'tracer') {
     b.innerHTML = (ligne1
         ? '<button type="button" class="act" id="b1Effacer">Effacer le trait</button>'
-        : '<button type="button" class="act" id="b1Aucun">Aucun axe</button>')
+        : '<button type="button" class="act" id="b1Aucun">'
+          + (trouves1.length ? 'Aucun autre axe' : 'Aucun axe') + '</button>')
       + '<button type="button" class="act primaire" id="b1Verifier"'
       + (ligne1 ? '' : ' disabled') + '>Vérifier au calque 🔎</button>';
     /* Tant qu’un trait est posé, c’est l’effacer qu’on propose : « aucun
@@ -2033,13 +2034,21 @@ function verdict1(aucunAxe){
   if (etape1 === 'fini') return;
   const q = file[pos], fig = q.fig, vrais = fig._axes;
   const ecart = (aucunAxe || !ligne1) ? Infinity : erreurDeSymetrie(fig, ligne1);
+  /* DEUX TEMPS DÈS QU’IL Y A UN AXE : en trouver un, puis dire s’il y en a
+     un AUTRE. La question ne se pose pas qu’aux figures à deux axes —
+     sinon l’entendre poser vaudrait réponse, et l’enfant apprendrait le
+     signal au lieu de la géométrie. Sur une figure à un seul axe, la bonne
+     réponse au second temps est « aucun autre axe ».
+
+     « Aucun (autre) axe » est juste quand tous les axes vrais ont DÉJÀ été
+     trouvés — une seule phrase couvre les deux temps. */
+  const etapes = vrais.length === 0 ? 1 : 2;
+  const parEtape = 2 / etapes;
   let juste;
-  if (aucunAxe) juste = vrais.length === 0;
-  else juste = vrais.length > 0
+  if (aucunAxe) juste = vrais.length === trouves1.length;
+  else juste = trouves1.length < vrais.length
     && ecart <= toleranceDe(fig)
     && !trouves1.some(L => memeDroite(L, ligne1));
-  const attendus = Math.max(1, Math.min(2, vrais.length));
-  const parAxe = 2 / attendus;
 
   const c = $('calque');
   c.classList.remove('bascule'); montrerCalque(false); c.innerHTML = '';
@@ -2057,8 +2066,10 @@ function verdict1(aucunAxe){
     const presque = !aucunAxe && vrais.length > 0 && ecart <= toleranceDe(fig) * 4;
     message(vrais.length === 0
       ? 'Cette figure n’a aucun axe de symétrie.'
-      : aucunAxe ? 'Il y avait un axe : le voici.'
+      : aucunAxe ? (trouves1.length ? 'Il y en avait un autre : le voici.'
+                                    : 'Il y avait un axe : le voici.')
       : presque ? 'Presque ! Ton trait est un peu de travers.'
+      : trouves1.length ? 'Ce n’est pas un axe. Voici les axes de la figure.'
       : 'Cet axe n’en est pas un. Voici le ou les axes.', 'mauvais');
     finirManche1();
     return;
@@ -2068,16 +2079,22 @@ function verdict1(aucunAxe){
      Pousser un `null` ici faisait planter le rendu de la récompense. */
   if (ligne1) trouves1.push(ligne1);
   ligne1 = null;
-  q._points = (q._points || 0) + parAxe;
-  score += parAxe;
+  q._points = (q._points || 0) + parEtape;
+  score += parEtape;
 
-  if (!aucunAxe && trouves1.length < attendus) {
-    /* Un axe trouvé, un autre à trouver : la manche continue. */
+  if (!aucunAxe && trouves1.length < etapes) {
+    /* Un axe trouvé : reste à dire s’il y en a un autre. La question est
+       posée SANS en donner la réponse. */
     etape1 = 'tracer';
+    /* LE CALQUE SE REFAIT POUR LE SECOND AXE. Le balayage n’était sauté que
+       pour ne pas punir l’enfant qui AJUSTE le même trait ; un axe nouveau
+       est une vérification nouvelle, et la moitié à repasser n’est pas la
+       même. */
+    dejaBalaye = false;
     rendreFigure(); majActions1();
     sonBonneReponse();
-    message('Bravo ! Il y en a un autre : trouve-le.', 'bon');
-    poserConsigne('Il y a un deuxième axe. Trace-le !');
+    message('Bravo ! Et maintenant : y en a-t-il un autre ?', 'bon');
+    poserConsigne('Y a-t-il un autre axe ? Trace-le, ou dis qu’il n’y en a pas.');
     return;
   }
   q._ok = true;
