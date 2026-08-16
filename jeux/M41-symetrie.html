@@ -239,7 +239,20 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 .scene{background:var(--carte); border-radius:var(--r); box-shadow:var(--ombre);
   padding:8px; margin-bottom:10px; position:relative;}
 .scene svg{display:block; width:100%; height:auto;}
-#figure, #figure *{touch-action:none;}
+/* TOUTE LA CARTE EST UNE SURFACE DE DESSIN, pas seulement le SVG : un
+   geste qui commence dans les 8 px de marge ne doit pas davantage faire
+   défiler la page. `touch-action` ne s’héritant pas, il faut le dire aussi
+   pour les descendants (§19). */
+.scene, .scene *{touch-action:none;}
+/* LA ZONE DE TRACÉ DOIT ÊTRE UNE SURFACE, PAS SEULEMENT DE L’ENCRE.
+   Le quadrillage de l’autre mini-jeu couvre tout son plan de traits : où
+   que le doigt se pose, il touche un élément à `touch-action:none`. Ici la
+   figure ne peint qu’une petite partie de la scène, et le vide autour
+   dépend du comportement du moteur — WebKit et Blink ne désignent pas la
+   même cible sous un point vide d’un `<svg>` racine. On pose donc une
+   surface explicite qui couvre toute la vue : `pointer-events:all` la rend
+   cible quel que soit son remplissage, sans rien peindre. */
+.surface{fill:none; pointer-events:all;}
 #calque{position:absolute; left:8px; top:8px; right:8px; width:auto; height:auto;
   pointer-events:none; backface-visibility:visible;
   /* `transform-box` EXPLICITE. Sur un élément `<svg>`, la boîte de
@@ -1556,7 +1569,9 @@ function rendreFigure(){
   const ref = trouves1[0] || ligne1;
   const dTrait = (u) => ref ? Math.abs(cote(u[1], ref) + cote(u[2], ref)) / 2 : 0;
   const dMax = Math.max(1e-6, ...q.fig.prims.map(dTrait));
-  let s = q.fig.prims.map(u =>
+  let s = '<rect class="surface" x="' + VUE1[0] + '" y="' + VUE1[1]
+    + '" width="' + VUE1[2] + '" height="' + VUE1[3] + '"/>';
+  s += q.fig.prims.map(u =>
     segSvg1(u, 'trait-fig', 'transition-delay:' + (dTrait(u) / dMax * 0.4).toFixed(3) + 's')).join('');
   if (montrerVrais) q.fig._axes.forEach(L => { s += ligneSvg(L, 'axe-vrai'); });
   trouves1.forEach(L => { s += ligneSvg(L, 'axe-ok'); });
