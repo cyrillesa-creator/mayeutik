@@ -139,16 +139,31 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 }
 #btnNext:active{transform:translateY(3px);}
 
-/* ---------- L’effet de fin : les pages se referment puis se rouvrent ---------- */
-@keyframes page-tourne{
-  0%{ transform:perspective(700px) rotateY(0deg); }
-  45%{ transform:perspective(700px) rotateY(-72deg); }
-  100%{ transform:perspective(700px) rotateY(0deg); }
+/* ---------- L’effet de fin : la feuille se PLIE SUR L’AXE ----------
+   Le pli doit tomber sur l’axe de symétrie, sinon l’animation raconte autre
+   chose que ce qu’on vient de faire. Une première version pivotait sur le
+   BORD GAUCHE de la carte, comme une page de livre : joli, mais sans rapport
+   avec la figure.
+
+   L’axe passe par le centre de la vue — la `viewBox` déborde également des
+   deux côtés — donc l’origine du pli est le centre de l’élément, dans les
+   deux orientations. Seul l’AXE DE ROTATION change : on tourne autour de la
+   verticale quand l’axe est vertical, autour de l’horizontale sinon. */
+@keyframes plier-vertical{
+  0%{ transform:perspective(760px) rotateY(0deg); }
+  45%{ transform:perspective(760px) rotateY(-74deg); }
+  100%{ transform:perspective(760px) rotateY(0deg); }
 }
-.plan.pages{ animation:page-tourne .9s ease-in-out; transform-origin:left center; }
+@keyframes plier-horizontal{
+  0%{ transform:perspective(760px) rotateX(0deg); }
+  45%{ transform:perspective(760px) rotateX(74deg); }
+  100%{ transform:perspective(760px) rotateX(0deg); }
+}
+.plan.plie-v{ animation:plier-vertical .9s ease-in-out; transform-origin:50% 50%; }
+.plan.plie-h{ animation:plier-horizontal .9s ease-in-out; transform-origin:50% 50%; }
 /* Sous `prefers-reduced-motion`, le signal de réussite ne dépend d’AUCUNE
    animation : il reste le changement de couleur, franc. */
-@media (prefers-reduced-motion:reduce){ .plan.pages{animation:none;} }
+@media (prefers-reduced-motion:reduce){ .plan.plie-v, .plan.plie-h{animation:none;} }
 
 /* ---------- Fin ---------- */
 #end{text-align:center; padding-top:8vh;}
@@ -238,7 +253,7 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
   <section id="game" hidden>
     <div id="qText"></div>
     <p class="sous-consigne" id="sousConsigne"></p>
-    <div class="plan" id="plan"><svg id="grille" viewBox="-0.4 -0.4 8.8 10.8" aria-label="Plan quadrillé"></svg></div>
+    <div class="plan" id="plan"><svg id="grille" aria-label="Plan quadrillé"></svg></div>
     <div class="palette" id="palette" hidden></div>
     <div class="outils" id="outils"></div>
     <button type="button" id="btnPasser">Passer cette figure</button>
@@ -271,10 +286,16 @@ const $ = id => document.getElementById(id);
    ============================================================ */
 const NX = 8, NY = 10;          // cellules
 const AXE_V = NX / 2, AXE_H = NY / 2;
-/* LA VUE DÉBORDE LE QUADRILLAGE D’UNE DEMI-MAILLE (cf. `viewBox`). Sans cette
-   marge, les segments du BORD — le bout de la queue du poisson, par exemple —
-   tombent sur l’arête exacte de la surface tactile : le doigt les manque, et
-   la figure devient impossible à finir. La marge n’est pas décorative. */
+/* LA VUE DÉBORDE LE QUADRILLAGE D’UNE DEMI-MAILLE. Sans cette marge, les
+   segments du BORD — le bout de la queue du poisson, par exemple — tombent
+   sur l’arête exacte de la surface tactile : le doigt les manque, et la
+   figure devient impossible à finir. La marge n’est pas décorative.
+
+   Elle est DÉCLARÉE ICI et reprise dans l’attribut `viewBox` : l’axe s’y
+   étend, et le centre de la vue tombe exactement sur l’axe de symétrie —
+   c’est ce qui permet au pli de l’animation de tomber sur l’axe. */
+const MARGE = 0.4;
+const VUE = [-MARGE, -MARGE, NX + 2*MARGE, NY + 2*MARGE];
 
 /* Une clé de segment est canonique : le plus petit bout d’abord, pour que
    (a,b) et (b,a) soient le même segment. */
@@ -608,6 +629,8 @@ function stopperVoix(){ try { if (window.speechSynthesis) window.speechSynthesis
 /* ============================================================
    ÉTAT DE LA PARTIE
    ============================================================ */
+$('grille').setAttribute('viewBox', VUE.join(' '));
+
 const ecrans = {home:$('home'), game:$('game'), end:$('end')};
 let miniJeuCourant = null, file = [], pos = 0, score = 0, total = 0, demarreLe = 0;
 let traces = new Map();          // clé de segment -> couleur
@@ -684,9 +707,13 @@ function rendrePlan(){
   let s = '';
   for (let i = 0; i <= NX; i++) s += '<line class="maille" x1="' + i + '" y1="0" x2="' + i + '" y2="' + NY + '"/>';
   for (let j = 0; j <= NY; j++) s += '<line class="maille" x1="0" y1="' + j + '" x2="' + NX + '" y2="' + j + '"/>';
+  /* L’AXE COURT SUR TOUTE LA VUE, pas seulement sur le quadrillage : un axe
+     de symétrie est une DROITE, et l’arrêter au bord du plan le fait lire
+     comme un segment appartenant à la figure. */
+  const [vx, vy, vl, vh] = VUE;
   s += q.fig.axe === 'v'
-    ? '<line class="axe" x1="' + AXE_V + '" y1="0" x2="' + AXE_V + '" y2="' + NY + '"/>'
-    : '<line class="axe" x1="0" y1="' + AXE_H + '" x2="' + NX + '" y2="' + AXE_H + '"/>';
+    ? '<line class="axe" x1="' + AXE_V + '" y1="' + vy + '" x2="' + AXE_V + '" y2="' + (vy+vh) + '"/>'
+    : '<line class="axe" x1="' + vx + '" y1="' + AXE_H + '" x2="' + (vx+vl) + '" y2="' + AXE_H + '"/>';
   if (segmentVise && !mancheFinie) s += segSvg(segmentVise, 'vise');
   [...q.pre].forEach(k => { s += segSvg(k, 'pre'); });
   traces.forEach((c, k) => { s += segSvg(k, 'trace', c); });
@@ -883,8 +910,9 @@ function reussir(){
   segmentVise = null;
   rendrePlan();
   const plan = $('plan');
-  plan.classList.add('reussi', 'pages');
-  setTimeout(() => plan.classList.remove('pages'), 950);
+  const pli = file[pos].fig.axe === 'v' ? 'plie-v' : 'plie-h';
+  plan.classList.add('reussi', pli);
+  setTimeout(() => plan.classList.remove(pli), 950);
   sonBonneReponse(); lancerConfettis(30);
   message('La figure est complète !', 'bon');
   majDots();
@@ -1000,7 +1028,7 @@ function manche(){
   const q = file[pos];
   traces = new Map(); gommages = 0; mancheFinie = false;
   outil = 'feutre'; segmentVise = null;
-  $('plan').classList.remove('reussi', 'pages');
+  $('plan').classList.remove('reussi', 'plie-v', 'plie-h');
   $('palette').hidden = true;
   $('btnPasser').hidden = false;
   $('btnNext').style.display = 'none';
