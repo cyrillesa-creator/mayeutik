@@ -665,7 +665,7 @@ function construireManche(fig, mode){
 const CONTENU = {
   sousTitre: 'Trouve les axes cachés, puis fais réapparaître le monde que le mage a effacé !',
   miniJeux: [
-    {id:'ce2-symetrie-reconnaitre', mode:'reconnaitre', titre:'Symboles miroirs', icone:'🃏',
+    {id:'ce2-symetrie-reconnaitre', mode:'reconnaitre', titre:'Symboles miroirs', icone:'🂱',
      description:'Trace un axe de symétrie — ou dis qu’il n’y en a aucun.', nbQuestions:6},
     {id:'ce2-symetrie-completer', mode:'completer', titre:'Le monde à moitié effacé', icone:'🪄',
      description:'Complète la figure de l’autre côté de l’axe.', nbQuestions:6}
@@ -907,6 +907,10 @@ const FIGURES1 = [
   {nom:'la lettre L', axes:0, prims: chemin([[30,18],[30,82],[66,82]])},
   {nom:'la lettre P', axes:0, prims: chemin([[30,18],[30,82]])
     .concat(chemin([[30,18],[62,18],[72,28],[72,40],[62,50],[30,50]]))},
+  {nom:'la lettre J', axes:0, prims: chemin([
+    [64,18],[64,62],[60,74],[48,80],[34,76],[28,64]])},
+  {nom:'la lettre G', axes:0, prims: chemin([
+    [76,32],[62,20],[44,20],[30,32],[26,50],[30,68],[44,80],[62,80],[76,68],[76,54],[58,54]])},
   {nom:'le parallélogramme', axes:0, prims: contour([[20,74],[50,26],[86,26],[56,74]])},
   /* ---- un axe ---- */
   {nom:'le cœur', axes:1, prims: contour([
@@ -927,12 +931,30 @@ const FIGURES1 = [
     .concat(chemin([[30,50],[62,50],[72,60],[72,72],[62,82],[30,82]]))},
   {nom:'la lettre D', axes:1, prims: chemin([[30,18],[30,82]])
     .concat(chemin([[30,18],[58,18],[74,34],[74,66],[58,82],[30,82]]))},
+  /* ---- les panneaux, cités par le programme au même titre que les
+         enseignes de cartes et les lettres majuscules ---- */
+  {nom:'le panneau danger', axes:1, prims: contour([[50,20],[80,74],[20,74]])},
+  {nom:'la flèche', axes:1, prims: contour([
+    [50,24],[68,48],[58,48],[58,80],[42,80],[42,48],[32,48]])},
+  {nom:'le panneau sens unique', axes:1, prims: contour([[12,34],[88,34],[88,66],[12,66]])
+    .concat(contour([[72,50],[56,36],[56,46],[24,46],[24,54],[56,54],[56,64]]))},
   /* ---- deux axes ---- */
+  {nom:'le panneau sens interdit', axes:2, prims: reunionDeLobes([[50,50,30]], 24)
+    .concat(contour([[26,44],[74,44],[74,56],[26,56]]))},
+  {nom:'le panneau stationnement interdit', axes:2, prims: reunionDeLobes([[50,50,30]], 24)
+    .concat(chemin([[29,29],[71,71]]))},
   {nom:'le carreau', axes:2, prims: contour([[50,14],[80,50],[50,86],[20,50]])},
   {nom:'le rectangle', axes:2, prims: contour([[22,32],[78,32],[78,68],[22,68]])},
   {nom:'la lettre H', axes:2, prims: chemin([[30,18],[30,82]])
     .concat(chemin([[70,18],[70,82]])).concat(chemin([[30,50],[70,50]]))},
-  {nom:'la lettre X', axes:2, prims: chemin([[26,20],[74,80]]).concat(chemin([[74,20],[26,80]]))}
+  {nom:'la lettre X', axes:2, prims: chemin([[26,20],[74,80]]).concat(chemin([[74,20],[26,80]]))},
+  /* L’octogone du STOP n’est PAS régulier : il l’est, un octogone régulier
+     porte huit axes, dont quatre à 22,5° — introuvables sur le quadrillage,
+     donc intraçables. Un carré à coins coupés en garde quatre, tous sur la
+     grille. Le contrôle refuse toute figure dont un axe ne serait pas
+     traçable, et c’est lui qui a imposé cette forme. */
+  {nom:'le panneau stop', axes:4, prims: contour([
+    [36,18],[64,18],[82,36],[82,64],[64,82],[36,82],[18,64],[18,36]])}
 ];
 /* Les axes servis au jeu sont les axes CALCULÉS, jamais le nombre écrit
    au-dessus : deux vérités pour un même fait finissent toujours par
@@ -2171,12 +2193,21 @@ function passer1(){
    c’est une proportion voulue, l’une des trois exclusions du §13 bis. Ce
    qui se tire, c’est quelle figure occupe chaque place, et l’ordre des six.
    ------------------------------------------------------------ */
-const REPARTITION1 = [{axes:0, n:2}, {axes:1, n:3}, {axes:2, n:1}];
+/* Les trois familles se disent par un PRÉDICAT et non par un nombre exact :
+   « plusieurs axes » veut dire deux OU PLUS. Écrit `=== 2`, le panneau stop
+   et ses quatre axes ne tombaient dans aucune famille — il était dans la
+   banque et ne sortait jamais. Un contrôle exige désormais que chaque
+   figure appartienne à exactement une famille. */
+const REPARTITION1 = [
+  {nom:'aucun axe',      n:2, prend:(f) => f._axes.length === 0},
+  {nom:'un axe',         n:3, prend:(f) => f._axes.length === 1},
+  {nom:'plusieurs axes', n:1, prend:(f) => f._axes.length >= 2}
+];
 function engendrerFile1(cfg){
   let tirees = [];
-  REPARTITION1.forEach(r => {
-    const stock = FIGURES1.filter(f => f._axes.length === r.axes);
-    tirees = tirees.concat(tirerSansRepetition('fig1-' + r.axes, stock, r.n));
+  REPARTITION1.forEach((r, i) => {
+    const stock = FIGURES1.filter(r.prend);
+    tirees = tirees.concat(tirerSansRepetition('fig1-' + i, stock, r.n));
   });
   return melanger(tirees).slice(0, cfg.nbQuestions)
     .map(fig => ({fig:poserFigure(fig, pioche(fig._decalages)), _points:0, _ok:false}));
