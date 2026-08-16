@@ -643,7 +643,8 @@
       "niveaux": [
         "CE2"
       ],
-      "fichier": "jeux/M41-symetrie.html"
+      "fichier": "jeux/M41-symetrie.html",
+      "iconeSvg": "<path d=\"M 20 3 Q 15 16 11 28 L 29 28 Q 25 16 20 3 Z\" fill=\"#9B5DE5\"/><path d=\"M 11.6 24.2 L 28.4 24.2 L 29 28 L 11 28 Z\" fill=\"#5A3A9B\"/><path d=\"M 5 30 Q 20 25.5 35 30 Q 20 35.5 5 30 Z\" fill=\"#9B5DE5\"/><g fill=\"#FFC93C\"><path d=\"M 20 8.3 L 21.2 10.3 L 23.2 11.5 L 21.2 12.7 L 20 14.7 L 18.8 12.7 L 16.8 11.5 L 18.8 10.3 Z\"/><path d=\"M 15.8 17.4 L 16.6 18.7 L 17.900000000000002 19.5 L 16.6 20.3 L 15.8 21.6 L 15.0 20.3 L 13.700000000000001 19.5 L 15.0 18.7 Z\"/><path d=\"M 24.2 17.4 L 25.0 18.7 L 26.3 19.5 L 25.0 20.3 L 24.2 21.6 L 23.4 20.3 L 22.099999999999998 19.5 L 23.4 18.7 Z\"/></g><g fill=\"none\" stroke=\"#2B3A55\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"><path d=\"M 20 3 Q 15 16 11 28 L 29 28 Q 25 16 20 3 Z\"/><path d=\"M 5 30 Q 20 25.5 35 30 Q 20 35.5 5 30 Z\"/></g>"
     }
   ]
 }

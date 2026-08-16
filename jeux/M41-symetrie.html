@@ -660,15 +660,21 @@ function construireManche(fig, mode){
 /* ============================================================
    CONTENU (CHARTE §6) — CE2 seul, deux mini-jeux annoncés
    ============================================================ */
+/* L’ordre des deux mini-jeux suit celui du programme : on reconnaît un axe
+   avant d’avoir à s’en servir pour compléter. */
 const CONTENU = {
-  sousTitre: 'Un mage a effacé la moitié du monde. À toi de le reconstruire !',
+  sousTitre: 'Trouve les axes cachés, puis répare le monde que le mage a effacé !',
   miniJeux: [
-    {id:'ce2-symetrie-completer', mode:'completer', titre:'Le monde à moitié effacé', icone:'🪄',
-     description:'Complète la figure de l’autre côté de l’axe.', nbQuestions:6},
     {id:'ce2-symetrie-reconnaitre', mode:'reconnaitre', titre:'Symboles miroirs', icone:'🃏',
-     description:'Trace un axe de symétrie — ou dis qu’il n’y en a aucun.', nbQuestions:6}
+     description:'Trace un axe de symétrie — ou dis qu’il n’y en a aucun.', nbQuestions:6},
+    {id:'ce2-symetrie-completer', mode:'completer', titre:'Le monde à moitié effacé', icone:'🪄',
+     description:'Complète la figure de l’autre côté de l’axe.', nbQuestions:6}
   ]
 };
+/* On désigne un mini-jeu par son IDENTIFIANT, jamais par son rang : l’ordre
+   d’affichage est une décision de présentation, et rien d’autre ne doit en
+   dépendre. */
+const jeu = (id) => CONTENU.miniJeux.find(m => m.id === id);
 
 /* ============================================================
    TIRAGES DE CONTENU (CHARTE §13 bis)
@@ -1283,6 +1289,40 @@ function versPlan(clientX, clientY){
 /* Renvoie `true` quand le segment vient RÉELLEMENT d’être posé — le retour
    arrière du geste s’appuie là-dessus pour n’effacer que ce qu’il a écrit,
    jamais du pré-rempli ni un trait déjà là avant le geste. */
+/* ------------------------------------------------------------
+   LA GOMME FROTTE, LE FEUTRE SUIT LES NŒUDS
+   ------------------------------------------------------------
+   Le crayon avance de nœud en nœud : c’est ce qui rend le tracé sûr. Mais
+   la gomme empruntait le même chemin, et il fallait donc REPASSER un trait
+   pour l’effacer. Ce n’est pas ainsi qu’on gomme : l’enfant frotte, en
+   rayures perpendiculaires à ce qu’il veut faire disparaître.
+
+   La gomme travaille donc par PROXIMITÉ — tout trait qu’elle croise s’en
+   va. Le danger qui interdisait la proximité au crayon (le doigt qui
+   traverse une cellule ramasse ses diagonales) n’existe pas ici : la gomme
+   ne peut toucher que ce que l’enfant a lui-même tracé, et un trait effacé
+   par mégarde se retrace. Deux outils, deux gestes, comme les vrais.
+   ------------------------------------------------------------ */
+const RAYON_GOMME = 0.28;      // en mailles
+function frotter(p){
+  if (mancheFinie) return;
+  const q = file[pos];
+  const partis = [];
+  /* Le pré-rempli n’a pas à être écarté ici : il n’entre jamais dans
+     `traces`, `appliquer` étant le seul à y écrire et le refusant. Une
+     seconde garde à cet endroit serait une seconde vérité, invérifiable. */
+  traces.forEach((c, k) => {
+    const [a, b] = bouts(k);
+    if (distanceAuSegment(p, a, b) <= RAYON_GOMME) partis.push(k);
+  });
+  if (!partis.length) return;
+  partis.forEach(k => { traces.delete(k); });
+  gommages += partis.length;
+  sonGomme();
+  rendrePlan();
+  verifierComplete();
+}
+
 function appliquer(k){
   const q = file[pos];
   if (!k || mancheFinie) return false;
@@ -1337,6 +1377,9 @@ const voisins = (a, b) => {
 (function brancherTrace(){
   const svg = $('grille');
   let actif = false, depart = null, bouge = false, dernier = null, noeud = null;
+  /* L’outil est figé à l’appui : un geste garde le sens qu’il avait en
+     commençant, comme dans l’autre mini-jeu. */
+  let outilDuGeste = 'feutre';
   /* Le chemin parcouru depuis le début du geste, et pour chaque pas si ce
      pas a posé un segment. C’est ce qui permet le RETOUR ARRIÈRE : revenir
      sur ses pas efface ce que l’on vient d’écrire, sans changer d’outil.
@@ -1364,9 +1407,11 @@ const voisins = (a, b) => {
   svg.addEventListener('pointerdown', (e) => {
     if (mancheFinie) return;
     actif = true; bouge = false;
+    outilDuGeste = outil;
     depart = [e.clientX, e.clientY];
     dernier = versPlan(e.clientX, e.clientY);
     repartirDe(dernier ? noeudProche(dernier) : null);
+    if (outilDuGeste === 'gomme' && dernier) frotter(dernier);
     try { svg.setPointerCapture(e.pointerId); } catch(err){}
     e.preventDefault();
   });
@@ -1387,7 +1432,8 @@ const voisins = (a, b) => {
     if (dernier) {
       const dx = p[0]-dernier[0], dy = p[1]-dernier[1];
       const n = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 0.2));
-      for (let i = 1; i <= n; i++) traiter([dernier[0] + dx*i/n, dernier[1] + dy*i/n]);
+      const pas = outilDuGeste === 'gomme' ? frotter : traiter;
+      for (let i = 1; i <= n; i++) pas([dernier[0] + dx*i/n, dernier[1] + dy*i/n]);
     }
     dernier = p;
     e.preventDefault();
@@ -1399,6 +1445,9 @@ const voisins = (a, b) => {
     /* L’appui SIMPLE garde l’accrochage au segment le plus proche : c’est le
        recours de précision quand un seul trait manque, et il n’a pas de
        trajectoire qui puisse déraper. */
+    /* L’appui SIMPLE garde l’accrochage au segment le plus proche, pour les
+       deux outils : c’est le recours de précision quand un seul trait est
+       en cause. */
     if (!bouge && p) { const k = segmentLePlusProche(p, null); if (k) appliquer(k); }
     repartirDe(null); segmentVise = null;
     rendrePlan();
@@ -1420,10 +1469,24 @@ const voisins = (a, b) => {
    LA COULEUR NE PORTE AUCUN SENS : un segment tracé en vert ou en rose
    compte comme un segment tracé. On ne compare que des clés.
    ============================================================ */
+/* LA FIGURE EST ACHEVÉE QUAND ELLE EST SYMÉTRIQUE, non quand elle est
+   CONFORME AU MODÈLE. La première règle exigeait l’ensemble attendu
+   exactement, ni plus ni moins : un enfant qui ajoutait deux traits de part
+   et d’autre de l’axe se voyait refuser une figure pourtant symétrique. Or
+   c’est la symétrie qui était demandée, pas la ressemblance à un modèle
+   qu’il n’a jamais vu.
+
+   Deux conditions. Le tracé contient TOUT CE QUI MANQUAIT — le minimum —,
+   et l’ensemble dessiné est STABLE PAR LA RÉFLEXION. La seconde suffirait
+   aujourd’hui à impliquer la première, puisque aucune paire miroir n’est
+   effacée des deux côtés à la fabrication ; on énonce quand même les deux,
+   parce que c’est ce que l’on exige et que cela tiendra si la fabrication
+   change. Un contrôle vérifie que l’implication est bien vraie. */
 function verifierComplete(){
   const q = file[pos];
-  if (traces.size !== q.aTracer.size) return false;
-  for (const k of traces.keys()) if (!q.aTracer.has(k)) return false;
+  for (const k of q.aTracer) if (!traces.has(k)) return false;
+  const dessin = new Set([...q.pre, ...traces.keys()]);
+  for (const k of dessin) if (!dessin.has(reflechirSeg(k, q.fig.axe))) return false;
   reussir();
   return true;
 }
