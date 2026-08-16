@@ -2263,7 +2263,7 @@ function fin(){
   enregistrerSession(miniJeuCourant.id, score, total, Math.round((Date.now() - demarreLe)/1000));
   $('hdrTitle').textContent = 'Résultat';
   $('endStars').innerHTML = '⭐'.repeat(n).split('').map(s => '<span>' + s + '</span>').join('');
-  $('endMsg').textContent = n === 3 ? 'Le monde est réparé !' : n === 2 ? 'Bien joué !' : 'Continue, tu progresses !';
+  $('endMsg').textContent = n === 3 ? 'Le monde a réapparu !' : n === 2 ? 'Bien joué !' : 'Continue, tu progresses !';
   const reussies = file.filter(q => q._ok).length;
   const fait = miniJeuCourant.mode === 'reconnaitre' ? 'réussie' : 'complétée';
   $('endScore').textContent = reussies + ' figure' + (reussies > 1 ? 's' : '')
