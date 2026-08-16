@@ -25,6 +25,9 @@
   --menthe:#2EC4A6; --menthe-t:#0B8A70; --corail:#FF5D5D; --corail-t:#D93636; --soleil:#FFC93C;
   --plomb:#2B3A55;
   --r:20px; --ombre:0 4px 0 rgba(29,51,84,.12);
+  /* Durées de la fête de réussite. Déclarées ICI et nulle part ailleurs :
+     le JS les relit au lieu d’en garder une copie. */
+  --pli:.8s; --eclosion:.55s;
   font-size:16px;
 }
 
@@ -160,25 +163,51 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 #rabat{
   position:absolute; left:8px; top:8px; right:8px; width:auto; height:auto;
   display:none; pointer-events:none; transform-origin:50% 50%; backface-visibility:visible;
+  /* UNE FEUILLE EST OPAQUE. Sans fond, la moitié posée laisse transparaître,
+     au bord de chaque trait, la couleur de celui qu’elle recouvre : deux
+     disques identiques superposés se bordent d’un liseré de l’un sous
+     l’autre. Le fond de la carte règle cela d’un coup, et rend le geste plus
+     juste — du papier qui se rabat cache ce qu’il y a dessous. */
+  background:var(--carte);
 }
 .plan.rabat-v #rabat, .plan.rabat-h #rabat{display:block;}
 /* Découpes complémentaires : le calque emporte la moitié de référence
-   (gauche ou haut), le plan garde l’autre. */
-.plan.rabat-v #rabat{clip-path:inset(0 50% 0 0); animation:rabattre-vertical 1.7s ease-in-out;}
-.plan.rabat-h #rabat{clip-path:inset(0 0 50% 0); animation:rabattre-horizontal 1.7s ease-in-out;}
+   (gauche ou haut), le plan garde l’autre.
+
+   LES QUELQUES PIXELS EN PLUS NE SONT PAS UN À-PEU-PRÈS. Les traits ont des
+   bouts ARRONDIS qui dépassent de la moitié de leur épaisseur : un segment
+   qui meurt sur l’axe déborde donc de l’autre côté. Coupé pile à 50 %, le
+   calque perd ces bouts-là, le plan garde les siens, et la moitié posée
+   laisse voir sous elle un liseré de la couleur du dessous — on croit à un
+   décalage alors que la géométrie tombe juste au centième de pixel. On donne
+   au calque de quoi couvrir ce dépassement ; une fois rabattu, ce surplus
+   tombe de l’autre côté de l’axe, sur la même figure, et ne se voit pas. */
+.plan.rabat-v #rabat{clip-path:inset(0 calc(50% - 4px) 0 0);}
+.plan.rabat-h #rabat{clip-path:inset(0 0 calc(50% - 4px) 0);}
 .plan.rabat-v #grille{clip-path:inset(0 0 0 50%);}
 .plan.rabat-h #grille{clip-path:inset(50% 0 0 0);}
-@keyframes rabattre-vertical{
-  0%{ transform:perspective(900px) rotateY(0deg); }
-  38%{ transform:perspective(900px) rotateY(180deg); }
-  60%{ transform:perspective(900px) rotateY(180deg); }
-  100%{ transform:perspective(900px) rotateY(0deg); }
+/* TROIS TEMPS, ET NON UNE SEULE ANIMATION À PALIERS : la moitié se rabat,
+   elle RESTE POSÉE le temps qu’on voie la superposition, puis elle revient.
+   Découper ainsi n’est pas cosmétique — c’est ce qui permet au reste du code
+   d’attendre un ÉVÉNEMENT (`animationend`) au lieu d’une date calculée à la
+   main depuis le début du mouvement. Le retour se joue sur les mêmes images
+   clés, lues à l’envers.
+
+   PERSPECTIVE LOINTAINE : de près, la rotation déforme fortement le calque
+   en trapèze, et les deux moitiés paraissent alors mal se recouvrir alors
+   même qu’elles tombent juste au bout. On éloigne donc le point de vue : le
+   pli garde son relief, la fuite ne caricature plus la moitié en vol. */
+.plan.rabat-v.aller  #rabat{animation:plier-v var(--pli) ease-in-out forwards;}
+.plan.rabat-v.retour #rabat{animation:plier-v var(--pli) ease-in-out reverse;}
+.plan.rabat-h.aller  #rabat{animation:plier-h var(--pli) ease-in-out forwards;}
+.plan.rabat-h.retour #rabat{animation:plier-h var(--pli) ease-in-out reverse;}
+@keyframes plier-v{
+  from{ transform:perspective(2200px) rotateY(0deg); }
+  to  { transform:perspective(2200px) rotateY(180deg); }
 }
-@keyframes rabattre-horizontal{
-  0%{ transform:perspective(900px) rotateX(0deg); }
-  38%{ transform:perspective(900px) rotateX(-180deg); }
-  60%{ transform:perspective(900px) rotateX(-180deg); }
-  100%{ transform:perspective(900px) rotateX(0deg); }
+@keyframes plier-h{
+  from{ transform:perspective(2200px) rotateX(0deg); }
+  to  { transform:perspective(2200px) rotateX(-180deg); }
 }
 /* Au RETOUR du rabat, l’intérieur de la figure se colorie — la couleur
    part de l’axe et gagne les bords, dans le sens où le pli se rouvre.
@@ -186,12 +215,13 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
    à l’axe. */
 /* Aucun contour sur les triangles : le découpage en quarts est un moyen de
    CALCUL, pas un motif à montrer. Cerclés, ils dessinaient une résille. */
-.dedans polygon{
-  fill:var(--menthe); stroke:none;
-  animation:eclore .55s ease-out backwards;
-  transform-box:fill-box; transform-origin:center;
-}
-@keyframes eclore{ from{opacity:0; transform:scale(.25);} to{opacity:1; transform:scale(1);} }
+/* L’éclosion joue sur la SEULE opacité. Une version précédente faisait
+   aussi grandir chaque triangle depuis son centre : joli sur le papier,
+   mais pendant la seconde que dure l’animation les triangles rapetissés
+   laissent voir leurs intervalles, et l’intérieur se montre en mosaïque de
+   croix — précisément le découpage qu’on ne veut pas donner à voir. */
+.dedans polygon{ fill:var(--menthe); stroke:none; animation:eclore var(--eclosion) ease-out backwards; }
+@keyframes eclore{ from{opacity:0;} to{opacity:1;} }
 /* Sous `prefers-reduced-motion`, le signal de réussite ne dépend d’AUCUNE
    animation : il reste le changement de couleur, franc. L’intérieur, lui,
    s’affiche d’emblée — d’où une éclosion en `backwards` et non `forwards` :
@@ -816,12 +846,14 @@ function dedansSvg(q){
   const dMax = Math.max(1e-6, ...tris.map(dist));
   return '<g class="dedans">' + tris.map(t =>
     '<polygon points="' + t.map(p => p[0] + ',' + p[1]).join(' ')
-    + '" fill-opacity=".34" style="animation-delay:' + (dist(t) / dMax * .45).toFixed(3) + 's"/>'
+    + '" fill-opacity=".34" style="animation-delay:' + (dist(t) / dMax * ECLOSION_ETALEMENT_MS / 1000).toFixed(3) + 's"/>'
   ).join('') + '</g>';
 }
 
-function rendrePlan(){
-  const q = file[pos];
+/* `garder` choisit les traits à encrer. Le plan les prend tous ; le calque
+   du rabat ne prend que ceux de la moitié de référence. Un seul dessinateur
+   pour les deux : deux rendus indépendants finiraient par diverger. */
+function dessinPlan(q, garder){
   let s = '';
   for (let i = 0; i <= NX; i++) s += '<line class="maille" x1="' + i + '" y1="0" x2="' + i + '" y2="' + NY + '"/>';
   for (let j = 0; j <= NY; j++) s += '<line class="maille" x1="0" y1="' + j + '" x2="' + NX + '" y2="' + j + '"/>';
@@ -833,15 +865,29 @@ function rendrePlan(){
   s += q.fig.axe === 'v'
     ? '<line class="axe" x1="' + AXE_V + '" y1="' + vy + '" x2="' + AXE_V + '" y2="' + (vy+vh) + '"/>'
     : '<line class="axe" x1="' + vx + '" y1="' + AXE_H + '" x2="' + (vx+vl) + '" y2="' + AXE_H + '"/>';
-  if (segmentVise && !mancheFinie) s += segSvg(segmentVise, 'vise');
-  [...q.pre].forEach(k => { s += segSvg(k, 'pre'); });
-  traces.forEach((c, k) => { s += segSvg(k, 'trace', c); });
-  $('grille').innerHTML = s;
-  /* Le calque du rabat ne se dessine pas à part : il porte LA MÊME image,
-     découpée par CSS. Deux rendus indépendants finiraient par diverger. */
+  if (segmentVise && !mancheFinie && garder(segmentVise)) s += segSvg(segmentVise, 'vise');
+  [...q.pre].forEach(k => { if (garder(k)) s += segSvg(k, 'pre'); });
+  traces.forEach((c, k) => { if (garder(k)) s += segSvg(k, 'trace', c); });
+  return s;
+}
+
+function rendrePlan(){
+  const q = file[pos];
+  $('grille').innerHTML = dessinPlan(q, () => true);
+  /* LE CALQUE N’EMPORTE QUE SON ENCRE. Lui donner l’image entière et la
+     rogner au CSS ne suffit pas : les traits ont des bouts arrondis qui
+     DÉBORDENT de l’axe, si bien que le calque gardait un croissant de la
+     couleur d’en face — rabattu, ce croissant retombait par-dessus tout, et
+     l’on croyait à un mauvais recouvrement. Le filtre coupe par segment, là
+     où la découpe CSS coupe par pixel. */
   const r = $('rabat');
   if (r.getAttribute('viewBox') !== VUE.join(' ')) r.setAttribute('viewBox', VUE.join(' '));
-  r.innerHTML = s;
+  const axe = q.fig.axe;
+  r.innerHTML = dessinPlan(q, (k) =>
+    /* Un segment POSÉ SUR L’AXE est son propre miroir : il appartient aux
+       deux moitiés, et le calque l’emporte aussi — sinon il se montrerait
+       en demi-épaisseur pendant tout le pli. */
+    estDuCoteReference(k, axe) || reflechirSeg(k, axe) === k);
 }
 
 /* ============================================================
@@ -1054,13 +1100,36 @@ function verifierComplete(){
   return true;
 }
 
-/* Les minuteries du rabat : une manche abrégée par « Suivant » ne doit pas
-   voir l’animation de la précédente déteindre sur elle. */
+/* ============================================================
+   LA FÊTE DE LA RÉUSSITE, EN TROIS TEMPS
+   ------------------------------------------------------------
+   La moitié se rabat, elle reste POSÉE sur sa jumelle le temps qu’on voie
+   la superposition, puis elle revient — et c’est à son retour, pas à une
+   date calculée depuis le début du mouvement, que l’intérieur se colorie.
+   Les trois temps s’enchaînent sur `animationend` : le code attend un
+   ÉVÉNEMENT, il ne compte pas les millisecondes du CSS en parallèle.
+
+   POURQUOI CE N’EST PAS QU’UNE QUESTION DE JOLIESSE : le §20 arme l’avance
+   automatique « 2 s après l’affichage du bouton Suivant », en s’appuyant
+   sur le fait que l’enfant a DÉJÀ vu son résultat quand le bouton paraît.
+   Ici c’est faux : au moment où le bouton paraît, la récompense commence.
+   On compte donc les 2 secondes du §20 à partir de la FIN de la fête. Le
+   clic manuel, lui, reste disponible et immédiat dès le premier instant :
+   l’enfant garde la main sur le rythme, exactement comme le §20 le veut.
+   ============================================================ */
+const POSE_MS = 620;                  // temps où la moitié reste posée
+const ECLOSION_ETALEMENT_MS = 450;    // retard du triangle le plus éloigné de l’axe
+const MS_CSS = (v) => { v = String(v).trim(); return parseFloat(v) * (/ms$/.test(v) ? 1 : 1000); };
+const dureeCss = (nom) => MS_CSS(getComputedStyle(document.documentElement).getPropertyValue(nom));
+const mouvementReduit = () => window.matchMedia
+  && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 let minuteriesPli = [];
 function arreterPli(){
   minuteriesPli.forEach(clearTimeout);
   minuteriesPli = [];
-  $('plan').classList.remove('rabat-v', 'rabat-h');
+  $('rabat').onanimationend = null;   // un seul emplacement : rien ne s’accumule
+  $('plan').classList.remove('rabat-v', 'rabat-h', 'aller', 'retour');
 }
 
 function reussir(){
@@ -1069,18 +1138,40 @@ function reussir(){
   file[pos]._ok = true;
   segmentVise = null;
   rendrePlan();
-  const plan = $('plan');
+  const plan = $('plan'), rabat = $('rabat');
   const pli = file[pos].fig.axe === 'v' ? 'rabat-v' : 'rabat-h';
   arreterPli();
-  plan.classList.add('reussi', pli);
-  /* 1,7 s d’animation, dont le retour commence à 60 % : l’intérieur se
-     colorie pendant que la moitié revient à sa place. */
-  minuteriesPli.push(setTimeout(() => { colorierDedans = true; rendrePlan(); }, 1020));
-  minuteriesPli.push(setTimeout(() => plan.classList.remove(pli), 1750));
   sonBonneReponse(); lancerConfettis(30);
   message('La figure est complète !', 'bon');
   majDots();
-  finirManche();
+  finirManche(true);                  // le bouton paraît, le minuteur attend
+
+  /* Mouvement réduit : aucune animation ne se joue, donc aucun
+     `animationend` ne viendra jamais. On donne directement l’état d’arrivée
+     — intérieur colorié — et on arme l’avance sans faire attendre. */
+  if (mouvementReduit()) { colorierDedans = true; rendrePlan(); armerAutoSuivant(); return; }
+
+  plan.classList.add('reussi', pli, 'aller');
+  rabat.onanimationend = () => {
+    /* 1er temps fini : la moitié est posée. On la laisse voir. */
+    rabat.onanimationend = null;
+    minuteriesPli.push(setTimeout(() => {
+      /* 2e temps fini : elle repart, et l’intérieur se colorie avec elle. */
+      colorierDedans = true; rendrePlan();
+      plan.classList.remove('aller');
+      void rabat.offsetWidth;         // reflow : sans lui, l’animation ne repart pas
+      plan.classList.add('retour');
+      /* La fête se termine sur le DERNIER triangle colorié, pas sur le
+         retour du calque : l’éclosion, partie en même temps que lui, dure
+         plus longtemps. C’est de là qu’on compte les 2 s du §20. */
+      minuteriesPli.push(setTimeout(armerAutoSuivant,
+        ECLOSION_ETALEMENT_MS + dureeCss('--eclosion')));
+      rabat.onanimationend = () => {
+        rabat.onanimationend = null;
+        plan.classList.remove(pli, 'retour');
+      };
+    }, POSE_MS));
+  };
 }
 
 function passer(){
@@ -1098,13 +1189,16 @@ function passer(){
 }
 $('btnPasser').addEventListener('click', passer);
 
-function finirManche(){
+/* `differer` : le bouton paraît tout de suite — le clic manuel reste
+   prioritaire et immédiat (§20) — mais le minuteur, lui, attend la fin de
+   la fête. Voir le commentaire de `reussir`. */
+function finirManche(differer){
   $('btnPasser').hidden = true;
   $('outils').hidden = true;
   $('palette').hidden = true;
   $('btnNext').style.display = 'block';
   $('btnNext').textContent = pos === file.length - 1 ? 'Voir mon score ⭐' : 'Suivant ➜';
-  armerAutoSuivant();
+  if (!differer) armerAutoSuivant();
 }
 $('btnNext').addEventListener('click', () => {
   desarmerAutoSuivant();
