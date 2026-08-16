@@ -94,7 +94,7 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
    `touch-action:none` sur la zone de tracé ET sur ses enfants : sans le
    second sélecteur, le universel plus haut remettrait chaque trait en
    `pan-y` et le doigt ferait défiler la page au lieu de dessiner. */
-.plan{background:var(--carte); border-radius:var(--r); box-shadow:var(--ombre); padding:8px; margin-bottom:10px;}
+.plan{background:var(--carte); border-radius:var(--r); box-shadow:var(--ombre); padding:8px; margin-bottom:10px; position:relative;}
 .plan svg{display:block; width:100%; height:auto;}
 #grille, #grille *{touch-action:none;}
 .maille{stroke:#D8E2F0; stroke-width:1; vector-effect:non-scaling-stroke;}
@@ -139,31 +139,67 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 }
 #btnNext:active{transform:translateY(3px);}
 
-/* ---------- L’effet de fin : la feuille se PLIE SUR L’AXE ----------
+/* ---------- L’effet de fin : LA MOITIÉ SE RABAT SUR L’AUTRE ----------
    Le pli doit tomber sur l’axe de symétrie, sinon l’animation raconte autre
    chose que ce qu’on vient de faire. Une première version pivotait sur le
    BORD GAUCHE de la carte, comme une page de livre : joli, mais sans rapport
-   avec la figure.
+   avec la figure. Une deuxième faisait tourner le plan ENTIER autour de
+   l’axe : le pli tombait au bon endroit, mais une feuille qui pivote n’est
+   pas une feuille qui se plie — rien ne se superposait.
+
+   Ici, un CALQUE — `#rabat` — porte une copie du plan découpée à la moitié
+   de référence, et c’est lui seul qui tourne, d’un demi-tour, autour de
+   l’axe. Pendant ce temps le plan du dessous est découpé à l’autre moitié :
+   la moitié de référence quitte réellement sa place, traverse, et vient se
+   poser sur sa jumelle. C’est le geste du papier plié.
 
    L’axe passe par le centre de la vue — la `viewBox` déborde également des
    deux côtés — donc l’origine du pli est le centre de l’élément, dans les
    deux orientations. Seul l’AXE DE ROTATION change : on tourne autour de la
    verticale quand l’axe est vertical, autour de l’horizontale sinon. */
-@keyframes plier-vertical{
-  0%{ transform:perspective(760px) rotateY(0deg); }
-  45%{ transform:perspective(760px) rotateY(-74deg); }
-  100%{ transform:perspective(760px) rotateY(0deg); }
+#rabat{
+  position:absolute; left:8px; top:8px; right:8px; width:auto; height:auto;
+  display:none; pointer-events:none; transform-origin:50% 50%; backface-visibility:visible;
 }
-@keyframes plier-horizontal{
-  0%{ transform:perspective(760px) rotateX(0deg); }
-  45%{ transform:perspective(760px) rotateX(74deg); }
-  100%{ transform:perspective(760px) rotateX(0deg); }
+.plan.rabat-v #rabat, .plan.rabat-h #rabat{display:block;}
+/* Découpes complémentaires : le calque emporte la moitié de référence
+   (gauche ou haut), le plan garde l’autre. */
+.plan.rabat-v #rabat{clip-path:inset(0 50% 0 0); animation:rabattre-vertical 1.7s ease-in-out;}
+.plan.rabat-h #rabat{clip-path:inset(0 0 50% 0); animation:rabattre-horizontal 1.7s ease-in-out;}
+.plan.rabat-v #grille{clip-path:inset(0 0 0 50%);}
+.plan.rabat-h #grille{clip-path:inset(50% 0 0 0);}
+@keyframes rabattre-vertical{
+  0%{ transform:perspective(900px) rotateY(0deg); }
+  38%{ transform:perspective(900px) rotateY(180deg); }
+  60%{ transform:perspective(900px) rotateY(180deg); }
+  100%{ transform:perspective(900px) rotateY(0deg); }
 }
-.plan.plie-v{ animation:plier-vertical .9s ease-in-out; transform-origin:50% 50%; }
-.plan.plie-h{ animation:plier-horizontal .9s ease-in-out; transform-origin:50% 50%; }
+@keyframes rabattre-horizontal{
+  0%{ transform:perspective(900px) rotateX(0deg); }
+  38%{ transform:perspective(900px) rotateX(-180deg); }
+  60%{ transform:perspective(900px) rotateX(-180deg); }
+  100%{ transform:perspective(900px) rotateX(0deg); }
+}
+/* Au RETOUR du rabat, l’intérieur de la figure se colorie — la couleur
+   part de l’axe et gagne les bords, dans le sens où le pli se rouvre.
+   Le retard de chaque triangle est posé en ligne, calculé sur sa distance
+   à l’axe. */
+/* Aucun contour sur les triangles : le découpage en quarts est un moyen de
+   CALCUL, pas un motif à montrer. Cerclés, ils dessinaient une résille. */
+.dedans polygon{
+  fill:var(--menthe); stroke:none;
+  animation:eclore .55s ease-out backwards;
+  transform-box:fill-box; transform-origin:center;
+}
+@keyframes eclore{ from{opacity:0; transform:scale(.25);} to{opacity:1; transform:scale(1);} }
 /* Sous `prefers-reduced-motion`, le signal de réussite ne dépend d’AUCUNE
-   animation : il reste le changement de couleur, franc. */
-@media (prefers-reduced-motion:reduce){ .plan.plie-v, .plan.plie-h{animation:none;} }
+   animation : il reste le changement de couleur, franc. L’intérieur, lui,
+   s’affiche d’emblée — d’où une éclosion en `backwards` et non `forwards` :
+   animation coupée, le triangle reste dans son état naturel, donc visible. */
+@media (prefers-reduced-motion:reduce){
+  .plan.rabat-v #rabat, .plan.rabat-h #rabat{display:none;}
+  .plan.rabat-v #grille, .plan.rabat-h #grille{clip-path:none;}
+}
 
 /* ---------- Fin ---------- */
 #end{text-align:center; padding-top:8vh;}
@@ -253,7 +289,10 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
   <section id="game" hidden>
     <div id="qText"></div>
     <p class="sous-consigne" id="sousConsigne"></p>
-    <div class="plan" id="plan"><svg id="grille" aria-label="Plan quadrillé"></svg></div>
+    <div class="plan" id="plan">
+      <svg id="grille" aria-label="Plan quadrillé"></svg>
+      <svg id="rabat" aria-hidden="true"></svg>
+    </div>
     <div class="palette" id="palette" hidden></div>
     <div class="outils" id="outils"></div>
     <button type="button" id="btnPasser">Passer cette figure</button>
@@ -324,6 +363,65 @@ const reflechirSeg = (k, axe) => {
   const [a, b] = bouts(k);
   return cle(reflechirPoint(a, axe), reflechirPoint(b, axe));
 };
+
+/* ============================================================
+   L’INTÉRIEUR DE LA FIGURE, CALCULÉ ET NON DÉCLARÉ
+   ------------------------------------------------------------
+   Colorier « dedans » suppose de savoir ce qui est dedans. Un remplissage
+   par CASES ne suffit pas : une diagonale coupe sa cellule en deux, et la
+   moitié gauche peut être dehors quand la droite est dedans.
+
+   On découpe donc chaque cellule en QUATRE QUARTS par ses deux diagonales —
+   nord, est, sud, ouest. Les traits deviennent alors des murs entre quarts
+   voisins, et « dedans » se lit comme ce que l’on n’atteint pas depuis
+   l’extérieur : un simple parcours en largeur depuis le dehors, et tout ce
+   qui reste est l’intérieur. Aucune liste de cellules à écrire à la main,
+   et cela vaut pour n’importe quelle figure de la banque.
+   ============================================================ */
+const QUARTS = 4;   // 0 nord, 1 est, 2 sud, 3 ouest
+function trianglesInterieurs(murs){
+  const dedans = (i, j) => i >= 0 && i < NX && j >= 0 && j < NY;
+  const idx = (i, j, q) => (j * NX + i) * QUARTS + q;
+  const mur = (a, b) => murs.has(cle(a, b));
+  const vus = new Uint8Array(NX * NY * QUARTS);
+  const pile = [];
+  /* On entre par le bord : un quart du pourtour communique avec le dehors
+     tant que le côté du plan qui le borde n’est pas tracé. */
+  for (let i = 0; i < NX; i++) {
+    if (!mur([i,0],[i+1,0])) { pile.push(idx(i,0,0)); }
+    if (!mur([i,NY],[i+1,NY])) { pile.push(idx(i,NY-1,2)); }
+  }
+  for (let j = 0; j < NY; j++) {
+    if (!mur([0,j],[0,j+1])) { pile.push(idx(0,j,3)); }
+    if (!mur([NX,j],[NX,j+1])) { pile.push(idx(NX-1,j,1)); }
+  }
+  pile.forEach(k => { vus[k] = 1; });
+  while (pile.length) {
+    const k = pile.pop();
+    const q = k % QUARTS, cellule = (k - q) / QUARTS;
+    const i = cellule % NX, j = (cellule - i) / NX;
+    const d1 = cle([i,j],[i+1,j+1]);        // diagonale « \ »
+    const d2 = cle([i+1,j],[i,j+1]);        // diagonale « / »
+    const voisins = [];
+    /* À l’intérieur de la cellule : les deux diagonales séparent les quarts. */
+    if (!murs.has(d1)) { voisins.push(idx(i,j,(q===0)?3:(q===3)?0:(q===1)?2:1)); }
+    if (!murs.has(d2)) { voisins.push(idx(i,j,(q===0)?1:(q===1)?0:(q===2)?3:2)); }
+    /* D’une cellule à l’autre : c’est le côté du quadrillage qui sépare. */
+    if (q === 0 && dedans(i, j-1) && !mur([i,j],[i+1,j])) voisins.push(idx(i,j-1,2));
+    if (q === 2 && dedans(i, j+1) && !mur([i,j+1],[i+1,j+1])) voisins.push(idx(i,j+1,0));
+    if (q === 3 && dedans(i-1, j) && !mur([i,j],[i,j+1])) voisins.push(idx(i-1,j,1));
+    if (q === 1 && dedans(i+1, j) && !mur([i+1,j],[i+1,j+1])) voisins.push(idx(i+1,j,3));
+    voisins.forEach(v => { if (!vus[v]) { vus[v] = 1; pile.push(v); } });
+  }
+  const out = [];
+  for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) for (let q = 0; q < QUARTS; q++) {
+    if (vus[idx(i,j,q)]) continue;
+    const c = [i+0.5, j+0.5];
+    const coins = [[[i,j],[i+1,j]], [[i+1,j],[i+1,j+1]], [[i+1,j+1],[i,j+1]], [[i,j+1],[i,j]]][q];
+    out.push([coins[0], coins[1], c]);
+  }
+  return out;
+}
 
 /* ============================================================
    BANQUE DE DEMI-FIGURES
@@ -701,12 +799,33 @@ function segSvg(k, classe, couleurTrait){
   return '<line class="' + classe + '" x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1] + '"'
     + (couleurTrait ? ' stroke="' + couleurTrait + '"' : '') + '/>';
 }
-let segmentVise = null;
+let segmentVise = null, colorierDedans = false;
+
+/* L’intérieur colorié, en SVG. La couleur part de l’axe : le retard de
+   chaque triangle croît avec sa distance à l’axe, donc la teinte se répand
+   vers les bords à mesure que le pli se rouvre. */
+function dedansSvg(q){
+  const murs = new Set([...q.pre, ...traces.keys()]);
+  const tris = trianglesInterieurs(murs);
+  if (!tris.length) return '';
+  const vertical = q.fig.axe === 'v';
+  const dist = (t) => {
+    const c = (t[0][vertical?0:1] + t[1][vertical?0:1] + t[2][vertical?0:1]) / 3;
+    return Math.abs(c - (vertical ? AXE_V : AXE_H));
+  };
+  const dMax = Math.max(1e-6, ...tris.map(dist));
+  return '<g class="dedans">' + tris.map(t =>
+    '<polygon points="' + t.map(p => p[0] + ',' + p[1]).join(' ')
+    + '" fill-opacity=".34" style="animation-delay:' + (dist(t) / dMax * .45).toFixed(3) + 's"/>'
+  ).join('') + '</g>';
+}
+
 function rendrePlan(){
   const q = file[pos];
   let s = '';
   for (let i = 0; i <= NX; i++) s += '<line class="maille" x1="' + i + '" y1="0" x2="' + i + '" y2="' + NY + '"/>';
   for (let j = 0; j <= NY; j++) s += '<line class="maille" x1="0" y1="' + j + '" x2="' + NX + '" y2="' + j + '"/>';
+  if (colorierDedans) s += dedansSvg(q);
   /* L’AXE COURT SUR TOUTE LA VUE, pas seulement sur le quadrillage : un axe
      de symétrie est une DROITE, et l’arrêter au bord du plan le fait lire
      comme un segment appartenant à la figure. */
@@ -718,6 +837,11 @@ function rendrePlan(){
   [...q.pre].forEach(k => { s += segSvg(k, 'pre'); });
   traces.forEach((c, k) => { s += segSvg(k, 'trace', c); });
   $('grille').innerHTML = s;
+  /* Le calque du rabat ne se dessine pas à part : il porte LA MÊME image,
+     découpée par CSS. Deux rendus indépendants finiraient par diverger. */
+  const r = $('rabat');
+  if (r.getAttribute('viewBox') !== VUE.join(' ')) r.setAttribute('viewBox', VUE.join(' '));
+  r.innerHTML = s;
 }
 
 /* ============================================================
@@ -782,19 +906,32 @@ function versPlan(clientX, clientY){
   return [q.x, q.y];
 }
 
+/* Renvoie `true` quand le segment vient RÉELLEMENT d’être posé — le retour
+   arrière du geste s’appuie là-dessus pour n’effacer que ce qu’il a écrit,
+   jamais du pré-rempli ni un trait déjà là avant le geste. */
 function appliquer(k){
   const q = file[pos];
-  if (!k || mancheFinie) return;
-  if (q.pre.has(k)) return;                 // le pré-rempli n’est ni effaçable ni redessinable
+  if (!k || mancheFinie) return false;
+  if (q.pre.has(k)) return false;           // le pré-rempli n’est ni effaçable ni redessinable
   if (outil === 'gomme') {
     if (traces.has(k)) { traces.delete(k); gommages++; sonGomme(); rendrePlan(); verifierComplete(); }
-    return;
+    return false;
   }
-  if (traces.has(k)) return;                // déjà tracé : on ne repasse pas
+  if (traces.has(k)) return false;          // déjà tracé : on ne repasse pas
   traces.set(k, couleur);
   sonTrait();
   rendrePlan();
   verifierComplete();
+  return true;
+}
+/* Retirer un segment que le geste en cours vient de poser. On n’appelle
+   ceci que sur un pas dont `appliquer` a signalé qu’il avait écrit : la
+   clé est donc présente, inutile de le revérifier. */
+function retirerDuGeste(k){
+  if (mancheFinie) return;
+  traces.delete(k);
+  sonGomme();
+  rendrePlan();
 }
 
 /* ------------------------------------------------------------
@@ -826,14 +963,28 @@ const voisins = (a, b) => {
 (function brancherTrace(){
   const svg = $('grille');
   let actif = false, depart = null, bouge = false, dernier = null, noeud = null;
+  /* Le chemin parcouru depuis le début du geste, et pour chaque pas si ce
+     pas a posé un segment. C’est ce qui permet le RETOUR ARRIÈRE : revenir
+     sur ses pas efface ce que l’on vient d’écrire, sans changer d’outil.
+     On n’efface qu’un pas dont on est l’auteur — d’où le drapeau, et non
+     une simple recherche dans `traces`. */
+  let chemin = [], poses = [];
+  const repartirDe = (n) => { noeud = n; chemin = n ? [n] : []; poses = []; };
   const traiter = (p) => {
     const n = noeudProche(p);
     if (!n) return;
-    if (!noeud) { noeud = n; return; }
+    if (!noeud) { repartirDe(n); return; }
     if (memeNoeud(n, noeud)) return;
     /* Un nœud non voisin veut dire que le doigt a sauté — on s’y replace
        sans rien tracer plutôt que d’inventer un segment. */
-    if (voisins(noeud, n)) appliquer(cle(noeud, n));
+    if (!voisins(noeud, n)) { repartirDe(n); return; }
+    if (chemin.length >= 2 && memeNoeud(n, chemin[chemin.length - 2])) {
+      if (poses.pop()) retirerDuGeste(cle(noeud, n));
+      chemin.pop();
+    } else {
+      poses.push(appliquer(cle(noeud, n)));
+      chemin.push(n);
+    }
     noeud = n;
   };
   svg.addEventListener('pointerdown', (e) => {
@@ -841,7 +992,7 @@ const voisins = (a, b) => {
     actif = true; bouge = false;
     depart = [e.clientX, e.clientY];
     dernier = versPlan(e.clientX, e.clientY);
-    noeud = dernier ? noeudProche(dernier) : null;
+    repartirDe(dernier ? noeudProche(dernier) : null);
     try { svg.setPointerCapture(e.pointerId); } catch(err){}
     e.preventDefault();
   });
@@ -875,7 +1026,7 @@ const voisins = (a, b) => {
        recours de précision quand un seul trait manque, et il n’a pas de
        trajectoire qui puisse déraper. */
     if (!bouge && p) { const k = segmentLePlusProche(p, null); if (k) appliquer(k); }
-    noeud = null; segmentVise = null;
+    repartirDe(null); segmentVise = null;
     rendrePlan();
     try { svg.releasePointerCapture(e.pointerId); } catch(err){}
   };
@@ -903,6 +1054,15 @@ function verifierComplete(){
   return true;
 }
 
+/* Les minuteries du rabat : une manche abrégée par « Suivant » ne doit pas
+   voir l’animation de la précédente déteindre sur elle. */
+let minuteriesPli = [];
+function arreterPli(){
+  minuteriesPli.forEach(clearTimeout);
+  minuteriesPli = [];
+  $('plan').classList.remove('rabat-v', 'rabat-h');
+}
+
 function reussir(){
   mancheFinie = true;
   score += 2;
@@ -910,9 +1070,13 @@ function reussir(){
   segmentVise = null;
   rendrePlan();
   const plan = $('plan');
-  const pli = file[pos].fig.axe === 'v' ? 'plie-v' : 'plie-h';
+  const pli = file[pos].fig.axe === 'v' ? 'rabat-v' : 'rabat-h';
+  arreterPli();
   plan.classList.add('reussi', pli);
-  setTimeout(() => plan.classList.remove(pli), 950);
+  /* 1,7 s d’animation, dont le retour commence à 60 % : l’intérieur se
+     colorie pendant que la moitié revient à sa place. */
+  minuteriesPli.push(setTimeout(() => { colorierDedans = true; rendrePlan(); }, 1020));
+  minuteriesPli.push(setTimeout(() => plan.classList.remove(pli), 1750));
   sonBonneReponse(); lancerConfettis(30);
   message('La figure est complète !', 'bon');
   majDots();
@@ -1027,8 +1191,9 @@ function manche(){
   desarmerAutoSuivant(); stopperVoix();
   const q = file[pos];
   traces = new Map(); gommages = 0; mancheFinie = false;
-  outil = 'feutre'; segmentVise = null;
-  $('plan').classList.remove('reussi', 'plie-v', 'plie-h');
+  outil = 'feutre'; segmentVise = null; colorierDedans = false;
+  arreterPli();
+  $('plan').classList.remove('reussi');
   $('palette').hidden = true;
   $('btnPasser').hidden = false;
   $('btnNext').style.display = 'none';
