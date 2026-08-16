@@ -792,7 +792,7 @@ function ecartSegments(u, v){
    l’appelle avec une tolérance d’enfant. Deux mesures différentes de « être
    un axe » finiraient par se contredire. */
 function erreurDeSymetrie(fig, L){
-  const D = diametreDe(fig) || 1;
+  const D = fig._diam || diametreDe(fig) || 1;
   let pire = 0;
   fig.prims.forEach(u => {
     const r = ['S', refletPoint(u[1], L), refletPoint(u[2], L)];
@@ -886,7 +886,7 @@ const FIGURES1 = [
 /* Les axes servis au jeu sont les axes CALCULÉS, jamais le nombre écrit
    au-dessus : deux vérités pour un même fait finissent toujours par
    diverger, et c’est la déclaration qui aurait tort. */
-FIGURES1.forEach(f => { f._axes = axesDe(f); });
+FIGURES1.forEach(f => { f._diam = diametreDe(f); f._axes = axesDe(f); });
 
 /* ============================================================
    ÉTOILES (CHARTE §9)
@@ -1529,24 +1529,37 @@ function ouvrirPalette(){
 const VUE1 = [-6, -6, 112, 112];
 const TOL_BALAYAGE = 7;        // en unités de figure : le doigt révèle large
 const PAS_MORCEAU = 3;         // longueur d’un morceau de contour à révéler
-/* Tolérance du VERDICT, en fraction du diamètre de la figure — MESURÉE,
-   non choisie au jugé. Sur la banque : incliner un axe vrai de 2° coûte
-   0,035 à 0,051 ; de 4°, 0,07 à 0,103. Le décaler de 2 unités coûte 0,052
-   à 0,061. Et la MEILLEURE droite possible sur une figure sans axe vaut
-   0,093 — c’est le parallélogramme, le piège du module, qui fixe le
-   plafond : toute tolérance doit rester nettement en dessous, sinon le
-   piège devient acceptable. D’où 0,075 : environ 3° ou 2,5 unités de jeu
-   pour le doigt, et un quart de marge sous le parallélogramme.
+/* LA TOLÉRANCE DU VERDICT SE DÉDUIT DU DESSIN, elle n’est plus un chiffre
+   posé à côté. Une première version acceptait jusqu’à 3° d’écart — et le
+   calque, lui, montrait fidèlement le décalage que ces 3° produisent : une
+   dizaine de pixels, parfaitement visibles. L’outil de vérification
+   démentait donc le verdict, alors que tout le mini-jeu repose sur le fait
+   qu’ils disent la même chose.
 
-   L’enfant n’est pas laissé seul avec cette exigence : son trait s’affiche
-   pendant qu’il le pose, il peut le refaire avant de valider, et le calque
-   lui montre l’écart avant le verdict. */
-const TOL_ENFANT = 0.075;
+   Le critère est maintenant celui de l’œil : un axe est juste quand le
+   décalage qu’il produit au report TIENT DANS L’ÉPAISSEUR DU TRAIT. « Bon
+   axe » et « ça se superpose » deviennent alors la même phrase. Comme
+   l’erreur se mesure en fraction du diamètre, la tolérance dépend de la
+   figure — une petite figure pardonne moins en absolu, autant en apparence.
+
+   Ce que cela coûte à la main : environ 1,7° d’inclinaison ou 3,5 px de
+   visée. L’enfant n’est pas laissé seul avec cette exigence — son trait
+   s’affiche pendant qu’il le pose, il peut l’effacer et le refaire autant
+   qu’il veut, et le calque lui montre l’écart AVANT qu’il ne valide. */
+const EPAISSEUR_TRAIT = 2;      // unités de figure : le trait de 6 px à l’écran
+const toleranceDe = (fig) => EPAISSEUR_TRAIT / (fig._diam || diametreDe(fig) || 1);
 
 let etape1 = 'tracer';         // tracer | calque | verdict | fini
 let ligne1 = null;             // la droite que l’enfant vient de tracer
 let trouves1 = [];             // les axes déjà validés dans cette manche
 let morceaux1 = [];            // le contour à révéler, morceau par morceau
+/* LE BALAYAGE NE SE REDEMANDE PAS DEUX FOIS POUR LA MÊME FIGURE. Repasser
+   le contour sert à parcourir la forme et à en voir le détail ; une fois
+   ce travail fait, le refaire à chaque essai n’apprend plus rien et ne
+   fait que punir l’ajustement — or ajuster est exactement ce que le calque
+   demande. Aux essais suivants, le contour se montre déjà révélé et la
+   bascule s’enchaîne. */
+let dejaBalaye = false;
 let montrerVrais = false;      // §18 : après un échec, on montre les axes réels
 
 function ligneSvg(L, classe){
@@ -1682,7 +1695,7 @@ function revelerAutour(p){
   });
   if (!change) return;
   rendreCalque();
-  if (morceaux1.every(m => m.vu)) basculerCalque();
+  if (morceaux1.every(m => m.vu)) { dejaBalaye = true; basculerCalque(); }
 }
 
 /* La bascule : le calque tourne d’un demi-tour AUTOUR DE LA DROITE TRACÉE,
@@ -1779,13 +1792,21 @@ function majActions1(){
   if (etape1 === 'fini') { b.hidden = true; b.innerHTML = ''; return; }
   b.hidden = false;
   if (etape1 === 'tracer') {
-    b.innerHTML = '<button type="button" class="act" id="b1Aucun">Aucun axe</button>'
+    b.innerHTML = (ligne1
+        ? '<button type="button" class="act" id="b1Effacer">Effacer le trait</button>'
+        : '<button type="button" class="act" id="b1Aucun">Aucun axe</button>')
       + '<button type="button" class="act primaire" id="b1Verifier"'
       + (ligne1 ? '' : ' disabled') + '>Vérifier au calque 🔎</button>';
-    $('b1Aucun').addEventListener('click', () => verdict1(true));
+    /* Tant qu’un trait est posé, c’est l’effacer qu’on propose : « aucun
+       axe » n’aurait plus de sens à côté d’un axe tracé, et refaire son
+       trait ne doit pas dépendre de deviner qu’un second geste remplace le
+       premier. */
+    if (ligne1) $('b1Effacer').addEventListener('click', effacerTrait);
+    else $('b1Aucun').addEventListener('click', () => verdict1(true));
     $('b1Verifier').addEventListener('click', ouvrirCalque);
   } else if (etape1 === 'calque') {
-    b.innerHTML = '<span class="act-info">Repasse le contour de cette moitié.</span>';
+    b.innerHTML = '<span class="act-info">'
+      + (dejaBalaye ? 'On revérifie…' : 'Repasse le contour de cette moitié.') + '</span>';
   } else {
     b.innerHTML = '<button type="button" class="act" id="b1Recommencer">Je recommence</button>'
       + '<button type="button" class="act primaire" id="b1Bon">C’est bon !</button>';
@@ -1793,14 +1814,25 @@ function majActions1(){
     $('b1Bon').addEventListener('click', () => verdict1(false));
   }
 }
+function effacerTrait(){
+  if (etape1 !== 'tracer') return;
+  ligne1 = null;
+  message('');
+  rendreFigure(); majActions1();
+}
 function ouvrirCalque(){
   if (!ligne1) return;
   etape1 = 'calque';
   morceaux1 = decouperEnMorceaux(demiFigure(file[pos].fig, ligne1));
+  if (dejaBalaye) morceaux1.forEach(m => { m.vu = true; });
   const c = $('calque');
   c.classList.remove('bascule'); montrerCalque(true);
   rendreCalque(); majActions1();
   message('');
+  if (dejaBalaye) {
+    minuteriesPli.push(setTimeout(basculerCalque, 400));
+    return;
+  }
   lire('Repasse au doigt le contour de cette moitié.');
 }
 function recommencer1(){
@@ -1827,10 +1859,11 @@ function memeDroite(A, B){
 function verdict1(aucunAxe){
   if (etape1 === 'fini') return;
   const q = file[pos], fig = q.fig, vrais = fig._axes;
+  const ecart = (aucunAxe || !ligne1) ? Infinity : erreurDeSymetrie(fig, ligne1);
   let juste;
   if (aucunAxe) juste = vrais.length === 0;
   else juste = vrais.length > 0
-    && erreurDeSymetrie(fig, ligne1) <= TOL_ENFANT
+    && ecart <= toleranceDe(fig)
     && !trouves1.some(L => memeDroite(L, ligne1));
   const attendus = Math.max(1, Math.min(2, vrais.length));
   const parAxe = 2 / attendus;
@@ -1845,9 +1878,15 @@ function verdict1(aucunAxe){
     ligne1 = null;
     rendreFigure();
     sonErreur();
+    /* « Presque » n’est pas « juste », mais ce n’est pas non plus « à côté » :
+       le dire évite de renvoyer dos à dos un trait de travers de deux
+       degrés et un trait posé n’importe où. */
+    const presque = !aucunAxe && vrais.length > 0 && ecart <= toleranceDe(fig) * 4;
     message(vrais.length === 0
       ? 'Cette figure n’a aucun axe de symétrie.'
-      : (aucunAxe ? 'Il y avait un axe : le voici.' : 'Cet axe n’en est pas un. Voici le ou les axes.'), 'mauvais');
+      : aucunAxe ? 'Il y avait un axe : le voici.'
+      : presque ? 'Presque ! Ton trait est un peu de travers.'
+      : 'Cet axe n’en est pas un. Voici le ou les axes.', 'mauvais');
     finirManche1();
     return;
   }
@@ -1937,7 +1976,7 @@ function manche1(){
   desarmerAutoSuivant(); stopperVoix(); arreterPli();
   const q = file[pos];
   etape1 = 'tracer'; ligne1 = null; trouves1 = []; morceaux1 = [];
-  montrerVrais = false; mancheFinie = false;
+  montrerVrais = false; mancheFinie = false; dejaBalaye = false;
   $('scene').classList.remove('reussi');
   $('plan').hidden = true; $('scene').hidden = false;
   $('outils').hidden = true; $('palette').hidden = true;
