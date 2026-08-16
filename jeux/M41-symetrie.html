@@ -1988,6 +1988,22 @@ function majActions1(){
     $('b1Bon').addEventListener('click', () => verdict1(false));
   }
 }
+/* UNE DROITE QUI NE TRAVERSE PAS LA FIGURE NE PEUT PAS EN ÊTRE UN AXE — la
+   réflexion enverrait la figure sur un côté où elle n’est pas. Et surtout,
+   il n’y a alors RIEN À REPASSER : le calque s’ouvrait sur un contour
+   inexistant, aucun morceau ne pouvait être révélé, la bascule ne venait
+   jamais, et la manche n’avait plus d’autre issue que « Passer ». Toutes
+   les figures avaient de telles droites — cent soixante-seize pour la
+   lettre A. On le dit à l’enfant et on reste au tracé.
+
+   Le garde-fou ne peut pas refuser une bonne réponse : un axe vrai a
+   toujours de la figure des deux côtés, et le contrôle de données le
+   vérifie pour chaque axe de chaque figure, dans toutes ses positions. */
+function traverseLaFigure(fig, L){
+  return demiFigure(fig, L).length > 0
+      && demiFigure(fig, droite(L.p, [-L.d[0], -L.d[1]])).length > 0;
+}
+
 function effacerTrait(){
   if (etape1 !== 'tracer') return;
   ligne1 = null;
@@ -1996,6 +2012,10 @@ function effacerTrait(){
 }
 function ouvrirCalque(){
   if (!ligne1) return;
+  if (!traverseLaFigure(file[pos].fig, ligne1)) {
+    message('Ton trait passe à côté de la figure : trace-le en travers.', '');
+    return;
+  }
   etape1 = 'calque';
   morceaux1 = decouperEnMorceaux(demiFigure(file[pos].fig, ligne1));
   if (dejaBalaye) morceaux1.forEach(m => { m.vu = true; });
