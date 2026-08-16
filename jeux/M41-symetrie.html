@@ -271,6 +271,7 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 .axe-ok{stroke:var(--menthe); stroke-width:5; stroke-linecap:round; vector-effect:non-scaling-stroke;}
 .axe-vrai{stroke:var(--menthe-t); stroke-width:4; stroke-dasharray:8 6; stroke-linecap:round;
   vector-effect:non-scaling-stroke;}
+.noeud-axe{fill:var(--mandarine-f); stroke:var(--carte); stroke-width:1.5; vector-effect:non-scaling-stroke;}
 /* Le contour à révéler : pâle tant qu’il attend le doigt, franc ensuite. */
 .guide{stroke:#C2D2E6; stroke-width:3; stroke-linecap:round; vector-effect:non-scaling-stroke;}
 .revele{stroke:var(--mandarine); stroke-width:5; stroke-linecap:round; vector-effect:non-scaling-stroke;}
@@ -837,6 +838,31 @@ function axesDe(fig, tol){
 }
 
 /* ------------------------------------------------------------
+   LE PAPIER QUADRILLÉ, ET POURQUOI L’ACCROCHE N’EST PAS UNE AIDE
+   ------------------------------------------------------------
+   Le trait libre a un défaut que la mesure a confirmé : pour que le report
+   au calque se superpose vraiment, il faut viser à quatre pixels près, ce
+   qu’un doigt d’enfant ne fait qu’une fois sur trois. Le trait était donc
+   toujours « un peu incertain ».
+
+   La grille lève cette incertitude sans rien répondre à la place de
+   l’enfant. C’est le point qui décide, et il tient à un mot : la grille est
+   FIXE. Elle ne connaît pas la figure, elle est la même pour toutes, et un
+   axe faux s’y accroche aussi fermement qu’un axe juste — un nœud de
+   travers donne un trait de travers, franchement, sans demi-teinte. Rien à
+   voir avec une aimantation vers l’axe vrai, qui répondrait à la place de
+   l’enfant (§2.2). C’est un papier quadrillé posé sous le dessin, et c’est
+   déjà le modèle de l’autre mini-jeu.
+
+   Effet secondaire recherché : il n’y a plus de « presque ». Le trait tombe
+   sur un axe ou visiblement à côté, et le calque le montre franchement.
+   ------------------------------------------------------------ */
+const PAS_GRILLE = 10;
+const NOEUD_MIN = 0, NOEUD_MAX = 100;
+const accrocherNoeud = (v) =>
+  Math.max(NOEUD_MIN, Math.min(NOEUD_MAX, Math.round(v / PAS_GRILLE) * PAS_GRILLE));
+
+/* ------------------------------------------------------------
    LA BANQUE — dix-neuf figures, toutes tirées du texte officiel
    (enseignes de cartes, panneaux, lettres majuscules) ou du piège nommé
    par la spec. UN TIERS SANS AUCUN AXE : sans elles l’enfant ne
@@ -887,6 +913,37 @@ const FIGURES1 = [
    au-dessus : deux vérités pour un même fait finissent toujours par
    diverger, et c’est la déclaration qui aurait tort. */
 FIGURES1.forEach(f => { f._diam = diametreDe(f); f._axes = axesDe(f); });
+
+/* ------------------------------------------------------------
+   LA FIGURE NE SE POSE PAS TOUJOURS AU MILIEU
+   ------------------------------------------------------------
+   Toutes les figures étant centrées, leur axe tombait invariablement sur la
+   colonne ou la ligne du milieu — et le quadrillage, qui rend cette
+   médiane très lisible, aurait fait du « où » une évidence. On décale donc
+   la figure d’un nombre entier de mailles : l’axe reste sur la grille,
+   donc traçable, mais il faut le CHERCHER. Le jugement « y a-t-il un axe »
+   n’est pas touché ; c’est le « lequel » qui redevient une question.
+
+   Le décalage est un paramètre de mise en place, pas un contenu : il tombe
+   sous la deuxième exclusion du §13 bis et ne se tire donc pas par cycle. */
+function decalagesPossibles(fig){
+  const pts = sommetsDe(fig);
+  const bx = [Math.min(...pts.map(p => p[0])), Math.max(...pts.map(p => p[0]))];
+  const by = [Math.min(...pts.map(p => p[1])), Math.max(...pts.map(p => p[1]))];
+  const ok = [];
+  [-PAS_GRILLE, 0, PAS_GRILLE].forEach(dx => [-PAS_GRILLE, 0, PAS_GRILLE].forEach(dy => {
+    if (bx[0]+dx >= NOEUD_MIN - 4 && bx[1]+dx <= NOEUD_MAX + 4
+     && by[0]+dy >= NOEUD_MIN - 4 && by[1]+dy <= NOEUD_MAX + 4) ok.push([dx, dy]);
+  }));
+  return ok;
+}
+FIGURES1.forEach(f => { f._decalages = decalagesPossibles(f); });
+function poserFigure(fig, d){
+  const t = (p) => [p[0]+d[0], p[1]+d[1]];
+  return {nom:fig.nom, axes:fig.axes, _diam:fig._diam,
+    prims:fig.prims.map(u => ['S', t(u[1]), t(u[2])]),
+    _axes:fig._axes.map(L => droite(t(L.p), L.d))};
+}
 
 /* ============================================================
    ÉTOILES (CHARTE §9)
@@ -1574,6 +1631,17 @@ function segSvg1(s, classe, style){
     + (style ? ' style="' + style + '"' : '') + '/>';
 }
 
+/* Le quadrillage en filigrane, dans la même teinte que le plan de l’autre
+   mini-jeu — c’est le même objet, il doit se lire pareil. */
+function grilleSvg(){
+  let s = '';
+  for (let v = NOEUD_MIN; v <= NOEUD_MAX; v += PAS_GRILLE) {
+    s += '<line class="maille" x1="' + v + '" y1="' + NOEUD_MIN + '" x2="' + v + '" y2="' + NOEUD_MAX + '"/>';
+    s += '<line class="maille" x1="' + NOEUD_MIN + '" y1="' + v + '" x2="' + NOEUD_MAX + '" y2="' + v + '"/>';
+  }
+  return s;
+}
+
 function rendreFigure(){
   const q = file[pos];
   /* Au succès, la couleur gagne la figure EN PARTANT DE L’AXE : le retard
@@ -1584,11 +1652,18 @@ function rendreFigure(){
   const dMax = Math.max(1e-6, ...q.fig.prims.map(dTrait));
   let s = '<rect class="surface" x="' + VUE1[0] + '" y="' + VUE1[1]
     + '" width="' + VUE1[2] + '" height="' + VUE1[3] + '"/>';
+  s += grilleSvg();
   s += q.fig.prims.map(u =>
     segSvg1(u, 'trait-fig', 'transition-delay:' + (dTrait(u) / dMax * 0.4).toFixed(3) + 's')).join('');
   if (montrerVrais) q.fig._axes.forEach(L => { s += ligneSvg(L, 'axe-vrai'); });
   trouves1.forEach(L => { s += ligneSvg(L, 'axe-ok'); });
-  if (ligne1 && etape1 !== 'fini') s += ligneSvg(ligne1, 'axe-trace');
+  if (ligne1 && etape1 !== 'fini') {
+    s += ligneSvg(ligne1, 'axe-trace');
+    /* Les deux nœuds sont montrés : l’enfant voit exactement d’où à où
+       passe le trait qui sera jugé, et peut le compter sur la grille. */
+    (ligne1.noeuds || []).forEach(n =>
+      { s += '<circle class="noeud-axe" cx="' + n[0] + '" cy="' + n[1] + '" r="2.6"/>'; });
+  }
   $('figure').innerHTML = s;
 }
 /* `hidden` N’EST PAS UNE PROPRIÉTÉ DES ÉLÉMENTS SVG : `element.hidden = false`
@@ -1641,8 +1716,24 @@ function droiteDuGeste(pts){
   const l1 = tr/2 + racine, l2 = tr/2 - racine;
   if (Math.sqrt(Math.max(l1, 0)) * 3.4 < LONGUEUR_MIN_GESTE) return null;   // trait trop court
   if (l2 > 1e-9 && l1 / l2 < ELONGATION_MIN) return null;                   // geste sans direction
-  return droite(c, [Math.cos(0.5 * Math.atan2(2*sxy, sxx - syy)),
-                    Math.sin(0.5 * Math.atan2(2*sxy, sxx - syy))]);
+  const th = 0.5 * Math.atan2(2*sxy, sxx - syy);
+  const L = droite(c, [Math.cos(th), Math.sin(th)]);
+  /* LA DIRECTION VIENT DE TOUT LE GESTE, LES BOUTS VIENNENT DE LA GRILLE.
+     On projette les points extrêmes du doigt sur la droite ajustée — donc
+     sans se fier au seul endroit où le doigt s’est posé ou levé —, puis on
+     accroche ces deux bouts aux nœuds les plus proches. Le trait jugé passe
+     ainsi exactement par deux nœuds : il n’y a plus de « presque ». */
+  let tMin = Infinity, tMax = -Infinity;
+  pts.forEach(p => {
+    const t = (p[0]-L.p[0])*L.d[0] + (p[1]-L.p[1])*L.d[1];
+    tMin = Math.min(tMin, t); tMax = Math.max(tMax, t);
+  });
+  const bout = (t) => [accrocherNoeud(L.p[0] + t*L.d[0]), accrocherNoeud(L.p[1] + t*L.d[1])];
+  const a1 = bout(tMin), a2 = bout(tMax);
+  if (a1[0] === a2[0] && a1[1] === a2[1]) return null;      // les deux bouts au même nœud
+  const D = droite(a1, [a2[0]-a1[0], a2[1]-a1[1]]);
+  D.noeuds = [a1, a2];
+  return D;
 }
 
 /* ------------------------------------------------------------
@@ -1969,7 +2060,7 @@ function engendrerFile1(cfg){
     tirees = tirees.concat(tirerSansRepetition('fig1-' + r.axes, stock, r.n));
   });
   return melanger(tirees).slice(0, cfg.nbQuestions)
-    .map(fig => ({fig, _points:0, _ok:false}));
+    .map(fig => ({fig:poserFigure(fig, pioche(fig._decalages)), _points:0, _ok:false}));
 }
 
 function manche1(){
