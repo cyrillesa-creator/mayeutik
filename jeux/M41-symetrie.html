@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>La Symétrie — Mayeutik</title>
+<title>Symétrie — Mayeutik</title>
 <!-- ============================================================
      M41 — SYMÉTRIE AXIALE (CE2)
      ------------------------------------------------------------
@@ -76,6 +76,8 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 }
 .card:active{transform:translateY(3px); box-shadow:0 1px 0 rgba(29,51,84,.12);}
 .card .ico{font-size:2rem; line-height:1;}
+.card .ico-dessin{display:block; width:2.6rem; height:2.6rem;}
+.card .ico-dessin svg{display:block; width:100%; height:100%;}
 .card .nom{font-weight:600; font-size:1.02rem;}
 .card .det{font-size:.78rem; color:var(--encre2); white-space:pre-line;}
 .card .stars{font-size:.85rem; letter-spacing:2px; min-height:1.1em;}
@@ -383,13 +385,13 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 <div id="app">
   <header>
     <button id="btnBack" hidden aria-label="Retour">←</button>
-    <div id="hdrTitle">La Symétrie</div>
+    <div id="hdrTitle">Symétrie</div>
     <div id="dots"></div>
   </header>
 
   <section id="home">
     <div class="barre-accueil"><button type="button" class="bouton-menu" id="bouton-menu">← Menu</button></div>
-    <h1>La Symétrie</h1>
+    <h1>Symétrie</h1>
     <p class="sub" id="sous-titre-accueil"></p>
     <div class="cards" id="grille-jeux"></div>
   </section>
@@ -665,7 +667,8 @@ function construireManche(fig, mode){
 const CONTENU = {
   sousTitre: 'Trouve les axes cachés, puis fais réapparaître le monde que le mage a effacé !',
   miniJeux: [
-    {id:'ce2-symetrie-reconnaitre', mode:'reconnaitre', titre:'Symboles miroirs', icone:'🂱',
+    {id:'ce2-symetrie-reconnaitre', mode:'reconnaitre', titre:'Symboles miroirs',
+     icone:'🂱', iconeSvg:'<path d="M 11 4 L 29 4 L 29 36 L 11 36 Z" fill="#FFFFFF"/><g fill="#E5484D"><path d="M 20 11 L 26.5 20 L 20 29 L 13.5 20 Z"/><path d="M 15 6 L 17.2 9 L 15 12 L 12.8 9 Z"/><path d="M 25 6 L 27.2 9 L 25 12 L 22.8 9 Z"/><path d="M 15 28 L 17.2 31 L 15 34 L 12.8 31 Z"/><path d="M 25 28 L 27.2 31 L 25 34 L 22.8 31 Z"/></g><path d="M 11 4 L 29 4 L 29 36 L 11 36 Z" fill="none" stroke="#2B3A55" stroke-width="2.4" stroke-linejoin="round"/>',
      description:'Trace un axe de symétrie — ou dis qu’il n’y en a aucun.', nbQuestions:6},
     {id:'ce2-symetrie-completer', mode:'completer', titre:'Le monde à moitié effacé', icone:'🪄',
      description:'Complète la figure de l’autre côté de l’axe.', nbQuestions:6}
@@ -1159,7 +1162,16 @@ function desarmerAutoSuivant(){ clearTimeout(minuteurAutoSuivant); }
 function creerCarte(cfg){
   const b = document.createElement('button');
   b.type = 'button'; b.className = 'card'; b.dataset.jeu = cfg.id;
-  const i = document.createElement('span'); i.className = 'ico'; i.textContent = cfg.icone;
+  const i = document.createElement('span'); i.className = 'ico';
+  /* Un mini-jeu peut porter un DESSIN plutôt qu’un emoji — c’est déjà ce
+     que la coquille sait faire pour les modules. Ici ce n’est pas un
+     ornement : aucun emoji d’as n’est symétrique (le « A » du coin le
+     ruine), et le logo d’un jeu sur la symétrie doit en avoir un axe. Le
+     contrôle de données le vérifie sur les coordonnées du tracé. */
+  if (cfg.iconeSvg) {
+    i.classList.add('ico-dessin');
+    i.innerHTML = '<svg viewBox="0 0 40 40" aria-hidden="true">' + cfg.iconeSvg + '</svg>';
+  } else i.textContent = cfg.icone;
   const n = document.createElement('span'); n.className = 'nom'; n.textContent = cfg.titre;
   const d = document.createElement('span'); d.className = 'det'; d.textContent = cfg.description;
   const s = document.createElement('span'); s.className = 'stars';
@@ -1171,7 +1183,7 @@ function creerCarte(cfg){
   return b;
 }
 function construireAccueil(){
-  $('hdrTitle').textContent = 'La Symétrie';
+  $('hdrTitle').textContent = 'Symétrie';
   $('sous-titre-accueil').textContent = CONTENU.sousTitre;
   const g = $('grille-jeux'); g.innerHTML = '';
   CONTENU.miniJeux.forEach(c => g.appendChild(creerCarte(c)));
@@ -1987,10 +1999,14 @@ function majActions1(){
   if (etape1 === 'fini') { b.hidden = true; b.innerHTML = ''; return; }
   b.hidden = false;
   if (etape1 === 'tracer') {
+    /* Sur une figure à plus de deux axes, on a dit à l’enfant qu’il y en a
+       plusieurs : lui laisser le bouton « aucun autre axe » reviendrait à
+       lui tendre une réponse qu’on vient de démentir. */
+    const nie = !(trouves1.length && file[pos].fig._axes.length > 2);
     b.innerHTML = (ligne1
         ? '<button type="button" class="act" id="b1Effacer">Effacer le trait</button>'
-        : '<button type="button" class="act" id="b1Aucun">'
-          + (trouves1.length ? 'Aucun autre axe' : 'Aucun axe') + '</button>')
+        : nie ? '<button type="button" class="act" id="b1Aucun">'
+          + (trouves1.length ? 'Aucun autre axe' : 'Aucun axe') + '</button>' : '')
       + '<button type="button" class="act primaire" id="b1Verifier"'
       + (ligne1 ? '' : ' disabled') + '>Vérifier au calque 🔎</button>';
     /* Tant qu’un trait est posé, c’est l’effacer qu’on propose : « aucun
@@ -1998,7 +2014,7 @@ function majActions1(){
        trait ne doit pas dépendre de deviner qu’un second geste remplace le
        premier. */
     if (ligne1) $('b1Effacer').addEventListener('click', effacerTrait);
-    else $('b1Aucun').addEventListener('click', () => verdict1(true));
+    else if ($('b1Aucun')) $('b1Aucun').addEventListener('click', () => verdict1(true));
     $('b1Verifier').addEventListener('click', ouvrirCalque);
   } else if (etape1 === 'calque') {
     b.innerHTML = '<span class="act-info">'
@@ -2084,6 +2100,16 @@ function verdict1(aucunAxe){
 
      « Aucun (autre) axe » est juste quand tous les axes vrais ont DÉJÀ été
      trouvés — une seule phrase couvre les deux temps. */
+  /* UNE FIGURE À PLUS DE DEUX AXES NE SE TRAITE PAS COMME LES AUTRES. Le
+     panneau stop en a quatre. Lui demander de dire « aucun autre axe »
+     après en avoir trouvé deux serait un piège — la réponse serait fausse
+     alors qu’il aurait bien travaillé —, et les lui faire tracer tous les
+     quatre ferait durer la manche cinq fois plus que les cinq autres. On
+     s’en tient donc au minimum que le programme demande (« il LES trace »,
+     jamais un compte exact, comme la règle A2 de M34), et surtout ON LE
+     DIT : la consigne annonce qu’il y en a plusieurs et le bouton « aucun
+     autre axe » disparaît, puisqu’il n’aurait plus de sens. */
+  const plusieurs = vrais.length > 2;
   const etapes = vrais.length === 0 ? 1 : 2;
   const parEtape = 2 / etapes;
   let juste;
@@ -2135,8 +2161,11 @@ function verdict1(aucunAxe){
     dejaBalaye = false;
     rendreFigure(); majActions1();
     sonBonneReponse();
-    message('Bravo ! Et maintenant : y en a-t-il un autre ?', 'bon');
-    poserConsigne('Y a-t-il un autre axe ? Trace-le, ou dis qu’il n’y en a pas.');
+    message(plusieurs ? 'Bravo ! Cette figure en a plusieurs : trouve-en un autre.'
+                      : 'Bravo ! Et maintenant : y en a-t-il un autre ?', 'bon');
+    poserConsigne(plusieurs
+      ? 'Cette figure a plusieurs axes. Trouve-en un autre !'
+      : 'Y a-t-il un autre axe ? Trace-le, ou dis qu’il n’y en a pas.');
     return;
   }
   q._ok = true;
