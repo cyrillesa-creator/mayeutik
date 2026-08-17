@@ -349,7 +349,7 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
       <p class="sous-consigne" id="sousConsigne"></p>
       <div id="vitrail" hidden><svg id="vitrailSvg" viewBox="0 0 400 62"></svg></div>
       <div class="barre-outils" id="barreOutils" hidden></div>
-      <div class="plan" id="plan"><svg id="scene" viewBox="0 0 400 374"></svg></div>
+      <div class="plan" id="plan"><svg id="scene" viewBox="0 0 400 498"></svg></div>
       <button id="btnValider" type="button">Vérifier ✓</button>
       <p id="feedback"></p>
       <button id="btnNext" type="button">Suivant ➜</button>
@@ -983,10 +983,22 @@ const MoteurCompas = (function(){
    garantit qu’un rayon de 4 et un côté de 7 ont la même taille apparente
    qu’en M35, par construction et non par vigilance. */
 const PX_PAR_UNITE = MoteurCompas.UNITE;
-/* La maille du quadrillage vaut deux unités : les deux échelles du module
-   restent commensurables, même si l’enfant ne compte jamais en unités sur
-   un quadrillage. */
-const MAILLE = 26;
+/* LA MAILLE EST DIMENSIONNÉE PAR LE DOIGT, pas par le nombre de cases qu’on
+   voudrait montrer. Le moteur de tracé accroche à 0,45 maille d’un nœud : à
+   26, cela faisait un rayon de 10 px à l’écran, moitié de ce que M41 offre —
+   et M41 a payé la leçon à l’appareil. 35 porte la maille à 30 px et le rayon
+   à 13,6 px sur un iPhone (carte de 346 px pour un viewBox de 400).
+   Le plafond est vertical, pas horizontal : deux panneaux de six mailles
+   empilés — le modèle et le travail — doivent tenir ENTIÈREMENT au-dessus de
+   la ligne de flottaison, sans quoi « reproduis le modèle » demanderait de
+   faire défiler entre les deux. Six mailles de haut chacun, marges et
+   séparation comprises, valent quatorze mailles pour 491 unités de viewBox
+   disponibles : 35 est la valeur maximale.
+   La maille ne vaut donc plus un nombre entier d’unités de compas. Elle n’en
+   avait pas besoin : aucun écran ne montre à la fois un côté compté en
+   mailles et un rayon compté en unités, et `PX_PAR_UNITE` est inchangé, donc
+   les figures au compas gardent exactement leur taille apparente. */
+const MAILLE = 35;
 const AIMANT_ANCRE = 13;        // rayon d’accrochage sur une graduation
 const SEUIL_GLISSEMENT = 8;     // au-delà, le geste est un défilement (§19)
 const TOL_UNI = 0.03;           // 3 % de la longueur de référence
@@ -1082,19 +1094,40 @@ const VERRES = ['#FF8A3D','#5AB4DC','#2EC4A6','#FFC93C','#FF5D5D','#9B5DE5','#4D
    implémentations, et rien d’autre dans le reste du fichier ne teste le
    type de papier : c’est une donnée de la manche, pas un `if` dispersé.
    ============================================================ */
-function zone(x0, y0, nx, ny){ return {x0, y0, nx, ny, pas:MAILLE,
-  l:nx*MAILLE, h:ny*MAILLE, x1:x0 + nx*MAILLE, y1:y0 + ny*MAILLE}; }
+function zone(x0, y0, nx, ny, pas){ const p = pas || MAILLE; return {x0, y0, nx, ny, pas:p,
+  l:nx*p, h:ny*p, x1:x0 + nx*p, y1:y0 + ny*p}; }
 /* Avec modèle : le modèle en haut, le panneau de travail en dessous. Un
    téléphone en portrait n’offre pas la largeur pour les mettre côte à
-   côte, et l’empilement garde les deux quadrillages au même pas. */
-const ZONE_MODELE  = zone(24, 16, 13, 4);
-const ZONE_TRAVAIL = zone(24, 156, 13, 7);
-/* Sans modèle, le panneau occupe tout le plan. */
-const ZONE_PLEINE  = zone(24, 20, 13, 10);
-const HAUTEUR_AVEC_MODELE = 356;
-const HAUTEUR_PLEINE = 300;
+   côte, et l’empilement garde les deux quadrillages au même pas.
+   SIX MAILLES DE HAUT DE CHAQUE CÔTÉ, parce que le plus grand modèle
+   d’assemblage — deux rectangles empilés coiffés d’un carré — en fait six.
+   À quatre, il DÉBORDAIT : `poserDansZone` ne peut que caler l’offset à 0
+   quand la figure est plus haute que la zone, et le bas du modèle sortait du
+   quadrillage sans rien dire. */
+const ZONE_MODELE  = zone(25, 20, 10, 6);
+const ZONE_TRAVAIL = zone(25, 268, 10, 6);
+/* Sans modèle, le panneau occupe tout le plan. Deux zones pleines, et non
+   une : le papier UNI garde sa géométrie au pas de 26, figée ici, parce que
+   la rosace et les constructions au compas en dépendent — leur rayon se
+   déduit du panneau. Élargir la maille du quadrillage ne doit pas les
+   déplacer d’un pixel. */
+const ZONE_PLEINE     = zone(25, 20, 10, 8);
+const ZONE_PLEINE_UNI = zone(24, 20, 13, 10, 26);
+/* LA HAUTEUR DU PLAN SE DÉDUIT de la zone la plus basse : une hauteur
+   déclarée à côté des zones serait une seconde vérité pour le même fait, et
+   c’est elle qui se serait décalée au premier redimensionnement. */
+const MARGE_PLAN = 20;                      // ≥ 0,5 maille (propriété 8)
+const hauteurPlan = (z) => z.y1 + MARGE_PLAN;
 
 const versScene = (z, gx, gy) => [z.x0 + gx*z.pas, z.y0 + gy*z.pas];
+
+/* LA ZONE D’UNE MANCHE SE LIT SUR LA MANCHE, en un seul endroit : le panneau
+   plein du papier uni n’est pas celui du quadrillage, et disperser ce choix
+   en `if` recopiés est exactement ce que le module s’interdit ailleurs. */
+function zoneDe(q){
+  if (q.zone !== 'pleine') return ZONE_TRAVAIL;
+  return q.support === 'uni' ? ZONE_PLEINE_UNI : ZONE_PLEINE;
+}
 
 const SUPPORTS = {
   quadrille: {
@@ -1162,15 +1195,17 @@ function aimanterPoint(p, sup, z, ancres){
       droit le long d’une pente 3/1 passe à 0,316 maille du nœud
       intermédiaire, et à 0,200 maille sur une 4/3 — sous le rayon
       d’accrochage. Il serait capturé en route et poserait un segment court
-      illégal. Descendre le rayon sous 0,200 maille (5 px ici) rendrait les
+      illégal. Descendre le rayon sous 0,200 maille (6 px ici) rendrait les
       nœuds inatteignables. Le tap à deux nœuds contourne le calcul au lieu
       de le forcer, et il colle à la consigne déjà écrite du CE1 : « compte
       les déplacements, tant de côté et tant vers le haut ».
 
-   2. LA MAILLE EST PLUS PETITE : 26 unités de scène ici, soit 22,5 px à
-      l’écran, contre 39,3 px chez M41. Les rayons se recalibrent donc en
-      PIXELS et ne se recopient pas « en mailles ». C’est aussi pourquoi les
-      tests des deux modules restent indépendants.
+   2. LA MAILLE EST PLUS PETITE : 35 unités de scène ici, soit 30,3 px à
+      l’écran, contre 39,3 px chez M41 — et c’est le MAXIMUM ici, parce que
+      M38 empile deux panneaux quand M41 n’en montre qu’un (voir `MAILLE`).
+      Les rayons se recalibrent donc en PIXELS et ne se recopient pas « en
+      mailles ». C’est aussi pourquoi les tests des deux modules restent
+      indépendants.
 
    3. L’INTÉRIEUR SE CALCULE AUTREMENT. M41 découpe chaque cellule en quatre
       quarts par ses diagonales : cela capture exactement ses murs
@@ -1185,7 +1220,7 @@ function aimanterPoint(p, sup, z, ancres){
    Le rayon d’accrochage d’un nœud reste sous une demi-maille : au-delà,
    les zones de deux nœuds voisins se recouvriraient et le doigt serait
    capturé par l’un ou l’autre selon l’arrondi. */
-const RAYON_NOEUD_M = 0.45;      // 0,45 maille = 11,7 unités = ~10 px à l’écran
+const RAYON_NOEUD_M = 0.45;      // 0,45 maille = 15,8 unités = ~13,6 px à l’écran
 const RAYON_GOMME_M = 0.30;
 const RAYON_TAP_M = 0.70;        // le tap n’a pas de trajectoire : il peut viser large
 const SEUIL_TRACE = SEUIL_GLISSEMENT;   // px écran — un seuil, jamais une durée (§19)
@@ -1395,7 +1430,7 @@ function creerTraceQuadrillage(o){
     return `x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}"`;
   };
   api.rendre = function(){
-    const vb = (svg.getAttribute('viewBox') || '0 0 400 356').split(/\s+/).map(Number);
+    const vb = (svg.getAttribute('viewBox') || '0 0 400 498').split(/\s+/).map(Number);
     /* UNE SURFACE EXPLICITE couvre toute la vue. Sous un point VIDE d’un
        `<svg>` racine, la cible désignée dépend du moteur de rendu : WebKit
        et Blink n’y répondent pas pareil, et le geste redevenait un
@@ -1740,11 +1775,19 @@ const bbox = (pts) => ({
   y0:Math.min(...pts.map(p=>p[1])), y1:Math.max(...pts.map(p=>p[1]))
 });
 /* Place un assemblage décrit en mailles dans une zone, à une position
-   tirée au sort mais entièrement contenue. */
+   tirée au sort mais ENTIÈREMENT CONTENUE — y compris quand l’appelant
+   impose l’offset. Un offset écrit à la main a été calibré sur la taille
+   qu’avait la zone ce jour-là : `cp-assembler` posait son assemblage en
+   (1,1), ce qui débordait d’une maille dès que le panneau est passé de sept
+   rangées à six. La zone est seule à connaître sa taille, c’est donc elle
+   qui borne, et un débordement silencieux cesse d’être exprimable. */
 function poserDansZone(z, contours, gx, gy){
   const b = bbox(tousLesPoints(contours));
-  const dx = (gx === undefined ? Math.round(entre(0, Math.max(0, z.nx - (b.x1-b.x0)))) : gx) - b.x0;
-  const dy = (gy === undefined ? Math.round(entre(0, Math.max(0, z.ny - (b.y1-b.y0)))) : gy) - b.y0;
+  const jeu = (n, taille) => Math.max(0, n - taille);
+  const cadrer = (g, n, taille) => Math.max(0, Math.min(g, jeu(n, taille)));
+  const w = b.x1 - b.x0, h = b.y1 - b.y0;
+  const dx = (gx === undefined ? Math.round(entre(0, jeu(z.nx, w))) : cadrer(gx, z.nx, w)) - b.x0;
+  const dy = (gy === undefined ? Math.round(entre(0, jeu(z.ny, h))) : cadrer(gy, z.ny, h)) - b.y0;
   return contours.map(c => versSceneContour(z, translater(c, dx, dy)));
 }
 
@@ -2177,7 +2220,7 @@ function qCe1Completer(){
      devient le seul moyen d’être exact. */
   for (let i = 0; i < 2; i++) {
     const l = (5 + i) * PX_PAR_UNITE, h = 3 * PX_PAR_UNITE;
-    const x0 = ZONE_PLEINE.x0 + 40, y0 = ZONE_PLEINE.y0 + 50;
+    const x0 = ZONE_PLEINE_UNI.x0 + 40, y0 = ZONE_PLEINE_UNI.y0 + 50;
     const c = [[x0,y0],[x0+l,y0],[x0+l,y0+h],[x0,y0+h]];
     liste.push(mancheBase({
       support:'uni', libre:false, zone:'pleine',
@@ -2193,7 +2236,7 @@ function qCe1Completer(){
 
 /* ---- CE1 : construire d’après un énoncé ---- */
 function qCe1Construire(){
-  const z = ZONE_PLEINE;
+  const z = ZONE_PLEINE_UNI;
   const cx = z.x0 + z.l/2, cy = z.y0 + z.h/2;
   const items = [
     () => {
@@ -2268,7 +2311,7 @@ function qCe2Reproduire(){
 
 /* ---- CE2 : construire sur papier uni, aux mesures données ---- */
 function qCe2ConstruireUni(){
-  const z = ZONE_PLEINE;
+  const z = ZONE_PLEINE_UNI;
   const cx = z.x0 + z.l/2, cy = z.y0 + z.h/2;
   const U = PX_PAR_UNITE;
   /* Les trois exemples de réussite du programme, mot pour mot. */
@@ -2319,7 +2362,7 @@ function qCe2ConstruireUni(){
    à vérifier en M35, en trois étapes cumulatives.
    ============================================================ */
 function geometrieRosace(){
-  const R = 108, cx = ZONE_PLEINE.x0 + ZONE_PLEINE.l/2, cy = ZONE_PLEINE.y0 + ZONE_PLEINE.h/2, n = 6;
+  const R = 108, cx = ZONE_PLEINE_UNI.x0 + ZONE_PLEINE_UNI.l/2, cy = ZONE_PLEINE_UNI.y0 + ZONE_PLEINE_UNI.h/2, n = 6;
   const hex = [], pointes = [];
   for (let i = 0; i < n; i++) {
     const th = -Math.PI/2 + i * TAU / n;
@@ -2373,12 +2416,12 @@ function geometrieRosace(){
 const ROSACE_TOL = 0.11;          // fraction du rayon : aimant et jugement
 
 function centreDuPanneau(){
-  return [ZONE_PLEINE.x0 + ZONE_PLEINE.l / 2, ZONE_PLEINE.y0 + ZONE_PLEINE.h / 2];
+  return [ZONE_PLEINE_UNI.x0 + ZONE_PLEINE_UNI.l / 2, ZONE_PLEINE_UNI.y0 + ZONE_PLEINE_UNI.h / 2];
 }
 /* Rayon maximal pour que la rosace entière — un disque de rayon 2r — tienne
    dans le panneau, marge comprise. */
 function rayonMaxRosace(){
-  return Math.floor((Math.min(ZONE_PLEINE.l, ZONE_PLEINE.h) / 2 - 12) / 2);
+  return Math.floor((Math.min(ZONE_PLEINE_UNI.l, ZONE_PLEINE_UNI.h) / 2 - 12) / 2);
 }
 /* Les intersections de deux cercles de MÊME rayon r, centrés en a et b. Elles
    n’existent que si les centres sont à moins de 2r l’un de l’autre. */
@@ -2477,8 +2520,8 @@ function rendreRosace(q){
   }
 
   const compasRosace = MoteurCompas.creerCompas(svg, {
-    zone:{x0:ZONE_PLEINE.x0 - 6, y0:ZONE_PLEINE.y0 - 6,
-          x1:ZONE_PLEINE.x0 + ZONE_PLEINE.l + 6, y1:ZONE_PLEINE.y0 + ZONE_PLEINE.h + 6},
+    zone:{x0:ZONE_PLEINE_UNI.x0 - 6, y0:ZONE_PLEINE_UNI.y0 - 6,
+          x1:ZONE_PLEINE_UNI.x0 + ZONE_PLEINE_UNI.l + 6, y1:ZONE_PLEINE_UNI.y0 + ZONE_PLEINE_UNI.h + 6},
     /* Premier temps : la pointe ne peut se planter QUE sur le point marqué —
        une rosace a un centre, et le chercher n’est pas la tâche. */
     aimants:[O], pointeLibre:false, etiquette:false,
@@ -2752,7 +2795,7 @@ const scene = () => $('scene');
 let chantier = null;
 
 function nouveauChantier(q){
-  const z = q.zone === 'pleine' ? ZONE_PLEINE : ZONE_TRAVAIL;
+  const z = zoneDe(q);
   const sup = SUPPORTS[q.support];
   return {
     q, z, sup,
@@ -2912,9 +2955,9 @@ function manche(){
 
 function fondScene(q){
   const avecModele = !!q.modele;
-  const zt = q.zone === 'pleine' ? ZONE_PLEINE : ZONE_TRAVAIL;
+  const zt = zoneDe(q);
   const sup = SUPPORTS[q.support];
-  const H = avecModele ? HAUTEUR_AVEC_MODELE : HAUTEUR_PLEINE;
+  const H = hauteurPlan(zt);
   let s = '';
   if (avecModele) {
     s += sup.fond(ZONE_MODELE);
