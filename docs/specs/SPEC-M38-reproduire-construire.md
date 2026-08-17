@@ -70,13 +70,13 @@ Deux conditions pour que ce parti pris tienne :
 
 Support : **quadrillé et pointé** uniquement. Figures : carré, rectangle, triangle, et assemblages. Côtés suivant les lignes du quadrillage. Travail « d'abord à main levée puis avec une règle » — traduit ici par : d'abord pose libre aimantée, puis réglette disponible.
 
-Le texte mentionne aussi les **gabarits et pochoirs** (« l'élève trace des figures simples à l'aide de gabarits et de pochoirs ») : c'est l'entrée en matière du palier, un pochoir qu'on pose et qui dépose la figure.
+Le texte mentionne aussi les **gabarits et pochoirs** (« l'élève **trace** des figures simples **à l'aide de** gabarits et de pochoirs »). Une première version en avait fait un carton qu'on pose et qui dépose la figure : **abandonné**, parce que cela trahit le verbe du texte et vide la manche de toute décision. La forme était donnée par le carton, l'orientation figée, et la position n'était pas jugée — mesuré, une pièce déposée une maille à côté était validée, et aucun placement ne pouvait échouer. Un gabarit ne dessine pas à la place de l'enfant, il l'empêche de déraper pendant qu'il dessine ; tant qu'on ne sait pas rendre cette contrainte, on ne le représente pas.
 
 ### 4.1 `cp-reproduire` — « La même pièce »
 
 Un modèle à gauche, une zone vide à droite, même quadrillage. L'enfant reproduit.
 
-Progression : pochoir à poser (une seule figure) → pose de sommets libre → assemblage de deux ou trois figures.
+Progression : cinq manches de pose de sommets, **quadrillé** d'abord (trois) puis **pointé** (deux) — le pointé n'est pas plus difficile, c'est le regard qui travaille davantage, les lignes ne guidant plus l'œil d'un nœud à l'autre.
 
 Consigne synthétique en gras : **« Fais la même pièce. »**
 

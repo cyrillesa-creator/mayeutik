@@ -210,11 +210,6 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 /* Les ancres tombent EXACTEMENT sur le bord de lecture de l’instrument,
    un trait sombre de 3,4 px : sans cerne blanc elles y disparaissent. */
 .ancre{fill:var(--mandarine); stroke:#fff; stroke-width:1.6; pointer-events:none;}
-/* Le pochoir : un carton à glisser, reconnaissable au premier coup d’œil. */
-.pochoir-corps{fill:rgba(255,138,61,.22);}
-.pochoir-bord{stroke:var(--mandarine); stroke-width:3; stroke-linejoin:round; stroke-dasharray:8 5;}
-.pochoir-prise circle{fill:var(--mandarine); opacity:.85;}
-.pochoir-prise path{stroke:#fff; stroke-width:2.4; stroke-linecap:round;}
 
 .barre-outils{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:0 0 10px;}
 .outil{
@@ -2013,25 +2008,24 @@ function qCpReproduire(){
      carré dans une partie de cinq manches. Six figures pour cinq manches,
      le stock est plus grand que la file (§13 bis). */
   const figures = tirerSansRepetition('cp-figures', FIGURES_CP, 5);
-  /* Trois manches au POCHOIR d’abord : « l’élève trace des figures simples
-     à l’aide de gabarits et de pochoirs » est la porte d’entrée du texte.
-     Le pochoir se translate seulement — sur un quadrillage où les côtés
-     suivent les lignes, le faire tourner n’aurait aucun sens. */
-  for (let i = 0; i < 3; i++) {
+  /* LES TROIS MANCHES AU POCHOIR SONT SUPPRIMÉES, et c’est une correction de
+     fond, pas un allègement. Elles étaient INFAILLIBLES : la forme était
+     donnée par le carton, l’orientation figée — il ne tournait pas —, et la
+     position n’était pas jugée, la comparaison étant invariante par
+     translation. Mesuré : une pièce déposée une maille plus bas et une maille
+     plus à droite que la solution était validée. Aucun placement ne pouvait
+     échouer tant que le carton restait dans le panneau, si bien que trois
+     manches sur cinq ne demandaient aucune décision.
+     Elles s’autorisaient d’une mention du programme — « l’élève TRACE des
+     figures simples À L’AIDE DE gabarits et de pochoirs » —, mais elles en
+     trahissaient le verbe : un gabarit ne dessine pas à la place de l’enfant,
+     il l’empêche de déraper pendant qu’il dessine. Déposer un carton n’est pas
+     tracer avec. Reste donc cinq manches où l’enfant PRODUIT la figure ; la
+     progression du support, quadrillé puis pointé, est conservée. */
+  for (let i = 0; i < 5; i++) {
     const f = figures[i]();
-    const sol = poserDansZone(ZONE_TRAVAIL, [f]);
     liste.push(mancheBase({
-      mode:'pochoir', support: i < 2 ? 'quadrille' : 'pointe',
-      modele:poserDansZone(ZONE_MODELE, [f]),
-      pochoir:f, solutions:[sol],
-      q:'Fais la même pièce.',
-      sous:'Glisse le pochoir sur ton panneau, puis appuie sur « Déposer ».'
-    }));
-  }
-  for (let i = 0; i < 2; i++) {
-    const f = figures[3 + i]();
-    liste.push(mancheBase({
-      support: i === 0 ? 'quadrille' : 'pointe',
+      support: i < 3 ? 'quadrille' : 'pointe',
       modele:poserDansZone(ZONE_MODELE, [f]),
       solutions:[poserDansZone(ZONE_TRAVAIL, [f])],
       q:'Fais la même pièce.',
@@ -2949,11 +2943,15 @@ function manche(){
   majVitrail();
   poserConsigne(q.q, q.enonce);
   if (q.mode === 'rosace') rendreRosace(q);
-  else if (q.mode === 'pochoir') rendrePochoir(q);
   else rendrePoser(q);
 }
 
 function fondScene(q){
+  /* Un nouvel écran ne fait rien d’un tap tant qu’il n’a pas dit ce qu’il en
+     fait : sans cette remise à zéro, un mini-jeu ouvert depuis le menu
+     hériterait du geste du précédent, et un tap sur la rosace poserait des
+     sommets. */
+  surTapScene = null;
   const avecModele = !!q.modele;
   const zt = zoneDe(q);
   const sup = SUPPORTS[q.support];
@@ -2991,8 +2989,28 @@ function fondScene(q){
 
 /* La pose se distingue du DÉFILEMENT par un seuil de déplacement, jamais
    par une temporisation : un tap qui glisse de trois pixels doit rester un
-   tap, et un défilement volontaire ne doit rien poser. */
+   tap, et un défilement volontaire ne doit rien poser.
+
+   UN SEUL JEU D’ÉCOUTEURS, POUR TOUJOURS. `#scene` est un élément PERMANENT :
+   `fondScene` ne remplace que son contenu. Chaque manche rebranchait donc ses
+   écouteurs sur le même élément, sans jamais retirer les précédents, et le
+   compte montait d’une manche à l’autre. Un seul tap appelait alors
+   `poserSommet` autant de fois qu’il y avait de manches jouées — et comme
+   revenir sur le dernier sommet le RETIRE, le deuxième appel défaisait le
+   premier : à la deuxième manche, plus rien ne se posait, l’enfant restait
+   bloqué devant un panneau qui ne répondait plus et le bouton « Vérifier »
+   ne s’activait jamais. C’est le défaut derrière « les jeux ne fonctionnent
+   pas ou pas bien », et il ne se voyait dans aucun test parce que tous
+   n’éprouvaient QUE LA PREMIÈRE MANCHE.
+   Ce que fait un tap est donc une VARIABLE qu’on remplace, jamais un écouteur
+   qu’on ajoute : le geste est branché une fois pour toutes, et chaque écran
+   dit ce qu’il en fait. Un écran qui ne pose rien — la rosace — le remet à
+   `null` en dessinant son fond, plutôt que d’hériter du précédent. */
+let surTapScene = null;
 function brancherPose(svg, surTap){
+  surTapScene = surTap;
+  if (svg.__poseBranchee) return;
+  svg.__poseBranchee = true;
   let bas = null;
   svg.addEventListener('pointerdown', (e) => {
     if (verrouille) return;
@@ -3004,9 +3022,9 @@ function brancherPose(svg, surTap){
   });
   svg.addEventListener('pointerup', (e) => {
     const b = bas; bas = null;
-    if (!b || b.bouge || verrouille) return;
+    if (!b || b.bouge || verrouille || !surTapScene) return;
     const p = versSVG(svg, e.clientX, e.clientY);
-    surTap([p.x, p.y]);
+    surTapScene([p.x, p.y]);
   });
   svg.addEventListener('pointercancel', () => { bas = null; });
 }
@@ -3158,56 +3176,6 @@ function poserCercle(p){
   document.querySelector('#barreOutils .outil-compas').classList.remove('on');
   $('sousConsigne').textContent = q.sous || '';
   sonClic(); dessinerChantier(); majBoutons();
-}
-
-/* ---------- Le pochoir ---------- */
-function rendrePochoir(q){
-  const zt = fondScene(q);
-  const svg = scene();
-  chantier = nouveauChantier(q);
-  const b = bbox(q.pochoir);
-  const forme = q.pochoir.map(p => [(p[0]-b.x0)*MAILLE, (p[1]-b.y0)*MAILLE]);
-  /* Le pochoir est un CARTON qu’on déplace, pas une figure déjà tracée :
-     teinte propre et croix de préhension en son centre, sans quoi il se
-     confond avec le modèle et rien ne dit qu’il bouge. */
-  const cg = [forme.reduce((s,p)=>s+p[0],0)/forme.length, forme.reduce((s,p)=>s+p[1],0)/forme.length];
-  const pochoir = creerPosable(svg.getElementById('instruments'), {
-    x: zt.x0 + MAILLE, y: zt.y0 + MAILLE, angle: 0,
-    corps: `<path class="pochoir-corps" d="${contourD(forme, true)}"/>`
-         + `<path class="pochoir-bord" fill="none" d="${contourD(forme, true)}"/>`
-         + `<g class="pochoir-prise" transform="translate(${cg[0].toFixed(1)},${cg[1].toFixed(1)})">`
-         + `<circle r="11"/><path d="M -6 0 H 6 M 0 -6 V 6"/></g>`,
-    surChangement: () => {}
-  });
-  chantier.pochoir = {p:pochoir, forme};
-
-  const barre = $('barreOutils');
-  barre.hidden = false;
-  barre.innerHTML = '';
-  const dep = document.createElement('button');
-  dep.type = 'button'; dep.className = 'outil on'; dep.textContent = '⬇ déposer la pièce';
-  dep.addEventListener('click', () => {
-    if (verrouille) return;
-    const e = pochoir.etat();
-    /* Le pochoir se dépose sur les nœuds les plus proches : c’est le geste
-       du carton posé à plat sur le carreau, pas un placement au pixel. */
-    const pts = forme.map(p => aimanterPoint([e.x + p[0], e.y + p[1]], chantier.sup, zt, []));
-    if (pts.some(p => !p)) { $('sousConsigne').textContent = 'La pièce dépasse du panneau : rentre-la dedans.'; return; }
-    chantier.contours = [pts];
-    pochoir.verrouiller(); pochoir.g.remove();
-    dep.disabled = true;
-    sonClic(); dessinerChantier(); majBoutons();
-  });
-  barre.appendChild(dep);
-  const ann = document.createElement('button');
-  ann.type = 'button'; ann.className = 'outil outil-annuler'; ann.textContent = '↶ annuler';
-  ann.disabled = true;
-  barre.appendChild(ann);
-
-  $('btnValider').style.display = 'block';
-  $('btnValider').textContent = 'Vérifier ✓';
-  $('btnValider').onclick = () => validerManche(q);
-  majBoutons();
 }
 
 /* ============================================================
