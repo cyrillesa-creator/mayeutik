@@ -1350,6 +1350,14 @@ function facesDeSegments(segs){
    exactement celle qui accroche, et non une seconde vérité à garder en
    accord avec la première.
    ------------------------------------------------------------ */
+function fondMailleParDefaut(z){
+  let s = '';
+  for (let i = 0; i <= z.nx; i++)
+    s += `<line class="trace-maille" x1="${z.x0+i*z.pas}" y1="${z.y0}" x2="${z.x0+i*z.pas}" y2="${z.y1}"/>`;
+  for (let j = 0; j <= z.ny; j++)
+    s += `<line class="trace-maille" x1="${z.x0}" y1="${z.y0+j*z.pas}" x2="${z.x1}" y2="${z.y0+j*z.pas}"/>`;
+  return s;
+}
 function creerTraceQuadrillage(o){
   const z = o.zone;
   const svg = o.svg;
@@ -1433,10 +1441,14 @@ function creerTraceQuadrillage(o){
        que soit son remplissage, sans rien peindre. Leçon de M41, payée sur
        appareil et non reproductible sous Chromium. */
     let s = `<rect class="trace-surface" x="${vb[0]}" y="${vb[1]}" width="${vb[2]}" height="${vb[3]}"/>`;
-    for (let i = 0; i <= z.nx; i++)
-      s += `<line class="trace-maille" x1="${z.x0+i*z.pas}" y1="${z.y0}" x2="${z.x0+i*z.pas}" y2="${z.y1}"/>`;
-    for (let j = 0; j <= z.ny; j++)
-      s += `<line class="trace-maille" x1="${z.x0}" y1="${z.y0+j*z.pas}" x2="${z.x1}" y2="${z.y0+j*z.pas}"/>`;
+    /* LE PAPIER EST DESSINÉ ICI, par le même rendu que les traits, parce que
+       c’est la seule façon que la grille MONTRÉE soit celle qui ACCROCHE
+       (propriété 9). Ce qu’on y voit — des lignes ou des points — dépend du
+       support et lui appartient : le pointé n’est pas un quadrillé, et un
+       moteur qui imposerait ses lignes le transformerait en quadrillé sous
+       les yeux de l’enfant. Le support ne décide donc que du DESSIN, jamais
+       de l’accrochage, qui reste le même pour les deux. */
+    s += (o.fondGrille || fondMailleParDefaut)(z);
     /* Les pièces, chacune de son verre : ce sont les faces de l’arrangement,
        calculées et non déclarées. */
     api.faces().forEach((f, i) => {
@@ -1557,6 +1569,50 @@ function creerTraceQuadrillage(o){
   $('plan').classList.add('plan-trace');
   api.rendre();
   return api;
+}
+
+/* Un côté DONNÉ se décompose en pas de nœud à nœud quand sa pente le
+   permet, plutôt que d’être gardé d’un bloc. Deux raisons : un enfant qui
+   repasse sur l’amorce retombe alors exactement sur les mêmes clés, donc
+   rien ne se dédouble ; et l’arrangement n’a jamais à démêler deux segments
+   colinéaires qui se recouvrent, cas dégénéré qu’il ne sait pas trancher.
+   Une pente que les huit voisins n’atteignent pas — les obliques du CE1 —
+   reste un segment unique, ce qui est correct puisque rien ne peut la
+   recouvrir partiellement. */
+function segmentsDonnes(amorce, z){
+  const cles = [];
+  const pgcd = (a, b) => b ? pgcd(b, a % b) : a;
+  (amorce || []).forEach(ligne => {
+    for (let i = 0; i + 1 < ligne.length; i++) {
+      const a = [Math.round((ligne[i][0] - z.x0) / z.pas), Math.round((ligne[i][1] - z.y0) / z.pas)];
+      const b = [Math.round((ligne[i+1][0] - z.x0) / z.pas), Math.round((ligne[i+1][1] - z.y0) / z.pas)];
+      const dx = b[0] - a[0], dy = b[1] - a[1];
+      const g = pgcd(Math.abs(dx), Math.abs(dy)) || 1;
+      const px = dx / g, py = dy / g;
+      if (Math.abs(px) <= 1 && Math.abs(py) <= 1) {
+        for (let k = 0; k < g; k++)
+          cles.push(cleSeg([a[0] + px*k, a[1] + py*k], [a[0] + px*(k+1), a[1] + py*(k+1)]));
+      } else cles.push(cleSeg(a, b));
+    }
+  });
+  return cles;
+}
+
+/* UNE FACE EST UN POLYGONE DE L’ARRANGEMENT, donc elle porte un sommet à
+   chaque nœud traversé : un rectangle tracé pas à pas en compte douze, et
+   non quatre. La comparaison de figures, elle, parle de CÔTÉS. On retire
+   donc les sommets alignés — c’est une lecture de la figure produite, pas
+   une correction de la façon dont l’enfant l’a tracée. */
+function simplifierPoly(poly){
+  const n = poly.length;
+  if (n < 3) return poly.slice();
+  const garde = [];
+  for (let i = 0; i < n; i++) {
+    const a = poly[(i - 1 + n) % n], b = poly[i], c = poly[(i + 1) % n];
+    const v = (b[0]-a[0]) * (c[1]-b[1]) - (b[1]-a[1]) * (c[0]-b[0]);
+    if (Math.abs(v) > 1e-9) garde.push(b);
+  }
+  return garde.length >= 3 ? garde : poly.slice();
 }
 
 /* ============================================================
@@ -1997,9 +2053,17 @@ const DIMENSIONS_CONTENU = {
 };
 
 /* ---- CP : reproduire ---- */
+/* TOUS LES CÔTÉS SONT TRAÇABLES AU GLISSEMENT, orthogonaux ou à 45° : c’est
+   la condition pour que le geste naturel — suivre les lignes du carton d’un
+   nœud au voisin — suffise à faire la figure entière. `triangleRect(4, 2)`
+   en sortait : sa pente 2/1 ne relie pas deux voisins, elle ne se pose qu’en
+   tapant ses deux bouts, un geste qu’un enfant de CP n’a aucune raison de
+   découvrir seul. Les obliques sont d’ailleurs le saut du CE1, pas du CP —
+   le texte demande ici des côtés qui suivent le quadrillage. Remplacée par un
+   second triangle à 45°, la banque garde ses six figures pour cinq manches. */
 const FIGURES_CP = [
   () => carre(3), () => carre(2), () => rectangle(4, 2), () => rectangle(3, 2),
-  () => triangleRect(3, 3), () => triangleRect(4, 2)
+  () => triangleRect(3, 3), () => triangleRect(4, 4)
 ];
 function qCpReproduire(){
   const liste = [];
@@ -2025,11 +2089,11 @@ function qCpReproduire(){
   for (let i = 0; i < 5; i++) {
     const f = figures[i]();
     liste.push(mancheBase({
-      support: i < 3 ? 'quadrille' : 'pointe',
+      mode:'tracer', support: i < 3 ? 'quadrille' : 'pointe',
       modele:poserDansZone(ZONE_MODELE, [f]),
       solutions:[poserDansZone(ZONE_TRAVAIL, [f])],
       q:'Fais la même pièce.',
-      sous:'Touche les nœuds du carton pour poser les coins, puis reviens sur le premier pour fermer.'
+      sous:'Trace les côtés au doigt : glisse d’un nœud au nœud voisin.'
     }));
   }
   return liste;
@@ -2047,12 +2111,12 @@ function qCpCompleter(){
     const l = 4 + Math.floor(entre(0, 2)), h = 2 + Math.floor(entre(0, 2));
     const c = poserDansZone(ZONE_PLEINE, [rectangle(l, h)])[0];
     liste.push(mancheBase({
-      support: i < 2 ? 'quadrille' : 'pointe', libre:false, zone:'pleine',
+      mode:'tracer', support: i < 2 ? 'quadrille' : 'pointe', libre:false, zone:'pleine',
       amorce:[[c[3], c[0], c[1]]],           // deux côtés consécutifs déjà tracés
       sommetsFixes:[c[3], c[0], c[1]],
       solutions:[[c]],
       q:'Complète ce rectangle.',
-      sous:'Deux côtés sont déjà posés : place le coin qui manque, puis ferme la pièce.'
+      sous:'Deux côtés sont déjà tracés : trace les deux qui manquent au doigt.'
     }));
   }
   for (let i = 0; i < 2; i++) {
@@ -2067,11 +2131,11 @@ function qCpCompleter(){
     const haut = [a, b, [b[0]-dy, b[1]+dx], [a[0]-dy, a[1]+dx]];
     const bas  = [a, b, [b[0]+dy, b[1]-dx], [a[0]+dy, a[1]-dx]];
     liste.push(mancheBase({
-      support:'quadrille', libre:false, zone:'pleine',
+      mode:'tracer', support:'quadrille', libre:false, zone:'pleine',
       amorce:[[a, b]], sommetsFixes:[a, b],
       solutions:[[haut], [bas]],
       q:'Complète ce carré.',
-      sous:'Un seul côté est tracé. Place les deux coins qui manquent, puis ferme la pièce.'
+      sous:'Un seul côté est tracé. Trace les trois autres au doigt, d’un côté ou de l’autre.'
     }));
   }
   /* Trois rectangles et deux carrés : le simple mélange en posait deux
@@ -2924,7 +2988,10 @@ function majBoutons(){
     : c.contours.length >= 1;
   b.disabled = !assez;
   const ann = document.querySelector('#barreOutils .outil-annuler');
-  if (ann) ann.disabled = !(c.sommets.length > c.nbFixes || c.contours.length || c.cerclesPoses.length);
+  /* En tracé, on peut défaire dès le premier TRAIT — attendre qu’une pièce
+     soit fermée laisserait l’enfant sans recours devant un trait de travers. */
+  if (ann) ann.disabled = c.trace ? c.trace.traces.size === 0
+    : !(c.sommets.length > c.nbFixes || c.contours.length || c.cerclesPoses.length);
 }
 
 /* ============================================================
@@ -2943,6 +3010,7 @@ function manche(){
   majVitrail();
   poserConsigne(q.q, q.enonce);
   if (q.mode === 'rosace') rendreRosace(q);
+  else if (q.mode === 'tracer') rendreTracer(q);
   else rendrePoser(q);
 }
 
@@ -2950,8 +3018,10 @@ function fondScene(q){
   /* Un nouvel écran ne fait rien d’un tap tant qu’il n’a pas dit ce qu’il en
      fait : sans cette remise à zéro, un mini-jeu ouvert depuis le menu
      hériterait du geste du précédent, et un tap sur la rosace poserait des
-     sommets. */
+     sommets. Le moteur de tracé, lui, RETIRE ses écouteurs — il en a les
+     moyens, `detacher` existe — au lieu de compter sur un drapeau. */
   surTapScene = null;
+  if (chantier && chantier.trace) { chantier.trace.detacher(); chantier.trace = null; }
   const avecModele = !!q.modele;
   const zt = zoneDe(q);
   const sup = SUPPORTS[q.support];
@@ -2964,7 +3034,10 @@ function fondScene(q){
     (q.modeleCercles || []).forEach(ce => { s += cercleSvg(ce.c, ce.r, 'modele-cercle'); });
     s += `<line class="maille" x1="10" y1="${(ZONE_MODELE.y1 + zt.y0)/2}" x2="390" y2="${(ZONE_MODELE.y1 + zt.y0)/2}" stroke-dasharray="4 6"/>`;
   }
-  s += sup.fond(zt);
+  /* En mode TRACÉ, le papier de travail et l’amorce appartiennent au moteur :
+     il les redessine à chaque trait, et les dessiner ici en double ferait
+     deux vérités pour une seule grille. */
+  if (q.mode !== 'tracer') s += sup.fond(zt);
   s += `<text class="etiquette-zone" x="${zt.x0}" y="${zt.y0 - 4}">ton panneau</text>`;
   /* Le décor : ce que les étapes précédentes ont déjà construit (rosace). */
   if (q.decor) {
@@ -2973,7 +3046,7 @@ function fondScene(q){
   }
   if (q.guideCercle) s += cercleSvg(q.guideCercle.c, q.guideCercle.r, 'attendu');
   if (q.centreImpose) s += `<circle class="sommet fixe" cx="${q.centreImpose[0]}" cy="${q.centreImpose[1]}" r="5"/>`;
-  (q.amorce || []).forEach(ct => { s += `<path class="amorce" d="${contourD(ct, false)}"/>`; });
+  if (q.mode !== 'tracer') (q.amorce || []).forEach(ct => { s += `<path class="amorce" d="${contourD(ct, false)}"/>`; });
   scene().setAttribute('viewBox', '0 0 400 ' + H);
   /* L’ordre de dessin est un ordre de LECTURE : le papier, puis
      l’instrument posé dessus, puis ses graduations, puis le travail de
@@ -3176,6 +3249,69 @@ function poserCercle(p){
   document.querySelector('#barreOutils .outil-compas').classList.remove('on');
   $('sousConsigne').textContent = q.sous || '';
   sonClic(); dessinerChantier(); majBoutons();
+}
+
+/* ---------- Le tracé au doigt ----------
+   CE QUE L’ENFANT PRODUIT CHANGE DE NATURE : il ne pose plus des sommets qui
+   se relient, il TRACE des côtés. Ce qu’il a fait n’est donc plus une liste
+   de contours qu’on lui a fait fermer, mais l’ensemble des traits — et les
+   pièces sont les FACES de leur arrangement, calculées.
+   Une seule vérité pour « ce que l’enfant a produit » : les mêmes faces
+   colorient le verre et servent à juger. Elles remplissent `chantier.contours`,
+   si bien que la validation, le vitrail cumulatif et la révélation différée
+   du §18 ne changent pas d’une ligne. */
+function rendreTracer(q){
+  const zt = fondScene(q);
+  const svg = scene();
+  chantier = nouveauChantier(q);
+  const sup = SUPPORTS[q.support];
+
+  const trace = creerTraceQuadrillage({
+    svg, groupe:svg.getElementById('chantier'), zone:zt,
+    pre:segmentsDonnes(q.amorce, zt),
+    fondGrille:(z) => sup.fond(z),
+    surChangement:(api) => {
+      chantier.contours = api.faces().map(f => simplifierPoly(f.poly).map(g => api.versScene(g)));
+      majBoutons();
+    }
+  });
+  chantier.trace = trace;
+  chantier.contours = trace.faces().map(f => simplifierPoly(f.poly).map(g => trace.versScene(g)));
+
+  const barre = $('barreOutils');
+  barre.hidden = false;
+  barre.innerHTML = '';
+  /* Deux outils, et l’outil est FIGÉ à l’appui : un geste garde le sens
+     qu’il avait en commençant. */
+  const outils = [];
+  [['crayon', '✏️ crayon'], ['gomme', '🧽 gomme']].forEach(([nom, lib]) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'outil outil-trace' + (nom === 'crayon' ? ' on' : '');
+    b.textContent = lib;
+    b.addEventListener('click', () => {
+      if (verrouille) return;
+      trace.outil = nom;
+      outils.forEach(x => x.classList.toggle('on', x === b));
+      sonClic();
+    });
+    outils.push(b); barre.appendChild(b);
+  });
+  /* « Annuler » retire le DERNIER trait écrit — un `Set` conserve son ordre
+     d’insertion, il n’y a donc pas de pile à tenir à côté, qui serait une
+     seconde vérité sur ce qui a été tracé. */
+  const ann = document.createElement('button');
+  ann.type = 'button'; ann.className = 'outil outil-annuler'; ann.textContent = '↶ annuler';
+  ann.addEventListener('click', () => {
+    if (verrouille) return;
+    const k = [...trace.traces].pop();
+    if (k) trace.retirerDuGeste(k);
+  });
+  barre.appendChild(ann);
+
+  $('btnValider').style.display = 'block';
+  $('btnValider').textContent = 'Vérifier ✓';
+  $('btnValider').onclick = () => validerManche(q);
+  majBoutons();
 }
 
 /* ============================================================

@@ -76,7 +76,11 @@ Le texte mentionne aussi les **gabarits et pochoirs** (« l'élève **trace** de
 
 Un modèle à gauche, une zone vide à droite, même quadrillage. L'enfant reproduit.
 
-Progression : cinq manches de pose de sommets, **quadrillé** d'abord (trois) puis **pointé** (deux) — le pointé n'est pas plus difficile, c'est le regard qui travaille davantage, les lignes ne guidant plus l'œil d'un nœud à l'autre.
+Progression : cinq manches, **quadrillé** d'abord (trois) puis **pointé** (deux) — le pointé n'est pas plus difficile, c'est le regard qui travaille davantage, les lignes ne guidant plus l'œil d'un nœud à l'autre.
+
+**Le geste est le TRACÉ AU DOIGT**, pas la pose de sommets : l'enfant glisse d'un nœud au nœud voisin et le côté s'écrit derrière son doigt. C'est le geste du crayon sur papier quadrillé, que le programme CP décrit. Conséquence sur la banque de figures : **tous les côtés doivent être traçables au glissement**, donc orthogonaux ou à 45°. `triangleRect(4, 2)` en sortait — sa pente 2/1 ne relie pas deux voisins et ne se pose qu'en tapant ses deux bouts, geste qu'un enfant de CP n'a aucune raison de découvrir seul. Les obliques sont le saut du CE1.
+
+**Ce que l'enfant produit change de nature**, et la validation avec : ce n'est plus une liste de contours qu'on lui a fait fermer, mais un ensemble de traits dont les pièces sont les **faces de l'arrangement**, calculées. Une seule vérité pour « ce que l'enfant a produit » : les mêmes faces colorient le verre et servent à juger. Un trait de plus qui n'enferme rien ne change donc pas le verdict.
 
 Consigne synthétique en gras : **« Fais la même pièce. »**
 
