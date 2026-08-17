@@ -1383,6 +1383,18 @@ function retirerDuGeste(k){
 }
 
 /* ------------------------------------------------------------
+   MOTEUR JUMEAU DANS `jeux/M38-reproduire-construire.html`, VOLONTAIREMENT
+   DUPLIQUÉ — voir `docs/corrections/CORRECTIONS-M38-moteur-quadrillage.md`
+   §4. Toute correction de comportement est à examiner dans les deux.
+
+   Ce qui diverge là-bas : M38 doit tracer des obliques 2/1 et 3/1, que le
+   chemin de nœuds refuse par conception, et son intérieur se calcule sur
+   les faces de l’arrangement au lieu des quarts de cellule. Sa maille est
+   aussi plus petite (22,5 px contre 39,3 ici), donc ses rayons ne sont pas
+   les mêmes nombres. Les tests des deux modules sont indépendants.
+   ------------------------------------------------------------ */
+
+/* ------------------------------------------------------------
    LE TRAIT SUIT UN CHEMIN DE NŒUDS, il ne ramasse pas ce qu’il frôle.
    ------------------------------------------------------------
    Première version : à chaque position du doigt on allumait le segment le

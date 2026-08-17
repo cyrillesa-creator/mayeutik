@@ -177,6 +177,14 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 .piece-faite{stroke:var(--plomb); stroke-width:3; stroke-linejoin:round;}
 .cercle-fait{fill:none; stroke:var(--mandarine); stroke-width:3.2;}
 .cible-pose{fill:transparent; cursor:pointer;}
+/* ---------- Moteur de tracé sur quadrillage (jumeau de M41) ---------- */
+.plan.plan-trace, .plan.plan-trace *{touch-action:none;}
+.trace-surface{fill:none; pointer-events:all;}
+.trace-maille{stroke:#D8E2F0; stroke-width:1; vector-effect:non-scaling-stroke;}
+.trace-face{stroke:none;}
+.trace-pre{stroke:var(--plomb); stroke-width:5; stroke-linecap:round; vector-effect:non-scaling-stroke;}
+.trace-trait{stroke:var(--mandarine); stroke-width:5; stroke-linecap:round; vector-effect:non-scaling-stroke;}
+.trace-noeud{fill:var(--mandarine-f); stroke:#fff; stroke-width:1.6; pointer-events:none;}
 .attendu{fill:none; stroke:var(--menthe-t); stroke-width:3; stroke-dasharray:7 5; stroke-linejoin:round;}
 /* La rosace achevée : les pétales prennent le verre, l’hexagone des six
    centres se montre en plomb — c’est celui que M34 fait nommer. */
@@ -1130,6 +1138,395 @@ function aimanterPoint(p, sup, z, ancres){
   let meilleur = null, d0 = AIMANT_ANCRE;
   (ancres || []).forEach(a => { const d = dist(p, a); if (d < d0) { d0 = d; meilleur = a; } });
   return meilleur || p;
+}
+
+/* ============================================================
+   MOTEUR DE TRACÉ SUR QUADRILLAGE — JUMEAU VOLONTAIRE DE M41
+   ------------------------------------------------------------
+   Moteur jumeau dans `jeux/M41-symetrie.html`, VOLONTAIREMENT DUPLIQUÉ —
+   voir `docs/corrections/CORRECTIONS-M38-moteur-quadrillage.md` §4. Toute
+   correction de comportement est à examiner dans les deux.
+
+   Pourquoi dupliqué et non partagé : M38 doit tracer des OBLIQUES 2/1 et
+   3/1, que M41 refuse par conception, et son intérieur se calcule
+   autrement (voir plus bas). Un moteur commun accumulerait les drapeaux
+   des deux usages, comme `moteur-compas.js` a fini par en porter sept.
+
+   CE QUI CHANGE PAR RAPPORT À M41, et pourquoi :
+
+   1. DEUX FAÇONS DE POSER UN SEGMENT, choisies par le segment et non par la
+      manche. Glisser le long d’un chemin de nœuds pose les pas courts — les
+      huit voisins, le geste du crayon que M41 a validé à l’appareil. Taper
+      deux nœuds pose le segment entre eux, QUELLE QUE SOIT SA PENTE.
+      La règle des huit voisins ne peut pas s’étendre : un doigt qui glisse
+      droit le long d’une pente 3/1 passe à 0,316 maille du nœud
+      intermédiaire, et à 0,200 maille sur une 4/3 — sous le rayon
+      d’accrochage. Il serait capturé en route et poserait un segment court
+      illégal. Descendre le rayon sous 0,200 maille (5 px ici) rendrait les
+      nœuds inatteignables. Le tap à deux nœuds contourne le calcul au lieu
+      de le forcer, et il colle à la consigne déjà écrite du CE1 : « compte
+      les déplacements, tant de côté et tant vers le haut ».
+
+   2. LA MAILLE EST PLUS PETITE : 26 unités de scène ici, soit 22,5 px à
+      l’écran, contre 39,3 px chez M41. Les rayons se recalibrent donc en
+      PIXELS et ne se recopient pas « en mailles ». C’est aussi pourquoi les
+      tests des deux modules restent indépendants.
+
+   3. L’INTÉRIEUR SE CALCULE AUTREMENT. M41 découpe chaque cellule en quatre
+      quarts par ses diagonales : cela capture exactement ses murs
+      possibles, mais une oblique 2/1 ne suit aucune diagonale de cellule.
+      Et M38 a besoin de PLUS que M41 — non pas d’un aplat unique, mais de
+      chaque pièce séparément, puisque le vitrail donne à chacune sa
+      couleur de verre. On calcule donc les FACES DE L’ARRANGEMENT des
+      segments tracés (voir `facesDeSegments`).
+   ============================================================ */
+
+/* Rayons exprimés en MAILLES, convertis en unités de scène à l’usage.
+   Le rayon d’accrochage d’un nœud reste sous une demi-maille : au-delà,
+   les zones de deux nœuds voisins se recouvriraient et le doigt serait
+   capturé par l’un ou l’autre selon l’arrondi. */
+const RAYON_NOEUD_M = 0.45;      // 0,45 maille = 11,7 unités = ~10 px à l’écran
+const RAYON_GOMME_M = 0.30;
+const RAYON_TAP_M = 0.70;        // le tap n’a pas de trajectoire : il peut viser large
+const SEUIL_TRACE = SEUIL_GLISSEMENT;   // px écran — un seuil, jamais une durée (§19)
+
+/* Une clé de segment est canonique, en coordonnées de GRILLE : le plus
+   petit bout d’abord, pour que (a,b) et (b,a) soient le même segment. */
+function cleSeg(a, b){
+  const [p, q] = (a[0] < b[0] || (a[0] === b[0] && a[1] <= b[1])) ? [a, b] : [b, a];
+  return p[0] + ',' + p[1] + '|' + q[0] + ',' + q[1];
+}
+const boutsSeg = (k) => k.split('|').map(s => s.split(',').map(Number));
+const memeNoeud = (a, b) => !!a && !!b && a[0] === b[0] && a[1] === b[1];
+/* Les huit voisins, et rien d’autre, pour le GLISSEMENT. */
+const voisinsGrille = (a, b) => {
+  const dx = Math.abs(a[0]-b[0]), dy = Math.abs(a[1]-b[1]);
+  return dx <= 1 && dy <= 1 && dx + dy > 0;
+};
+
+function distanceAuSegment(p, a, b){
+  const dx = b[0]-a[0], dy = b[1]-a[1], L2 = dx*dx + dy*dy;
+  if (L2 < 1e-9) return dist(p, a);
+  let t = ((p[0]-a[0])*dx + (p[1]-a[1])*dy) / L2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(p[0]-a[0]-dx*t, p[1]-a[1]-dy*t);
+}
+
+/* ------------------------------------------------------------
+   LES FACES DE L’ARRANGEMENT — « dedans », calculé et non déclaré
+   ------------------------------------------------------------
+   On découpe chaque segment à ses intersections avec les autres, on double
+   chaque arête en deux demi-arêtes, on trie les sortantes de chaque sommet
+   par angle, et l’on parcourt les cycles : chaque cycle est une face. La
+   face non bornée sort avec l’aire de signe opposé aux autres, ce qui la
+   désigne sans avoir à chercher l’infini.
+
+   Ce que cela donne de plus qu’un remplissage par inondation : les faces
+   SÉPARÉMENT. Au petit vitrail, un côté partagé est un seul segment tracé
+   une fois, et les deux pièces sont deux faces séparées par lui — le
+   chevauchement et le contact par un point cessent d’être exprimables, et
+   chaque pièce garde sa couleur.
+   ------------------------------------------------------------ */
+function facesDeSegments(segs){
+  const EPS = 1e-9;
+  const pts = [], index = new Map();
+  const clePt = (p) => p[0].toFixed(6) + ',' + p[1].toFixed(6);
+  const ajouterPt = (p) => {
+    const c = clePt(p);
+    if (!index.has(c)) { index.set(c, pts.length); pts.push([+p[0].toFixed(6), +p[1].toFixed(6)]); }
+    return index.get(c);
+  };
+  /* 1. Où chaque segment est coupé — ses deux bouts, et toute intersection
+        avec un autre. Deux segments colinéaires sont laissés tels quels :
+        leurs bouts communs sont déjà des sommets. */
+  const coupes = segs.map(() => [0, 1]);
+  for (let i = 0; i < segs.length; i++)
+    for (let j = i + 1; j < segs.length; j++) {
+      const [a, b] = segs[i], [c, d] = segs[j];
+      const r = [b[0]-a[0], b[1]-a[1]], t = [d[0]-c[0], d[1]-c[1]];
+      const den = r[0]*t[1] - r[1]*t[0];
+      if (Math.abs(den) < EPS) continue;
+      const u = ((c[0]-a[0])*t[1] - (c[1]-a[1])*t[0]) / den;
+      const v = ((c[0]-a[0])*r[1] - (c[1]-a[1])*r[0]) / den;
+      if (u > EPS && u < 1-EPS && v > -EPS && v < 1+EPS) coupes[i].push(u);
+      if (v > EPS && v < 1-EPS && u > -EPS && u < 1+EPS) coupes[j].push(v);
+    }
+  /* 2. Les arêtes élémentaires, dédoublonnées. */
+  const aretes = [], vues = new Set();
+  segs.forEach((s, i) => {
+    const ts = [...new Set(coupes[i].map(t => +t.toFixed(9)))].sort((x, y) => x - y);
+    for (let k = 0; k + 1 < ts.length; k++) {
+      const sur = (t) => [s[0][0] + (s[1][0]-s[0][0])*t, s[0][1] + (s[1][1]-s[0][1])*t];
+      const ip = ajouterPt(sur(ts[k])), iq = ajouterPt(sur(ts[k+1]));
+      if (ip === iq) continue;
+      const c = Math.min(ip, iq) + '-' + Math.max(ip, iq);
+      if (vues.has(c)) continue;
+      vues.add(c); aretes.push([ip, iq]);
+    }
+  });
+  if (!aretes.length) return [];
+  /* 3. Demi-arêtes, triées par angle autour de chaque sommet. */
+  const demi = [], sortantes = new Map();
+  const ajouterDemi = (de, vers) => {
+    const i = demi.length;
+    demi.push({de, vers, jumelle:-1, face:-1,
+      angle:Math.atan2(pts[vers][1]-pts[de][1], pts[vers][0]-pts[de][0])});
+    if (!sortantes.has(de)) sortantes.set(de, []);
+    sortantes.get(de).push(i);
+    return i;
+  };
+  aretes.forEach(([a, b]) => {
+    const h1 = ajouterDemi(a, b), h2 = ajouterDemi(b, a);
+    demi[h1].jumelle = h2; demi[h2].jumelle = h1;
+  });
+  const rang = new Map();
+  sortantes.forEach(l => {
+    l.sort((x, y) => demi[x].angle - demi[y].angle);
+    l.forEach((h, i) => rang.set(h, i));
+  });
+  /* 4. La suivante d’une demi-arête dans sa face : au sommet d’arrivée, on
+        prend la sortante qui PRÉCÈDE la jumelle dans l’ordre angulaire.
+        C’est le « virage le plus à gauche », qui referme les faces. */
+  const suivante = (h) => {
+    const t = demi[h].jumelle, l = sortantes.get(demi[t].de), i = rang.get(t);
+    return l[(i - 1 + l.length) % l.length];
+  };
+  const faces = [];
+  for (let h = 0; h < demi.length; h++) {
+    if (demi[h].face !== -1) continue;
+    const cycle = [];
+    let cur = h;
+    do { demi[cur].face = faces.length; cycle.push(cur); cur = suivante(cur); } while (cur !== h);
+    const poly = cycle.map(x => pts[demi[x].de]);
+    let a2 = 0;
+    for (let i = 0; i < poly.length; i++) {
+      const p = poly[i], q = poly[(i+1) % poly.length];
+      a2 += p[0]*q[1] - q[0]*p[1];
+    }
+    faces.push({poly, aire:a2/2});
+  }
+  /* La face non bornée porte l’aire de signe opposé : on garde les autres,
+     et l’on écarte les cycles dégénérés (une arête pendante, parcourue
+     aller et retour, n’enferme rien). */
+  return faces.filter(f => f.aire > 1e-6);
+}
+
+/* ------------------------------------------------------------
+   LE MOTEUR : un quadrillage, des segments, deux gestes
+   ------------------------------------------------------------
+   `creerTraceQuadrillage` prend une zone et rend un objet qui dessine son
+   propre quadrillage, sa propre surface tactile, et tient les segments
+   posés. Il dessine SON quadrillage à lui : ainsi la grille affichée est
+   exactement celle qui accroche, et non une seconde vérité à garder en
+   accord avec la première.
+   ------------------------------------------------------------ */
+function creerTraceQuadrillage(o){
+  const z = o.zone;
+  const svg = o.svg;
+  const groupe = o.groupe;
+  const api = {
+    zone:z,
+    pre:new Set(o.pre || []),
+    traces:new Set(),
+    outil:'crayon',
+    attente:null,          // nœud tapé qui attend son second
+    gommages:0
+  };
+  const versGrille = (p) => [(p[0] - z.x0) / z.pas, (p[1] - z.y0) / z.pas];
+  const versScene2 = (g) => [z.x0 + g[0]*z.pas, z.y0 + g[1]*z.pas];
+  api.versGrille = versGrille; api.versScene = versScene2;
+  const noeudProche = (p, rayon) => {
+    const g = versGrille(p);
+    const i = Math.round(g[0]), j = Math.round(g[1]);
+    if (i < 0 || j < 0 || i > z.nx || j > z.ny) return null;
+    return Math.hypot(g[0]-i, g[1]-j) <= rayon ? [i, j] : null;
+  };
+  api.noeudProche = noeudProche;
+
+  /* ---- Ce qui est posé ---- */
+  api.poser = function(k){
+    if (verrouille || !k) return false;
+    if (api.pre.has(k) || api.traces.has(k)) return false;   // ni le donné, ni le déjà-là
+    api.traces.add(k);
+    sonClic();
+    api.rendre();
+    if (o.surChangement) o.surChangement(api);
+    return true;
+  };
+  /* Retirer un segment que LE GESTE EN COURS vient de poser. On ne l’appelle
+     que sur un pas dont `poser` a signalé qu’il avait écrit. */
+  api.retirerDuGeste = function(k){
+    if (verrouille || !api.traces.has(k)) return;
+    api.traces.delete(k);
+    sonClic();
+    api.rendre();
+    if (o.surChangement) o.surChangement(api);
+  };
+  /* LA GOMME FROTTE : tout trait qu’elle croise s’en va. Le danger qui
+     interdisait la proximité au crayon — le doigt qui traverse une cellule
+     y trouve une diagonale — n’existe pas ici : la gomme ne peut toucher
+     que ce que l’enfant a lui-même tracé, et un trait effacé se retrace. */
+  api.frotter = function(p){
+    if (verrouille) return;
+    const g = versGrille(p);
+    const partis = [];
+    api.traces.forEach(k => {
+      const [a, b] = boutsSeg(k);
+      if (distanceAuSegment(g, a, b) <= RAYON_GOMME_M) partis.push(k);
+    });
+    if (!partis.length) return;
+    partis.forEach(k => api.traces.delete(k));
+    api.gommages += partis.length;
+    sonClic();
+    api.rendre();
+    if (o.surChangement) o.surChangement(api);
+  };
+
+  /* ---- Ce qui est dedans ---- */
+  api.faces = function(){
+    const segs = [];
+    [...api.pre, ...api.traces].forEach(k => { const [a, b] = boutsSeg(k); segs.push([a, b]); });
+    return facesDeSegments(segs);
+  };
+
+  /* ---- Le dessin ---- */
+  const segD = (k) => {
+    const [a, b] = boutsSeg(k).map(versScene2);
+    return `x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}"`;
+  };
+  api.rendre = function(){
+    const vb = (svg.getAttribute('viewBox') || '0 0 400 356').split(/\s+/).map(Number);
+    /* UNE SURFACE EXPLICITE couvre toute la vue. Sous un point VIDE d’un
+       `<svg>` racine, la cible désignée dépend du moteur de rendu : WebKit
+       et Blink n’y répondent pas pareil, et le geste redevenait un
+       défilement. `pointer-events:all` fait de ce rectangle une cible quel
+       que soit son remplissage, sans rien peindre. Leçon de M41, payée sur
+       appareil et non reproductible sous Chromium. */
+    let s = `<rect class="trace-surface" x="${vb[0]}" y="${vb[1]}" width="${vb[2]}" height="${vb[3]}"/>`;
+    for (let i = 0; i <= z.nx; i++)
+      s += `<line class="trace-maille" x1="${z.x0+i*z.pas}" y1="${z.y0}" x2="${z.x0+i*z.pas}" y2="${z.y1}"/>`;
+    for (let j = 0; j <= z.ny; j++)
+      s += `<line class="trace-maille" x1="${z.x0}" y1="${z.y0+j*z.pas}" x2="${z.x1}" y2="${z.y0+j*z.pas}"/>`;
+    /* Les pièces, chacune de son verre : ce sont les faces de l’arrangement,
+       calculées et non déclarées. */
+    api.faces().forEach((f, i) => {
+      const d = 'M ' + f.poly.map(p => versScene2(p).map(v => v.toFixed(1)).join(' ')).join(' L ') + ' Z';
+      s += `<path class="trace-face" d="${d}" fill="${VERRES[i % VERRES.length]}" fill-opacity=".55"/>`;
+    });
+    api.pre.forEach(k => { s += `<line class="trace-pre" ${segD(k)}/>`; });
+    api.traces.forEach(k => { s += `<line class="trace-trait" ${segD(k)}/>`; });
+    if (api.attente) {
+      const p = versScene2(api.attente);
+      s += `<circle class="trace-noeud" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="6"/>`;
+    }
+    groupe.innerHTML = s;
+  };
+
+  /* ---- Le geste ------------------------------------------------------
+     LE TRAIT SUIT UN CHEMIN DE NŒUDS au glissement : on part d’un nœud, on
+     ne va qu’à un nœud VOISIN, et un doigt qui dérive au milieu d’une
+     cellule ne trace rien tant qu’il n’a pas atteint un nœud. Leçon de
+     M41 : allumer le segment le plus proche noyait le trait voulu sous une
+     résille de diagonales, parce qu’un enfant ne tape pas case par case,
+     il GLISSE.
+
+     ET UN TAP SUR DEUX NŒUDS pose le segment entre eux, quelle que soit sa
+     pente : c’est par là que les obliques 2/1 et 3/1 passent. Le tap se
+     distingue du glissement par un SEUIL DE DÉPLACEMENT, jamais par une
+     temporisation. */
+  let actif = false, bouge = false, outilDuGeste = 'crayon';
+  let depart = null, dernier = null, noeud = null, chemin = [], poses = [];
+  const repartirDe = (n) => { noeud = n; chemin = n ? [n] : []; poses = []; };
+  const traiter = (p) => {
+    const n = noeudProche(p, RAYON_NOEUD_M);
+    if (!n) return;
+    if (!noeud) { repartirDe(n); return; }
+    if (memeNoeud(n, noeud)) return;
+    /* Un nœud non voisin veut dire que le doigt a sauté : on s’y replace
+       sans rien tracer plutôt que d’inventer un segment. */
+    if (!voisinsGrille(noeud, n)) { repartirDe(n); return; }
+    if (chemin.length >= 2 && memeNoeud(n, chemin[chemin.length - 2])) {
+      /* Retour arrière : revenir sur ses pas efface ce que LE GESTE vient
+         d’écrire — jamais le donné, jamais un trait antérieur. D’où le
+         drapeau rendu par `poser`, et non une recherche dans `traces`. */
+      if (poses.pop()) api.retirerDuGeste(cleSeg(noeud, n));
+      chemin.pop();
+    } else {
+      poses.push(api.poser(cleSeg(noeud, n)));
+      chemin.push(n);
+    }
+    noeud = n;
+  };
+  const auSvg = (e) => { const q = versSVG(svg, e.clientX, e.clientY); return [q.x, q.y]; };
+
+  const surBas = (e) => {
+    if (verrouille) return;
+    actif = true; bouge = false;
+    outilDuGeste = api.outil;          // l’outil est FIGÉ à l’appui
+    depart = [e.clientX, e.clientY];
+    dernier = auSvg(e);
+    repartirDe(noeudProche(dernier, RAYON_NOEUD_M));
+    if (outilDuGeste === 'gomme') api.frotter(dernier);
+    try { svg.setPointerCapture(e.pointerId); } catch(err){}
+    e.preventDefault();
+  };
+  const surBouge = (e) => {
+    if (!actif) return;
+    const p = auSvg(e);
+    if (!bouge && Math.hypot(e.clientX - depart[0], e.clientY - depart[1]) < SEUIL_TRACE) return;
+    bouge = true;
+    /* Un doigt rapide franchit plusieurs nœuds entre deux événements : on
+       échantillonne le chemin pour ne manquer aucun passage. */
+    if (dernier) {
+      const d = [p[0]-dernier[0], p[1]-dernier[1]];
+      const n = Math.max(1, Math.ceil(Math.hypot(d[0], d[1]) / (z.pas * 0.2)));
+      const pas = outilDuGeste === 'gomme' ? api.frotter : traiter;
+      for (let i = 1; i <= n; i++) pas([dernier[0] + d[0]*i/n, dernier[1] + d[1]*i/n]);
+    }
+    dernier = p;
+    e.preventDefault();
+  };
+  const surHaut = (e) => {
+    if (!actif) return;
+    actif = false;
+    try { svg.releasePointerCapture(e.pointerId); } catch(err){}
+    const p = auSvg(e);
+    if (!bouge) {
+      /* L’APPUI SIMPLE est le geste de précision, et il ne dérape pas : il
+         n’a pas de trajectoire. Chez M41 il accrochait le segment le plus
+         proche ; ici il OUVRE un segment, puis le referme sur un second
+         nœud. C’est la seule des douze propriétés qui change de sens à la
+         copie, et elle change parce que ce que l’enfant produit change. */
+      const n = noeudProche(p, RAYON_TAP_M);
+      if (outilDuGeste === 'gomme') {
+        if (n) api.frotter(versScene2(n));
+      } else if (n) {
+        if (!api.attente) api.attente = n;
+        else if (memeNoeud(api.attente, n)) api.attente = null;   // on annule le départ
+        else { const k = cleSeg(api.attente, n); api.attente = null; api.poser(k); }
+      }
+    } else api.attente = null;      // un glissement annule un départ en attente
+    repartirDe(null);
+    api.rendre();
+  };
+  svg.addEventListener('pointerdown', surBas);
+  svg.addEventListener('pointermove', surBouge);
+  svg.addEventListener('pointerup', surHaut);
+  svg.addEventListener('pointercancel', surHaut);
+  api.detacher = function(){
+    svg.removeEventListener('pointerdown', surBas);
+    svg.removeEventListener('pointermove', surBouge);
+    svg.removeEventListener('pointerup', surHaut);
+    svg.removeEventListener('pointercancel', surHaut);
+    $('plan').classList.remove('plan-trace');
+  };
+  /* `touch-action:none` sur LA CARTE ENTIÈRE, marge comprise, et pas
+     seulement sur le SVG : un geste qui commence dans le rembourrage ne
+     doit pas davantage faire défiler la page. La classe le porte, pour ne
+     rien changer aux mini-jeux qui n’utilisent pas ce moteur. */
+  $('plan').classList.add('plan-trace');
+  api.rendre();
+  return api;
 }
 
 /* ============================================================
