@@ -1081,6 +1081,13 @@ function sansDeuxDeSuite(liste, cle){
 /* Le verre coloré, repris de M34 : c’est le même vitrail d’un module à
    l’autre. */
 const VERRES = ['#FF8A3D','#5AB4DC','#2EC4A6','#FFC93C','#FF5D5D','#9B5DE5','#4D96FF','#F76BA4'];
+/* LA COULEUR D’UNE PIÈCE SE DÉCIDE EN UN SEUL ENDROIT. Trois rendus la
+   choisissaient chacun avec son propre index — le tracé en cours comptait
+   les faces de la manche, le panneau comptait ses entrées — si bien qu’une
+   pièce changeait de verre entre le moment où l’enfant la remplissait et
+   celui où il la retrouvait dans son vitrail. Le rang de la manche la fixe,
+   et le rang de la pièce à l’intérieur d’un assemblage la fait varier. */
+const verreDe = (n) => VERRES[((n % VERRES.length) + VERRES.length) % VERRES.length];
 
 /* ============================================================
    ZONES ET SUPPORTS
@@ -1453,7 +1460,7 @@ function creerTraceQuadrillage(o){
        calculées et non déclarées. */
     api.faces().forEach((f, i) => {
       const d = 'M ' + f.poly.map(p => versScene2(p).map(v => v.toFixed(1)).join(' ')).join(' L ') + ' Z';
-      s += `<path class="trace-face" d="${d}" fill="${VERRES[i % VERRES.length]}" fill-opacity=".55"/>`;
+      s += `<path class="trace-face" d="${d}" fill="${(o.verre || verreDe)(i)}" fill-opacity=".55"/>`;
     });
     api.pre.forEach(k => { s += `<line class="trace-pre" ${segD(k)}/>`; });
     api.traces.forEach(k => { s += `<line class="trace-trait" ${segD(k)}/>`; });
@@ -1596,6 +1603,36 @@ function segmentsDonnes(amorce, z){
     }
   });
   return cles;
+}
+
+/* CE QUI EST JUGÉ EN MODE TRACÉ, CE SONT LES TRAITS, et pas seulement les
+   pièces qu’ils enferment. Juger sur les seules faces laissait passer les
+   traits en trop : une antenne, un trait resté en travers du panneau
+   n’enferment rien, donc ne changeaient aucune face, et la manche était
+   validée sur une figure que personne n’aurait acceptée sur le papier.
+   On compare donc l’ENSEMBLE DES SEGMENTS — le donné plus le tracé — à celui
+   de la figure attendue. Le critère devient exact dans les deux sens : il ne
+   manque rien et il n’y a rien de trop. La façon d’y arriver reste libre,
+   puisque deux tracés du même côté produisent la même clé.
+   Quand la position est libre, on recale les deux ensembles sur leur coin
+   supérieur gauche : c’est la translation, et rien d’autre, qui est tolérée. */
+function clesNormalisees(cles){
+  const bouts = cles.map(k => boutsSeg(k));
+  let mi = Infinity, mj = Infinity;
+  bouts.forEach(([a, b]) => { mi = Math.min(mi, a[0], b[0]); mj = Math.min(mj, a[1], b[1]); });
+  if (!isFinite(mi)) return new Set();
+  return new Set(bouts.map(([a, b]) => cleSeg([a[0]-mi, a[1]-mj], [b[0]-mi, b[1]-mj])));
+}
+function memesTraces(produites, attendues, libre){
+  const A = libre ? clesNormalisees(produites) : new Set(produites);
+  const B = libre ? clesNormalisees(attendues) : new Set(attendues);
+  if (A.size !== B.size) return false;
+  for (const k of A) if (!B.has(k)) return false;
+  return true;
+}
+/* Les côtés d’une solution, refermée, dans la même écriture que le tracé. */
+function segmentsDeSolution(sol, z){
+  return segmentsDonnes(sol.map(ct => ct.concat([ct[0]])), z);
 }
 
 /* UNE FACE EST UN POLYGONE DE L’ARRANGEMENT, donc elle porte un sommet à
@@ -2947,7 +2984,7 @@ function dessinerChantier(){
   /* Les pièces achevées se remplissent de verre : la couleur est la
      récompense de ce que l’enfant a produit lui-même. */
   if (!q.petalesDe) c.contours.forEach((ct, i) => {
-    s += `<path class="piece-faite" d="${contourD(ct, true)}" fill="${VERRES[i % VERRES.length]}" fill-opacity=".55"/>`;
+    s += `<path class="piece-faite" d="${contourD(ct, true)}" fill="${verreDe(pos + i)}" fill-opacity=".55"/>`;
   });
   /* Les pétales de la rosace se déduisent des pointes posées : l’enfant
      place la pointe, la gonfle du pétale suit (géométrie de M34). On lit
@@ -2960,7 +2997,7 @@ function dessinerChantier(){
     pointes.forEach((p, i) => {
       const a = g6.hex[i % 6], b = g6.hex[(i+1) % 6];
       const pet = [a, [(a[0]+p[0])/2 - (b[1]-a[1])*0.16, (a[1]+p[1])/2 + (b[0]-a[0])*0.16], p, b];
-      s += `<path class="piece-faite" d="${contourD(pet, true)}" fill="${VERRES[i % VERRES.length]}" fill-opacity=".55"/>`;
+      s += `<path class="piece-faite" d="${contourD(pet, true)}" fill="${verreDe(pos + i)}" fill-opacity=".55"/>`;
     });
   }
   c.cerclesPoses.forEach(ce => { s += cercleSvg(ce.c, ce.r, 'cercle-fait'); });
@@ -3270,6 +3307,7 @@ function rendreTracer(q){
     svg, groupe:svg.getElementById('chantier'), zone:zt,
     pre:segmentsDonnes(q.amorce, zt),
     fondGrille:(z) => sup.fond(z),
+    verre:(i) => verreDe(pos + i),
     surChangement:(api) => {
       chantier.contours = api.faces().map(f => simplifierPoly(f.poly).map(g => api.versScene(g)));
       majBoutons();
@@ -3335,6 +3373,22 @@ function validerManche(q){
       bon = chantier.contours.length === 1
         && memeContour(chantier.contours[0], q.solutions[0][0], tol);
       if (!bon) motif = 'Les six points devaient être régulièrement répartis.';
+    } else if (q.mode === 'tracer') {
+      /* En tracé, ce sont les TRAITS qui font foi (voir `memesTraces`) : les
+         seules faces laissaient passer les traits en trop. */
+      const produites = [...chantier.trace.pre, ...chantier.trace.traces];
+      bon = q.solutions.some(sol =>
+        memesTraces(produites, segmentsDeSolution(sol, chantier.z), q.libre));
+      if (!bon) {
+        /* La bonne pièce ET des traits qui ne collent pas : ce sont des
+           traits en trop, et le dire vaut mieux que « regarde en vert »,
+           qui montrerait une figure que l’enfant a pourtant faite. */
+        motif = figureAcceptee(chantier.contours, q.solutions, tol, q.libre)
+          ? 'La pièce est juste, mais il reste des traits en trop : gomme-les.'
+          : chantier.contours.length !== q.solutions[0].length
+            ? 'Il fallait ' + q.solutions[0].length + ' pièce' + (q.solutions[0].length > 1 ? 's' : '') + '.'
+            : 'Regarde la figure attendue, en vert.';
+      }
     } else {
       bon = figureAcceptee(chantier.contours, q.solutions, tol, q.libre);
       if (!bon) motif = chantier.contours.length !== q.solutions[0].length
@@ -3394,6 +3448,9 @@ function terminerManche(bon, motif){
        qui s’illumine d’une manche à l’autre et se retrouve en grand sur
        l’écran de fin. */
     vitrail.push({contours:chantier.contours.slice(), cercles:chantier.cerclesPoses.slice(),
+                  /* La couleur suit la pièce : c’est la seule façon que le
+                     panneau montre ce que l’enfant vient de remplir. */
+                  verres:chantier.contours.map((_, j) => verreDe(pos + j)),
                   petalesDe:q.petalesDe || null, sommets:q.petalesDe ? chantier.contours[0] : null});
     sonBonneReponse(); lancerConfettis(28);
     /* Même une félicitation est un contenu : trois manches réussies et le
@@ -3436,7 +3493,7 @@ function dessinerVitrail(svg, larg, haut){
     const ox = x + casePx/2 - (bx0 + bx1)/2 * k, oy = haut/2 - (by0 + by1)/2 * k;
     const T = (p) => [p[0]*k + ox, p[1]*k + oy];
     v.contours.forEach((ct, j) => {
-      s += `<path d="${contourD(ct.map(T), true)}" fill="${VERRES[(i+j) % VERRES.length]}"
+      s += `<path d="${contourD(ct.map(T), true)}" fill="${(v.verres && v.verres[j]) || verreDe(i + j)}"
               fill-opacity=".75" stroke="var(--plomb)" stroke-width="1.6" stroke-linejoin="round"/>`;
     });
     (v.cercles || []).forEach(ce => {
@@ -3468,8 +3525,17 @@ function fin(){
   enregistrerSession(miniJeuCourant.cfg.id, score, total, Math.round((Date.now() - demarreLe)/1000));
   $('hdrTitle').textContent = 'Résultat';
   $('endStars').innerHTML = '⭐'.repeat(n).split('').map(s => `<span>${s}</span>`).join('');
-  $('endMsg').textContent = n === 3 ? 'Vitrail terminé !' : n === 2 ? 'Beau panneau !' : 'Continue, ton vitrail avance !';
-  $('endScore').textContent = score + ' pièce' + (score > 1 ? 's' : '') + ' montée' + (score > 1 ? 's' : '') + ' sur ' + total + '.';
+  /* ON NE FÉLICITE QUE DE CE QUI A ÉTÉ FAIT. « Vitrail terminé » et « Beau
+     panneau » désignaient l’ASSEMBLAGE, que l’enfant n’a pas monté : il a
+     produit des PIÈCES, une par manche, et le vitrail les rassemble sans
+     être pour autant achevé. Le compte disait déjà vrai, c’est la
+     félicitation qui promettait un objet fini. */
+  $('endMsg').textContent = n === 3 ? 'Toutes les pièces sont terminées !'
+    : n === 2 ? 'Beau travail de verrier !' : 'Continue, ton vitrail avance !';
+  /* Accord calculé sur le nombre, jamais figé : « 1 pièce du vitrail
+     terminée », « 5 pièces du vitrail terminées ». */
+  const s = score > 1 ? 's' : '';
+  $('endScore').textContent = score + ' pièce' + s + ' du vitrail terminée' + s + ' sur ' + total + '.';
   $('endVitrail').hidden = false;
   dessinerVitrail($('endVitrailSvg'), 400, 150);
   if (n === 3) sonNiveauParfait(); else sonBonneReponse();

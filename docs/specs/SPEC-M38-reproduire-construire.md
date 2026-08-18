@@ -80,7 +80,11 @@ Progression : cinq manches, **quadrillé** d'abord (trois) puis **pointé** (deu
 
 **Le geste est le TRACÉ AU DOIGT**, pas la pose de sommets : l'enfant glisse d'un nœud au nœud voisin et le côté s'écrit derrière son doigt. C'est le geste du crayon sur papier quadrillé, que le programme CP décrit. Conséquence sur la banque de figures : **tous les côtés doivent être traçables au glissement**, donc orthogonaux ou à 45°. `triangleRect(4, 2)` en sortait — sa pente 2/1 ne relie pas deux voisins et ne se pose qu'en tapant ses deux bouts, geste qu'un enfant de CP n'a aucune raison de découvrir seul. Les obliques sont le saut du CE1.
 
-**Ce que l'enfant produit change de nature**, et la validation avec : ce n'est plus une liste de contours qu'on lui a fait fermer, mais un ensemble de traits dont les pièces sont les **faces de l'arrangement**, calculées. Une seule vérité pour « ce que l'enfant a produit » : les mêmes faces colorient le verre et servent à juger. Un trait de plus qui n'enferme rien ne change donc pas le verdict.
+**Ce que l'enfant produit change de nature**, et la validation avec : ce n'est plus une liste de contours qu'on lui a fait fermer, mais un ensemble de traits. Les pièces qu'ils enferment sont les **faces de l'arrangement**, calculées — c'est elles qui prennent le verre.
+
+**Ce qui est JUGÉ, ce sont les traits**, et pas seulement les pièces qu'ils enferment. Une première version jugeait sur les seules faces : une antenne, un trait resté en travers du panneau n'enferment rien, donc ne changeaient aucune face, et la manche partait juste sur un dessin que personne n'aurait accepté sur le papier. L'ensemble des segments — le donné plus le tracé — doit donc être **exactement** celui de la figure attendue : il ne manque rien et il n'y a rien de trop. La façon d'y arriver reste libre, deux tracés du même côté produisant la même clé. Quand la position est libre, les deux ensembles sont recalés sur leur coin supérieur gauche — la translation, et rien d'autre, est tolérée. Et quand la pièce est juste mais les traits non, on le **dit** (« il reste des traits en trop ») au lieu de montrer en vert une figure que l'enfant a faite.
+
+**Le verre d'une pièce est le même partout** : la couleur se décide au rang de la manche et part avec la pièce dans le vitrail, au lieu d'être recalculée par chaque rendu avec son propre index. Elle varie d'une pièce à l'autre, y compris entre les pièces d'un même assemblage.
 
 Consigne synthétique en gras : **« Fais la même pièce. »**
 
