@@ -111,6 +111,29 @@ Un plan de vitrail simple à remplir : deux ou trois figures adjacentes, partage
 
 ## 5. Palier CE1 — trois mini-jeux
 
+### Le geste des obliques
+
+`ce1-reproduire` est **au tracé au doigt**, comme le CP. Les pentes 2/1 et 3/1 y étaient hors d'atteinte pour une raison mesurable : sur une 2/1, le nœud parasite est à **0,447 maille** de la corde et le rayon d'accrochage vaut **0,45** — un enfant qui trace parfaitement droit était capturé d'un cheveu — et descendre le rayon sous 0,316 (la pente 3/1) rendrait les nœuds inatteignables.
+
+C'est donc la **règle du geste** qui change : le crayon ne demande plus « à quel nœud suis-je ? » mais **« ai-je tourné ? »**. Tant que le chemin parcouru depuis l'ancre reste dans une bande de **0,50 maille** autour de la droite ancre→doigt, c'est un seul trait, quelle que soit sa pente. Cette largeur est mesurée : elle est le point où le tremblement toléré atteint **±0,28 maille**, le standard fixé par M41 à l'appareil, sans rien perdre sur les virages à angle droit.
+
+Deux effets de bord voulus : la main tremblée est **redressée**, et un côté de quatre s'écrit d'un seul geste. Un aperçu en pointillé montre le trait avant que le doigt ne se lève.
+
+
+
+### Le geste : les obliques passent, parce que la règle du trait a changé
+
+Le crayon ne demande plus « à quel nœud suis-je ? » mais **« ai-je tourné ? »**. Tant que le chemin parcouru depuis le point de départ reste dans une bande de **0,50 maille** autour de la droite départ-doigt, c'est **un seul trait**, quelle que soit sa pente et quels que soient les nœuds survolés. Dès que la main tourne, le trait se ferme au dernier nœud atteint droit et un nouveau part de là.
+
+**Pourquoi rien d'autre ne marchait**, mesuré : sur une pente 2/1 le nœud parasite est à 0,447 maille de la corde et le rayon d'accrochage vaut 0,45 — un enfant qui trace parfaitement droit était capturé d'un cheveu. Descendre le rayon sous 0,316 (la pente 3/1) rendrait les nœuds inatteignables. Ce n'était donc pas un réglage à corriger, mais la règle du geste.
+
+**Le 0,50 est mesuré, pas choisi** : balayé de 0,30 à 0,85, la tolérance au tremblement monte (±0,15 maille à 0,30 ; ±0,28 à 0,50 ; ±0,40 à 0,70) et la reconnaissance des virages descend. 0,50 est le point où le tremblement toléré atteint ±0,28 maille — le standard fixé par M41 à l'appareil — sans rien perdre sur les virages à angle droit, les seuls que le contenu contienne. Au-delà de 0,55, les virages très doux (une vingtaine de degrés) cessent d'être vus.
+
+**Deux propriétés changent de nature.** La règle des huit voisins interdisait les pas longs ; elle est remplacée par une garantie plus forte — *un segment ne s'écrit que le long du chemin réellement parcouru*, un chemin détourné n'écrivant jamais le segment de ses deux bouts. Et le **retour arrière en chemin** devient sans objet : rien ne s'écrivant tant que le doigt va droit, revenir sur ses pas **raccourcit** le trait avant qu'il n'existe, et un aller-retour complet ne trace rien. Défaire ce qui est écrit relève d'« annuler », qui retire un **trait entier** en lisant un journal — donc jamais le donné, jamais un trait antérieur.
+
+**Forme canonique.** Tout segment rangé est un **pas primitif** : un côté horizontal de 4 vaut quatre pas de 1, qu'il ait été tracé d'un trait ou en quatre ; une pente 2/1 ne se divise pas. Sans cela un trait long posé par-dessus un côté donné produirait deux colinéaires superposés, cas que l'arrangement ne sait pas trancher — il rendait zéro pièce.
+
+
 Ajouts majeurs, souvent sous-estimés : le **papier uni** arrive dès le CE1, et les **côtés obliques** avec lui.
 
 > « Sur du papier quadrillé, pointé **ou uni**, l'élève sait compléter ou tracer un carré, un rectangle, un triangle ou un triangle rectangle avec une règle (graduée ou non) et une équerre ; les côtés peuvent suivre les lignes du quadrillage **ou être obliques**. »

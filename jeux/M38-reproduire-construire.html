@@ -185,6 +185,8 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 .trace-pre{stroke:var(--plomb); stroke-width:5; stroke-linecap:round; vector-effect:non-scaling-stroke;}
 .trace-trait{stroke:var(--mandarine); stroke-width:5; stroke-linecap:round; vector-effect:non-scaling-stroke;}
 .trace-noeud{fill:var(--mandarine-f); stroke:#fff; stroke-width:1.6; pointer-events:none;}
+.trace-apercu{stroke:var(--mandarine); stroke-width:5; stroke-linecap:round; opacity:.45;
+  stroke-dasharray:7 6; pointer-events:none;}
 .attendu{fill:none; stroke:var(--menthe-t); stroke-width:3; stroke-dasharray:7 5; stroke-linejoin:round;}
 /* La rosace achevée : les pétales prennent le verre, l’hexagone des six
    centres se montre en plomb — c’est celui que M34 fait nommer. */
@@ -1371,10 +1373,14 @@ function creerTraceQuadrillage(o){
   const groupe = o.groupe;
   const api = {
     zone:z,
-    pre:new Set(o.pre || []),
+    /* MÊME LE DONNÉ EST RANGÉ EN PAS PRIMITIFS, et c’est le moteur qui s’en
+       charge : l’invariant « tout segment que je tiens est un pas primitif »
+       ne doit pas dépendre de la politesse de l’appelant. */
+    pre:new Set(canoniser(o.pre || [])),
     traces:new Set(),
     outil:'crayon',
     attente:null,          // nœud tapé qui attend son second
+    apercu:null,           // trait en cours, montré tant que le doigt est posé
     gommages:0
   };
   const versGrille = (p) => [(p[0] - z.x0) / z.pas, (p[1] - z.y0) / z.pas];
@@ -1389,20 +1395,48 @@ function creerTraceQuadrillage(o){
   api.noeudProche = noeudProche;
 
   /* ---- Ce qui est posé ---- */
+  /* TOUT SEGMENT STOCKÉ EST UN PAS PRIMITIF. Un trait long est donc rangé en
+     morceaux nœud à nœud. Sans cela, un côté DONNÉ — rangé en pas — et le
+     même côté retracé d’un seul geste coexisteraient comme deux segments
+     colinéaires superposés : l’arrangement ne sait pas trancher ce cas et
+     rendait zéro pièce. Le rangement en pas rend aussi le `pre` reconnaissable
+     (on ne réécrit pas ce qui est donné) et la comparaison canonique par
+     construction. `poser` rend LA LISTE de ce qu’il a réellement écrit. */
+  api.journal = [];        // les traits, dans l’ordre, pour défaire le dernier
   api.poser = function(k){
-    if (verrouille || !k) return false;
-    if (api.pre.has(k) || api.traces.has(k)) return false;   // ni le donné, ni le déjà-là
-    api.traces.add(k);
+    if (verrouille || !k) return [];
+    const ecrits = [];
+    pasPrimitifs(...boutsSeg(k)).forEach(x => {
+      if (api.pre.has(x) || api.traces.has(x)) return;      // ni le donné, ni le déjà-là
+      api.traces.add(x); ecrits.push(x);
+    });
+    if (!ecrits.length) return [];
+    api.journal.push(ecrits);
     sonClic();
     api.rendre();
     if (o.surChangement) o.surChangement(api);
-    return true;
+    return ecrits;
   };
-  /* Retirer un segment que LE GESTE EN COURS vient de poser. On ne l’appelle
-     que sur un pas dont `poser` a signalé qu’il avait écrit. */
-  api.retirerDuGeste = function(k){
-    if (verrouille || !api.traces.has(k)) return;
-    api.traces.delete(k);
+  /* Retirer ce que LE GESTE EN COURS vient de poser. On ne l’appelle que sur
+     des pas dont `poser` a signalé qu’il les avait écrits. */
+  api.retirerDuGeste = function(cles){
+    if (verrouille) return;
+    const l = Array.isArray(cles) ? cles : [cles];
+    let n = 0;
+    l.forEach(k => { if (api.traces.delete(k)) n++; });
+    if (!n) return;
+    const i = api.journal.findIndex(t => t.length === l.length && t.every((x, j) => x === l[j]));
+    if (i >= 0) api.journal.splice(i, 1);
+    sonClic();
+    api.rendre();
+    if (o.surChangement) o.surChangement(api);
+  };
+  /* Défaire le DERNIER TRAIT, et non le dernier pas : l’enfant a tracé un
+     côté d’un geste, il s’attend à le retirer d’un geste. */
+  api.defaire = function(){
+    const t = api.journal.pop();
+    if (!t) return;
+    t.forEach(k => api.traces.delete(k));
     sonClic();
     api.rendre();
     if (o.surChangement) o.surChangement(api);
@@ -1421,6 +1455,7 @@ function creerTraceQuadrillage(o){
     });
     if (!partis.length) return;
     partis.forEach(k => api.traces.delete(k));
+    api.journal = api.journal.map(t => t.filter(k => api.traces.has(k))).filter(t => t.length);
     api.gommages += partis.length;
     sonClic();
     api.rendre();
@@ -1464,6 +1499,13 @@ function creerTraceQuadrillage(o){
     });
     api.pre.forEach(k => { s += `<line class="trace-pre" ${segD(k)}/>`; });
     api.traces.forEach(k => { s += `<line class="trace-trait" ${segD(k)}/>`; });
+    /* L’APERÇU DU TRAIT EN COURS. « Un peu aidé » veut d’abord dire : voir ce
+       qu’on est en train de tracer avant de lever le doigt. */
+    if (api.apercu) {
+      const [a, b] = api.apercu.map(versScene2);
+      s += `<line class="trace-apercu" x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}"`
+         + ` x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}"/>`;
+    }
     if (api.attente) {
       const p = versScene2(api.attente);
       s += `<circle class="trace-noeud" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="6"/>`;
@@ -1483,28 +1525,92 @@ function creerTraceQuadrillage(o){
      pente : c’est par là que les obliques 2/1 et 3/1 passent. Le tap se
      distingue du glissement par un SEUIL DE DÉPLACEMENT, jamais par une
      temporisation. */
+  /* LE TRAIT SUIT LA MAIN QUAND ELLE VA DROIT, et non le quadrillage nœud par
+     nœud. C’est ce qui ouvre les OBLIQUES du CE1, et le calcul dit pourquoi
+     rien d’autre ne marchait : sur une pente 2/1, le nœud parasite est à
+     0,447 maille de la corde et le rayon d’accrochage vaut 0,45 — un enfant
+     qui trace parfaitement droit est capturé d’un cheveu. Baisser le rayon
+     sous 0,316 (la pente 3/1) rendrait les nœuds inatteignables.
+     La règle n’est donc plus « à quel nœud suis-je ? » mais « ai-je tourné ? » :
+     tant que le chemin parcouru depuis l’ancre reste dans une bande étroite
+     autour de la droite ancre→doigt, c’est UN SEUL TRAIT, quelle que soit sa
+     pente et quels que soient les nœuds survolés. Dès que la main tourne, le
+     trait se ferme au dernier nœud survolé et un nouveau part de là.
+     Ce que l’enfant gagne, au-delà des obliques : sa main tremblée est
+     redressée, et un côté de quatre s’écrit d’un seul geste. C’est le sens du
+     « tracé un peu aidé ». */
+  /* 0,50 MAILLE, ET C’EST MESURÉ, PAS CHOISI. Balayé de 0,30 à 0,85 : la
+     tolérance au tremblement monte avec cette valeur (0,15 maille à 0,30 ;
+     0,28 à 0,50 ; 0,40 à 0,70), et la reconnaissance des virages descend.
+     0,50 est le point où le tremblement toléré atteint ±0,28 maille — le
+     standard que M41 a fixé à l’appareil — sans rien perdre sur les virages à
+     angle droit, les seuls que le contenu contienne.
+     CE QU’ON PERD, et il faut le savoir : au-delà de 0,55 les virages TRÈS
+     DOUX cessent d’être vus (un côté horizontal suivi d’une pente 3/1, soit
+     un angle d’une vingtaine de degrés, se lit comme un seul trait). Aucune
+     figure du module n’en contient — carrés et rectangles obliques n’ont que
+     des angles droits — et un enfant lève le doigt à chaque coin. */
+  const TOL_DROITE = 0.50;          // en mailles : au-delà, la main a tourné
   let actif = false, bouge = false, outilDuGeste = 'crayon';
-  let depart = null, dernier = null, noeud = null, chemin = [], poses = [];
-  const repartirDe = (n) => { noeud = n; chemin = n ? [n] : []; poses = []; };
+  let depart = null, dernier = null, noeud = null, poses = [];
+  let course = [], survole = null;
+  const repartirDe = (n) => { noeud = n; course = []; survole = null; poses = []; };
+  /* Écart maximal des points parcourus à la droite ancre→cible, en mailles.
+     `cible` est un POINT DE SCÈNE : ce qui décide qu’on a tourné, c’est le
+     doigt, pas un nœud choisi d’avance. */
+  const ecartCourse = (b) => {
+    if (!noeud) return 0;
+    const a = versScene2(noeud);
+    const L = Math.hypot(b[0]-a[0], b[1]-a[1]);
+    if (L < 1e-6) return 0;
+    let m = 0;
+    course.forEach(p => {
+      const d = Math.abs((p[0]-a[0])*(b[1]-a[1]) - (p[1]-a[1])*(b[0]-a[0])) / L;
+      if (d > m) m = d;
+    });
+    return m / z.pas;
+  };
+  /* Ferme le trait en cours sur `n` et repart de là.
+     PAS DE RETOUR ARRIÈRE À EFFACER ICI, et ce n’est pas un oubli : rien ne
+     s’écrit tant que le doigt va droit, si bien que revenir sur ses pas
+     RACCOURCIT le trait AVANT qu’il n’existe. Un aller-retour complet ne
+     trace rien du tout. Il n’y a donc jamais de pas à retirer en chemin —
+     c’était le mécanisme de M41, où chaque nœud franchi écrivait aussitôt.
+     Défaire ce qui est déjà écrit relève d’« annuler », qui retire un TRAIT
+     entier en lisant le journal, et ne peut donc toucher ni le donné ni un
+     trait antérieur. */
+  const poserJusqua = (n) => {
+    if (!noeud || !n || memeNoeud(noeud, n)) return;
+    poses.push(api.poser(cleSeg(noeud, n)));
+    noeud = n; course = []; survole = null;
+  };
   const traiter = (p) => {
-    const n = noeudProche(p, RAYON_NOEUD_M);
-    if (!n) return;
-    if (!noeud) { repartirDe(n); return; }
-    if (memeNoeud(n, noeud)) return;
-    /* Un nœud non voisin veut dire que le doigt a sauté : on s’y replace
-       sans rien tracer plutôt que d’inventer un segment. */
-    if (!voisinsGrille(noeud, n)) { repartirDe(n); return; }
-    if (chemin.length >= 2 && memeNoeud(n, chemin[chemin.length - 2])) {
-      /* Retour arrière : revenir sur ses pas efface ce que LE GESTE vient
-         d’écrire — jamais le donné, jamais un trait antérieur. D’où le
-         drapeau rendu par `poser`, et non une recherche dans `traces`. */
-      if (poses.pop()) api.retirerDuGeste(cleSeg(noeud, n));
-      chemin.pop();
-    } else {
-      poses.push(api.poser(cleSeg(noeud, n)));
-      chemin.push(n);
+    if (!noeud) {
+      const n = noeudProche(p, RAYON_NOEUD_M);
+      if (n) { repartirDe(n); api.apercu = null; }
+      return;
     }
-    noeud = n;
+    /* LA MAIN A-T-ELLE TOURNÉ ? Le doigt seul en décide : on mesure l’écart du
+       chemin déjà parcouru à la droite qui joint l’ancre au doigt. Tant qu’il
+       reste dans la bande, le trait continue — c’est ce qui laisse passer une
+       oblique sans se faire capturer par ses nœuds intermédiaires. */
+    course.push(p);
+    if (ecartCourse(p) > TOL_DROITE) {
+      /* On ferme au dernier nœud atteint EN LIGNE DROITE. Sans lui, un virage
+         pris entre deux nœuds ne saurait pas où couper. */
+      if (survole) { poserJusqua(survole); course = [p]; }
+      else { course = [p]; }          // rien de posable : on repart du doigt
+      api.apercu = null;
+      return;
+    }
+    const n = noeudProche(p, RAYON_NOEUD_M);
+    if (n && !memeNoeud(n, noeud) && ecartCourse(versScene2(n)) <= TOL_DROITE) {
+      /* Nœud atteint en ligne droite : cible possible. ON NE POSE PAS ENCORE —
+         le doigt ira peut-être plus loin sur la même droite, et c’est
+         précisément ce qui sauve les obliques. */
+      survole = n;
+      api.apercu = [noeud, n];
+    }
   };
   const auSvg = (e) => { const q = versSVG(svg, e.clientX, e.clientY); return [q.x, q.y]; };
 
@@ -1554,7 +1660,25 @@ function creerTraceQuadrillage(o){
         else if (memeNoeud(api.attente, n)) api.attente = null;   // on annule le départ
         else { const k = cleSeg(api.attente, n); api.attente = null; api.poser(k); }
       }
-    } else api.attente = null;      // un glissement annule un départ en attente
+    } else {
+      api.attente = null;           // un glissement annule un départ en attente
+      /* LE TRAIT SE FERME AU RELÂCHEMENT sur le dernier nœud atteint en ligne
+         droite : sans cela, une oblique tracée d’un seul geste — le cas même
+         du CE1 — ne s’écrirait jamais, puisqu’on ne pose plus en chemin. */
+      if (outilDuGeste !== 'gomme') {
+        const fin = noeudProche(p, RAYON_NOEUD_M);
+        if (fin && ecartCourse(versScene2(fin)) <= TOL_DROITE) {
+          /* LE TRAIT S’ARRÊTE OÙ LE DOIGT SE LÈVE, et pas au nœud le plus loin
+             qu’il ait survolé : un enfant qui dépasse puis revient a corrigé,
+             il n’a pas tracé jusqu’au bout. S’il revient jusqu’à son point de
+             départ, il n’a rien tracé — et il faut que ce soit vrai, car un
+             DEMI-TOUR EST COLINÉAIRE, donc invisible au test de virage.
+             `survole` ne sert plus que si le doigt se lève loin de tout nœud. */
+          if (!memeNoeud(fin, noeud)) poserJusqua(fin);
+        } else if (survole) poserJusqua(survole);
+      }
+    }
+    api.apercu = null;
     repartirDe(null);
     api.rendre();
   };
@@ -1586,20 +1710,34 @@ function creerTraceQuadrillage(o){
    Une pente que les huit voisins n’atteignent pas — les obliques du CE1 —
    reste un segment unique, ce qui est correct puisque rien ne peut la
    recouvrir partiellement. */
+const pgcdEntier = (a, b) => b ? pgcdEntier(b, a % b) : a;
+/* UN CÔTÉ VAUT LA MÊME CHOSE QUEL QUE SOIT LE DÉCOUPAGE DU GESTE : on le
+   ramène toujours à ses PAS PRIMITIFS, les plus petits qui le composent en
+   passant par des nœuds. Un côté horizontal de 4 vaut quatre pas de 1, qu’il
+   ait été tracé d’un trait ou en quatre ; un côté de pente 2/4 vaut deux pas
+   de 1/2 ; une pente 2/1 ne se divise pas et reste un pas unique.
+   Sans cette forme canonique, la comparaison dépendrait de l’endroit où
+   l’enfant a levé le doigt, ce qui n’est pas une propriété de la figure. */
+function pasPrimitifs(a, b){
+  const dx = b[0] - a[0], dy = b[1] - a[1];
+  const g = pgcdEntier(Math.abs(dx), Math.abs(dy)) || 1;
+  const px = dx / g, py = dy / g, cles = [];
+  for (let k = 0; k < g; k++)
+    cles.push(cleSeg([a[0] + px*k, a[1] + py*k], [a[0] + px*(k+1), a[1] + py*(k+1)]));
+  return cles;
+}
+const canoniser = (cles) => {
+  const out = [];
+  cles.forEach(k => { const [a, b] = boutsSeg(k); pasPrimitifs(a, b).forEach(x => out.push(x)); });
+  return out;
+};
 function segmentsDonnes(amorce, z){
   const cles = [];
-  const pgcd = (a, b) => b ? pgcd(b, a % b) : a;
   (amorce || []).forEach(ligne => {
     for (let i = 0; i + 1 < ligne.length; i++) {
       const a = [Math.round((ligne[i][0] - z.x0) / z.pas), Math.round((ligne[i][1] - z.y0) / z.pas)];
       const b = [Math.round((ligne[i+1][0] - z.x0) / z.pas), Math.round((ligne[i+1][1] - z.y0) / z.pas)];
-      const dx = b[0] - a[0], dy = b[1] - a[1];
-      const g = pgcd(Math.abs(dx), Math.abs(dy)) || 1;
-      const px = dx / g, py = dy / g;
-      if (Math.abs(px) <= 1 && Math.abs(py) <= 1) {
-        for (let k = 0; k < g; k++)
-          cles.push(cleSeg([a[0] + px*k, a[1] + py*k], [a[0] + px*(k+1), a[1] + py*(k+1)]));
-      } else cles.push(cleSeg(a, b));
+      pasPrimitifs(a, b).forEach(k => cles.push(k));
     }
   });
   return cles;
@@ -1624,6 +1762,10 @@ function clesNormalisees(cles){
   return new Set(bouts.map(([a, b]) => cleSeg([a[0]-mi, a[1]-mj], [b[0]-mi, b[1]-mj])));
 }
 function memesTraces(produites, attendues, libre){
+  /* On ne canonise pas ici : le moteur ne tient QUE des pas primitifs, donné
+     compris, et `segmentsDeSolution` en produit aussi. Le refaire serait une
+     seconde vérité sur la même forme — et une mutation l’a montré inutile en
+     restant aveugle. L’invariant, lui, est éprouvé par son propre test. */
   const A = libre ? clesNormalisees(produites) : new Set(produites);
   const B = libre ? clesNormalisees(attendues) : new Set(attendues);
   if (A.size !== B.size) return false;
@@ -2249,11 +2391,11 @@ function qCe1Reproduire(){
   return suite.map(({f, s}) => {
     const c = [f()];
     return mancheBase({
-      support:s,
+      mode:'tracer', support:s,
       modele:poserDansZone(ZONE_MODELE, c),
       solutions:[poserDansZone(ZONE_TRAVAIL, c)],
       q:'Fais la même pièce.',
-      sous:'Le côté est en biais : compte les déplacements, tant de côté et tant vers le haut.'
+      sous:'Le côté est en biais : pose le doigt sur un coin et va droit jusqu’à l’autre.'
     });
   });
 }
@@ -3343,16 +3485,11 @@ function rendreTracer(q){
     });
     outils.push(b); barre.appendChild(b);
   });
-  /* « Annuler » retire le DERNIER trait écrit — un `Set` conserve son ordre
-     d’insertion, il n’y a donc pas de pile à tenir à côté, qui serait une
-     seconde vérité sur ce qui a été tracé. */
+  /* « Annuler » défait le DERNIER TRAIT, pas le dernier pas : l’enfant a tracé
+     un côté d’un geste, il s’attend à le retirer d’un geste. */
   const ann = document.createElement('button');
   ann.type = 'button'; ann.className = 'outil outil-annuler'; ann.textContent = '↶ annuler';
-  ann.addEventListener('click', () => {
-    if (verrouille) return;
-    const k = [...trace.traces].pop();
-    if (k) trace.retirerDuGeste(k);
-  });
+  ann.addEventListener('click', () => { if (!verrouille) trace.defaire(); });
   barre.appendChild(ann);
 
   $('btnValider').style.display = 'block';
