@@ -101,7 +101,11 @@ Le second est nettement plus difficile — un seul côté laisse quatre position
 
 « Construire un carré, un rectangle, un triangle **ou un assemblage de ces figures** ».
 
-Un plan de vitrail simple à remplir : trois ou quatre figures adjacentes, partageant des côtés. Fait le lien avec `cp-relations` de M34 — on avait décrit des relations, on les produit maintenant.
+Un plan de vitrail simple à remplir : deux ou trois figures adjacentes, partageant des côtés. Fait le lien avec `cp-relations` de M34 — on avait décrit des relations, on les produit maintenant.
+
+**Au TRACÉ AU DOIGT comme les deux autres mini-jeux du CP**, et c'est là que le moteur paie sa promesse la plus nette : un côté partagé **est un seul segment tracé une fois**. Deux pièces qui se chevauchent, ou qui se touchent par un seul point, cessent d'être exprimables au lieu d'être vérifiées après coup — deux modèles d'une première version étaient fautifs pour cette raison exacte. Repasser sur un côté déjà tracé ne le dédouble pas : la clé d'un segment est canonique.
+
+**Tous les côtés des six modèles sont traçables au glissement**, orthogonaux ou à 45°. Deux modèles ne l'étaient pas : le rectangle 4×3 coupé par sa diagonale (pente 4/3) devient un **carré** coupé par sa diagonale — la relation « coupé par sa diagonale, ça fait deux triangles » survit intacte, M34 découpant déjà des carrés de cette façon — et le triangle qui coiffe le carré devient **isocèle**, donc à 45°. Le palier CP se joue ainsi d'un seul geste, d'un mini-jeu à l'autre.
 
 ---
 

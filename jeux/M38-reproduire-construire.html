@@ -2191,10 +2191,19 @@ function qCpCompleter(){
 const MODELES_ASSEMBLAGE = [
   () => [rectangle(4,2), translater(rectangle(4,2), 0, 2)],
   () => [carre(2), translater(carre(2), 2, 0), translater(rectangle(4,2), 0, 2)],
-  /* Un rectangle coupé en deux triangles par sa diagonale : la relation
-     même que M34 faisait DÉCRIRE en `cp-relations`, et qu’on produit ici. */
-  () => [[[0,0],[4,0],[4,3]], [[0,0],[4,3],[0,3]]],
-  () => [carre(3), [[0,3],[3,3],[0,5]]],
+  /* Un CARRÉ coupé en deux triangles par sa diagonale : la relation même que
+     M34 faisait DÉCRIRE en `cp-relations`, et qu’on produit ici. Le rectangle
+     4×3 d’une première version donnait une diagonale de pente 4/3, hors
+     d’atteinte du glissement — elle n’aurait pu se poser qu’en tapant ses
+     deux bouts, geste qu’un enfant de CP n’a aucune raison de découvrir
+     seul. Le carré préserve la relation entière : M34 découpe déjà des
+     carrés de cette façon, et « coupé par sa diagonale, ça fait deux
+     triangles » ne dit rien de moins. */
+  () => [[[0,0],[4,0],[4,4]], [[0,0],[4,4],[0,4]]],
+  /* Un carré coiffé d’un triangle. Ses côtés de 3 et 2 donnaient une pente
+     3/2, hors d’atteinte pour la même raison : le triangle est isocèle, donc
+     à 45°, et le toit devient traçable d’un seul glissement. */
+  () => [carre(3), [[0,3],[3,3],[0,6]]],
   () => [rectangle(3,2), translater(carre(2), 3, 0), translater(rectangle(5,2), 0, 2)],
   /* Sixième modèle : la §13 bis demande un stock STRICTEMENT plus grand que la
      file, sans quoi chaque partie rejoue le même matériel dans un autre ordre.
@@ -2217,11 +2226,11 @@ function qCpAssembler(){
   return tirerSansRepetition('assembler-modeles', MODELES_ASSEMBLAGE, 5).map((f, i) => {
     const contours = f();
     return mancheBase({
-      support: i < 3 ? 'quadrille' : 'pointe',
+      mode:'tracer', support: i < 3 ? 'quadrille' : 'pointe',
       modele:poserDansZone(ZONE_MODELE, contours, 0, 0),
       solutions:[poserDansZone(ZONE_TRAVAIL, contours, 1, 1)],
       q:'Monte ce petit vitrail.',
-      sous:'Les pièces se touchent : un coin déjà posé sert aussi à la pièce voisine.'
+      sous:'Trace les côtés au doigt : celui que deux pièces partagent ne se trace qu’une fois.'
     });
   });
 }
