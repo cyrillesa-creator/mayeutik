@@ -173,7 +173,12 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
 .segment{fill:none; stroke:var(--mandarine); stroke-width:3.4; stroke-linecap:round; stroke-linejoin:round;}
 .sommet{fill:var(--mandarine); stroke:#fff; stroke-width:2;}
 .sommet.fixe{fill:var(--plomb);}
-.sommet.premier{fill:#fff; stroke:var(--mandarine); stroke-width:3.4;}
+.sommet.premier{fill:#fff; stroke:var(--mandarine); stroke-width:3.4;
+  animation:appel-fermeture 1.5s ease-in-out infinite;}
+@keyframes appel-fermeture{0%,100%{r:8px;} 50%{r:10px;}}
+.etiquette-fermer{font-size:10px; font-weight:700; fill:var(--mandarine-f);
+  text-anchor:middle; pointer-events:none;}
+@media (prefers-reduced-motion:reduce){ .sommet.premier{animation:none;} }
 .piece-faite{stroke:var(--plomb); stroke-width:3; stroke-linejoin:round;}
 .cercle-fait{fill:none; stroke:var(--mandarine); stroke-width:3.2;}
 .cible-pose{fill:transparent; cursor:pointer;}
@@ -998,7 +1003,16 @@ const PX_PAR_UNITE = MoteurCompas.UNITE;
 const MAILLE = 35;
 const AIMANT_ANCRE = 13;        // rayon d’accrochage sur une graduation
 const AIMANT_INSTRUMENT = 14;   // rayon d’aimantation d’un instrument sur un point dessiné
-const SEUIL_GLISSEMENT = 8;     // au-delà, le geste est un défilement (§19)
+const AIMANT_ANGLE = 0.07;      // ~4° : au-delà, l’enfant vise ailleurs
+/* 16 px, ET C’EST LE DOIGT QUI L’A DIT. À 8, un tap qui dérive de 10 px —
+   ce que fait n’importe quel doigt d’enfant sur du verre — n’était plus un
+   tap : reproduit, le sommet ne se posait pas, et la pièce restait ouverte
+   sans que rien ne l’explique. Ce n’est pas un affaiblissement du §19 : un
+   DÉFILEMENT volontaire est intercepté par `touch-action:pan-y`, qui envoie
+   un `pointercancel` et annule le geste quoi qu’il arrive. Ce seuil n’est
+   donc qu’une seconde barrière, et il n’avait aucune raison d’être plus
+   sévère que le seuil de clic des navigateurs, qui vaut une dizaine de px. */
+const SEUIL_GLISSEMENT = 16;    // au-delà, le geste est un défilement (§19)
 const TOL_UNI = 0.03;           // 3 % de la longueur de référence
 const TOL_ESQUISSE = 0.12;      // mode « à main levée » du CE2
 const TOL_GRILLE = 2;           // sur quadrillage l’aimantation rend exact
@@ -1944,11 +1958,50 @@ function creerPosable(hote, spec){
     });
     if (meilleur) { x += meilleur[0]; y += meilleur[1]; }
   }
+  /* EN ROTATION, C’EST L’ANGLE QUI S’AIMANTE, pas la position — et c’est bien
+     un autre mécanisme. Déplacer l’instrument pendant qu’on l’oriente le
+     ferait sauter sous le doigt ; en revanche, chercher à l’œil l’instant où
+     son bord passe pile par un sommet est impossible au degré près. On aligne
+     donc un BORD sur un point déjà dessiné : c’est le geste réel — on fait
+     pivoter l’équerre jusqu’à ce que son côté tombe sur le coin d’en face.
+     Les directions des bords se lisent sur les ancres, comme les positions :
+     l’instrument n’a pas à déclarer deux fois sa forme. */
+  function directionsLocales(){
+    const vues = new Set(), dirs = [];
+    (spec.ancresLocales || []).forEach(l => {
+      const n = Math.hypot(l[0], l[1]);
+      if (n < 1e-6) return;
+      const u = [l[0]/n, l[1]/n];
+      const cle = u[0].toFixed(3) + ',' + u[1].toFixed(3);
+      if (vues.has(cle)) return;
+      vues.add(cle); dirs.push(Math.atan2(u[1], u[0]));
+    });
+    return dirs;
+  }
+  function aimanterAngle(brut){
+    const cibles = (spec.aimants && spec.aimants()) || [];
+    const dirs = directionsLocales();
+    if (!cibles.length || !dirs.length) return brut;
+    let meilleur = brut, d0 = AIMANT_ANGLE;
+    cibles.forEach(c => {
+      const vers = Math.atan2(c[1] - y, c[0] - x);
+      if (Math.hypot(c[0] - x, c[1] - y) < 1e-6) return;
+      dirs.forEach(u => {
+        /* L’angle qu’il faudrait pour que ce bord pointe sur ce point. */
+        let cand = vers - u;
+        let ecart = cand - brut;
+        while (ecart > Math.PI) { cand -= 2*Math.PI; ecart -= 2*Math.PI; }
+        while (ecart < -Math.PI) { cand += 2*Math.PI; ecart += 2*Math.PI; }
+        if (Math.abs(ecart) < d0) { d0 = Math.abs(ecart); meilleur = cand; }
+      });
+    });
+    return meilleur;
+  }
   const surMove = (e) => {
     if (!mode) return;
     const p = versSVG(svg, e.clientX, e.clientY);
     if (mode === 'trans') { x = p.x - depart.dx; y = p.y - depart.dy; aimanter(); }
-    else a = depart.a0 + (Math.atan2(p.y - y, p.x - x) - depart.ang0);
+    else a = aimanterAngle(depart.a0 + (Math.atan2(p.y - y, p.x - x) - depart.ang0));
     appliquer();
     e.preventDefault(); e.stopPropagation();
   };
@@ -2491,7 +2544,11 @@ function sommetsAngleDroit(z, a, b){
 function qCe1Completer(){
   const liste = [];
   /* Deux côtés de l’angle droit tracés : il ne reste qu’à fermer
-     l’hypoténuse. C’est le cas d’entrée, volontairement facile. */
+     le grand côté. C’est le cas d’entrée, volontairement facile.
+     LE MOT « HYPOTÉNUSE » NE PARAÎT NULLE PART : il n’est pas au programme du
+     cycle 2, et nommer ce qu’on ne sait pas nommer ne fait pas apprendre. On
+     le désigne par ce que l’enfant voit — le grand côté, celui d’en face de
+     l’angle droit. */
   /* LES CATHÈTES SONT UN STOCK. Elles valaient (3,3) puis (4,3), toujours dans
      cet ordre : deux triangles, les mêmes à chaque partie. Le tracé du trait
      droit ayant ouvert toutes les pentes, plus rien n’oblige à les restreindre. */
@@ -2503,10 +2560,10 @@ function qCe1Completer(){
       amorce:[[t[1], t[0], t[2]]], sommetsFixes:[t[1], t[0], t[2]],
       solutions:[[t]],
       q:'Ferme ce triangle rectangle.',
-      sous:'Il ne manque que l’hypoténuse : pose le doigt sur un bout et va droit jusqu’à l’autre.'
+      sous:'Il ne manque que le grand côté opposé à l’angle droit : pose le doigt sur un bout et va droit jusqu’à l’autre.'
     }));
   });
-  /* L’hypoténuse est tracée : il faut PLACER le sommet de l’angle droit.
+  /* Le grand côté est tracé : il faut PLACER le sommet de l’angle droit.
      Nettement plus dur, et l’équerre y devient utile. */
   {
     /* L’ordre de ce mini-jeu est une PROGRESSION voulue — fermer, puis placer,
@@ -2535,7 +2592,7 @@ function qCe1Completer(){
         solutions:item.c.map(c => [[item.a, item.b, c]]),
         instruments:['equerre'],
         q:'Place le sommet de l’angle droit.',
-        sous:'L’hypoténuse est tracée. Pose l’équerre pour trouver le nœud, puis trace les deux côtés.'
+        sous:'Le grand côté opposé à l’angle droit est tracé. Pose l’équerre pour trouver le nœud, puis trace les deux côtés.'
       }));
       precedent = signatureFigure([[item.a, item.b, item.c[0]]]);
     }
@@ -2557,7 +2614,7 @@ function qCe1Completer(){
       solutions:[[c]],
       instruments:['regle','equerre'],
       q:'Complète ce rectangle sur le papier uni.',
-      sous:'Plus de repères : pose la règle et place le coin contre une graduation.'
+      sous:'Plus de repères : pose la règle, place le coin, puis reviens sur le premier coin pour fermer.'
     }));
   });
   return liste;
@@ -2607,7 +2664,7 @@ function qCe1Construire(){
         instruments:['regle','equerre'],
         q:'Un triangle rectangle.',
         enonce:'Construis un triangle rectangle. Les deux côtés de l’angle droit mesurent 6 et 4.',
-        sous:'Pose l’équerre pour l’angle droit, la règle pour les longueurs.'
+        sous:'Pose l’équerre pour l’angle droit, la règle pour les longueurs, puis reviens sur le premier coin pour fermer.'
       });
     }
   ];
@@ -2654,7 +2711,7 @@ function qCe2ConstruireUni(){
       enonce:'Construis un rectangle de longueur 7 et de largeur 3.',
       /* Le vocabulaire longueur / largeur, introduit dans M34, se
          réinvestit ici : intervertir les deux produit une figure fausse. */
-      sous:'La longueur est le grand côté, la largeur le petit. Pose la règle et compte les graduations.'
+      sous:'La longueur est le grand côté, la largeur le petit. Pose les quatre coins, puis reviens sur le premier pour fermer.'
     });
   };
   const carreCercle = () => {
@@ -2678,7 +2735,7 @@ function qCe2ConstruireUni(){
       instruments:['regle','equerre'],
       q:'Un triangle rectangle dont les côtés de l’angle droit mesurent 10 et 4.',
       enonce:'Construis un triangle rectangle dont les côtés de l’angle droit mesurent 10 et 4.',
-      sous:'L’équerre donne l’angle droit, la règle les deux longueurs.'
+      sous:'L’équerre donne l’angle droit, la règle les longueurs. Reviens sur le premier coin pour fermer.'
     });
   };
   return [rect(), carreCercle(), triRect()];
@@ -2940,7 +2997,7 @@ const CONTENU = {
       sousTitre: 'Sur le carton quadrillé : la même pièce, puis les pièces qui manquent.',
       miniJeux: [
         {id:'cp-reproduire', titre:'La même pièce', icone:'🔷', description:'Refais le modèle.', gen:qCpReproduire},
-        {id:'cp-completer', titre:'La pièce inachevée', icone:'🧩', description:'Ferme la figure.', gen:qCpCompleter},
+        {id:'cp-completer', titre:'Les pièces inachevées', icone:'🧩', description:'Ferme la figure.', gen:qCpCompleter},
         {id:'cp-assembler', titre:'Le petit vitrail', icone:'🪟', description:'Monte l’assemblage.', gen:qCpAssembler}
       ]
     },
@@ -2948,7 +3005,7 @@ const CONTENU = {
       sousTitre: 'Les côtés partent en biais, et le papier uni fait son entrée.',
       miniJeux: [
         {id:'ce1-reproduire', titre:'Le modèle oblique', icone:'📐', description:'Compte les biais.', gen:qCe1Reproduire},
-        {id:'ce1-completer', titre:'Le plan à finir', icone:'🧩', description:'Jusqu’au papier uni.', gen:qCe1Completer},
+        {id:'ce1-completer', titre:'Les pièces inachevées', icone:'🧩', description:'Jusqu’au papier uni.', gen:qCe1Completer},
         {id:'ce1-construire', titre:'La commande du client', icone:'📜', description:'Plus de modèle.', gen:qCe1Construire}
       ]
     },
@@ -3247,6 +3304,13 @@ function dessinerChantier(){
     const ferme = i === 0 && c.sommets.length >= 3;
     const cl = ferme ? 'sommet premier' : (i < c.nbFixes ? 'sommet fixe' : 'sommet');
     s += `<circle class="${cl}" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${ferme ? 8 : 6}"/>`;
+    /* LE REPÈRE DE FERMETURE SE NOMME. Un rond blanc cerclé d’orange ne dit
+       rien de lui-même — signalé au test : « que représente-t-il ? ». Or c’est
+       de lui que dépend le bouton « Vérifier », qui ne s’allume qu’une fois la
+       pièce fermée : ne pas le comprendre, c’est croire qu’on a fini alors que
+       la figure est encore ouverte. Il ne paraît qu’au moment où fermer est
+       possible, donc l’étiquette n’encombre jamais le début du tracé. */
+    if (ferme) s += `<text class="etiquette-fermer" x="${p[0].toFixed(1)}" y="${(p[1] - 14).toFixed(1)}">ferme ici</text>`;
   });
   g.innerHTML = s;
 }

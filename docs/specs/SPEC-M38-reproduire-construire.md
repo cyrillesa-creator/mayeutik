@@ -88,7 +88,7 @@ Progression : cinq manches, **quadrillé** d'abord (trois) puis **pointé** (deu
 
 Consigne synthétique en gras : **« Fais la même pièce. »**
 
-### 4.2 `cp-completer` — « La pièce inachevée »
+### 4.2 `cp-completer` — « Les pièces inachevées »
 
 **Six manches**, trois rectangles et trois carrés — la composition est imposée, ce sont les deux cas que le programme donne mot pour mot, mais les **formats se tirent sans remise** dans deux stocks : dix-sept rectangles (jamais carrés) et quatre côtés de carré. Varient aussi **quels deux côtés sont donnés** : l'amorce partait toujours du même coin, si bien que l'enfant reconnaissait la forme du L avant même de lire.
 
@@ -128,6 +128,12 @@ Deux effets de bord voulus : la main tremblée est **redressée**, et un côté 
 
 `ce1-completer` suit sur ses **trois manches quadrillées et pointées** ; ses deux manches sur papier **uni** restent à la pose de sommets, puisqu'il n'y a là aucun nœud et que l'exactitude vient de l'instrument. Le mélange n'est pas une incohérence : c'est la progression écrite du mini-jeu — fermer, puis placer, puis passer au papier uni.
 
+**Le mot « hypoténuse » ne paraît nulle part** : il n'est pas au programme du cycle 2, et nommer ce qu'on ne sait pas nommer ne fait pas apprendre. On dit **« le grand côté opposé à l'angle droit »**, ce que l'enfant voit.
+
+**Le repère de fermeture porte son nom.** Un rond blanc cerclé d'orange marque le sommet qui ferme la pièce — et c'est de lui que dépend le bouton « Vérifier », qui ne s'allume qu'une fois la figure close. Il porte l'étiquette « ferme ici » et ne paraît qu'au moment où fermer devient possible.
+
+**En rotation, c'est l'ANGLE qui s'aimante**, pas la position : un bord de l'instrument s'aligne exactement sur un point déjà dessiné quand il en passe à moins de 4°, sans que le coin bouge. Déplacer l'instrument pendant qu'on l'oriente le ferait sauter sous le doigt.
+
 **L'instrument s'aimante aux points déjà dessinés** — le donné et ce que l'enfant a produit, **jamais la solution**, sans quoi l'équerre désignerait la réponse sur « place le sommet de l'angle droit ». N'importe quelle graduation accroche, pas seulement l'origine : poser le 7 de la règle sur un sommet est aussi légitime que d'y poser le 0. L'aimantation ne joue qu'en translation ; pendant une rotation, l'enfant cherche une direction, pas une position.
 
 **Le tracé passe SOUS les instruments**, exception assumée à l'ordre de lecture du module (« le travail de l'enfant par-dessus tout ») : sa surface de capture couvre toute la vue, si bien qu'au-dessus elle volerait ses appuis à l'équerre — et « place le sommet de l'angle droit » est précisément la manche où l'instrument fait le travail.
@@ -159,7 +165,7 @@ Reproduction sur quadrillé puis pointé, avec une nouveauté qui change tout : 
 
 C'est le vrai saut du CE1 et le point où beaucoup d'enfants décrochent. Progression lente : oblique à 45° d'abord, puis pentes 2/1 et 3/1.
 
-### 5.2 `ce1-completer` — « Le plan à finir »
+### 5.2 `ce1-completer` — « Les pièces inachevées »
 
 Complétion sur les trois supports, avec le triangle rectangle comme figure nouvelle : deux côtés de l'angle droit sont tracés, il faut fermer l'hypoténuse ; ou l'hypoténuse et un côté sont tracés, et il faut placer le sommet de l'angle droit — nettement plus dur, et l'équerre devient utile.
 
