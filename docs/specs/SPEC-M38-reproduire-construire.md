@@ -90,6 +90,13 @@ Consigne synthétique en gras : **« Fais la même pièce. »**
 
 ### 4.2 `cp-completer` — « La pièce inachevée »
 
+**Six manches**, trois rectangles et trois carrés — la composition est imposée, ce sont les deux cas que le programme donne mot pour mot, mais les **formats se tirent sans remise** dans deux stocks : dix-sept rectangles (jamais carrés) et quatre côtés de carré. Varient aussi **quels deux côtés sont donnés** : l'amorce partait toujours du même coin, si bien que l'enfant reconnaissait la forme du L avant même de lire.
+
+La file se réordonne sur la **signature de la figure**, pas sur le texte de la consigne : deux rectangles de formats différents ne sont pas une répétition de contenu, deux fois la même figure si. Une version antérieure réordonnait sur la consigne et ne produisait, mesuré, **qu'une seule série sur 300 parties**.
+
+Le **carré miroir** doit tenir dans le panneau au même titre que l'autre — l'enfant a le droit de fermer d'un côté ou de l'autre, et une solution hors quadrillage n'est pas traçable.
+
+
 Le mini-jeu le plus formateur du palier, et les deux cas sont donnés mot pour mot par le texte :
 
 - « compléter un **rectangle dont deux côtés consécutifs sont déjà tracés** » ;
