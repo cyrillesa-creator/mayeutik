@@ -997,6 +997,7 @@ const PX_PAR_UNITE = MoteurCompas.UNITE;
    les figures au compas gardent exactement leur taille apparente. */
 const MAILLE = 35;
 const AIMANT_ANCRE = 13;        // rayon d’accrochage sur une graduation
+const AIMANT_INSTRUMENT = 14;   // rayon d’aimantation d’un instrument sur un point dessiné
 const SEUIL_GLISSEMENT = 8;     // au-delà, le geste est un défilement (§19)
 const TOL_UNI = 0.03;           // 3 % de la longueur de référence
 const TOL_ESQUISSE = 0.12;      // mode « à main levée » du CE2
@@ -1920,10 +1921,33 @@ function creerPosable(hote, spec){
     g.classList.add('saisi');
     e.preventDefault(); e.stopPropagation();
   };
+  /* L’INSTRUMENT S’AIMANTE AUX POINTS DÉJÀ DESSINÉS. Sans cela il ne sert à
+     rien : une équerre dont le coin tombe à trois pixels du sommet ne dit pas
+     si l’angle est droit, elle donne une impression. C’est le geste réel — on
+     cale l’instrument SUR un point, on ne le pose pas à côté.
+     N’IMPORTE QUELLE GRADUATION s’aimante, pas seulement l’origine : poser le
+     7 de la règle sur un sommet est aussi légitime que d’y poser le 0, et
+     c’est ainsi qu’on mesure. On retient le rapprochement le plus court, et
+     l’aimantation ne joue qu’en TRANSLATION — pendant une rotation, l’enfant
+     cherche une direction, pas une position. */
+  function aimanter(){
+    const cibles = (spec.aimants && spec.aimants()) || [];
+    if (!cibles.length) return;
+    const co = Math.cos(a), si = Math.sin(a);
+    let meilleur = null, d0 = AIMANT_INSTRUMENT;
+    (spec.ancresLocales || []).forEach(loc => {
+      const w = [x + loc[0]*co - loc[1]*si, y + loc[0]*si + loc[1]*co];
+      cibles.forEach(c => {
+        const d = Math.hypot(c[0]-w[0], c[1]-w[1]);
+        if (d < d0) { d0 = d; meilleur = [c[0]-w[0], c[1]-w[1]]; }
+      });
+    });
+    if (meilleur) { x += meilleur[0]; y += meilleur[1]; }
+  }
   const surMove = (e) => {
     if (!mode) return;
     const p = versSVG(svg, e.clientX, e.clientY);
-    if (mode === 'trans') { x = p.x - depart.dx; y = p.y - depart.dy; }
+    if (mode === 'trans') { x = p.x - depart.dx; y = p.y - depart.dy; aimanter(); }
     else a = depart.a0 + (Math.atan2(p.y - y, p.x - x) - depart.ang0);
     appliquer();
     e.preventDefault(); e.stopPropagation();
@@ -3364,6 +3388,29 @@ function rendrePoser(q){
   majBoutons();
 }
 
+/* LES POINTS SUR LESQUELS UN INSTRUMENT S’AIMANTE : ce qui est DONNÉ et ce
+   que l’enfant a DÉJÀ PRODUIT, jamais la solution — aimanter l’équerre sur la
+   réponse la donnerait. Lus sur l’état du chantier, quel que soit le geste :
+   les sommets posés, les points de l’amorce, et les bouts des traits en mode
+   tracé. */
+function pointsRemarquables(){
+  const c = chantier;
+  if (!c) return [];
+  const pts = [];
+  (c.q.amorce || []).forEach(ligne => ligne.forEach(p => pts.push(p)));
+  (c.sommets || []).forEach(p => pts.push(p));
+  (c.contours || []).forEach(ct => ct.forEach(p => pts.push(p)));
+  if (c.trace) [...c.trace.pre, ...c.trace.traces].forEach(k =>
+    boutsSeg(k).forEach(g => pts.push(c.trace.versScene(g))));
+  const vus = new Set(), sortie = [];
+  pts.forEach(p => {
+    const cle = p[0].toFixed(1) + ',' + p[1].toFixed(1);
+    if (vus.has(cle)) return;
+    vus.add(cle); sortie.push(p);
+  });
+  return sortie;
+}
+
 /* Les instruments sont les MÊMES qu’on pose des sommets ou qu’on trace : ce
    sont des objets qu’on promène sur le papier, et leur bouton ne dépend pas
    de ce que l’enfant produit. Un seul endroit pour les deux rendus. */
@@ -3380,6 +3427,7 @@ function brancherInstruments(q, barre, svg){
       const p = creerPosable(svg.getElementById('instruments'), Object.assign(skin,
         {x: nom === 'regle' ? zt.x0 + zt.l/2 : zt.x0 + 24,
          y: zt.y1 - skin.encombrement, angle: 0,
+         aimants: pointsRemarquables,
          surChangement: () => dessinerAncres()}));
       chantier.posables.push(p);
       dessinerAncres(); sonClic();

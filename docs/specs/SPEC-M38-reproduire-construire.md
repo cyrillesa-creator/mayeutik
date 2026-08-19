@@ -121,6 +121,8 @@ Deux effets de bord voulus : la main tremblée est **redressée**, et un côté 
 
 `ce1-completer` suit sur ses **trois manches quadrillées et pointées** ; ses deux manches sur papier **uni** restent à la pose de sommets, puisqu'il n'y a là aucun nœud et que l'exactitude vient de l'instrument. Le mélange n'est pas une incohérence : c'est la progression écrite du mini-jeu — fermer, puis placer, puis passer au papier uni.
 
+**L'instrument s'aimante aux points déjà dessinés** — le donné et ce que l'enfant a produit, **jamais la solution**, sans quoi l'équerre désignerait la réponse sur « place le sommet de l'angle droit ». N'importe quelle graduation accroche, pas seulement l'origine : poser le 7 de la règle sur un sommet est aussi légitime que d'y poser le 0. L'aimantation ne joue qu'en translation ; pendant une rotation, l'enfant cherche une direction, pas une position.
+
 **Le tracé passe SOUS les instruments**, exception assumée à l'ordre de lecture du module (« le travail de l'enfant par-dessus tout ») : sa surface de capture couvre toute la vue, si bien qu'au-dessus elle volerait ses appuis à l'équerre — et « place le sommet de l'angle droit » est précisément la manche où l'instrument fait le travail.
 
 
