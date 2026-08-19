@@ -2425,11 +2425,11 @@ function qCe1Completer(){
   for (let i = 0; i < 2; i++) {
     const t = poserDansZone(ZONE_PLEINE, [triangleRect(3 + i, 3)])[0];
     liste.push(mancheBase({
-      support: i === 0 ? 'quadrille' : 'pointe', libre:false, zone:'pleine',
+      mode:'tracer', support: i === 0 ? 'quadrille' : 'pointe', libre:false, zone:'pleine',
       amorce:[[t[1], t[0], t[2]]], sommetsFixes:[t[1], t[0], t[2]],
       solutions:[[t]],
       q:'Ferme ce triangle rectangle.',
-      sous:'Les deux côtés de l’angle droit sont tracés : il ne manque que l’hypoténuse.'
+      sous:'Il ne manque que l’hypoténuse : pose le doigt sur un bout et va droit jusqu’à l’autre.'
     }));
   }
   /* L’hypoténuse est tracée : il faut PLACER le sommet de l’angle droit.
@@ -2454,12 +2454,12 @@ function qCe1Completer(){
       item = {a, b, c};
     }
     if (item) liste.push(mancheBase({
-      support:'quadrille', libre:false, zone:'pleine',
+      mode:'tracer', support:'quadrille', libre:false, zone:'pleine',
       amorce:[[item.a, item.b]], sommetsFixes:[item.a, item.b],
       solutions:item.c.map(c => [[item.a, item.b, c]]),
       instruments:['equerre'],
       q:'Place le sommet de l’angle droit.',
-      sous:'L’hypoténuse est tracée. Pose l’équerre pour trouver un nœud d’où le segment se voit à angle droit.'
+      sous:'L’hypoténuse est tracée. Pose l’équerre pour trouver le nœud, puis trace les deux côtés.'
     }));
   }
   /* Premier passage au PAPIER UNI : plus d’aimantation, l’instrument
@@ -3240,10 +3240,23 @@ function fondScene(q){
      l’instrument posé dessus, puis ses graduations, puis le travail de
      l’enfant par-dessus tout. Les posables étant ajoutés au fil des clics,
      leur groupe doit être réservé ICI — ajoutés à la fin du SVG, ils
-     recouvriraient les ancres qu’ils publient. */
-  scene().innerHTML = s
-    + `<g id="instruments"></g><g id="ancres"></g><g id="chantier"></g><g id="correction"></g>`
-    + `<rect id="zonePose" x="${zt.x0 - 10}" y="${zt.y0 - 10}" width="${zt.l + 20}" height="${zt.h + 20}" class="cible-pose"/>`;
+     recouvriraient les ancres qu’ils publient.
+     LE TRACÉ, LUI, PASSE DESSOUS, et c’est une exception qui se justifie : sa
+     surface de capture couvre toute la vue, si bien qu’au-dessus elle volerait
+     ses appuis à l’équerre. Une équerre posée sur une feuille cache d’ailleurs
+     ce qu’elle recouvre — et l’enfant peut la déplacer pour voir. */
+  /* LA CIBLE DE POSE PASSE EN PREMIER, donc TOUT EN DESSOUS. Ajoutée en
+     dernier, elle était au-dessus de tout et avalait chaque appui : les
+     INSTRUMENTS N’ONT JAMAIS PU ÊTRE DÉPLACÉS, alors qu’ils sont le seul
+     moyen d’être exact sur papier uni. Le défaut est antérieur à la reprise du
+     moteur, vérifié sur la version d’avant. Elle n’a besoin d’être qu’au
+     fond : son rôle est de rendre saisissables les points VIDES du panneau —
+     sous un point vide d’un `<svg>`, la cible désignée dépend du moteur de
+     rendu —, et un point vide n’a par définition rien au-dessus de lui. */
+  scene().innerHTML =
+    `<rect id="zonePose" x="${zt.x0 - 10}" y="${zt.y0 - 10}" width="${zt.l + 20}" height="${zt.h + 20}" class="cible-pose"/>`
+    + s
+    + `<g id="tracage"></g><g id="instruments"></g><g id="ancres"></g><g id="chantier"></g><g id="correction"></g>`;
   $('plan').hidden = false;
   return zt;
 }
@@ -3331,6 +3344,30 @@ function rendrePoser(q){
       barre.appendChild(b);
     });
   }
+  brancherInstruments(q, barre, svg);
+  if (q.compas) brancherCompas(q, barre, svg);
+  {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'outil outil-annuler'; b.textContent = '↶ annuler';
+    b.addEventListener('click', () => { if (!verrouille) { annuler(); sonClic(); } });
+    barre.appendChild(b);
+  }
+
+  brancherPose(svg, (p) => {
+    if (chantier.enAttenteCentre) { poserCercle(p); return; }
+    poserSommet(p);
+  });
+
+  $('btnValider').style.display = 'block';
+  $('btnValider').textContent = 'Vérifier ✓';
+  $('btnValider').onclick = () => validerManche(q);
+  majBoutons();
+}
+
+/* Les instruments sont les MÊMES qu’on pose des sommets ou qu’on trace : ce
+   sont des objets qu’on promène sur le papier, et leur bouton ne dépend pas
+   de ce que l’enfant produit. Un seul endroit pour les deux rendus. */
+function brancherInstruments(q, barre, svg){
   (q.instruments || []).forEach(nom => {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'outil';
@@ -3349,23 +3386,6 @@ function rendrePoser(q){
     });
     barre.appendChild(b);
   });
-  if (q.compas) brancherCompas(q, barre, svg);
-  {
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = 'outil outil-annuler'; b.textContent = '↶ annuler';
-    b.addEventListener('click', () => { if (!verrouille) { annuler(); sonClic(); } });
-    barre.appendChild(b);
-  }
-
-  brancherPose(svg, (p) => {
-    if (chantier.enAttenteCentre) { poserCercle(p); return; }
-    poserSommet(p);
-  });
-
-  $('btnValider').style.display = 'block';
-  $('btnValider').textContent = 'Vérifier ✓';
-  $('btnValider').onclick = () => validerManche(q);
-  majBoutons();
 }
 
 /* ---------- Le compas ----------
@@ -3455,7 +3475,7 @@ function rendreTracer(q){
   const sup = SUPPORTS[q.support];
 
   const trace = creerTraceQuadrillage({
-    svg, groupe:svg.getElementById('chantier'), zone:zt,
+    svg, groupe:svg.getElementById('tracage'), zone:zt,
     pre:segmentsDonnes(q.amorce, zt),
     fondGrille:(z) => sup.fond(z),
     verre:(i) => verreDe(pos + i),
@@ -3485,6 +3505,10 @@ function rendreTracer(q){
     });
     outils.push(b); barre.appendChild(b);
   });
+  /* L’instrument reste disponible en tracé : sur « place le sommet de l’angle
+     droit », c’est l’équerre qui fait trouver le nœud, le quadrillage ne
+     faisant que rendre le trait exact une fois le nœud choisi. */
+  brancherInstruments(q, barre, svg);
   /* « Annuler » défait le DERNIER TRAIT, pas le dernier pas : l’enfant a tracé
      un côté d’un geste, il s’attend à le retirer d’un geste. */
   const ann = document.createElement('button');

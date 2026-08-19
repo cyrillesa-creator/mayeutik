@@ -119,6 +119,10 @@ C'est donc la **règle du geste** qui change : le crayon ne demande plus « à q
 
 Deux effets de bord voulus : la main tremblée est **redressée**, et un côté de quatre s'écrit d'un seul geste. Un aperçu en pointillé montre le trait avant que le doigt ne se lève.
 
+`ce1-completer` suit sur ses **trois manches quadrillées et pointées** ; ses deux manches sur papier **uni** restent à la pose de sommets, puisqu'il n'y a là aucun nœud et que l'exactitude vient de l'instrument. Le mélange n'est pas une incohérence : c'est la progression écrite du mini-jeu — fermer, puis placer, puis passer au papier uni.
+
+**Le tracé passe SOUS les instruments**, exception assumée à l'ordre de lecture du module (« le travail de l'enfant par-dessus tout ») : sa surface de capture couvre toute la vue, si bien qu'au-dessus elle volerait ses appuis à l'équerre — et « place le sommet de l'angle droit » est précisément la manche où l'instrument fait le travail.
+
 
 
 ### Le geste : les obliques passent, parce que la règle du trait a changé
