@@ -679,7 +679,8 @@ async function tracerChemin(page, chemin){
         const out = [];
         for (let i = 0; i < file.length; i++) {
           pos = i; manche();
-          const g = document.getElementById('chantier');
+          /* Le tracé a son propre groupe, dessiné SOUS les instruments. */
+          const g = document.getElementById('tracage');
           out.push({support:file[i].support,
             lignes:g.querySelectorAll('line.maille').length,
             points:g.querySelectorAll('circle.noeud').length,
@@ -898,7 +899,7 @@ async function tracerChemin(page, chemin){
     for (let m = 0; m < 5; m++) {
       await tracerChemin(page);
       const enTracant = await page.evaluate(() =>
-        [...document.querySelectorAll('#chantier .trace-face')].map(e => e.getAttribute('fill')));
+        [...document.querySelectorAll('#tracage .trace-face')].map(e => e.getAttribute('fill')));
       await page.evaluate(async () => {
         desarmerAutoSuivant();
         document.getElementById('btnValider').click();
@@ -947,7 +948,7 @@ async function tracerChemin(page, chemin){
       }, rate);
       await tracerChemin(page, chemin);
       const enTracant = await page.evaluate(() =>
-        [...document.querySelectorAll('#chantier .trace-face')].map(e => e.getAttribute('fill'))[0]);
+        [...document.querySelectorAll('#tracage .trace-face')].map(e => e.getAttribute('fill'))[0]);
       const ok = await page.evaluate(async () => {
         desarmerAutoSuivant();
         document.getElementById('btnValider').click();
@@ -971,6 +972,97 @@ async function tracerChemin(page, chemin){
       && apresEchec[2].panneau.length === 2,
       JSON.stringify(reussies.map(x => x.enTracant + '→' + x.panneau.join('|'))));
 
+  }
+
+
+  /* ============================================================
+     LE DOIGT DE L’ENFANT, ET CE QU’ON LUI DIT
+     ------------------------------------------------------------
+     Trois retours d’appareil au même endroit : le sommet ne se pose pas
+     toujours, le rond blanc ne dit rien, et « Vérifier » n’apparaît pas alors
+     qu’on croit avoir fini. Les trois se tiennent : un tap refusé laisse la
+     pièce ouverte, et rien n’explique qu’il faut la fermer.
+     ============================================================ */
+  {
+    await page.goto(base + '?competence=ce1-completer');
+    await page.waitForTimeout(400);
+    const prep = await page.evaluate(() => {
+      const i = file.findIndex(q => q.support === 'uni');
+      pos = i; manche();
+      return {sol:file[pos].solutions[0][0], seuil:SEUIL_GLISSEMENT};
+    });
+    const taper = async (pt, derive) => {
+      const e = await page.evaluate((p) => {
+        const svg = document.getElementById('scene'), m = svg.getScreenCTM(), q = svg.createSVGPoint();
+        q.x = p[0]; q.y = p[1];
+        const t = q.matrixTransform(m);
+        return {x:t.x, y:t.y};
+      }, pt);
+      await page.mouse.move(e.x, e.y);
+      await page.mouse.down();
+      if (derive) for (let i = 1; i <= 4; i++) await page.mouse.move(e.x + derive*i/4, e.y + derive*i/4);
+      await page.mouse.up();
+      await page.waitForTimeout(50);
+      return page.evaluate(() => ({sommets:chantier.sommets.length,
+        contours:chantier.contours.length,
+        valider:!document.getElementById('btnValider').disabled,
+        etiquette:!!document.querySelector('.etiquette-fermer')}));
+    };
+    /* UN TAP QUI DÉRIVE RESTE UN TAP. À 8 px de seuil, un doigt d’enfant sur
+       du verre passait pour un défilement et ne posait rien. */
+    const avant = await page.evaluate(() => chantier.sommets.length);
+    const derive = await taper(prep.sol[2], 10);
+    T('doigt — un tap qui dérive de 10 px pose quand même le sommet',
+      derive.sommets === avant + 1, avant + ' → ' + derive.sommets + ' (seuil ' + prep.seuil + ' px)');
+    T('doigt — le repère de fermeture porte son étiquette',
+      derive.etiquette === true, 'étiquette « ferme ici » ' + (derive.etiquette ? 'présente' : 'absente'));
+    T('doigt — tant que la pièce est ouverte, « Vérifier » reste éteint',
+      derive.valider === false && derive.contours === 0, JSON.stringify(derive));
+    const ferme = await taper(prep.sol[3], 0);
+    T('doigt — et il s’allume dès que la pièce est fermée',
+      ferme.valider === true && ferme.contours === 1, JSON.stringify(ferme));
+  }
+
+  /* ============================================================
+     LE CE1 — le tracé et l’INSTRUMENT sur le même écran
+     ------------------------------------------------------------
+     La surface de capture du tracé couvre toute la vue : au-dessus, elle
+     volerait ses appuis à l’équerre, et le seul mini-jeu où l’instrument fait
+     le travail deviendrait injouable. Le tracé passe donc dessous.
+     ============================================================ */
+  {
+    await page.goto(base + '?competence=ce1-completer');
+    await page.waitForTimeout(400);
+    const plan = await page.evaluate(() => {
+      const modes = file.map(q => ({mode:q.mode, support:q.support}));
+      const i = file.findIndex(q => (q.instruments || []).indexOf('equerre') >= 0 && q.support !== 'uni');
+      pos = i; manche();
+      const barre = [...document.querySelectorAll('#barreOutils .outil')].map(b => b.textContent.trim());
+      const bEq = [...document.querySelectorAll('#barreOutils .outil')].find(b => /équerre/i.test(b.textContent));
+      if (bEq) bEq.click();
+      const svg = document.getElementById('scene');
+      const eq = svg.querySelector('#instruments .posable');
+      let atteignable = null;
+      if (eq) {
+        const r = eq.getBoundingClientRect();
+        const el = document.elementFromPoint(r.x + r.width * 0.2, r.y + r.height * 0.8);
+        atteignable = !!(el && el.closest('#instruments'));
+      }
+      const ids = [...svg.children].map(e => e.id).filter(Boolean);
+      return {modes, barre, pose:!!eq, atteignable,
+              ordre:ids.indexOf('tracage') < ids.indexOf('instruments'), ids};
+    });
+    /* Contrôle STRUCTUREL et non positionnel : c’est le support qui décide du
+       geste, pas le rang de la manche — sans quoi le test se casse au premier
+       changement de composition. */
+    T('plan à finir — le geste suit le SUPPORT : tracé sur nœuds, pose sur papier uni',
+      plan.modes.every(m => (m.support === 'uni') === (m.mode !== 'tracer'))
+      && plan.modes.some(m => m.mode === 'tracer') && plan.modes.some(m => m.support === 'uni'),
+      JSON.stringify(plan.modes.map(m => m.support + ':' + (m.mode || 'poser'))));
+    T('plan à finir — l’équerre reste offerte en mode tracé',
+      plan.barre.some(t => /équerre/i.test(t)) && plan.pose === true, JSON.stringify(plan.barre));
+    T('plan à finir — et le doigt la trouve : la surface du tracé passe DESSOUS',
+      plan.atteignable === true && plan.ordre === true, JSON.stringify(plan.ids));
   }
 
   console.log('\nErreurs JS/console/réseau : ' + (erreurs.length ? JSON.stringify(erreurs.slice(0,3)) : 'aucune'));
