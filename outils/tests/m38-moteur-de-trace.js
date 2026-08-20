@@ -1065,6 +1065,128 @@ async function tracerChemin(page, chemin){
       plan.atteignable === true && plan.ordre === true, JSON.stringify(plan.ids));
   }
 
+
+  /* ============================================================
+     L’INSTRUMENT S’AIMANTE AUX POINTS DÉJÀ DESSINÉS
+     ------------------------------------------------------------
+     Une équerre dont le coin tombe à trois pixels du sommet ne dit pas si
+     l’angle est droit : elle donne une impression. On cale l’instrument SUR
+     un point, on ne le pose pas à côté.
+     ============================================================ */
+  {
+    await page.goto(base + '?competence=ce1-completer');
+    await page.waitForTimeout(400);
+    const prep = await page.evaluate(() => {
+      const i = file.findIndex(q => (q.instruments || []).indexOf('equerre') >= 0 && q.support !== 'uni');
+      pos = i; manche();
+      [...document.querySelectorAll('#barreOutils .outil')]
+        .find(x => /équerre/i.test(x.textContent)).click();
+      const svg = document.getElementById('scene');
+      const eq = document.querySelector('#instruments .posable');
+      const t = eq.getAttribute('transform').match(/translate\(([-\d.]+),([-\d.]+)\)/);
+      const corps = eq.querySelector('.corps').getBoundingClientRect();
+      /* La SOLUTION ne doit surtout PAS être aimantable : l’équerre
+         désignerait la réponse, et l’exercice deviendrait un jeu d’adresse. */
+      const sol = file[pos].solutions.map(s2 => s2[0][2]);
+      const donnes = pointsRemarquables();
+      const proche = (p, l) => l.some(q => Math.hypot(q[0]-p[0], q[1]-p[1]) < 1);
+      return {x:+t[1], y:+t[2], ech:svg.getScreenCTM().a,
+              prise:{x:corps.x + corps.width/2, y:corps.y + corps.height/2},
+              cibles:donnes, solAimantable:sol.some(p => proche(p, donnes)), nbSol:sol.length};
+    });
+    const glisserVers = async (cible, ecart) => {
+      await page.evaluate(([x, y]) => {
+        document.querySelector('#instruments .posable')
+          .setAttribute('transform', `translate(${x},${y}) rotate(0)`);
+      }, [prep.x, prep.y]);
+      const dx = (cible[0] + ecart*0.6) - prep.x, dy = (cible[1] + ecart*0.8) - prep.y;
+      await page.mouse.move(prep.prise.x, prep.prise.y);
+      await page.mouse.down();
+      for (let i = 1; i <= 10; i++)
+        await page.mouse.move(prep.prise.x + dx*prep.ech*i/10, prep.prise.y + dy*prep.ech*i/10);
+      await page.mouse.up();
+      return page.evaluate((c) => {
+        const t = document.querySelector('#instruments .posable')
+          .getAttribute('transform').match(/translate\(([-\d.]+),([-\d.]+)\)/);
+        return +Math.hypot(+t[1]-c[0], +t[2]-c[1]).toFixed(2);
+      }, cible);
+    };
+    T('aimant — les points aimantants existent, et ce sont ceux du DONNÉ',
+      prep.cibles.length >= 2, JSON.stringify(prep.cibles.map(p => p.map(Math.round))));
+    T('aimant — la solution n’en fait PAS partie : l’équerre ne désigne pas la réponse',
+      prep.solAimantable === false, prep.nbSol + ' solution(s) possible(s)');
+    const pres = await glisserVers(prep.cibles[0], 9);
+    T('aimant — approché à 9 unités, le coin de l’équerre tombe PILE sur le sommet',
+      pres < 0.01, 'écart ' + pres);
+    const loin = await glisserVers(prep.cibles[0], 20);
+    T('aimant — approché à 20 unités, il reste libre : l’instrument n’est pas collant',
+      loin > 5, 'écart ' + loin);
+
+    /* EN ROTATION, C’EST L’ANGLE QUI S’AIMANTE, pas la position — déplacer
+       l’instrument pendant qu’on l’oriente le ferait sauter sous le doigt. On
+       aligne un BORD sur un point déjà dessiné : c’est le geste réel, on fait
+       pivoter l’équerre jusqu’à ce que son côté tombe sur le coin d’en face.
+       La rotation est PILOTÉE EN ANGLE DE SCÈNE ; la piloter en pixels écran
+       mélangeait deux repères et le test se trompait de coupable. */
+    const angles = await page.evaluate(() => {
+      const essai = (ecartDeg) => {
+        const i = file.findIndex(q => (q.instruments || []).indexOf('equerre') >= 0 && q.support !== 'uni');
+        pos = i; manche();
+        [...document.querySelectorAll('#barreOutils .outil')]
+          .find(x => /équerre/i.test(x.textContent)).click();
+        const p = chantier.posables[0], g = p.g, poi = g.querySelector('.poignee');
+        const svg = document.getElementById('scene'), m = svg.getScreenCTM();
+        const cibles = pointsRemarquables();
+        const vers = (pt) => { const q = svg.createSVGPoint(); q.x = pt[0]; q.y = pt[1];
+          const t = q.matrixTransform(m); return [t.x, t.y]; };
+        const inv = (X, Y) => { const q = svg.createSVGPoint(); q.x = X; q.y = Y;
+          const t = q.matrixTransform(m.inverse()); return [t.x, t.y]; };
+        /* L’ÉVÉNEMENT PART DE LA POIGNÉE : c’est `e.target` qui distingue
+           rotation et translation. Dispatché sur le groupe, il se lisait comme
+           une translation et le test échouait pour une raison étrangère. */
+        const env = (t, P, sur) => { const e = vers(P);
+          (sur || g).dispatchEvent(new PointerEvent(t, {clientX:e[0], clientY:e[1], pointerId:31, bubbles:true})); };
+        const e0 = p.etat(), corps = g.querySelector('.corps').getBoundingClientRect();
+        const prise = inv(corps.x + corps.width/2, corps.y + corps.height/2);
+        const d = [cibles[0][0] - e0.x, cibles[0][1] - e0.y];
+        env('pointerdown', prise);
+        for (let k = 1; k <= 8; k++) env('pointermove', [prise[0] + d[0]*k/8, prise[1] + d[1]*k/8]);
+        env('pointerup', [prise[0] + d[0], prise[1] + d[1]]);
+        const o = p.etat();
+        const vise = Math.atan2(cibles[1][1] - o.y, cibles[1][0] - o.x);
+        const pr = poi.getBoundingClientRect();
+        const prise2 = inv(pr.x + pr.width/2, pr.y + pr.height/2);
+        const R = Math.hypot(prise2[0] - o.x, prise2[1] - o.y);
+        const ang0 = Math.atan2(prise2[1] - o.y, prise2[0] - o.x);
+        const cible = ang0 + (vise + ecartDeg*Math.PI/180 - o.angle);
+        env('pointerdown', prise2, poi);
+        for (let k = 1; k <= 12; k++) { const t = ang0 + (cible - ang0)*k/12;
+          env('pointermove', [o.x + R*Math.cos(t), o.y + R*Math.sin(t)]); }
+        env('pointerup', [o.x + R*Math.cos(cible), o.y + R*Math.sin(cible)]);
+        const fin = p.etat();
+        let dmin = Infinity;
+        p.ancres().forEach(A => {
+          const u = [A[0]-fin.x, A[1]-fin.y]; if (Math.hypot(u[0], u[1]) < 1e-6) return;
+          const v = [cibles[1][0]-fin.x, cibles[1][1]-fin.y];
+          dmin = Math.min(dmin, Math.abs(Math.atan2(u[0]*v[1]-u[1]*v[0], u[0]*v[0]+u[1]*v[1])));
+        });
+        return {coin:Math.hypot(o.x-cibles[0][0], o.y-cibles[0][1]) < 0.01,
+                ecart:+(dmin*180/Math.PI).toFixed(2),
+                bouge:+Math.hypot(fin.x-o.x, fin.y-o.y).toFixed(4)};
+      };
+      return {pres:essai(3), loin:essai(20)};
+    });
+    T('aimant — le coin est bien posé sur un sommet avant qu’on tourne',
+      angles.pres.coin === true && angles.loin.coin === true, JSON.stringify(angles));
+    T('aimant — tourné à 3° d’un sommet, le bord de l’équerre pointe PILE dessus',
+      angles.pres.ecart < 0.01, 'écart final ' + angles.pres.ecart + '°');
+    T('aimant — tourné à 20°, il reste où l’enfant l’a mis',
+      angles.loin.ecart > 10, 'écart final ' + angles.loin.ecart + '°');
+    T('aimant — et l’aimantation d’angle ne déplace jamais l’instrument',
+      angles.pres.bouge === 0 && angles.loin.bouge === 0,
+      JSON.stringify([angles.pres.bouge, angles.loin.bouge]));
+  }
+
   console.log('\nErreurs JS/console/réseau : ' + (erreurs.length ? JSON.stringify(erreurs.slice(0,3)) : 'aucune'));
   console.log(`\n${ok} OK, ${ko} KO`);
   console.log(ko === 0 && erreurs.length === 0 ? 'EXIT:SUCCES' : 'EXIT:ECHEC');
