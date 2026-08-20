@@ -627,11 +627,16 @@ const JEUX = ['cp-reproduire','cp-completer','cp-assembler',
     const a0 = anc[3];
     poserSommet([a0[0] + 6, a0[1] + 5]);
     const pose = chantier.sommets[0];
-    return {tol:tolAvant, ref, nbAncres:anc.length,
+    return {tol:tolAvant, ref, nbAncres:anc.length, unite:PX_PAR_UNITE,
             colle: Math.hypot(pose[0]-a0[0], pose[1]-a0[1]) < 0.01};
   });
-  T('tolérance uni = 3 % de la longueur de référence',
-    Math.abs(uni.tol - 0.03 * uni.ref) < 1e-9, `${uni.tol.toFixed(2)} px pour une référence de ${uni.ref.toFixed(0)}`);
+  /* 6 % de la longueur de référence, PLAFONNÉS à 0,4 unité. Les 3 % d’avant
+     jugeaient la plus petite figure à moins de 4 px sous le doigt ; le
+     plafond, lui, garde la tolérance sous la demi-unité, sans quoi un côté
+     de 10 et un côté de 11 deviendraient le même. */
+  T('tolérance uni = 6 % de la longueur de référence, plafonnés à 0,4 unité',
+    Math.abs(uni.tol - Math.min(0.06 * uni.ref, 0.4 * uni.unite)) < 1e-9,
+    `${uni.tol.toFixed(2)} px pour une référence de ${uni.ref.toFixed(0)}`);
   T('la règle graduée publie ses graduations comme ancres', uni.nbAncres >= 13, uni.nbAncres);
   T('un point posé près d’une graduation s’y accroche exactement', uni.colle);
 

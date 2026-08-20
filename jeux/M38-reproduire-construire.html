@@ -809,6 +809,12 @@ const MoteurCompas = (function(){
     let actif = false;
     const surDown = (ev) => {
       if (detruit || bloque || phase === 'trace') return;
+      /* Un geste parti d’un instrument est un déplacement d’instrument, pas
+         une pose de pointe — et surtout, capturer le pointeur ici le volerait
+         à l’instrument, qui resterait figé sous le doigt (`setPointerCapture`
+         est exclusif). La pointe garde ses aimants : elle n’a pas besoin de
+         passer par la règle pour tomber juste. */
+      if (ev.target && ev.target.closest && ev.target.closest('#instruments')) return;
       /* Une seule lecture de la matrice écran → SVG par geste : la page a pu
          défiler ou tourner depuis le geste précédent, elle ne bougera plus
          pendant celui-ci. */
@@ -1013,7 +1019,23 @@ const AIMANT_ANGLE = 0.07;      // ~4° : au-delà, l’enfant vise ailleurs
    donc qu’une seconde barrière, et il n’avait aucune raison d’être plus
    sévère que le seuil de clic des navigateurs, qui vaut une dizaine de px. */
 const SEUIL_GLISSEMENT = 16;    // au-delà, le geste est un défilement (§19)
-const TOL_UNI = 0.03;           // 3 % de la longueur de référence
+/* 6 %, PLAFONNÉS À 0,4 UNITÉ. À 3 %, la figure la plus courte du CE1 se
+   jugeait à 3,75 unités de scène — moins de 4 px à l’écran : un enfant qui
+   avait posé les quatre coins d’un rectangle juste au doigt était refusé
+   parce qu’un sommet avait glissé de l’épaisseur d’un trait. Ce n’est pas
+   une exigence de précision, c’est une loterie.
+   LA BORNE N’EST PAS UN POURCENTAGE, elle se déduit du contenu : les mesures
+   demandées sont des ENTIERS d’unités, donc la tolérance doit rester sous la
+   demi-unité, sans quoi un côté de 7 et un côté de 8 deviendraient le même.
+   Comme le verdict recale les figures libres sur leur centre, une erreur
+   d’une unité sur une longueur déplace chaque sommet d’une demi-unité :
+   12,5 unités de scène. On s’arrête à 0,4 unité — 10 — ce qui garde une
+   marge, et le pourcentage ne joue plus que pour les petites figures.
+   Sans ce plafond, les 6 % du grand triangle du CE2 (référence 10 unités)
+   vaudraient 15, au-delà de la demi-unité : la tolérance dirait qu’un 11 est
+   un 10. Un pourcentage seul ne pouvait pas tenir les deux bouts. */
+const TOL_UNI = 0.06;           // 6 % de la longueur de référence…
+const PLAFOND_TOL_UNI = 0.4 * PX_PAR_UNITE;  // …sans jamais atteindre la demi-unité
 const TOL_ESQUISSE = 0.12;      // mode « à main levée » du CE2
 const TOL_GRILLE = 2;           // sur quadrillage l’aimantation rend exact
 const PTS_MANCHE = 1;
@@ -1566,7 +1588,7 @@ function creerTraceQuadrillage(o){
      figure du module n’en contient — carrés et rectangles obliques n’ont que
      des angles droits — et un enfant lève le doigt à chaque coin. */
   const TOL_DROITE = 0.50;          // en mailles : au-delà, la main a tourné
-  let actif = false, bouge = false, outilDuGeste = 'crayon';
+  let actif = false, bouge = false, surOutil = false, outilDuGeste = 'crayon';
   let depart = null, dernier = null, noeud = null, poses = [];
   let course = [], survole = null;
   const repartirDe = (n) => { noeud = n; course = []; survole = null; poses = []; };
@@ -1629,15 +1651,26 @@ function creerTraceQuadrillage(o){
   };
   const auSvg = (e) => { const q = versSVG(svg, e.clientX, e.clientY); return [q.x, q.y]; };
 
+  /* UN GESTE QUI COMMENCE SUR UN INSTRUMENT APPARTIENT À L’INSTRUMENT, et
+     seul un TAP en redescend jusqu’ici. Deux raisons, et la seconde est
+     invisible : d’abord glisser une règle en travers de la feuille n’est pas
+     tracer — on la déplace ; ensuite `setPointerCapture` est EXCLUSIF, si
+     bien que capturer ici volait le pointeur à l’instrument, qui restait
+     figé sous le doigt. Le seuil est le même des deux côtés, donc un seul
+     des deux agit : en dessous le tap ouvre un segment sur la graduation
+     visée, au-dessus l’instrument se déplace et rien ne s’écrit. */
   const surBas = (e) => {
     if (verrouille) return;
     actif = true; bouge = false;
+    surOutil = !!(e.target && e.target.closest && e.target.closest('#instruments'));
     outilDuGeste = api.outil;          // l’outil est FIGÉ à l’appui
     depart = [e.clientX, e.clientY];
     dernier = auSvg(e);
     repartirDe(noeudProche(dernier, RAYON_NOEUD_M));
-    if (outilDuGeste === 'gomme') api.frotter(dernier);
-    try { svg.setPointerCapture(e.pointerId); } catch(err){}
+    if (!surOutil) {
+      if (outilDuGeste === 'gomme') api.frotter(dernier);
+      try { svg.setPointerCapture(e.pointerId); } catch(err){}
+    }
     e.preventDefault();
   };
   const surBouge = (e) => {
@@ -1645,6 +1678,10 @@ function creerTraceQuadrillage(o){
     const p = auSvg(e);
     if (!bouge && Math.hypot(e.clientX - depart[0], e.clientY - depart[1]) < SEUIL_TRACE) return;
     bouge = true;
+    /* Au-delà du seuil, le geste parti d’un instrument est un déplacement :
+       il n’écrit rien, et il n’ouvrira pas non plus de segment au relâché,
+       puisque `bouge` est désormais vrai. */
+    if (surOutil) return;
     /* Un doigt rapide franchit plusieurs nœuds entre deux événements : on
        échantillonne le chemin pour ne manquer aucun passage. */
     if (dernier) {
@@ -1675,6 +1712,10 @@ function creerTraceQuadrillage(o){
         else if (memeNoeud(api.attente, n)) api.attente = null;   // on annule le départ
         else { const k = cleSeg(api.attente, n); api.attente = null; api.poser(k); }
       }
+    } else if (surOutil) {
+      /* On a déplacé un instrument, pas tracé : rien ne s’écrit, et le
+         départ en attente n’est pas perdu — caler la règle entre deux
+         appuis fait partie du geste, ce n’est pas un renoncement. */
     } else {
       api.attente = null;           // un glissement annule un départ en attente
       /* LE TRAIT SE FERME AU RELÂCHEMENT sur le dernier nœud atteint en ligne
@@ -1922,18 +1963,41 @@ function creerPosable(hote, spec){
     return (spec.ancresLocales || []).map(p => [x + p[0]*co - p[1]*si, y + p[0]*si + p[1]*co]);
   }
 
-  let mode = null, depart = null;
+  /* UN INSTRUMENT NE CONSOMME QUE LES GLISSEMENTS, jamais les taps. Il
+     couvre une large part du panneau, et c’est précisément là qu’on veut
+     poser des points : sur une graduation, à la longueur qu’on vient de
+     mesurer. Tant que l’instrument coupait la propagation dès le
+     `pointerdown`, tout tap tombant sur son corps était perdu — le sommet
+     n’apparaissait pas, sans que rien ne l’explique, et la règle ne servait
+     plus qu’à regarder. « Placer un point sur n’importe quelle mesure de
+     l’équerre » n’est donc pas une fonctionnalité à ajouter : c’est ce que
+     l’aimantation aux ancres fait déjà, à condition que le tap ARRIVE.
+     UN SEUL SEUIL DÉPARTAGE les deux gestes, `SEUIL_GLISSEMENT`, le même que
+     `brancherPose` — deux seuils différents rouvriraient la zone grise où
+     l’instrument bouge ET un point se pose. En dessous : personne ne bouge,
+     le tap traverse, le point s’aimante sur la graduation la plus proche.
+     Au-dessus : l’instrument prend la main, et `brancherPose` a vu passer
+     les mêmes mouvements, donc renonce de lui-même. Rien n’est intercepté :
+     c’est l’accord des deux seuils qui garantit qu’un seul agit. */
+  let mode = null, depart = null, attente = null;
   const surDown = (e) => {
     if (g.dataset.verrouille === '1') return;
     const p = versSVG(svg, e.clientX, e.clientY);
     const surPoignee = /^poignee/.test(e.target.getAttribute('class') || '');
-    mode = surPoignee ? 'rot' : 'trans';
-    depart = mode === 'trans'
-      ? {dx: p.x - x, dy: p.y - y}
-      : {a0: a, ang0: Math.atan2(p.y - y, p.x - x)};
+    mode = null;
+    attente = {
+      mode: surPoignee ? 'rot' : 'trans',
+      cx: e.clientX, cy: e.clientY,
+      depart: surPoignee
+        ? {a0: a, ang0: Math.atan2(p.y - y, p.x - x)}
+        : {dx: p.x - x, dy: p.y - y}
+    };
+    /* La capture est prise tout de suite : elle ne coupe pas la propagation
+       (l’événement continue de remonter jusqu’au <svg>), elle garantit
+       seulement que le glissement suivra le doigt même s’il quitte
+       l’instrument. */
     try { g.setPointerCapture(e.pointerId); } catch (err) {}
-    g.classList.add('saisi');
-    e.preventDefault(); e.stopPropagation();
+    e.preventDefault();
   };
   /* L’INSTRUMENT S’AIMANTE AUX POINTS DÉJÀ DESSINÉS. Sans cela il ne sert à
      rien : une équerre dont le coin tombe à trois pixels du sommet ne dit pas
@@ -1998,17 +2062,21 @@ function creerPosable(hote, spec){
     return meilleur;
   }
   const surMove = (e) => {
-    if (!mode) return;
+    if (!mode) {
+      if (!attente) return;
+      if (Math.hypot(e.clientX - attente.cx, e.clientY - attente.cy) <= SEUIL_GLISSEMENT) return;
+      mode = attente.mode; depart = attente.depart;
+      g.classList.add('saisi');
+    }
     const p = versSVG(svg, e.clientX, e.clientY);
     if (mode === 'trans') { x = p.x - depart.dx; y = p.y - depart.dy; aimanter(); }
     else a = aimanterAngle(depart.a0 + (Math.atan2(p.y - y, p.x - x) - depart.ang0));
     appliquer();
-    e.preventDefault(); e.stopPropagation();
+    e.preventDefault();
   };
   const surUp = (e) => {
-    mode = null; g.classList.remove('saisi');
+    mode = null; attente = null; g.classList.remove('saisi');
     try { g.releasePointerCapture(e.pointerId); } catch (err) {}
-    e.stopPropagation();
   };
   g.addEventListener('pointerdown', surDown);
   g.addEventListener('pointermove', surMove);
@@ -2626,7 +2694,16 @@ function qCe1Completer(){
   return liste;
 }
 
-/* ---- CE1 : construire d’après un énoncé ---- */
+/* ---- CE1 : construire d’après un énoncé ----
+   L’ÉNONCÉ DIT TOUTES LES MESURES QUE LE VERDICT EXIGE. Deux de ces trois
+   commandes annonçaient « un rectangle » ou « un carré » sans dire lequel,
+   pendant que la validation réclamait 7 sur 4 et un côté de 5 : la figure
+   attendue existait, mais nulle part dans la consigne — l’enfant ne pouvait
+   la trouver qu’en devinant. Aucun réglage de tolérance ne répare cela, il
+   ne fait que rendre la devinette plus facile.
+   Et c’est bien `q` qui doit les porter : `enonce` n’est que le texte LU à
+   voix haute, `q` le texte AFFICHÉ. Mettre la mesure dans le seul énoncé la
+   réservait à qui appuie sur le haut-parleur. Le CE2 le faisait déjà ainsi. */
 function qCe1Construire(){
   const z = ZONE_PLEINE_UNI;
   const cx = z.x0 + z.l/2, cy = z.y0 + z.h/2;
@@ -2642,9 +2719,9 @@ function qCe1Construire(){
                  {c:c[2], rLibre:true, rMin:1.5*PX_PAR_UNITE, rMax:3.5*PX_PAR_UNITE},
                  {c:c[3], rLibre:true, rMin:1.5*PX_PAR_UNITE, rMax:3.5*PX_PAR_UNITE}],
         instruments:['regle','equerre'], compas:'passant',
-        q:'Un rectangle, et dans un de ses coins, un cercle.',
-        enonce:'Construis un rectangle, puis un cercle centré sur un de ses coins.',
-        sous:'Pose d’abord les quatre coins du rectangle, ferme-le, puis prends le compas.'
+        q:'Un rectangle de 7 sur 4, et un cercle dans un de ses coins.',
+        enonce:'Construis un rectangle de 7 sur 4, puis un cercle centré sur un de ses coins.',
+        sous:'Les grands côtés mesurent 7, les petits 4. Pose les quatre coins, ferme le rectangle, puis prends le compas.'
       });
     },
     () => {
@@ -2655,8 +2732,8 @@ function qCe1Construire(){
         solutions:[[c]],
         cercles:[{c:[cx,cy], rLibre:true, rMin:1.5*PX_PAR_UNITE, rMax:3*PX_PAR_UNITE}],
         instruments:['regle','equerre'], compas:'passant',
-        q:'Un carré, et un cercle en son milieu.',
-        enonce:'Construis un carré, puis un cercle centré au milieu du carré.',
+        q:'Un carré de côté 5, et un cercle en son milieu.',
+        enonce:'Construis un carré de côté 5, puis un cercle centré au milieu du carré.',
         sous:'Ferme d’abord le carré. Le centre du cercle est au croisement des diagonales.'
       });
     },
@@ -2668,8 +2745,8 @@ function qCe1Construire(){
         support:'uni', libre:true, zone:'pleine',
         solutions:[[c]],
         instruments:['regle','equerre'],
-        q:'Un triangle rectangle.',
-        enonce:'Construis un triangle rectangle. Les deux côtés de l’angle droit mesurent 6 et 4.',
+        q:'Un triangle rectangle dont les côtés de l’angle droit mesurent 6 et 4.',
+        enonce:'Construis un triangle rectangle dont les côtés de l’angle droit mesurent 6 et 4.',
         sous:'Pose l’équerre pour l’angle droit, la règle pour les longueurs, puis reviens sur le premier coin pour fermer.'
       });
     }
@@ -3196,11 +3273,16 @@ function nouveauChantier(q){
     contours: [],            // contours fermés par l’enfant
     cerclesPoses: [],
     posables: [],
-    tol: q.support === 'uni' ? TOL_UNI * longueurReference(q) : TOL_GRILLE
+    tol: q.support === 'uni' ? tolerancePapierUni(q) : TOL_GRILLE
   };
 }
 /* La tolérance sur papier uni se calcule sur la longueur de référence de
-   la figure attendue — 3 % d’un grand rectangle n’est pas 3 % d’un petit. */
+   la figure attendue — 6 % d’un grand rectangle n’est pas 6 % d’un petit —
+   puis se plafonne, parce qu’au-delà de la demi-unité elle confondrait deux
+   mesures entières voisines (cf. TOL_UNI). */
+function tolerancePapierUni(q, taux){
+  return Math.min((taux || TOL_UNI) * longueurReference(q), PLAFOND_TOL_UNI);
+}
 function longueurReference(q){
   const pts = (q.solutions[0] ? tousLesPoints(q.solutions[0]) : []);
   if (!pts.length) return 40;

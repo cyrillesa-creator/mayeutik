@@ -1202,11 +1202,26 @@ async function tracerChemin(page, chemin){
       [...document.querySelectorAll('#barreOutils .outil')]
         .find(x => /règle/i.test(x.textContent)).click();
       const svg = document.getElementById('scene');
-      const p = chantier.posables[0], anc = p.ancres();
-      const cible = pointsRemarquables()[0];
-      const k = Math.floor(anc.length / 3);        // une graduation NON centrale
+      const p = chantier.posables[0], anc = p.ancres(), pts = pointsRemarquables();
+      /* LE COUPLE (graduation, point) EST CHOISI, PAS SUPPOSÉ. L’aimantation
+         retient le rapprochement le PLUS COURT entre TOUTES les graduations
+         et TOUS les points dessinés : viser au jugé laissait une autre paire
+         gagner selon la position tirée au sort de la figure, et le test
+         échouait alors pour sa propre erreur. On cherche donc la paire qui
+         gagnera — graduation non extrême, et aucune concurrente plus proche
+         une fois la règle posée. */
+      let k = -1, cible = null;
+      for (let c = 1; c < anc.length - 1 && k < 0; c++) for (let j = 0; j < pts.length; j++) {
+        const d = [pts[j][0] + 4 - anc[c][0], pts[j][1] + 4 - anc[c][1]];
+        let visee = 0, autres = Infinity;
+        anc.forEach((a, ii) => pts.forEach((q, jj) => {
+          const dd = Math.hypot(a[0]+d[0]-q[0], a[1]+d[1]-q[1]);
+          if (ii === c && jj === j) visee = dd; else autres = Math.min(autres, dd);
+        }));
+        if (visee < AIMANT_INSTRUMENT && visee < autres) { k = c; cible = pts[j]; break; }
+      }
       const corps = document.querySelector('#instruments .posable .corps').getBoundingClientRect();
-      return {cible, d:[cible[0] + 4 - anc[k][0], cible[1] + 4 - anc[k][1]],
+      return {cible, k, d:[cible[0] + 4 - anc[k][0], cible[1] + 4 - anc[k][1]],
               ech:svg.getScreenCTM().a,
               prise:{x:corps.x + corps.width/2, y:corps.y + corps.height/2}};
     });
@@ -1223,8 +1238,10 @@ async function tracerChemin(page, chemin){
       return {ecartMin:+m.toFixed(2), quelle, nb:anc.length};
     }, pose.cible);
     T('aimant — la règle accroche par une graduation quelconque, pas seulement par son origine',
-      regle.ecartMin < 0.01 && regle.quelle !== 0 && regle.quelle !== regle.nb - 1,
-      'graduation n°' + regle.quelle + ' sur ' + regle.nb + ', écart ' + regle.ecartMin);
+      regle.ecartMin < 0.01 && regle.quelle === pose.k
+      && regle.quelle !== 0 && regle.quelle !== regle.nb - 1,
+      'graduation n°' + regle.quelle + ' (visée ' + pose.k + ') sur ' + regle.nb
+        + ', écart ' + regle.ecartMin);
 
     /* ET ON LA FAIT TOURNER. C’est le seul cas qui prouve quelque chose sur
        l’aimantation de POSITION en rotation : le coin de l’équerre EST son
@@ -1250,6 +1267,219 @@ async function tracerChemin(page, chemin){
       rotRegle.aTourne === true, JSON.stringify(rotRegle));
     T('aimant — et une graduation NON CENTRALE aimantée ne fait pas sauter la règle en tournant',
       rotRegle.deplacement === 0, 'déplacement ' + rotRegle.deplacement);
+  }
+
+  /* ============================================================
+     L’INSTRUMENT NE MANGE QUE LES GLISSEMENTS
+     ------------------------------------------------------------
+     Il couvre une large part du panneau, et c’est là qu’on veut poser des
+     points : sur une graduation, à la longueur qu’on vient de mesurer. Tant
+     qu’il coupait la propagation dès le `pointerdown`, tout tap tombant sur
+     son corps était perdu — « je place un point par touche de doigt et il
+     n’apparaît pas ». Le partage se fait sur UN SEUL SEUIL, le même que
+     `brancherPose` : en dessous le tap traverse, au-dessus l’instrument
+     prend la main et `brancherPose`, qui a vu les mêmes mouvements, renonce
+     de lui-même.
+     ============================================================ */
+  {
+    /* Amène la manche de `ce1-construire` qui a une équerre, sort
+       l’instrument, et rend de quoi viser une graduation NON extrême. */
+    const armer = (outil) => page.evaluate((nom) => {
+      desarmerAutoSuivant();
+      const svg = document.getElementById('scene');
+      [...document.querySelectorAll('#barreOutils .outil')]
+        .find(x => new RegExp(nom, 'i').test(x.textContent)).click();
+      const p = chantier.posables[0], anc = p.ancres();
+      const k = Math.floor(anc.length / 3);       // ni l’origine, ni le bout
+      const m = svg.getScreenCTM(), pt = svg.createSVGPoint();
+      pt.x = anc[k][0]; pt.y = anc[k][1];
+      const e = pt.matrixTransform(m);
+      const el = document.elementFromPoint(e.x, e.y);
+      return {ancre:anc[k], client:{x:e.x, y:e.y}, nbAncres:anc.length,
+              surInstrument:!!(el && el.closest('#instruments')),
+              sommets:chantier.sommets.length, etat:p.etat()};
+    }, outil);
+
+    await page.goto(base + '?competence=ce1-construire');
+    await page.waitForTimeout(400);
+    const avant = await armer('équerre');
+    T('graduation — la graduation visée est bien SOUS le corps de l’équerre',
+      avant.surInstrument === true && avant.nbAncres > 4,
+      avant.nbAncres + ' ancres, sous l’instrument : ' + avant.surInstrument);
+
+    /* LE TAP. Envoyé sur l’élément réellement sous le doigt — dispatcher sur
+       le <svg> contournerait précisément ce qu’on éprouve. */
+    const tapGrad = await page.evaluate((av) => {
+      const el = document.elementFromPoint(av.client.x, av.client.y);
+      ['pointerdown','pointerup'].forEach(t => el.dispatchEvent(new PointerEvent(t,
+        {clientX:av.client.x, clientY:av.client.y, pointerId:31, bubbles:true})));
+      const s = chantier.sommets;
+      return {n:s.length, dernier:s[s.length-1],
+              ecart:s.length ? +Math.hypot(s[s.length-1][0]-av.ancre[0],
+                                           s[s.length-1][1]-av.ancre[1]).toFixed(2) : null,
+              bouge:+Math.hypot(chantier.posables[0].etat().x - av.etat.x,
+                                chantier.posables[0].etat().y - av.etat.y).toFixed(2)};
+    }, avant);
+    T('graduation — un tap sur une mesure de l’équerre pose un sommet',
+      tapGrad.n === avant.sommets + 1, JSON.stringify({avant:avant.sommets, apres:tapGrad.n}));
+    T('graduation — et le sommet se cale EXACTEMENT sur la graduation visée',
+      tapGrad.ecart !== null && tapGrad.ecart < 0.01, 'écart ' + tapGrad.ecart);
+    T('graduation — un tap ne déplace pas l’instrument',
+      tapGrad.bouge === 0, 'déplacement ' + tapGrad.bouge);
+
+    /* LE MÊME SEUIL DES DEUX CÔTÉS. Un geste court fait un point et rien
+       d’autre ; un geste long déplace l’instrument et ne pose rien. S’ils
+       divergeaient, il existerait une bande de gestes qui font les deux — ou
+       qui ne font rien. On joue de VRAIS gestes souris : la capture de
+       pointeur ne se simule pas. */
+    await page.goto(base + '?competence=ce1-construire');
+    await page.waitForTimeout(400);
+    const court = await armer('équerre');
+    await page.mouse.move(court.client.x, court.client.y);
+    await page.mouse.down();
+    for (let i = 1; i <= 4; i++) await page.mouse.move(court.client.x + 2*i, court.client.y + i);
+    await page.mouse.up();
+    const apresCourt = await page.evaluate((av) => ({
+      n:chantier.sommets.length,
+      bouge:+Math.hypot(chantier.posables[0].etat().x - av.etat.x,
+                        chantier.posables[0].etat().y - av.etat.y).toFixed(2)
+    }), court);
+    T('seuil — un geste plus court que le seuil pose un point sans bouger l’instrument',
+      apresCourt.n === court.sommets + 1 && apresCourt.bouge === 0, JSON.stringify(apresCourt));
+
+    await page.goto(base + '?competence=ce1-construire');
+    await page.waitForTimeout(400);
+    const long = await armer('équerre');
+    await page.mouse.move(long.client.x, long.client.y);
+    await page.mouse.down();
+    for (let i = 1; i <= 12; i++) await page.mouse.move(long.client.x + 5*i, long.client.y + 3*i);
+    await page.mouse.up();
+    const apresLong = await page.evaluate((av) => ({
+      n:chantier.sommets.length,
+      bouge:+Math.hypot(chantier.posables[0].etat().x - av.etat.x,
+                        chantier.posables[0].etat().y - av.etat.y).toFixed(2)
+    }), long);
+    T('seuil — un geste plus long déplace l’instrument et ne pose aucun point',
+      apresLong.n === long.sommets && apresLong.bouge > 5, JSON.stringify(apresLong));
+
+    /* EN MODE TRACÉ, LE MÊME PARTAGE — et c’est là que la capture de pointeur
+       se joue : `setPointerCapture` est exclusif, si bien que le moteur de
+       tracé, en capturant sur le <svg>, volait le pointeur à l’instrument,
+       qui restait figé sous le doigt. Un seul geste éprouve les deux moitiés :
+       l’équerre suit le doigt, et le crayon n’écrit rien. */
+    await page.goto(base + '?competence=ce1-completer');
+    await page.waitForTimeout(400);
+    const av = await page.evaluate(() => {
+      pos = file.findIndex(q => q.mode === 'tracer' && (q.instruments || []).indexOf('equerre') >= 0);
+      manche(); desarmerAutoSuivant();
+      [...document.querySelectorAll('#barreOutils .outil')]
+        .find(x => /équerre/i.test(x.textContent)).click();
+      const svg = document.getElementById('scene');
+      const corps = document.querySelector('#instruments .posable .corps').getBoundingClientRect();
+      return {etat:chantier.posables[0].etat(), traces:chantier.trace.traces.size,
+              prise:{x:corps.x + corps.width/2, y:corps.y + corps.height/2}};
+    });
+    /* LE GESTE TOURNE, et c’est ce qui le rend probant : le moteur n’écrit
+       pas en chemin, il écrit au VIRAGE et au relâchement. Une trajectoire
+       droite laisserait donc passer un garde-fou manquant en cours de
+       glissement — mesuré : la mutation restait aveugle. Personne ne cale
+       une équerre en ligne droite, de toute façon. */
+    await page.mouse.move(av.prise.x, av.prise.y);
+    await page.mouse.down();
+    for (let i = 1; i <= 10; i++) await page.mouse.move(av.prise.x + 6*i, av.prise.y);
+    for (let i = 1; i <= 10; i++) await page.mouse.move(av.prise.x + 60, av.prise.y + 6*i);
+    await page.mouse.up();
+    const apresTrace = await page.evaluate((a) => ({
+      traces:chantier.trace.traces.size,
+      bouge:+Math.hypot(chantier.posables[0].etat().x - a.etat.x,
+                        chantier.posables[0].etat().y - a.etat.y).toFixed(2)
+    }), av);
+    T('tracé — glisser l’équerre en travers du papier la déplace vraiment',
+      apresTrace.bouge > 5, 'déplacement ' + apresTrace.bouge);
+    T('tracé — et n’écrit pas un trait au passage : on déplace la règle, on ne trace pas avec',
+      apresTrace.traces === av.traces, av.traces + ' → ' + apresTrace.traces);
+  }
+
+  /* ============================================================
+     LA COMMANDE DU CLIENT — l’énoncé dit ce que le verdict exige
+     ------------------------------------------------------------
+     Deux des trois commandes annonçaient « un rectangle » ou « un carré »
+     sans dire lequel, pendant que la validation réclamait 7 sur 4 et un côté
+     de 5 : la figure attendue n’était nulle part dans la consigne. Et la
+     mesure doit être dans `q`, le texte AFFICHÉ — `enonce` n’est que le
+     texte LU.
+     ============================================================ */
+  {
+    const dites = await page.evaluate(() => {
+      const U = PX_PAR_UNITE;
+      const examiner = (q) => {
+        /* Les longueurs de la figure attendue, en unités. Seules celles qui
+           tombent juste sur un entier sont exigibles : l’hypoténuse d’un
+           triangle 6-4 ne se dicte pas. */
+        const cotes = [];
+        (q.solutions[0] || []).forEach(c => c.forEach((p, i) => {
+          const r = c[(i+1) % c.length];
+          cotes.push(Math.hypot(r[0]-p[0], r[1]-p[1]) / U);
+        }));
+        const entiers = [...new Set(cotes.filter(v => Math.abs(v - Math.round(v)) < 0.01)
+                                         .map(Math.round))];
+        const manque = entiers.filter(v => !new RegExp('(^|\\D)' + v + '(\\D|$)').test(q.q));
+        return {q:q.q, entiers, manque};
+      };
+      return {ce1:qCe1Construire().map(examiner), ce2:qCe2ConstruireUni().map(examiner)};
+    });
+    [['CE1', dites.ce1], ['CE2', dites.ce2]].forEach(([niv, l]) => {
+      T('commande — ' + niv + ' : la consigne AFFICHÉE dit toutes les mesures exigées',
+        l.every(x => x.manque.length === 0),
+        l.filter(x => x.manque.length).map(x => x.manque.join('/') + ' absents de « ' + x.q + ' »')
+          .join(' | ') || l.map(x => x.entiers.join('×')).join(' '));
+    });
+
+    /* LA TOLÉRANCE EST ENCADRÉE DES DEUX CÔTÉS, et les deux bornes se
+       déduisent du contenu, pas d’un goût. En haut : les mesures demandées
+       sont des ENTIERS d’unités, donc au-delà de la demi-unité un 7 et un 8
+       seraient le même. En bas : à 3 % de la plus petite figure, le verdict
+       se jouait sur 3,75 unités de scène — moins de 4 px sous le doigt : ce
+       n’est plus de la précision, c’est une loterie. */
+    const bornes = await page.evaluate(() => {
+      const U = PX_PAR_UNITE;
+      const manches = [].concat(qCe1Construire(), qCe2ConstruireUni(),
+                                qCe1Completer().filter(q => q.support === 'uni'));
+      return manches.map(q => ({q:q.q, tol:+(tolerancePapierUni(q) / U).toFixed(3)}));
+    });
+    T('tolérance — jamais jusqu’à la demi-unité : deux mesures entières voisines restent distinctes',
+      bornes.every(b => b.tol < 0.5),
+      bornes.map(b => b.tol).join(' '));
+    T('tolérance — jamais sous le cinquième d’unité : le doigt doit pouvoir l’atteindre',
+      bornes.every(b => b.tol >= 0.2),
+      bornes.filter(b => b.tol < 0.2).map(b => b.tol + ' — ' + b.q).join(' | ')
+        || bornes.length + ' manches');
+
+    /* Et le verdict lui-même, sur la figure : un sommet qui a glissé passe,
+       une mesure fausse d’une unité ne passe pas. */
+    const verdicts = await page.evaluate(() => {
+      const U = PX_PAR_UNITE;
+      return qCe1Construire().map(q => {
+        const sol = q.solutions[0], tol = tolerancePapierUni(q);
+        const bouge = (i, dx, dy) => [sol[0].map((p, k) =>
+          k === i ? [p[0]+dx, p[1]+dy] : [p[0], p[1]])];
+        /* Un seul sommet écarté de 90 % de la tolérance : le recalage sur le
+           centre en absorbe une part, le reste doit rester accepté. */
+        const glisse = bouge(0, tol*0.9, 0);
+        /* Un côté allongé d’une unité entière : deux sommets déplacés, la
+           figure change de mesure. */
+        const fausse = [sol[0].map((p, k) => k === 1 || k === 2 ? [p[0]+U, p[1]] : [p[0], p[1]])];
+        return {q:q.q,
+          glisse:figureAcceptee(glisse, q.solutions, tol, q.libre),
+          fausse:figureAcceptee(fausse, q.solutions, tol, q.libre)};
+      });
+    });
+    T('tolérance — un sommet qui a glissé sous la tolérance est accepté',
+      verdicts.every(v => v.glisse === true),
+      verdicts.filter(v => !v.glisse).map(v => v.q).join(' | ') || verdicts.length + ' figures');
+    T('tolérance — mais une mesure fausse d’une unité entière est refusée',
+      verdicts.every(v => v.fausse === false),
+      verdicts.filter(v => v.fausse).map(v => v.q).join(' | ') || verdicts.length + ' figures');
   }
 
   console.log('\nErreurs JS/console/réseau : ' + (erreurs.length ? JSON.stringify(erreurs.slice(0,3)) : 'aucune'));
