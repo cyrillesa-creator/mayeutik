@@ -1,0 +1,4 @@
+# Les suites de test écrivent parfois des captures d’écran pour inspection :
+# ce sont des sorties de diagnostic, pas des sources.
+outils/tests/**/*.png
+outils/tests/**/bilan.json
