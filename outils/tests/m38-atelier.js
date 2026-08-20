@@ -79,8 +79,12 @@ const JEUX = ['cp-reproduire','cp-completer','cp-assembler',
     T(`${id} : démarre sur l’écran de jeu`, r.ecran === 'game', r.titre);
     /* La rosace est une manche de SYNTHÈSE : une construction d'un seul
        tenant, pas une serie d'exercices. */
+    /* Les deux mini-jeux de COMPLÉTION jouent six manches : leur file était la
+       même à chaque partie, et six laisse la place aux compositions qui
+       n’existaient pas à cinq. */
     const attendu = id === 'ce2-rosace' ? 1
-      : ['ce1-construire','ce2-construire-uni'].includes(id) ? 3 : 5;
+      : ['ce1-construire','ce2-construire-uni'].includes(id) ? 3
+      : ['cp-completer','ce1-completer'].includes(id) ? 6 : 5;
     T(`${id} : nombre de manches attendu`, r.n === attendu, `${r.n} manches (attendu ${attendu})`);
     T(`${id} : total = 1 point par manche (§11)`, r.total === r.n, r.total);
     T(`${id} : une consigne est posée`, r.consigne.length > 8, r.consigne.slice(0, 48));
@@ -462,6 +466,150 @@ const JEUX = ['cp-reproduire','cp-completer','cp-assembler',
   T('CP — les trois mini-jeux se jouent du même geste, le tracé au doigt',
     Object.values(gestesCP).every(m => m.length === 1 && m[0] === 'tracer'),
     JSON.stringify(gestesCP));
+
+
+  /* ---------- LA MÊME PARTIE NE SE REJOUE PAS ----------
+     Signalé au test : « j’ai eu plusieurs fois la même série ». Mesuré, les
+     deux mini-jeux de complétion ne produisaient QU’UNE SEULE série sur 300
+     parties. Rien ne le voyait : le §13 bis ne regarde que les répétitions à
+     l’INTÉRIEUR d’une partie, jamais la ressemblance d’une partie à l’autre.
+
+     Le contrôle porte sur une ATTENTE NOMMÉE par mini-jeu plutôt que sur un
+     seuil unique, parce qu’une seule série n’est pas toujours un défaut : la
+     file de `ce1-reproduire` EST la progression des pentes, écrite et voulue.
+     Ce qui doit être impossible, c’est qu’une file se fige sans que personne
+     l’ait décidé — et toute dérive de ces nombres oblige à trancher. */
+  await page.goto(base);
+  await page.waitForTimeout(300);
+  const ATTENDU = {
+    'cp-reproduire':{series:80, figures:6, pourquoi:'six figures pour cinq manches, tirées sans remise'},
+    'cp-completer':{series:80, figures:16, pourquoi:'dix-sept formats de rectangle et quatre côtés de carré'},
+    'cp-assembler':{series:80, figures:6, pourquoi:'six assemblages pour cinq manches'},
+    'ce1-reproduire':{series:1, figures:5, pourquoi:'UNE SEULE SÉRIE VOULUE : la file est la progression des pentes'},
+    'ce1-completer':{series:80, figures:16, pourquoi:'l’ordre est écrit, mais les figures se tirent sans remise'},
+    'ce2-reproduire':{series:80, figures:6, pourquoi:'six figures pour cinq manches'}
+  };
+  const varietes = await page.evaluate(() => {
+    const out = {};
+    const gens = {'cp-reproduire':qCpReproduire, 'cp-completer':qCpCompleter,
+                  'cp-assembler':qCpAssembler, 'ce1-reproduire':qCe1Reproduire,
+                  'ce1-completer':qCe1Completer, 'ce2-reproduire':qCe2Reproduire};
+    for (const [nom, gen] of Object.entries(gens)) {
+      const parties = {}, figures = new Set();
+      for (let n = 0; n < 200; n++) {
+        const l = gen();
+        /* Une PARTIE, c’est la suite des figures montrées : c’est elle que
+           l’enfant reconnaît d’une fois sur l’autre. */
+        const cle = l.map(q => signatureFigure(q.solutions[0])).join(' ~ ');
+        parties[cle] = (parties[cle] || 0) + 1;
+        l.forEach(q => figures.add(signatureFigure(q.solutions[0])));
+      }
+      out[nom] = {series:Object.keys(parties).length, figures:figures.size};
+    }
+    return out;
+  });
+  Object.entries(ATTENDU).forEach(([nom, att]) => {
+    const v = varietes[nom];
+    T('variété — ' + nom + ' : autant de parties distinctes qu’annoncé (' + att.pourquoi.slice(0, 44) + ')',
+      v.series >= att.series, v.series + ' séries sur 200, attendu ≥ ' + att.series);
+    T('variété — ' + nom + ' : autant de figures distinctes qu’annoncé',
+      v.figures >= att.figures, v.figures + ' figures, attendu ≥ ' + att.figures);
+  });
+
+  /* LE RYTHME DES CONSIGNES DOIT VARIER LUI AUSSI. La suite des FIGURES ne
+     suffit pas à le dire : avec trois rectangles et trois carrés, un
+     réordonnancement sur le TEXTE de la consigne impose l’alternance stricte,
+     et les figures varieraient pourtant. C’est ce rythme figé qui se
+     reconnaît d’une partie à l’autre — une mutation l’a montré invisible
+     autrement. */
+  const rythmes = await page.evaluate(() => {
+    const vus = {};
+    for (let n = 0; n < 200; n++) {
+      const cle = qCpCompleter().map(q => q.q).join('|');
+      vus[cle] = (vus[cle] || 0) + 1;
+    }
+    return Object.keys(vus).length;
+  });
+  T('variété — cp-completer : le rythme des consignes varie, pas seulement les figures',
+    rythmes >= 6, rythmes + ' rythmes distincts sur 200 parties');
+
+  /* LA FIGURE SUR PAPIER UNI NE SE POSE PLUS TOUJOURS AU MÊME ENDROIT. La
+     position n’est pas une dimension de contenu (§13 bis l’exclut), donc rien
+     ne la surveillait — mais une figure clouée au même pixel à chaque partie
+     se reconnaît autant qu’une figure répétée. */
+  const places = await page.evaluate(() => {
+    const vus = new Set();
+    for (let n = 0; n < 120; n++)
+      qCe1Completer().filter(q => q.support === 'uni')
+        .forEach(q => { const c = q.solutions[0][0][0];
+                        vus.add(Math.round(c[0]) + ',' + Math.round(c[1])); });
+    return vus.size;
+  });
+  T('variété — ce1-completer : le rectangle sur papier uni n’est pas cloué au même endroit',
+    places >= 20, places + ' positions distinctes sur 240 manches');
+
+
+  /* ---------- LE VOCABULAIRE, LES TITRES, ET CE QUE L’ÉNONCÉ DEMANDE ----------
+     Des décisions PRODUIT que rien ne surveillait : deux mutations sont
+     restées aveugles en les défaisant. Un mot hors programme peut revenir par
+     une manche ajoutée six mois plus tard, et personne ne le verrait. */
+  await page.goto(base);
+  await page.waitForTimeout(300);
+  const dits = await page.evaluate(() => {
+    /* HORS PROGRAMME AU CYCLE 2 : nommer ce qu’on ne sait pas nommer ne fait
+       pas apprendre. On dit « le grand côté opposé à l’angle droit ». */
+    const interdits = ['hypoténuse', 'hypothénuse'];
+    const gens = {'cp-reproduire':qCpReproduire, 'cp-completer':qCpCompleter,
+                  'cp-assembler':qCpAssembler, 'ce1-reproduire':qCe1Reproduire,
+                  'ce1-completer':qCe1Completer, 'ce1-construire':qCe1Construire,
+                  'ce2-reproduire':qCe2Reproduire, 'ce2-construire-uni':qCe2ConstruireUni,
+                  'ce2-rosace':qCe2Rosace};
+    const fautes = [], uniCE1 = [];
+    for (const [nom, gen] of Object.entries(gens))
+      for (let n = 0; n < 30; n++)
+        gen().forEach(q => {
+          const dit = [q.q, q.sous, q.enonce].filter(Boolean).join(' ');
+          interdits.forEach(m => { if (dit.toLowerCase().indexOf(m) >= 0) fautes.push(nom + ' : ' + m); });
+          if (nom === 'ce1-completer' && q.support === 'uni')
+            uniCE1.push({q:q.q, sous:q.sous,
+                         manque:q.solutions[0][0].length - (q.sommetsFixes || []).length});
+        });
+    const surEcran = [...document.querySelectorAll('#grille-jeux .card')].map(c => c.textContent.toLowerCase());
+    interdits.forEach(m => surEcran.forEach(t => { if (t.indexOf(m) >= 0) fautes.push('accueil : ' + m); }));
+    return {fautes:[...new Set(fautes)], uniCE1};
+  });
+  T('vocabulaire — le mot « hypoténuse », hors programme au cycle 2, ne paraît dans aucun énoncé',
+    dits.fautes.length === 0, dits.fautes.join(' | ') || 'neuf mini-jeux, trente files chacun');
+
+  /* L’ÉNONCÉ DU PAPIER UNI, là où les repères disparaissent : il nomme ce
+     qu’il faut FAIRE — placer les sommets — et renvoie aux INSTRUMENTS, seuls
+     moyens d’être exact quand le support ne donne plus rien. */
+  T('énoncé — sur papier uni, la consigne demande de placer les sommets manquants',
+    dits.uniCE1.length > 0
+    && dits.uniCE1.every(m => /pla[çc]ant le sommet manquant|pla[çc]ant les \d+ sommets manquants/.test(m.q)),
+    (dits.uniCE1[0] || {}).q);
+  T('énoncé — et elle renvoie à la règle ET à l’équerre',
+    dits.uniCE1.every(m => /règle/.test(m.sous) && /équerre/.test(m.sous)),
+    (dits.uniCE1[0] || {}).sous);
+  /* L’ACCORD EST CALCULÉ SUR LA DONNÉE, jamais figé (règle de langue du
+     dépôt) : « le ou les sommets manquants » esquive la question au lieu de
+     la résoudre. Il en manque un aujourd’hui, l’énoncé le dit au singulier ;
+     s’il en manquait deux demain, il le dirait au pluriel. */
+  T('énoncé — l’accord suit le nombre de sommets réellement manquants',
+    dits.uniCE1.every(m => (m.manque === 1) === /le sommet manquant/.test(m.q)),
+    'manquants : ' + [...new Set(dits.uniCE1.map(m => m.manque))].join());
+
+  const titres = await page.evaluate(() => {
+    const t = {};
+    Object.values(CONTENU.paliers).forEach(p =>
+      (p.miniJeux || []).forEach(m => { t[m.id] = m.titre; }));
+    return t;
+  });
+  T('titres — les deux mini-jeux de complétion portent le MÊME nom : c’est la même compétence à deux niveaux',
+    titres['cp-completer'] === titres['ce1-completer'],
+    titres['cp-completer'] + ' / ' + titres['ce1-completer']);
+  T('titres — et ce nom est au pluriel : une partie en montre plusieurs',
+    /^Les pièces inachevées$/.test(titres['cp-completer'] || ''), titres['cp-completer']);
 
   /* ---------- 9. Papier uni : l’instrument rend la précision atteignable ---------- */
   await page.goto(base + '?competence=ce2-construire-uni');
