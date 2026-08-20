@@ -1185,6 +1185,71 @@ async function tracerChemin(page, chemin){
     T('aimant — et l’aimantation d’angle ne déplace jamais l’instrument',
       angles.pres.bouge === 0 && angles.loin.bouge === 0,
       JSON.stringify([angles.pres.bouge, angles.loin.bouge]));
+
+    /* LA RÈGLE ACCROCHE PAR N’IMPORTE QUELLE GRADUATION, pas seulement par son
+       origine : poser le 7 sur un sommet est aussi légitime que d’y poser le
+       0, et c’est ainsi qu’on mesure. Éprouvé sur papier UNI, là où
+       l’instrument est le seul moyen d’être exact. On lit les ancres RÉELLES
+       (`ancres()`) : un test qui refait le calcul du code se trompe pour son
+       propre compte — celui-ci cherchait des graduations tous les 13 px quand
+       l’unité en vaut 25, et accusait le code d’une erreur qui était la
+       sienne. */
+    await page.goto(base + '?competence=ce1-completer');
+    await page.waitForTimeout(400);
+    const pose = await page.evaluate(() => {
+      const i = file.findIndex(q => q.support === 'uni');
+      pos = i; manche();
+      [...document.querySelectorAll('#barreOutils .outil')]
+        .find(x => /règle/i.test(x.textContent)).click();
+      const svg = document.getElementById('scene');
+      const p = chantier.posables[0], anc = p.ancres();
+      const cible = pointsRemarquables()[0];
+      const k = Math.floor(anc.length / 3);        // une graduation NON centrale
+      const corps = document.querySelector('#instruments .posable .corps').getBoundingClientRect();
+      return {cible, d:[cible[0] + 4 - anc[k][0], cible[1] + 4 - anc[k][1]],
+              ech:svg.getScreenCTM().a,
+              prise:{x:corps.x + corps.width/2, y:corps.y + corps.height/2}};
+    });
+    await page.mouse.move(pose.prise.x, pose.prise.y);
+    await page.mouse.down();
+    for (let i = 1; i <= 10; i++)
+      await page.mouse.move(pose.prise.x + pose.d[0]*pose.ech*i/10,
+                            pose.prise.y + pose.d[1]*pose.ech*i/10);
+    await page.mouse.up();
+    const regle = await page.evaluate((c) => {
+      const anc = chantier.posables[0].ancres();
+      let m = Infinity, quelle = -1;
+      anc.forEach((a, i) => { const d = Math.hypot(a[0]-c[0], a[1]-c[1]); if (d < m) { m = d; quelle = i; } });
+      return {ecartMin:+m.toFixed(2), quelle, nb:anc.length};
+    }, pose.cible);
+    T('aimant — la règle accroche par une graduation quelconque, pas seulement par son origine',
+      regle.ecartMin < 0.01 && regle.quelle !== 0 && regle.quelle !== regle.nb - 1,
+      'graduation n°' + regle.quelle + ' sur ' + regle.nb + ', écart ' + regle.ecartMin);
+
+    /* ET ON LA FAIT TOURNER. C’est le seul cas qui prouve quelque chose sur
+       l’aimantation de POSITION en rotation : le coin de l’équerre EST son
+       centre de rotation, il ne s’écarte donc jamais du point sur lequel il
+       est aimanté, et y corriger vaudrait zéro — indétectable. La règle,
+       accrochée par une graduation non centrale, sauterait dès le premier
+       degré. Une mutation est restée aveugle jusqu’à ce que le test porte
+       sur elle. */
+    const rotRegle = await page.evaluate(() => {
+      const p = chantier.posables[0], avant = p.etat();
+      const poi = p.g.querySelector('.poignee'), po = poi.getBoundingClientRect();
+      const cx = po.x + po.width/2, cy = po.y + po.height/2;
+      const env = (t, X, Y, sur) => (sur || p.g).dispatchEvent(new PointerEvent(t,
+        {clientX:X, clientY:Y, pointerId:22, bubbles:true}));
+      env('pointerdown', cx, cy, poi);
+      for (let i = 1; i <= 8; i++) env('pointermove', cx + 5*i, cy - 4*i);
+      env('pointerup', cx + 40, cy - 32);
+      const apres = p.etat();
+      return {aTourne:Math.abs(apres.angle - avant.angle) > 0.02,
+              deplacement:+Math.hypot(apres.x - avant.x, apres.y - avant.y).toFixed(3)};
+    });
+    T('aimant — la règle tourne aussi par sa poignée',
+      rotRegle.aTourne === true, JSON.stringify(rotRegle));
+    T('aimant — et une graduation NON CENTRALE aimantée ne fait pas sauter la règle en tournant',
+      rotRegle.deplacement === 0, 'déplacement ' + rotRegle.deplacement);
   }
 
   console.log('\nErreurs JS/console/réseau : ' + (erreurs.length ? JSON.stringify(erreurs.slice(0,3)) : 'aucune'));
