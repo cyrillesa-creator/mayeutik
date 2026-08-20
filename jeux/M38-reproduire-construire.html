@@ -2608,13 +2608,19 @@ function qCe1Completer(){
     const x0 = ZONE_PLEINE_UNI.x0 + 16 + Math.round(entre(0, Math.max(0, ZONE_PLEINE_UNI.l - l - 32)));
     const y0 = ZONE_PLEINE_UNI.y0 + 24 + Math.round(entre(0, Math.max(0, ZONE_PLEINE_UNI.h - h - 48)));
     const c = [[x0,y0],[x0+l,y0],[x0+l,y0+h],[x0,y0+h]];
+    const fixes = [c[3], c[0], c[1]];
+    /* COMBIEN DE SOMMETS MANQUENT SE COMPTE, il ne s’écrit pas : c’est la
+       figure et l’amorce qui le disent. « le ou les sommets manquants » évite
+       la question au lieu de la résoudre — et la charte demande l’accord
+       calculé sur la donnée, jamais figé. */
+    const n = c.length - fixes.length;
     liste.push(mancheBase({
       support:'uni', libre:false, zone:'pleine',
-      amorce:[[c[3], c[0], c[1]]], sommetsFixes:[c[3], c[0], c[1]],
+      amorce:[fixes], sommetsFixes:fixes,
       solutions:[[c]],
       instruments:['regle','equerre'],
-      q:'Complète ce rectangle sur le papier uni.',
-      sous:'Plus de repères : pose la règle, place le coin, puis reviens sur le premier coin pour fermer.'
+      q:'Complète la figure en plaçant ' + (n > 1 ? 'les ' + n + ' sommets manquants' : 'le sommet manquant') + '.',
+      sous:'Plus de repères : aide-toi de la règle et de l’équerre, puis reviens sur le premier coin pour fermer.'
     }));
   });
   return liste;
