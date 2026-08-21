@@ -3083,10 +3083,18 @@ function qCe2ConstruireUni(){
       /* Le rayon, lui, EST dicté par l’énoncé du CE2 : il reste jugé.
          Seul le rattachement se calcule sur la figure produite. */
       cercles:[{relation:'sommet', r:4*U}],
-      instruments:['regle','equerre'], compas:'rayon', rayonDemande:4,
+      /* LE MÊME COMPAS QU’AU CE1 : on touche le centre, puis un point par
+         lequel le cercle passe. Le rayon se choisissait ici dans une rangée
+         de huit boutons — un menu, pas une construction : l’enfant lisait un
+         nombre au lieu de PORTER une longueur, et la barre d’outils passait
+         à trois rangées. Ce que le CE2 doit produire, c’est un écartement de
+         4, et il le produit en visant la graduation 4 de sa règle. Le geste
+         rejoint celui du CE1, l’exigence reste entière — et elle devient une
+         vraie construction. */
+      instruments:['regle','equerre'], compas:'passant',
       q:'Un carré de côté 6, un cercle de rayon 4 sur un sommet.',
       enonce:'Construis un carré de côté 6, puis un cercle de rayon 4 centré sur un de ses sommets.',
-      sous:'Ferme d’abord le carré, puis règle l’écartement du compas sur 4.'
+      sous:'Ferme le carré. Pour le rayon 4, pose la règle sur le sommet et vise sa graduation.'
     });
   };
   const triRect = () => {
@@ -3101,7 +3109,10 @@ function qCe2ConstruireUni(){
       sous:'L’équerre donne l’angle droit, la règle les longueurs. Reviens sur le premier coin pour fermer.'
     });
   };
-  return [rect(), carreCercle(), triRect()];
+  /* L’ORDRE SE TIRE AU SORT, comme au CE1. Les trois exemples sont ceux du
+     programme et il n’y en aura pas d’autres — mais les jouer toujours dans
+     le même ordre, c’est une seule et même partie à chaque fois (§13). */
+  return melanger([rect, carreCercle, triRect]).map(f => f());
 }
 
 /* ---- CE2 : la rosace ----
@@ -3920,43 +3931,21 @@ function brancherCompas(q, barre, svg){
     chantier.enAttenteCentre = true;
     chantier.centreProvisoire = null;
     b.classList.add('on');
-    $('sousConsigne').textContent = q.compas === 'rayon'
-      ? 'Touche le centre du cercle : l’écartement est réglé sur ' + q.rayonDemande + '.'
-      : 'Touche le centre, puis un point par lequel le cercle doit passer.';
+    $('sousConsigne').textContent = 'Touche le centre, puis un point par lequel le cercle doit passer.';
     sonClic();
   });
   barre.appendChild(b);
-  if (q.compas === 'rayon') {
-    /* Le réglage de l’écartement passe par des boutons larges au doigt ;
-       l’échelle, elle, reste à 14 px par unité — celle de M35 et de M23. */
-    const rang = document.createElement('div');
-    q._ecartement = null;
-    for (let u = 2; u <= 9; u++) {
-      const x = document.createElement('button');
-      x.type = 'button'; x.className = 'outil outil-ecart'; x.textContent = String(u);
-      x.addEventListener('click', () => {
-        if (verrouille) return;
-        q._ecartement = u;
-        barre.querySelectorAll('.outil-ecart').forEach(y => y.classList.toggle('on', y === x));
-        sonClic();
-      });
-      barre.appendChild(x);
-    }
-  }
 }
-function poserCercle(p){
+function poserCercle(brut){
   if (verrouille) return;
   const q = chantier.q;
-  if (q.compas === 'rayon') {
-    if (!q._ecartement) { $('sousConsigne').textContent = 'Règle d’abord l’écartement du compas.'; return; }
-    const c = q.centreImpose && dist(p, q.centreImpose) < 26 ? q.centreImpose : p;
-    chantier.cerclesPoses.push({c, r:q._ecartement * PX_PAR_UNITE});
-    chantier.enAttenteCentre = false;
-    document.querySelector('#barreOutils .outil-compas').classList.remove('on');
-    $('sousConsigne').textContent = q.sous || '';
-    sonClic(); dessinerChantier(); majBoutons();
-    return;
-  }
+  /* LE COMPAS S’AIMANTE AUX GRADUATIONS, comme la pose d’un sommet. Sans
+     cela, « un cercle de rayon 4 » se jouait au jugé : la règle posée sur le
+     centre montrait le 4 sans qu’on puisse l’atteindre, et l’instrument ne
+     servait qu’à regarder. C’est le même geste et le même aimant que pour un
+     sommet — il n’y avait aucune raison que le second point d’un cercle en
+     soit privé. */
+  const p = aimanterPoint(brut, chantier.sup, chantier.z, ancresCourantes());
   if (!chantier.centreProvisoire) {
     /* Le centre s’accroche à un sommet déjà construit : « centré sur un de
        ses coins » se joue là, et à la main libre on n’y arriverait pas. */

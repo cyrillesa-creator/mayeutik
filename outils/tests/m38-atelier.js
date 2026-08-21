@@ -744,7 +744,14 @@ const JEUX = ['cp-reproduire','cp-completer','cp-assembler',
     esq.barre.length === 4 && esq.rangees <= 48, JSON.stringify(esq.barre) + ' — ' + esq.rangees + ' px');
   T('les deux modes valent le même nombre de points', /PTS_MANCHE = 1/.test(brut) && !/_mode.*PTS/.test(brut));
 
-  /* ---------- 11. Le compas : deux gestes, un par palier ---------- */
+  /* ---------- 11. Le compas : UN SEUL GESTE, aux deux paliers ----------
+     LE CE2 RÉGLAIT SON RAYON DANS UNE RANGÉE DE HUIT BOUTONS. C’était un
+     menu, pas une construction : l’enfant lisait un nombre au lieu de PORTER
+     une longueur, le geste ne ressemblait à rien de ce qu’il avait appris au
+     CE1, et la barre d’outils passait à trois rangées. Le compas se joue
+     donc partout de la même façon — on touche le centre, puis un point par
+     lequel le cercle passe — et le rayon dicté par l’énoncé du CE2 se
+     construit en visant la graduation de la règle. */
   const compas = {};
   for (const id of ['ce1-construire','ce2-construire-uni','ce2-rosace']) {
     await page.goto(base + '?competence=' + id);
@@ -753,7 +760,9 @@ const JEUX = ['cp-reproduire','cp-completer','cp-assembler',
   }
   T('CE1 : le compas passe PAR un point donné', compas['ce1-construire'].filter(Boolean).every(c => c === 'passant'),
     JSON.stringify(compas['ce1-construire']));
-  T('CE2 : le rayon se règle d’abord', compas['ce2-construire-uni'].filter(Boolean).every(c => c === 'rayon'),
+  T('CE2 : le même geste qu’au CE1 — plus de rangée de boutons pour l’écartement',
+    compas['ce2-construire-uni'].filter(Boolean).every(c => c === 'passant')
+    && !/outil-ecart/.test(brut),
     JSON.stringify(compas['ce2-construire-uni']));
   /* La rosace n'utilise plus l'abstraction `compas` du module : elle pilote
      le vrai moteur, comme M35. */

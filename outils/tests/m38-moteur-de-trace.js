@@ -1817,6 +1817,111 @@ async function tracerChemin(page, chemin){
     T('rattachement — en jeu : figure posée ailleurs, cercle sur SON coin, la manche est réussie',
       enJeu.length > 0 && enJeu.every(m => m.ok === true),
       enJeu.map(m => m.relation + ':' + m.ok + (m.ok ? '' : ' « ' + m.fb + ' »')).join(' | '));
+
+    /* ============================================================
+       LE RAYON DICTÉ DU CE2 SE CONSTRUIT À LA RÈGLE
+       ------------------------------------------------------------
+       « Un cercle de rayon 4 » se choisissait dans une rangée de huit
+       boutons : un menu, pas une construction. Le geste rejoint celui du CE1
+       — on touche le centre, puis un point par lequel le cercle passe — et
+       l’exigence tient à une condition : que la graduation 4 de la règle soit
+       ATTEIGNABLE au doigt. On la vise donc pour de vrai, et on lit le rayon
+       obtenu, plutôt que de croire que l’aimant s’applique.
+       ============================================================ */
+    await page.goto(base + '?competence=ce2-construire-uni');
+    await page.waitForTimeout(400);
+    const rayonJoue = await page.evaluate(async () => {
+      const svg = document.getElementById('scene');
+      pos = file.findIndex(x => x.cercles); manche(); desarmerAutoSuivant();
+      const q = file[pos], sol = q.solutions[0][0];
+      const centreVise = sol[0];
+      /* Le carré est déjà fermé : c’est le cercle qu’on éprouve. */
+      chantier.contours = [sol.map(x => x.slice())];
+      [...document.querySelectorAll('#barreOutils .outil')]
+        .find(x => /règle/i.test(x.textContent)).click();
+      const p = chantier.posables[0];
+      const anc0 = p.ancres();
+      const vise = [centreVise[0] + 4 * PX_PAR_UNITE, centreVise[1]];
+      const d = [vise[0] - anc0[4][0], vise[1] - anc0[4][1]];
+      const m = svg.getScreenCTM(), pt = svg.createSVGPoint();
+      const corps = p.g.querySelector('.corps').getBoundingClientRect();
+      const prise = {x:corps.x + corps.width/2, y:corps.y + corps.height/2};
+      const ech = m.a;
+      const env = (t, X, Y, sur) => (sur || p.g).dispatchEvent(new PointerEvent(t,
+        {clientX:X, clientY:Y, pointerId:41, bubbles:true}));
+      env('pointerdown', prise.x, prise.y);
+      for (let i = 1; i <= 5; i++) env('pointermove', prise.x + 30*i, prise.y + 15*i);
+      for (let i = 1; i <= 10; i++)
+        env('pointermove', prise.x + d[0]*ech*i/10, prise.y + d[1]*ech*i/10);
+      env('pointerup', prise.x + d[0]*ech, prise.y + d[1]*ech);
+      const anc = p.ancres();
+      const grad = anc.reduce((b, a) =>
+        Math.hypot(a[0]-vise[0], a[1]-vise[1]) < Math.hypot(b[0]-vise[0], b[1]-vise[1]) ? a : b);
+      /* Puis le geste du compas : le centre, puis le point visé.
+         LA MATRICE SE RELIT À CHAQUE TAP. Activer le compas réécrit la
+         sous-consigne, dont la hauteur change et fait glisser le plan de
+         quelques pixels : une matrice capturée avant le clic visait deux
+         pixels à côté, l’aimant ne prenait plus, et le test accusait le code
+         d’un rayon de 4,08 qui était le sien. */
+      document.querySelector('#barreOutils .outil-compas').click();
+      const versClient = (s) => {
+        const mm = svg.getScreenCTM(), p2 = svg.createSVGPoint();
+        p2.x = s[0]; p2.y = s[1];
+        const q2 = p2.matrixTransform(mm); return {x:q2.x, y:q2.y};
+      };
+      const tap = (s) => { const c = versClient(s);
+        ['pointerdown','pointerup'].forEach(t =>
+          (document.elementFromPoint(c.x, c.y) || svg).dispatchEvent(
+            new PointerEvent(t, {clientX:c.x, clientY:c.y, pointerId:42, bubbles:true}))); };
+      tap(centreVise);
+      /* ON VISE À CÔTÉ, comme un doigt : six pixels de dérive, sous le rayon
+         d’accrochage. Viser la graduation au pixel près ne prouvait rien —
+         le rayon tombait juste même sans aimant, et retirer l’aimant restait
+         invisible. C’est l’écart qui fait la preuve. */
+      tap([grad[0] + 4, grad[1] + 4]);
+      const ce = chantier.cerclesPoses[0];
+      return {gradAtteinte:+Math.hypot(grad[0]-vise[0], grad[1]-vise[1]).toFixed(2),
+              cercle:!!ce,
+              rayonEnUnites: ce ? +(ce.r / PX_PAR_UNITE).toFixed(3) : null,
+              centreSurSommet: ce ? +Math.hypot(ce.c[0]-centreVise[0], ce.c[1]-centreVise[1]).toFixed(2) : null,
+              accepte: ce ? cercleAccepte(ce, q.cercles[0], chantier.contours[0], tolerancePapierUni(q)) : false};
+    });
+    T('rayon — la règle se cale : sa graduation 4 tombe pile à 4 unités du sommet',
+      rayonJoue.gradAtteinte < 0.01, 'écart ' + rayonJoue.gradAtteinte + ' px');
+    T('rayon — le compas se pose sur le sommet, comme au CE1',
+      rayonJoue.cercle === true && rayonJoue.centreSurSommet < 0.01,
+      'centre à ' + rayonJoue.centreSurSommet + ' px du sommet');
+    T('rayon — et le rayon obtenu vaut EXACTEMENT 4 : la graduation est atteignable au doigt',
+      Math.abs(rayonJoue.rayonEnUnites - 4) < 0.01, 'rayon ' + rayonJoue.rayonEnUnites + ' unités');
+    T('rayon — la manche accepte donc ce cercle', rayonJoue.accepte === true,
+      JSON.stringify({accepte:rayonJoue.accepte}));
+    /* ET LE RAYON DICTÉ EST BIEN EXIGÉ : sans cela, « de rayon 4 » ne serait
+       qu’un ornement de l’énoncé. */
+    const rayonFaux = await page.evaluate(() => {
+      const q = file[pos], sol = q.solutions[0][0], contour = chantier.contours[0];
+      const tol = tolerancePapierUni(q);
+      const essai = (u) => cercleAccepte({c:sol[0].slice(), r:u * PX_PAR_UNITE},
+                                         q.cercles[0], contour, tol);
+      return {trois:essai(3), quatre:essai(4), cinq:essai(5), demandé:q.cercles[0].r / PX_PAR_UNITE};
+    });
+    T('rayon — un rayon de 3 ou de 5 est refusé : la mesure de l’énoncé est exigée',
+      rayonFaux.trois === false && rayonFaux.cinq === false && rayonFaux.quatre === true,
+      JSON.stringify(rayonFaux));
+
+    /* L’ORDRE DES TROIS EXEMPLES SE TIRE AU SORT, comme au CE1 : ils sont
+       ceux du programme et il n’y en aura pas de quatrième, mais les jouer
+       toujours dans le même ordre, c’est une seule et même partie (§13). */
+    const series = await page.evaluate(() => {
+      const compte = (g) => {
+        const s = new Set();
+        for (let i = 0; i < 60; i++) s.add(g().map(q => q.q.slice(0, 12)).join('|'));
+        return s.size;
+      };
+      return {ce1:compte(qCe1Construire), ce2:compte(qCe2ConstruireUni)};
+    });
+    T('séries — les trois commandes du CE2 ne se jouent plus toujours dans le même ordre',
+      series.ce2 >= 4 && series.ce2 === series.ce1,
+      'CE2 ' + series.ce2 + ' séries, CE1 ' + series.ce1);
   }
 
   console.log('\nErreurs JS/console/réseau : ' + (erreurs.length ? JSON.stringify(erreurs.slice(0,3)) : 'aucune'));
