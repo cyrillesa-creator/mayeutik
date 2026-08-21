@@ -1036,6 +1036,13 @@ const SEUIL_GLISSEMENT = 16;    // au-delà, le geste est un défilement (§19)
    un 10. Un pourcentage seul ne pouvait pas tenir les deux bouts. */
 const TOL_UNI = 0.06;           // 6 % de la longueur de référence…
 const PLAFOND_TOL_UNI = 0.4 * PX_PAR_UNITE;  // …sans jamais atteindre la demi-unité
+/* L’ANGLE A SA PROPRE TOLÉRANCE, et elle n’a rien à voir avec les longueurs.
+   Un coin posé au doigt à 10 px près sur un côté de 100 en fait un angle de
+   94° : refuser cela reviendrait à refuser le geste. Ce qui doit rester
+   distinguable, c’est l’angle DROIT de ce qui ne l’est pas, et le cycle 2 ne
+   nomme rien entre les deux. Huit degrés laissent donc passer la main sans
+   jamais laisser passer un parallélogramme pour un rectangle. */
+const TOL_ANGLE_UNI = 8 * Math.PI / 180;   // radians() n’est pas encore déclaré ici
 const TOL_ESQUISSE = 0.12;      // mode « à main levée » du CE2
 const TOL_GRILLE = 2;           // sur quadrillage l’aimantation rend exact
 const PTS_MANCHE = 1;
@@ -1875,13 +1882,14 @@ function memeContour(a, b, tol){
 /* Appariement bijectif des contours posés et des contours attendus. Les
    assemblages n’en comptent jamais plus de quatre : l’essai exhaustif est
    à la fois simple et suffisant. */
-function memeAssemblage(poses, attendus, tol){
+function memeAssemblage(poses, attendus, tol, memeUn){
   if (poses.length !== attendus.length) return false;
+  const identiques = memeUn || memeContour;
   const pris = new Array(attendus.length).fill(false);
   const rec = (i) => {
     if (i === poses.length) return true;
     for (let j = 0; j < attendus.length; j++) {
-      if (pris[j] || !memeContour(poses[i], attendus[j], tol)) continue;
+      if (pris[j] || !identiques(poses[i], attendus[j], tol)) continue;
       pris[j] = true;
       if (rec(i + 1)) return true;
       pris[j] = false;
@@ -1893,9 +1901,63 @@ function memeAssemblage(poses, attendus, tol){
 const decaler = (contours, d) => contours.map(c => c.map(p => [p[0]+d[0], p[1]+d[1]]));
 const tousLesPoints = (contours) => contours.reduce((s, c) => s.concat(c), []);
 
-function figureAcceptee(poses, solutions, tol, libre){
+/* ============================================================
+   SUR PAPIER UNI, ON JUGE DES MESURES — PAS DES COORDONNÉES
+   ------------------------------------------------------------
+   « Construis un rectangle de 7 sur 4 » ne dit ni où le poser ni comment
+   l’orienter, et le papier uni ne le dit pas non plus : il n’a ni ligne ni
+   nœud. Comparer sommet à sommet avec une figure de référence droite
+   refusait donc un rectangle PARFAITEMENT JUSTE dessiné de travers, et
+   punissait au passage la dérive accumulée — quatre côtés un peu longs, et
+   le dernier sommet est loin, alors qu’aucune mesure n’est fausse.
+   On compare donc ce que l’énoncé énonce : les LONGUEURS DES CÔTÉS et les
+   ANGLES, dans le même ordre cyclique, au sens de parcours près. C’est
+   invariant par translation, par rotation et par retournement — les trois
+   libertés que le papier uni laisse réellement — et chaque mesure se juge
+   pour elle-même, sans que les erreurs s’additionnent.
+   Cela ne relâche pas l’exigence : une figure dont un côté est faux d’une
+   unité reste refusée. Cela cesse de mesurer ce qui n’était pas demandé.
+   ============================================================ */
+function mesuresContour(c){
+  const n = c.length, cotes = [], angles = [];
+  for (let i = 0; i < n; i++) {
+    cotes.push(dist(c[i], c[(i+1) % n]));
+    const a = c[(i-1+n) % n], b = c[i], d = c[(i+1) % n];
+    const u = Math.atan2(a[1]-b[1], a[0]-b[0]), v = Math.atan2(d[1]-b[1], d[0]-b[0]);
+    let t = Math.abs(u - v);
+    if (t > Math.PI) t = TAU - t;
+    angles.push(t);                       // angle NON orienté au sommet i
+  }
+  return {cotes, angles};
+}
+function memesMesures(produit, attendu, tol){
+  if (produit.length !== attendu.length) return false;
+  const cible = mesuresContour(attendu), n = produit.length;
+  /* Le parcours inverse se compare en RETOURNANT le contour, pas en jonglant
+     avec les indices : une figure retournée est la même figure, et refaire
+     le calcul sur le contour retourné évite l’erreur de décalage que le
+     jonglage invite. */
+  for (const c of [produit, produit.slice().reverse()]) {
+    const m = mesuresContour(c);
+    for (let d = 0; d < n; d++) {
+      let ok = true;
+      for (let i = 0; i < n && ok; i++)
+        ok = Math.abs(m.cotes[(i+d) % n] - cible.cotes[i]) <= tol
+          && Math.abs(m.angles[(i+d) % n] - cible.angles[i]) <= TOL_ANGLE_UNI;
+      if (ok) return true;
+    }
+  }
+  return false;
+}
+
+function figureAcceptee(poses, solutions, tol, libre, parMesures){
   for (const sol of solutions) {
     if (poses.length !== sol.length) continue;
+    /* Les mesures sont déjà invariantes par translation : rien à recaler. */
+    if (parMesures) {
+      if (memeAssemblage(poses, sol, tol, memesMesures)) return true;
+      continue;
+    }
     /* Invariance par TRANSLATION seulement, et seulement là où elle a un
        sens : en reproduction et en construction libre, poser la pièce à
        gauche ou à droite est également juste ; en complétion, l’amorce
@@ -1910,9 +1972,63 @@ function figureAcceptee(poses, solutions, tol, libre){
   }
   return false;
 }
-function cercleAccepte(pose, attendus, tol){
-  return attendus.some(a => dist(pose.c, a.c) <= tol
-    && (a.rLibre ? (pose.r >= a.rMin && pose.r <= a.rMax) : Math.abs(pose.r - a.r) <= tol));
+
+/* ============================================================
+   LE CERCLE SE RATTACHE À LA FIGURE, PAS À UNE COORDONNÉE
+   ------------------------------------------------------------
+   « Un cercle centré sur un de ses coins » ne dit pas OÙ le cercle va, il dit
+   À QUOI il s’accroche. Les positions admissibles étaient pourtant écrites
+   d’avance, lues sur la figure de référence : un enfant dont le rectangle
+   était accepté mais posé un peu ailleurs voyait son cercle refusé parce
+   qu’il l’avait mis au coin de SON rectangle et non au coin du nôtre. Les
+   deux imprécisions s’additionnaient contre une coordonnée absolue, et
+   c’était la figure la plus cohérente qu’on punissait.
+   Le cercle se juge donc sur la figure QUE L’ENFANT A FAITE — les ancres
+   admissibles s’y calculent, « un de ses coins » les énumérant toutes — et
+   l’écart toléré s’y calcule aussi : LA MOITIÉ DE LA DISTANCE À L’ANCRE
+   CONCURRENTE LA PLUS PROCHE, c’est-à-dire le plus grand écart qui ne puisse
+   jamais faire prendre un coin pour un autre. Sur un rectangle de 7 sur 4,
+   cela vaut deux unités, où la tolérance de mesure en vaut moins d’une
+   demie : on ne mesure pas un rattachement, on le reconnaît. */
+/* QUAND JUGE-T-ON SUR LES MESURES ? Là où rien n’impose la position ni
+   l’orientation : le papier UNI, en construction LIBRE. Sur quadrillage les
+   côtés doivent suivre les lignes — le programme le demande — et en
+   complétion l’amorce fixe la figure ; dans les deux cas les coordonnées ont
+   un sens. La condition se lit donc sur la manche, elle ne s’y déclare pas. */
+function jugeParMesures(q){
+  return q.support === 'uni' && !!q.libre;
+}
+
+function ancresCercle(relation, contour){
+  if (!contour || !contour.length) return [];
+  return relation === 'centre' ? [centre(contour)] : contour.map(p => p.slice());
+}
+function toleranceRattachement(relation, contour){
+  const ancres = ancresCercle(relation, contour);
+  /* Les concurrentes d’un coin sont les autres coins ; celles du milieu sont
+     les coins eux-mêmes — c’est d’eux qu’il doit rester distinguable. */
+  const rivales = relation === 'centre' ? contour : ancres;
+  let d = Infinity;
+  ancres.forEach(a => rivales.forEach(r => {
+    const e = dist(a, r);
+    if (e > 1e-6) d = Math.min(d, e);
+  }));
+  return d === Infinity ? PX_PAR_UNITE : d / 2;
+}
+/* Un rayon LIBRE n’a pas de bonne valeur : l’énoncé n’en donne pas. Il doit
+   seulement rester un cercle qu’on voit, et ne pas avaler la figure à
+   laquelle il se rattache — deux bornes que la figure elle-même fournit. */
+function cercleAccepte(pose, spec, contour, tol){
+  if (!pose || !spec) return false;
+  const ancres = ancresCercle(spec.relation, contour);
+  if (!ancres.length) return false;
+  const bonCentre = ancres.some(a => dist(pose.c, a) <= toleranceRattachement(spec.relation, contour));
+  const b = bbox(contour);
+  const rMax = Math.max(b.x1 - b.x0, b.y1 - b.y0);
+  const bonRayon = spec.r != null
+    ? Math.abs(pose.r - spec.r) <= tol
+    : (pose.r >= 0.5 * PX_PAR_UNITE && pose.r <= rMax);
+  return bonCentre && bonRayon;
 }
 
 /* ============================================================
@@ -2741,10 +2857,10 @@ function qCe1Construire(){
       return mancheBase({
         support:'uni', libre:true, zone:'pleine',
         solutions:[[c]],
-        cercles:[{c:c[0], rLibre:true, rMin:1.5*PX_PAR_UNITE, rMax:3.5*PX_PAR_UNITE},
-                 {c:c[1], rLibre:true, rMin:1.5*PX_PAR_UNITE, rMax:3.5*PX_PAR_UNITE},
-                 {c:c[2], rLibre:true, rMin:1.5*PX_PAR_UNITE, rMax:3.5*PX_PAR_UNITE},
-                 {c:c[3], rLibre:true, rMin:1.5*PX_PAR_UNITE, rMax:3.5*PX_PAR_UNITE}],
+        /* « Sur un de ses coins » : les quatre coins étaient énumérés à la
+           main, sur la figure de référence. La relation les énumère toute
+           seule, sur la figure de l’enfant. */
+        cercles:[{relation:'sommet'}],
         instruments:['regle','equerre'], compas:'passant',
         q:'Un rectangle de 7 sur 4, et un cercle dans un de ses coins.',
         enonce:'Construis un rectangle de 7 sur 4, puis un cercle centré sur un de ses coins.',
@@ -2757,7 +2873,7 @@ function qCe1Construire(){
       return mancheBase({
         support:'uni', libre:true, zone:'pleine',
         solutions:[[c]],
-        cercles:[{c:[cx,cy], rLibre:true, rMin:1.5*PX_PAR_UNITE, rMax:3*PX_PAR_UNITE}],
+        cercles:[{relation:'centre'}],
         instruments:['regle','equerre'], compas:'passant',
         q:'Un carré de côté 5, et un cercle en son milieu.',
         enonce:'Construis un carré de côté 5, puis un cercle centré au milieu du carré.',
@@ -2834,7 +2950,9 @@ function qCe2ConstruireUni(){
     const c = [[cx-c0/2,cy-c0/2],[cx+c0/2,cy-c0/2],[cx+c0/2,cy+c0/2],[cx-c0/2,cy+c0/2]];
     return mancheBase({
       support:'uni', libre:true, zone:'pleine', solutions:[[c]],
-      cercles:c.map(s => ({c:s, r:4*U})),
+      /* Le rayon, lui, EST dicté par l’énoncé du CE2 : il reste jugé.
+         Seul le rattachement se calcule sur la figure produite. */
+      cercles:[{relation:'sommet', r:4*U}],
       instruments:['regle','equerre'], compas:'rayon', rayonDemande:4,
       q:'Un carré de côté 6, et un cercle de rayon 4 centré sur un de ses sommets.',
       enonce:'Construis un carré de côté 6, puis un cercle de rayon 4 centré sur un de ses sommets.',
@@ -3851,15 +3969,19 @@ function validerManche(q){
             : 'Regarde la figure attendue, en vert.';
       }
     } else {
-      bon = figureAcceptee(chantier.contours, q.solutions, tol, q.libre);
+      bon = figureAcceptee(chantier.contours, q.solutions, tol, q.libre, jugeParMesures(q));
       if (!bon) motif = chantier.contours.length !== q.solutions[0].length
         ? 'Il fallait ' + q.solutions[0].length + ' pièce' + (q.solutions[0].length > 1 ? 's' : '') + '.'
         : 'Regarde la figure attendue, en vert.';
     }
   }
   if (bon && q.cercles) {
-    bon = chantier.cerclesPoses.length === (q.solutions.length ? 1 : 1)
-      && cercleAccepte(chantier.cerclesPoses[0], q.cercles, tol);
+    /* Le cercle se juge sur la figure QUE L’ENFANT VIENT DE FERMER — à
+       défaut, sur celle qui était attendue (il n’y a alors rien d’autre à
+       quoi le rattacher). */
+    const support = chantier.contours[0] || (q.solutions[0] && q.solutions[0][0]);
+    bon = chantier.cerclesPoses.length === 1
+      && cercleAccepte(chantier.cerclesPoses[0], q.cercles[0], support, tol);
     if (!bon) motif = 'Le cercle n’était pas au bon endroit.';
   }
 
@@ -3879,6 +4001,7 @@ function montrerAttendu(q){
     if (!g.isConnected) return;
     let s = '';
     const sol = q.solutions[0];
+    let montre = null;                    // la solution TELLE QU’ELLE EST DESSINÉE
     if (sol) {
       /* On montre la solution LÀ OÙ l’enfant a travaillé quand la position
          est libre : superposer au milieu du panneau une figure juste mais
@@ -3888,14 +4011,21 @@ function montrerAttendu(q){
         const cp = centre(tousLesPoints(chantier.contours)), cs = centre(tousLesPoints(sol));
         d = [cp[0]-cs[0], cp[1]-cs[1]];
       }
-      decaler(sol, d).forEach(ct => {
+      montre = decaler(sol, d);
+      montre.forEach(ct => {
         s += `<path class="attendu" d="${contourD(ct, true)}"/>`;
         ct.forEach(p => { s += `<circle class="sommet-attendu" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="5"/>`; });
       });
     }
-    (q.cercles || []).slice(0, 1).forEach(ce => {
-      s += cercleSvg(ce.c, ce.rLibre ? (ce.rMin + ce.rMax)/2 : ce.r, 'attendu');
-    });
+    /* Le fantôme du cercle s’accroche à la figure VERTE, celle qu’on vient de
+       dessiner : la relation sait s’y prendre là comme elle s’y prenait sur
+       la figure de l’enfant. On en montre UNE position — la première ancre —
+       parce qu’en montrer quatre laisserait croire qu’il en fallait quatre. */
+    if (q.cercles && q.cercles[0] && montre && montre[0]) {
+      const ce = q.cercles[0];
+      const ancres = ancresCercle(ce.relation, montre[0]);
+      if (ancres.length) s += cercleSvg(ancres[0], ce.r != null ? ce.r : 2 * PX_PAR_UNITE, 'attendu');
+    }
     g.innerHTML = s;
   }, DELAI_REVELATION);
 }

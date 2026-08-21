@@ -733,7 +733,15 @@ const JEUX = ['cp-reproduire','cp-completer','cp-assembler',
     return file.map(q => ({
       q:q.q, cotes:mesure(q.solutions[0][0]),
       rayon:q.cercles ? Math.round(q.cercles[0].r / U) : null,
-      centreSurSommet: q.cercles ? q.cercles.every(ce => q.solutions[0][0].some(s => s[0] === ce.c[0] && s[1] === ce.c[1])) : null
+      /* « Centré sur un de ses sommets » est désormais une RELATION, pas une
+         liste de coordonnées : on vérifie qu’elle est bien déclarée comme
+         telle, et que les ancres qu’elle produit sur la figure attendue sont
+         exactement ses sommets. */
+      relation: q.cercles ? q.cercles[0].relation : null,
+      centreSurSommet: q.cercles
+        ? ancresCercle(q.cercles[0].relation, q.solutions[0][0])
+            .every(a => q.solutions[0][0].some(s => s[0] === a[0] && s[1] === a[1]))
+        : null
     }));
   });
   const parQ = (re) => officiels.find(o => re.test(o.q));
@@ -741,7 +749,9 @@ const JEUX = ['cp-reproduire','cp-completer','cp-assembler',
   T('exemple 1 : rectangle 7 × 3', r7 && JSON.stringify(r7.cotes) === '[7,3,7,3]', r7 && JSON.stringify(r7.cotes));
   const c6 = parQ(/carré de côté 6/);
   T('exemple 2 : carré de côté 6', c6 && c6.cotes.every(x => x === 6), c6 && JSON.stringify(c6.cotes));
-  T('exemple 2 : cercle de rayon 4 centré sur un sommet', c6 && c6.rayon === 4 && c6.centreSurSommet, c6 && c6.rayon);
+  T('exemple 2 : cercle de rayon 4 centré sur un sommet',
+    c6 && c6.rayon === 4 && c6.relation === 'sommet' && c6.centreSurSommet,
+    c6 && ('rayon ' + c6.rayon + ', relation ' + c6.relation));
   const t10 = parQ(/10 et 4/);
   T('exemple 3 : triangle rectangle de côtés 10 et 4',
     t10 && t10.cotes.includes(10) && t10.cotes.includes(4), t10 && JSON.stringify(t10.cotes));
@@ -841,8 +851,15 @@ const JEUX = ['cp-reproduire','cp-completer','cp-assembler',
             .map(f => simplifierPoly(f.poly).map(g => chantier.trace.versScene(g)));
         }
         else if (q.solutions.length) chantier.contours = q.solutions[0].map(c => c.slice());
-        if (q.cercles) chantier.cerclesPoses = [{c:q.cercles[0].c.slice(),
-          r:q.cercles[0].rLibre ? (q.cercles[0].rMin + q.cercles[0].rMax)/2 : q.cercles[0].r}];
+        /* Le cercle se pose sur la figure QUE LE CHANTIER PORTE, par la même
+           relation que le verdict lira : demander au test de recalculer une
+           position, c’est lui demander de refaire le calcul du code — et de
+           le valider même quand il est faux. */
+        if (q.cercles) {
+          const ancre = ancresCercle(q.cercles[0].relation, chantier.contours[0])[0];
+          chantier.cerclesPoses = [{c:ancre.slice(),
+            r:q.cercles[0].r != null ? q.cercles[0].r : 2 * PX_PAR_UNITE}];
+        }
         validerManche(q);
         await new Promise(r => setTimeout(r, 40));
         desarmerAutoSuivant();

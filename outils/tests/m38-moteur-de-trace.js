@@ -1481,31 +1481,146 @@ async function tracerChemin(page, chemin){
       bornes.filter(b => b.tol < 0.2).map(b => b.tol + ' — ' + b.q).join(' | ')
         || bornes.length + ' manches');
 
-    /* Et le verdict lui-même, sur la figure : un sommet qui a glissé passe,
-       une mesure fausse d’une unité ne passe pas. */
+    /* ============================================================
+       CE QU’ON ACCEPTE, PAS SEULEMENT DE COMBIEN
+       ------------------------------------------------------------
+       Le papier uni n’a ni ligne ni nœud, et l’énoncé ne dit ni où poser la
+       figure ni comment l’orienter : un rectangle de 7 sur 4 dessiné DE
+       TRAVERS est un rectangle de 7 sur 4. Le verdict compare donc des
+       mesures — longueurs et angles — et non plus des coordonnées. On
+       éprouve les deux bords de cette liberté : ce qu’elle ouvre, et ce
+       qu’elle continue de refuser.
+       ============================================================ */
     const verdicts = await page.evaluate(() => {
       const U = PX_PAR_UNITE;
+      const tourner = (c, a) => {
+        const o = centre(c), co = Math.cos(a), si = Math.sin(a);
+        return c.map(p => [o[0] + (p[0]-o[0])*co - (p[1]-o[1])*si,
+                           o[1] + (p[0]-o[0])*si + (p[1]-o[1])*co]);
+      };
       return qCe1Construire().map(q => {
-        const sol = q.solutions[0], tol = tolerancePapierUni(q);
-        const bouge = (i, dx, dy) => [sol[0].map((p, k) =>
-          k === i ? [p[0]+dx, p[1]+dy] : [p[0], p[1]])];
-        /* Un seul sommet écarté de 90 % de la tolérance : le recalage sur le
-           centre en absorbe une part, le reste doit rester accepté. */
-        const glisse = bouge(0, tol*0.9, 0);
-        /* Un côté allongé d’une unité entière : deux sommets déplacés, la
-           figure change de mesure. */
-        const fausse = [sol[0].map((p, k) => k === 1 || k === 2 ? [p[0]+U, p[1]] : [p[0], p[1]])];
-        return {q:q.q,
-          glisse:figureAcceptee(glisse, q.solutions, tol, q.libre),
-          fausse:figureAcceptee(fausse, q.solutions, tol, q.libre)};
+        const sol = q.solutions[0], tol = tolerancePapierUni(q), par = jugeParMesures(q);
+        const juge = (c) => figureAcceptee(c, q.solutions, tol, q.libre, par);
+        const copie = () => sol[0].map(p => p.slice());
+        /* Un seul sommet écarté de 90 % de la tolérance. */
+        const glisse = copie(); glisse[0] = [glisse[0][0] + tol*0.9, glisse[0][1]];
+        /* Un côté allongé d’une unité entière : la mesure change. */
+        const fausse = copie().map((p, k) => k === 1 || k === 2 ? [p[0]+U, p[1]] : p);
+        /* La même figure, tournée de 12° et posée ailleurs. */
+        const detravers = tourner(copie(), 0.21).map(p => [p[0]+35, p[1]-20]);
+        /* Le même contour cisaillé : mêmes côtés, angles de 75° et 105°. */
+        const cisaille = copie().map((p, k) => k >= 2 ? [p[0] + 0.9*U, p[1]] : p);
+        return {q:q.q, par,
+          glisse:juge([glisse]), fausse:juge([fausse]),
+          detravers:juge([detravers]), cisaille:juge([cisaille])};
       });
     });
-    T('tolérance — un sommet qui a glissé sous la tolérance est accepté',
+    T('acceptation — les constructions sur papier uni se jugent bien sur les MESURES',
+      verdicts.every(v => v.par === true), JSON.stringify(verdicts.map(v => v.par)));
+    T('acceptation — une figure juste mais tournée de 12° et posée ailleurs est acceptée',
+      verdicts.every(v => v.detravers === true),
+      verdicts.filter(v => !v.detravers).map(v => v.q).join(' | ') || verdicts.length + ' figures');
+    T('acceptation — un sommet qui a glissé sous la tolérance est accepté',
       verdicts.every(v => v.glisse === true),
       verdicts.filter(v => !v.glisse).map(v => v.q).join(' | ') || verdicts.length + ' figures');
-    T('tolérance — mais une mesure fausse d’une unité entière est refusée',
+    T('acceptation — mais une mesure fausse d’une unité entière est refusée',
       verdicts.every(v => v.fausse === false),
       verdicts.filter(v => v.fausse).map(v => v.q).join(' | ') || verdicts.length + ' figures');
+    T('acceptation — et un contour cisaillé n’est pas la figure demandée : l’angle compte',
+      verdicts.every(v => v.cisaille === false),
+      verdicts.filter(v => v.cisaille).map(v => v.q).join(' | ') || verdicts.length + ' figures');
+
+    /* ============================================================
+       LE CERCLE SE RATTACHE À LA FIGURE DE L’ENFANT
+       ------------------------------------------------------------
+       C’est le cœur du défaut signalé : deux figures enchevêtrées étaient
+       jugées chacune contre des coordonnées absolues, si bien que leurs
+       imprécisions s’additionnaient. Un rectangle accepté mais posé ailleurs,
+       et son cercle bien mis SUR SON COIN, était refusé — on punissait
+       précisément la cohérence.
+       ============================================================ */
+    const rattachement = await page.evaluate(() => {
+      const manches = qCe1Construire();
+      const parRelation = {};
+      manches.forEach(q => {
+        if (!q.cercles) return;
+        const rel = q.cercles[0].relation;
+        const sol = q.solutions[0][0];
+        const tol = tolerancePapierUni(q);
+        /* La figure DE L’ENFANT : la même, franchement déplacée. */
+        const sien = sol.map(p => [p[0] + 60, p[1] + 60]);
+        const ancres = ancresCercle(rel, sien);
+        const r = 2 * PX_PAR_UNITE;
+        parRelation[rel] = {
+          figureAcceptee:figureAcceptee([sien], q.solutions, tol, q.libre, jugeParMesures(q)),
+          /* Sur CHACUNE des ancres de sa propre figure. */
+          surLesSiennes:ancres.map(a => cercleAccepte({c:a, r}, q.cercles[0], sien, tol)),
+          nbAncres:ancres.length,
+          /* Au même endroit qu’attendait la figure de référence : c’est
+             maintenant à côté de la sienne, donc refusé. */
+          surCelleDeReference:cercleAccepte({c:ancresCercle(rel, sol)[0], r}, q.cercles[0], sien, tol),
+          /* Les deux tolérances, mesurées et comparées. */
+          tolRattachement:+toleranceRattachement(rel, sien).toFixed(1),
+          tolMesure:+tol.toFixed(1)
+        };
+        /* Et l’autre relation doit rester distinguable : un cercle au milieu
+           n’est pas un cercle au coin. */
+        const autre = rel === 'centre' ? ancresCercle('sommet', sien)[0] : centre(sien);
+        parRelation[rel].confusion = cercleAccepte({c:autre, r}, q.cercles[0], sien, tol);
+      });
+      return parRelation;
+    });
+    const rels = Object.entries(rattachement);
+    T('rattachement — les deux relations du CE1 sont éprouvées : « un coin » et « le milieu »',
+      rels.length === 2 && rels.some(([r]) => r === 'sommet') && rels.some(([r]) => r === 'centre'),
+      rels.map(([r, v]) => r + ' (' + v.nbAncres + ' ancre(s))').join(', '));
+    T('rattachement — la figure déplacée de 60 px reste acceptée',
+      rels.every(([, v]) => v.figureAcceptee === true),
+      rels.map(([r, v]) => r + ':' + v.figureAcceptee).join(' '));
+    T('rattachement — le cercle est accepté sur N’IMPORTE QUELLE ancre de la figure de l’enfant',
+      rels.every(([, v]) => v.surLesSiennes.length > 0 && v.surLesSiennes.every(Boolean)),
+      rels.map(([r, v]) => r + ':' + v.surLesSiennes.filter(Boolean).length + '/' + v.nbAncres).join(' '));
+    T('rattachement — mais pas à l’endroit qu’occupait la figure de référence',
+      rels.every(([, v]) => v.surCelleDeReference === false),
+      rels.map(([r, v]) => r + ':' + v.surCelleDeReference).join(' '));
+    T('rattachement — « au milieu » et « au coin » restent distinguables',
+      rels.every(([, v]) => v.confusion === false),
+      rels.map(([r, v]) => r + ':' + v.confusion).join(' '));
+    /* Le point du signalement : ce n’est pas la même échelle de jugement. */
+    T('rattachement — reconnaître un rattachement est beaucoup plus large que mesurer',
+      rels.every(([, v]) => v.tolRattachement >= 4 * v.tolMesure),
+      rels.map(([r, v]) => r + ' : ' + v.tolRattachement + ' px contre ' + v.tolMesure).join(' | '));
+
+    /* EN JEU, PAS SEULEMENT SUR LA RÈGLE. Éprouver `cercleAccepte` en lui
+       passant soi-même le contour de l’enfant ne dit RIEN de la ligne qui
+       choisit ce contour : intervertir « la figure de l’enfant » et « la
+       figure attendue » dans `validerManche` restait invisible, alors que
+       c’est exactement le défaut signalé. On joue donc la manche : figure
+       juste posée franchement ailleurs, cercle sur SON coin, et on demande
+       le verdict au jeu. */
+    await page.goto(base + '?competence=ce1-construire');
+    await page.waitForTimeout(400);
+    const enJeu = await page.evaluate(async () => {
+      const res = [];
+      for (let i = 0; i < file.length; i++) {
+        if (!file[i].cercles) continue;
+        pos = i; manche(); desarmerAutoSuivant();
+        const q = file[pos], sol = q.solutions[0][0];
+        /* La figure de l’enfant : la bonne, mais 60 px plus loin. */
+        const sien = sol.map(p => [p[0] + 60, p[1] + 60]);
+        chantier.contours = [sien];
+        chantier.cerclesPoses = [{c:ancresCercle(q.cercles[0].relation, sien)[0].slice(),
+                                  r:q.cercles[0].r != null ? q.cercles[0].r : 2 * PX_PAR_UNITE}];
+        validerManche(q);
+        await new Promise(r => setTimeout(r, 40));
+        res.push({relation:q.cercles[0].relation, ok:q._ok,
+                  fb:document.getElementById('feedback').textContent.trim().slice(0, 60)});
+      }
+      return res;
+    });
+    T('rattachement — en jeu : figure posée ailleurs, cercle sur SON coin, la manche est réussie',
+      enJeu.length > 0 && enJeu.every(m => m.ok === true),
+      enJeu.map(m => m.relation + ':' + m.ok + (m.ok ? '' : ' « ' + m.fb + ' »')).join(' | '));
   }
 
   console.log('\nErreurs JS/console/réseau : ' + (erreurs.length ? JSON.stringify(erreurs.slice(0,3)) : 'aucune'));
