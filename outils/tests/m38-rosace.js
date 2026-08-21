@@ -146,6 +146,95 @@ const srv=http.createServer((q,r)=>{const p=path.join(RACINE,decodeURIComponent(
  T('et la loupe se referme au relâchement',
    (await page.evaluate(()=>document.querySelector('.compas-loupe').getAttribute('display')))==='none');
 
+ /* ---- 7. « J'AI FINI » DEMANDE LE VERDICT, IL NE LE DÉCRÈTE PAS ----
+    Le bouton appelait `juger(false)` : quoi que l'enfant ait construit, la
+    manche était perdue. Une rosace parfaite — six pétales pile à soixante
+    degrés — rendait « Presque ! ». Et c'est le SEUL bouton visible : celui
+    qui se croit arrivé au bout appuie dessus, forcément. */
+ const fini=async()=>{
+   await page.evaluate(()=>[...document.querySelectorAll('#barreOutils .outil')]
+     .find(x=>/fini/i.test(x.textContent)).click());
+   await page.waitForTimeout(400);
+   return page.evaluate(()=>({ok:file[pos]._ok,
+     fb:document.getElementById('feedback').textContent.trim(),
+     hex:document.querySelectorAll('.hexagone-final').length}));
+ };
+ await ouvrir();
+ const q1=await premierCercle(0.7);
+ for(let i=0;i<6;i++) await planter(q1.O, q1.R, -Math.PI/2 + i*Math.PI/3);
+ const parfaite=await fini();
+ T('« j\u2019ai fini » sur une rosace parfaite : la manche est RÉUSSIE',
+   parfaite.ok===true, JSON.stringify({ok:parfaite.ok, fb:parfaite.fb.slice(0,60)}));
+ T('et le retour dit ce qui a été construit, pas « presque »',
+   /hexagone/i.test(parfaite.fb) && !/Presque/.test(parfaite.fb), parfaite.fb.slice(0,70));
+
+ await ouvrir();
+ const q2=await premierCercle(0.7);
+ for(let i=0;i<3;i++) await planter(q2.O, q2.R, -Math.PI/2 + i*Math.PI/3);
+ const troisPetales=await fini();
+ T('« j\u2019ai fini » à trois pétales : la rosace n\u2019est pas faite',
+   troisPetales.ok===false, JSON.stringify({ok:troisPetales.ok}));
+
+ await ouvrir();
+ const q3=await premierCercle(0.7);
+ for(const th of [-Math.PI/2, -1.2, -0.55, 0.2, 1.4, 2.6]) await planter(q3.O, q3.R, th);
+ const tordue=await fini();
+ T('« j\u2019ai fini » sur six pétales IRRÉGULIERS : refusé',
+   tordue.ok===false, JSON.stringify({ok:tordue.ok}));
+
+ /* Six justes ET deux de plus : les pétales en trop comptent, comme les
+    traits en trop comptent partout ailleurs dans ce module. */
+ await ouvrir();
+ const q4=await premierCercle(0.7);
+ for(let i=0;i<6;i++) await planter(q4.O, q4.R, -Math.PI/2 + i*Math.PI/3);
+ await planter(q4.O, q4.R, -Math.PI/2 + 0.42);
+ const nb=await page.evaluate(()=>file[pos]._centres.length);
+ const enTrop=await fini();
+ T('un pétale en trop est bien venu s\u2019ajouter', nb===7, nb+' centres');
+ T('sept pétales dont six justes : refusé, les pétales en trop comptent',
+   enTrop.ok===false, JSON.stringify({ok:enTrop.ok, n:nb}));
+
+ /* ---- 8. LA TOLÉRANCE, MESURÉE PLUTÔT QUE DÉCLARÉE ----
+    Chaque croisement construit est un aimant : une pointe posée à sa portée
+    y tombe EXACTEMENT. La tolérance utile est donc celle de l'aimant, et le
+    jugement se règle dessus — ni plus sévère (il refuserait un placement que
+    l'instrument venait d'accepter), ni plus large (il accepterait un point
+    que personne n'a construit). On balaie l'écart angulaire du DERNIER
+    pétale pour lire où l'acceptation s'arrête. */
+ const bornes={accepte:[], refuse:[]};
+ for(const deg of [0, 4, 8, 11, 20, 30]){
+   await ouvrir();
+   const qq=await premierCercle(0.7);
+   for(let i=0;i<5;i++) await planter(qq.O, qq.R, -Math.PI/2 + i*Math.PI/3);
+   await planter(qq.O, qq.R, -Math.PI/2 + 5*Math.PI/3 + deg*Math.PI/180);
+   const r=await fini();
+   (r.ok ? bornes.accepte : bornes.refuse).push(deg);
+ }
+ T('tolérance — viser juste, ou à quelques degrés près, est accepté',
+   bornes.accepte.includes(0) && bornes.accepte.includes(4) && bornes.accepte.includes(8),
+   'acceptés : ' + bornes.accepte.join('°, ') + '°');
+ T('tolérance — mais un pétale posé à 30° de sa place est refusé',
+   bornes.refuse.includes(30), 'refusés : ' + bornes.refuse.join('°, ') + '°');
+ /* ET CE QUI EST ACCEPTÉ EST EXACT. Il n'existe pas de pétale « presque
+    juste » : l'aimant décide avant la tolérance. On relit donc les angles
+    des six centres après un tir volontairement dévié de 11 degrés. */
+ await ouvrir();
+ const qe=await premierCercle(0.7);
+ for(let i=0;i<5;i++) await planter(qe.O, qe.R, -Math.PI/2 + i*Math.PI/3);
+ await planter(qe.O, qe.R, -Math.PI/2 + 5*Math.PI/3 + 11*Math.PI/180);
+ const ecarts=await page.evaluate(()=>{
+   const q=file[pos], O=q._O;
+   const a=q._centres.map(c=>Math.atan2(c[1]-O[1], c[0]-O[0])).map(x=>(x+TAU)%TAU).sort((x,y)=>x-y);
+   return a.map((x,i)=>+(((a[(i+1)%6]-x+TAU)%TAU)*180/Math.PI - 60).toFixed(2));
+ });
+ T('tolérance — un pétale accepté est un pétale EXACT : l\u2019aimant décide avant la tolérance',
+   ecarts.every(e=>Math.abs(e)<0.01), 'écarts au 60° : ' + ecarts.join('°, ') + '°');
+
+ T('tolérance — la frontière est unique : tout ce qui est accepté est sous ce qui est refusé',
+   Math.max(...bornes.accepte) < Math.min(...bornes.refuse),
+   'accepté jusqu\u2019à ' + Math.max(...bornes.accepte) + '°, refusé dès '
+     + Math.min(...bornes.refuse) + '°');
+
  console.log('\nErreurs JS/console :', erreurs.length?erreurs:'aucune');
  if(erreurs.length) ko+=erreurs.length;
  console.log(`\n${ok} OK, ${ko} KO`);

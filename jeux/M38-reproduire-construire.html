@@ -3225,7 +3225,12 @@ function rendreRosace(q){
   btnFini.type = 'button'; btnFini.className = 'outil';
   btnFini.textContent = '✓ j’ai fini';
   btnFini.hidden = true;
-  btnFini.addEventListener('click', () => juger(false));
+  /* « J’AI FINI » DEMANDE LE VERDICT, IL NE LE DÉCRÈTE PAS. Ce bouton
+     appelait `juger(false)` : quoi que l’enfant ait construit, la manche
+     était perdue. Une rosace parfaite, six pétales pile à soixante degrés,
+     rendait « Presque ! » — reproduit. Et c’est le seul bouton visible :
+     l’enfant qui se croit arrivé au bout appuie dessus, forcément. */
+  btnFini.addEventListener('click', () => juger());
   barre.appendChild(btnFini);
 
   /* Les points sur lesquels la pointe peut retomber EXACTEMENT : le départ,
@@ -3237,12 +3242,23 @@ function rendreRosace(q){
     return pts;
   }
 
-  function juger(ferme){
+  /* LE VERDICT SE LIT SUR LA FIGURE, il ne se reçoit pas en paramètre.
+     `juger` prenait un booléen que trois appelants remplissaient chacun à sa
+     façon — et l’un d’eux, le bouton « j’ai fini », y mettait toujours
+     `false`. Deux vérités pour un seul fait : ce qui est construit, et ce
+     qu’un appelant croit savoir de ce qui est construit. Il n’en reste
+     qu’une, relue sur les centres posés.
+     RÉUSSIR, C’EST SIX PÉTALES ET SIX EXACTEMENT, régulièrement répartis :
+     en accepter huit dont six seraient justes reviendrait à ne pas compter
+     les pétales en trop, comme on ne compte pas les traits en trop ailleurs
+     dans ce module. */
+  function juger(){
     if (verrouille) return;
     verrouille = true;
     compasRosace.figer();
     btnFini.hidden = true;
-    if (ferme && !hexagoneRegulier(q._centres.slice(0, 6), O, q._r)) ferme = false;
+    const ferme = q._centres.length === 6
+      && hexagoneRegulier(q._centres, O, q._r);
     if (ferme) {
       /* LE MOMENT DE VÉRITÉ : le sixième arc est retombé sur le départ. Les
          six centres sont alors les sommets d’un hexagone régulier — celui-là
@@ -3301,7 +3317,7 @@ function rendreRosace(q){
       const c = e.centre.slice();
       /* Fermeture : la pointe est retombée sur le tout premier pétale. */
       const tol = ROSACE_TOL * q._r;
-      if (q._centres.length >= 6 && dist(c, q._centres[0]) <= tol) { juger(true); return; }
+      if (q._centres.length >= 6 && dist(c, q._centres[0]) <= tol) { juger(); return; }
       q._centres.push(c);
       compasRosace.configurer({aimants:ancres()});
       btnFini.hidden = q._centres.length < 2;
@@ -3312,7 +3328,7 @@ function rendreRosace(q){
         /* Six pétales posés sans retomber sur le départ : la figure ne se
            refermera pas. On laisse ALLER JUSQU’AU BOUT — c’est en constatant
            que l’enfant apprend — mais on ne l’enferme pas non plus. */
-        if (q._centres.length >= 8) juger(false);
+        if (q._centres.length >= 8) juger();
       }
     }
   });
@@ -3337,7 +3353,17 @@ function hexagoneRegulier(centres, O, r){
   if (centres.some(c => Math.abs(dist(c, O) - r) > tol)) return false;
   const angles = centres.map(c => Math.atan2(c[1] - O[1], c[0] - O[0]))
     .map(a => (a + TAU) % TAU).sort((x, y) => x - y);
-  const ecartTol = ROSACE_TOL * TAU / 6;   // même tolérance, exprimée en angle
+  /* CETTE TOLÉRANCE NE DÉCIDE JAMAIS DE RIEN, ET C’EST VOULU : L’AIMANT
+     DÉCIDE AVANT ELLE. Chaque croisement déjà construit attire la pointe
+     dans un rayon de 12 px — environ 12° sur le cercle de base au rayon
+     usuel. Un pétale visé à moins que cela y tombe EXACTEMENT ; visé au-delà,
+     il reste où le doigt l’a mis, donc à plus de 12° de sa place, donc
+     au-delà de ces 6,6°. Il n’existe pas de pétale « presque juste » : mesuré
+     par balayage, on est accepté à 0, 4, 8 et 11 degrés — toujours exact — et
+     refusé à 20 et 30. La tolérance n’est donc pas un réglage de sévérité,
+     c’est le garde-fou qui empêche une addition de flottants de faire échouer
+     une figure exacte. La ramener à zéro fait rougir la rosace parfaite. */
+  const ecartTol = ROSACE_TOL * TAU / 6;
   for (let i = 0; i < 6; i++) {
     const d = (angles[(i + 1) % 6] - angles[i] + TAU) % TAU;
     if (Math.abs(d - TAU / 6) > ecartTol) return false;
