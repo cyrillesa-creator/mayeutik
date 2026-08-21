@@ -3564,6 +3564,8 @@ function nouveauChantier(q){
     contours: [],            // contours fermés par l’enfant
     cerclesPoses: [],
     posables: [],
+    /* LE JOURNAL DES GESTES, pour que « annuler » défasse le DERNIER. */
+    journal: [],
     tol: q.support === 'uni' ? tolerancePapierUni(q) : TOL_GRILLE
   };
 }
@@ -3606,10 +3608,11 @@ function poserSommet(p){
      interdit après validation (CHARTE §18). */
   if (s.length >= 3 && dist(pt, s[0]) < 12) { fermerContour(); return; }
   if (s.length > chantier.nbFixes && dist(pt, s[s.length-1]) < 12) {
-    s.pop(); sonClic(); dessinerChantier(); majBoutons(); return;
+    journaliser('sommet-retire', {p:s.pop()});
+    sonClic(); dessinerChantier(); majBoutons(); return;
   }
   if (s.some(x => dist(pt, x) < 6)) return;
-  s.push(pt); sonClic();
+  s.push(pt); journaliser('sommet'); sonClic();
   /* Sur la rosace, on pose un NOMBRE CONNU de points sur un cercle de
      construction : il n’y a pas de contour à refermer à la main, et
      demander de revenir sur le premier point n’aurait aucun sens. */
@@ -3620,22 +3623,47 @@ function fermerContour(){
   if (verrouille) return;
   const s = chantier.sommets;
   if (s.length < 3) return;
+  journaliser('contour', {nbFixes:chantier.nbFixes});
   chantier.contours.push(s.slice());
   chantier.sommets = [];
   chantier.nbFixes = 0;
   sonClic();
   dessinerChantier(); majBoutons();
 }
+/* UN JOURNAL, PAS UN ORDRE DE PRIORITÉ.
+   « Annuler » choisissait quoi défaire selon un ordre écrit d’avance — les
+   sommets d’abord, puis les cercles, puis les contours — au lieu de défaire
+   LE DERNIER GESTE. Un tap de trop resté sur le papier avant qu’on trace le
+   cercle passait donc en premier, et le cercle, fait APRÈS, survivait à son
+   propre retour arrière : l’enfant appuyait sur « annuler » en regardant son
+   cercle, et c’est ailleurs que quelque chose disparaissait. Reproduit.
+   Le moteur de tracé tient un journal depuis toujours — c’est la seule
+   raison pour laquelle les deux gestes n’annulaient pas pareil. La pose de
+   sommets en a un maintenant : chaque geste dit comment se défaire, et
+   « annuler » se contente de dépiler. */
+function journaliser(t, quoi){
+  if (!chantier.journal) chantier.journal = [];
+  chantier.journal.push(Object.assign({t}, quoi || {}));
+}
 function annuler(){
   if (verrouille) return;
   const c = chantier;
-  if (c.sommets.length > c.nbFixes) c.sommets.pop();
-  else if (c.cerclesPoses.length) c.cerclesPoses.pop();
-  else if (c.contours.length) {
+  const j = c.journal && c.journal.pop();
+  if (!j) return;
+  if (j.t === 'sommet') c.sommets.pop();
+  else if (j.t === 'sommet-retire') c.sommets.push(j.p);
+  else if (j.t === 'cercle') c.cerclesPoses.pop();
+  else if (j.t === 'centre') {
+    /* La pointe était posée, le cercle pas encore tracé : on relève la
+       pointe sans quitter le compas. */
+    c.centreProvisoire = null;
+    $('sousConsigne').textContent = 'Touche le centre, puis un point par lequel le cercle doit passer.';
+  }
+  else if (j.t === 'contour') {
     /* On rouvre le dernier contour plutôt que de l’effacer : l’enfant
        reprend son travail là où il l’a laissé. */
     c.sommets = c.contours.pop();
-    c.nbFixes = 0;
+    c.nbFixes = j.nbFixes;
   }
   dessinerChantier(); majBoutons();
 }
@@ -3953,6 +3981,7 @@ function poserCercle(brut){
     let c = p, d0 = 18;
     cands.forEach(x => { const d = dist(p, x); if (d < d0) { d0 = d; c = x; } });
     chantier.centreProvisoire = c;
+    journaliser('centre');
     $('sousConsigne').textContent = 'Et maintenant, un point par lequel le cercle passe.';
     sonClic(); dessinerChantier();
     const g = scene().getElementById('chantier');
@@ -3961,6 +3990,11 @@ function poserCercle(brut){
   }
   const c = chantier.centreProvisoire;
   chantier.cerclesPoses.push({c, r:dist(c, p)});
+  /* Le cercle REMPLACE la pointe dans le journal : défaire un cercle défait
+     le geste entier, pas sa moitié. */
+  if (chantier.journal.length && chantier.journal[chantier.journal.length-1].t === 'centre')
+    chantier.journal.pop();
+  journaliser('cercle');
   chantier.centreProvisoire = null;
   chantier.enAttenteCentre = false;
   document.querySelector('#barreOutils .outil-compas').classList.remove('on');

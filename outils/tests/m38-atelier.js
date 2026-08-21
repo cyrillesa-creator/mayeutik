@@ -982,6 +982,112 @@ const JEUX = ['cp-reproduire','cp-completer','cp-assembler',
   const apresGlisse = await page.evaluate(() => chantier.sommets.length);
   T('un geste qui glisse ne pose RIEN (c’est un défilement)', apresGlisse === 1, apresGlisse);
 
+  /* ---------- 19 bis. « Annuler » défait LE DERNIER GESTE ----------
+     Il choisissait quoi défaire selon un ordre écrit d’avance — les sommets,
+     puis les cercles, puis les contours. Un tap de trop resté sur le papier
+     AVANT qu’on trace le cercle passait donc en premier, et le cercle, fait
+     après, survivait à son propre retour arrière : l’enfant appuyait sur
+     « annuler » en regardant son cercle, et c’est ailleurs que quelque chose
+     disparaissait. On rejoue la scène, aux deux paliers qui construisent. */
+  for (const id of ['ce1-construire', 'ce2-construire-uni']) {
+    await page.goto(base + '?competence=' + id);
+    await page.waitForTimeout(220);
+    const rec = await page.evaluate(() => {
+      const etat = () => ({s:chantier.sommets.length, c:chantier.contours.length,
+                           o:chantier.cerclesPoses.length});
+      pos = file.findIndex(q => q.cercles); manche(); desarmerAutoSuivant();
+      const sol = file[pos].solutions[0][0];
+      sol.forEach(p => poserSommet(p.slice()));
+      poserSommet(sol[0].slice());                       // ferme le contour
+      const ferme = etat();
+      poserSommet([sol[2][0] + 40, sol[2][1] + 30]);     // un tap de trop
+      const trop = etat();
+      chantier.enAttenteCentre = true;                   // puis le cercle, APRÈS
+      poserCercle(sol[0].slice());
+      const pointe = etat();
+      poserCercle([sol[0][0] + 2*PX_PAR_UNITE, sol[0][1]]);
+      const cercle = etat();
+      const pas = [];
+      for (let i = 0; i < 4; i++) { annuler(); pas.push(etat()); }
+      return {ferme, trop, pointe, cercle, pas, nbSol:sol.length};
+    });
+    const nom = id === 'ce1-construire' ? 'CE1' : 'CE2';
+    T('annuler ' + nom + ' — la scène est bien montée : contour, tap de trop, puis cercle',
+      rec.ferme.c === 1 && rec.trop.s === 1 && rec.cercle.o === 1,
+      JSON.stringify([rec.ferme, rec.trop, rec.cercle]));
+    T('annuler ' + nom + ' — le premier retour arrière retire LE CERCLE, fait en dernier',
+      rec.pas[0].o === 0 && rec.pas[0].s === 1 && rec.pas[0].c === 1,
+      JSON.stringify(rec.pas[0]));
+    T('annuler ' + nom + ' — le deuxième retire le tap de trop',
+      rec.pas[1].s === 0 && rec.pas[1].c === 1, JSON.stringify(rec.pas[1]));
+    T('annuler ' + nom + ' — le troisième rouvre le contour, avec ses sommets',
+      rec.pas[2].c === 0 && rec.pas[2].s === rec.nbSol, JSON.stringify(rec.pas[2]));
+    T('annuler ' + nom + ' — et le quatrième retire un sommet, un seul',
+      rec.pas[3].s === rec.pas[2].s - 1, JSON.stringify(rec.pas[3]));
+  }
+
+  /* Le retour arrière défait aussi ce qui n’est pas une addition : retirer un
+     sommet en revenant dessus est un geste, et il s’annule comme les autres. */
+  await page.goto(base + '?competence=ce1-construire');
+  await page.waitForTimeout(220);
+  const retours = await page.evaluate(() => {
+    pos = file.findIndex(q => q.cercles); manche(); desarmerAutoSuivant();
+    const sol = file[pos].solutions[0][0];
+    sol.slice(0, 3).forEach(p => poserSommet(p.slice()));
+    const avant = chantier.sommets.length;
+    poserSommet(sol[2].slice());                 // revenir sur le dernier le retire
+    const apresRetrait = chantier.sommets.length;
+    annuler();                                   // …et « annuler » le remet
+    const apresAnnuler = chantier.sommets.length;
+    /* Puis la pointe du compas posée seule : « annuler » la relève. */
+    chantier.enAttenteCentre = true;
+    poserCercle(sol[0].slice());
+    const pointePosee = !!chantier.centreProvisoire;
+    annuler();
+    return {avant, apresRetrait, apresAnnuler, pointePosee,
+            pointeApres:!!chantier.centreProvisoire,
+            sommetsIntacts:chantier.sommets.length};
+  });
+  T('annuler — retirer un sommet est un geste, et « annuler » le remet',
+    retours.apresRetrait === retours.avant - 1 && retours.apresAnnuler === retours.avant,
+    JSON.stringify(retours));
+  T('annuler — la pointe du compas posée seule se relève, sans toucher aux sommets',
+    retours.pointePosee === true && retours.pointeApres === false
+    && retours.sommetsIntacts === retours.avant,
+    JSON.stringify({pointeApres:retours.pointeApres, sommets:retours.sommetsIntacts}));
+
+  /* ET « ANNULER » NE MORD PAS SUR LE DONNÉ. Rouvrir un contour lui rend ses
+     sommets — y compris ceux de l’amorce, qui sont l’énoncé et non le travail.
+     Il faut donc lui rendre aussi son compte de sommets FIXES : sans lui, un
+     retour arrière de plus effaçait le côté donné. Éprouvé sur la complétion
+     du CE1 sur papier uni, seul écran à poser des sommets sur une amorce —
+     les deux mini-jeux de construction n’en ont pas, et le contrôle y serait
+     resté aveugle. */
+  await page.goto(base + '?competence=ce1-completer');
+  await page.waitForTimeout(220);
+  const donne = await page.evaluate(() => {
+    pos = file.findIndex(q => q.support === 'uni'); manche(); desarmerAutoSuivant();
+    const q = file[pos], sol = q.solutions[0][0];
+    const fixes = chantier.nbFixes;
+    /* On pose les sommets manquants, puis on ferme. */
+    sol.forEach(p => { if (!chantier.sommets.some(x => dist(x, p) < 1)) poserSommet(p.slice()); });
+    poserSommet(chantier.sommets[0].slice());
+    const ferme = {s:chantier.sommets.length, c:chantier.contours.length};
+    annuler();                                   // rouvre le contour
+    const rouvert = {s:chantier.sommets.length, fixes:chantier.nbFixes};
+    /* Puis on s’acharne : le donné ne doit jamais partir. */
+    for (let i = 0; i < 6; i++) annuler();
+    return {fixesInitiaux:fixes, ferme, rouvert, reste:chantier.sommets.length};
+  });
+  T('annuler — la complétion du CE1 part bien d’une amorce de sommets donnés',
+    donne.fixesInitiaux >= 2 && donne.ferme.c === 1, JSON.stringify(donne));
+  T('annuler — rouvrir un contour lui rend son compte de sommets DONNÉS',
+    donne.rouvert.fixes === donne.fixesInitiaux,
+    'fixes ' + donne.rouvert.fixes + ' pour ' + donne.fixesInitiaux + ' donnés');
+  T('annuler — et s’acharner dessus n’efface jamais l’amorce',
+    donne.reste >= donne.fixesInitiaux,
+    donne.reste + ' sommets restants pour ' + donne.fixesInitiaux + ' donnés');
+
   /* ---------- 20. Assemblages : sommets partagés ---------- */
   await page.goto(base + '?competence=cp-assembler');
   await page.waitForTimeout(200);
