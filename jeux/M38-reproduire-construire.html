@@ -220,11 +220,16 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
    un trait sombre de 3,4 px : sans cerne blanc elles y disparaissent. */
 .ancre{fill:var(--mandarine); stroke:#fff; stroke-width:1.6; pointer-events:none;}
 
-.barre-outils{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:0 0 8px;}
+/* BARRE COMPACTE : quatre outils doivent tenir sur UNE rangée de 362 px.
+   Une seconde rangée coûte 52 px et repousse le plan sous la ligne de
+   flottaison — c’est le mini-jeu du CE2, qui ajoute le choix du mode aux
+   trois outils du tracé, qui a fixé la contrainte. La cible de touche reste
+   à 44 px de haut (§19) : c’est la largeur qui se resserre, pas la hauteur. */
+.barre-outils{display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin:0 0 8px;}
 .outil{
   border:2.5px solid #C9D6E8; background:var(--carte); border-radius:12px;
-  min-height:44px; padding:6px 12px; font-family:inherit; font-weight:700; font-size:.85rem;
-  color:var(--encre); cursor:pointer; display:flex; align-items:center; gap:6px;
+  min-height:44px; padding:6px 8px; font-family:inherit; font-weight:700; font-size:.8rem;
+  color:var(--encre); cursor:pointer; display:flex; align-items:center; gap:4px;
 }
 .outil.on{border-color:var(--mandarine); background:#FFF3E9;}
 .outil:disabled{opacity:.45; cursor:default;}
@@ -1045,7 +1050,6 @@ const PLAFOND_TOL_UNI = 0.4 * PX_PAR_UNITE;  // …sans jamais atteindre la demi
    nomme rien entre les deux. Huit degrés laissent donc passer la main sans
    jamais laisser passer un parallélogramme pour un rectangle. */
 const TOL_ANGLE_UNI = 8 * Math.PI / 180;   // radians() n’est pas encore déclaré ici
-const TOL_ESQUISSE = 0.12;      // mode « à main levée » du CE2
 const TOL_GRILLE = 2;           // sur quadrillage l’aimantation rend exact
 const PTS_MANCHE = 1;
 const DELAI_REVELATION = 900;   // CHARTE §18
@@ -2608,16 +2612,18 @@ const DIMENSIONS_CONTENU = {
    Une consigne qu’il faut quitter des yeux pour travailler ne sert plus à
    rien. Elle dit donc le geste et le repère, et rien d’autre — le détail
    appartient à l’écran, pas au texte.
-   Le PLURIEL ne se calcule que là où la donnée varie, c’est-à-dire au CE2,
-   seul palier dont une figure compte deux pièces : l’accorder au CP, où il
-   n’y en a jamais qu’une, serait du code qui ne peut pas se tromper. */
+   AUCUN ACCORD À CALCULER ICI, et c’est le geste qui l’a réglé : la consigne
+   a porté un « les sommets de la figure / des figures » tant que le CE2
+   posait ses sommets, parce qu’une de ses figures en compte deux. Le CE2
+   trace désormais au doigt comme les deux autres, la consigne ne nomme plus
+   d’objet à compter, et l’accord qui la guettait n’a plus lieu d’être. On
+   retire donc le calcul plutôt que de le garder « au cas où » : du code qui
+   ne peut plus se tromper ne protège de rien. */
 const Q_REPRODUIRE = 'Copie le modèle.';
-function sousReproduire(mode, support, nbPieces, obliques){
-  const geste = mode !== 'tracer'
-    ? 'Pointe les sommets ' + (nbPieces > 1 ? 'des figures.' : 'de la figure.')
-    : obliques
-      ? 'Glisse ton doigt d’un coin à l’autre, bien droit.'
-      : 'Glisse ton doigt le long des côtés, ou pointe les sommets.';
+function sousReproduire(support, obliques){
+  const geste = obliques
+    ? 'Glisse ton doigt d’un coin à l’autre, bien droit.'
+    : 'Glisse ton doigt le long des côtés, ou pointe les sommets.';
   const repere = support === 'quadrille' ? ' Aide-toi du quadrillage.'
                : support === 'pointe' ? ' Aide-toi des points.' : '';
   return geste + repere;
@@ -2665,7 +2671,7 @@ function qCpReproduire(){
       modele:poserDansZone(ZONE_MODELE, [f]),
       solutions:[poserDansZone(ZONE_TRAVAIL, [f])],
       q:Q_REPRODUIRE,
-      sous:sousReproduire('tracer', support, 1, false)
+      sous:sousReproduire(support, false)
     }));
   }
   return liste;
@@ -2829,7 +2835,7 @@ function qCe1Reproduire(){
          DROIT, et un enfant qui zigzague n’obtient rien sans que rien ne le
          lui dise. « D’un coin à l’autre, bien droit » est ce mode d’emploi,
          et il tient sur la même ligne que la consigne. */
-      sous:sousReproduire('tracer', s, 1, true)
+      sous:sousReproduire(s, true)
     });
   });
 }
@@ -3018,20 +3024,34 @@ const FIGURES_CE2_REPRO = [
      du CE1 — elle se réinvestit ici à main levée. */
   () => [carreOblique(3,1)]
 ];
+/* LE CE2 REPRODUIT AU DOIGT, COMME LE CP ET LE CE1. Il était resté le seul à
+   poser ses sommets un par un, si bien que le même verbe — reproduire — se
+   jouait de deux façons selon le palier : l’enfant qui montait d’un niveau
+   changeait de geste sans que rien ne l’annonce, et le geste qu’il venait
+   d’acquérir ne lui servait plus. Le mode opératoire s’aligne donc, et la
+   progression du support avec lui — quadrillé, puis pointé.
+   CE QUI RESTE PROPRE AU CE2, ce sont les figures — obliques et assemblages —
+   et LE CHOIX entre croquer et tracer exactement. Ce choix change de sens en
+   changeant de geste, et il fallait le lui rendre : sur quadrillage, le doigt
+   accroche les nœuds, donc il n’y a plus de coordonnée imprécise à tolérer.
+   Ce qui distingue alors un croquis d’un tracé exact, c’est ce qu’on
+   REGARDE — le croquis juge la FIGURE, et laisse passer un trait de
+   construction resté en travers ; le tracé exact juge les TRAITS, et
+   n’en tolère aucun en trop. « Seule la tolérance change » reste vrai, mais
+   elle porte sur les bavures au lieu de porter sur les millimètres. */
 function qCe2Reproduire(){
-  return tirerSansRepetition('ce2-repro-figures', FIGURES_CE2_REPRO, 5).map(f => {
+  return tirerSansRepetition('ce2-repro-figures', FIGURES_CE2_REPRO, 5).map((f, i) => {
     const c = f();
+    const support = i < 3 ? 'quadrille' : 'pointe';
     return mancheBase({
-      support:'quadrille', esquissePossible:true,
+      mode:'tracer', support, esquissePossible:true,
       modele:poserDansZone(ZONE_MODELE, c),
       solutions:[poserDansZone(ZONE_TRAVAIL, c)],
       q:Q_REPRODUIRE,
-      /* Une des six figures du stock en compte DEUX : le pluriel se lit sur
-         elle, il ne se décide pas ici. Et la phrase sur les deux façons de
-         faire reste, parce que deux boutons attendent une réponse — la
-         retirer laisserait l’enfant devant un choix que rien n’explique. */
-      sous:sousReproduire('poser', 'quadrille', c.length, false)
-          + ' Croquis rapide ou tracé exact ?'
+      /* La phrase sur les deux façons de faire reste : deux boutons attendent
+         une réponse, et les retirer du texte laisserait l’enfant devant un
+         choix que rien n’explique. */
+      sous:sousReproduire(support, false) + ' Croquis ou exact ?'
     });
   });
 }
@@ -3820,25 +3840,6 @@ function rendrePoser(q){
   barre.hidden = false;
   barre.innerHTML = '';
 
-  /* Mode du CE2 : le croquis rapide et le tracé exact sont mis sur le même
-     plan par le texte. Savoir croquer vite une figure juste est une
-     compétence à part entière — seule la tolérance change. */
-  if (q.esquissePossible) {
-    q._mode = null;
-    ['croquis', 'règle'].forEach((lib, i) => {
-      const b = document.createElement('button');
-      b.type = 'button'; b.className = 'outil'; b.textContent = (i === 0 ? '✏️ ' : '📏 ') + lib;
-      b.addEventListener('click', () => {
-        if (verrouille) return;
-        q._mode = i === 0 ? 'esquisse' : 'regle';
-        chantier.tol = i === 0 ? TOL_ESQUISSE * longueurReference(q) : TOL_GRILLE;
-        barre.querySelectorAll('.outil-mode').forEach(x => x.classList.toggle('on', x === b));
-        sonClic();
-      });
-      b.classList.add('outil-mode');
-      barre.appendChild(b);
-    });
-  }
   brancherInstruments(q, barre, svg);
   if (q.compas) brancherCompas(q, barre, svg);
   {
@@ -3987,6 +3988,42 @@ function poserCercle(p){
    colorient le verre et servent à juger. Elles remplissent `chantier.contours`,
    si bien que la validation, le vitrail cumulatif et la révélation différée
    du §18 ne changent pas d’une ligne. */
+/* LE CHOIX DU CE2 : CE QU’ON REGARDE, PAS DE COMBIEN ON TOLÈRE.
+   Croquer vite une figure juste est une compétence à part entière, et le
+   texte met les deux façons de faire sur le même plan — même nombre de
+   points. En pose de sommets, la différence était une tolérance de
+   coordonnées ; au doigt sur quadrillage, le trait accroche les nœuds et il
+   n’y a plus de millimètre à tolérer. Ce qui sépare alors les deux, c’est
+   l’objet du jugement : le CROQUIS regarde la FIGURE et laisse passer un
+   trait de construction resté en travers, le TRACÉ EXACT regarde les TRAITS
+   et n’en tolère aucun en trop. */
+/* UN SEUL BOUTON, QUI DIT L’ÉTAT — et c’est la place qui l’impose, pas le
+   goût : deux boutons de plus faisaient passer la barre d’outils à deux
+   rangées, ce qui repousse le plan sous la ligne de flottaison. Le choix
+   reste visible et réversible à tout moment, c’est ce qui compte ; il part
+   sur « exact », le plus strict, pour que ne rien choisir ne soit jamais
+   une facilité. */
+function brancherModeCE2(q, barre){
+  if (!q.esquissePossible) return;
+  q._mode = 'exact';
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'outil outil-mode';
+  /* PAS D’ÉMOJI ICI, et ce n’est pas qu’une question de largeur : le 📏 de
+     l’ancien « à la règle » désignait un instrument, et il n’y en a plus —
+     le doigt trace. Un pictogramme qui montre ce qui n’existe pas est pire
+     qu’un mot seul. */
+  const libelle = () => q._mode === 'esquisse' ? 'croquis' : 'exact';
+  b.textContent = libelle();
+  b.addEventListener('click', () => {
+    if (verrouille) return;
+    q._mode = q._mode === 'esquisse' ? 'exact' : 'esquisse';
+    b.textContent = libelle();
+    b.classList.toggle('on', q._mode === 'esquisse');
+    sonClic();
+  });
+  barre.appendChild(b);
+}
+
 function rendreTracer(q){
   const zt = fondScene(q);
   const svg = scene();
@@ -4024,6 +4061,7 @@ function rendreTracer(q){
     });
     outils.push(b); barre.appendChild(b);
   });
+  brancherModeCE2(q, barre);
   /* L’instrument reste disponible en tracé : sur « place le sommet de l’angle
      droit », c’est l’équerre qui fait trouver le nœud, le quadrillage ne
      faisant que rendre le trait exact une fois le nœud choisi. */
@@ -4066,14 +4104,21 @@ function validerManche(q){
       /* En tracé, ce sont les TRAITS qui font foi (voir `memesTraces`) : les
          seules faces laissaient passer les traits en trop. */
       const produites = [...chantier.trace.pre, ...chantier.trace.traces];
-      bon = q.solutions.some(sol =>
+      const traitsJustes = q.solutions.some(sol =>
         memesTraces(produites, segmentsDeSolution(sol, chantier.z), q.libre));
+      const figureJuste = figureAcceptee(chantier.contours, q.solutions, tol, q.libre);
+      /* EN CROQUIS, C’EST LA FIGURE QUI COMPTE et non la propreté du trait :
+         un trait de construction resté en travers ne défait pas un croquis
+         juste. En tracé exact, il le défait — c’est tout ce qui sépare les
+         deux façons de faire, et c’est le CE2 qui choisit laquelle il joue. */
+      bon = traitsJustes || (q._mode === 'esquisse' && figureJuste);
       if (!bon) {
         /* La bonne pièce ET des traits qui ne collent pas : ce sont des
            traits en trop, et le dire vaut mieux que « regarde en vert »,
            qui montrerait une figure que l’enfant a pourtant faite. */
-        motif = figureAcceptee(chantier.contours, q.solutions, tol, q.libre)
-          ? 'La pièce est juste, mais il reste des traits en trop : gomme-les.'
+        motif = figureJuste
+          ? 'La pièce est juste, mais il reste des traits en trop : gomme-les'
+            + (q.esquissePossible ? ', ou choisis le croquis.' : '.')
           : chantier.contours.length !== q.solutions[0].length
             ? 'Il fallait ' + q.solutions[0].length + ' pièce' + (q.solutions[0].length > 1 ? 's' : '') + '.'
             : 'Regarde la figure attendue, en vert.';

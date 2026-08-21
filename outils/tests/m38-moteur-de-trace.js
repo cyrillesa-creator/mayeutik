@@ -474,19 +474,32 @@ async function tracerChemin(page, chemin){
      décalant un seul coin d’une maille. */
   const fausse = await page.evaluate(() => {
     desarmerAutoSuivant();
-    const t = chantier.trace;
-    const c = file[pos].solutions[0][0].map(p => t.versGrille(p).map(Math.round));
-    /* On ALLONGE le rectangle d’une maille : la figure reste close et tous
-       ses côtés restent traçables au glissement — une déformation qui
-       casserait une pente rendrait le contour intraçable, donc invalidé
-       pour la mauvaise raison. */
-    const u = [Math.sign(c[1][0] - c[0][0]), Math.sign(c[1][1] - c[0][1])];
-    const sens = (c[1][0] + u[0] <= t.zone.nx && c[1][1] + u[1] <= t.zone.ny
-                  && c[2][0] + u[0] <= t.zone.nx && c[2][1] + u[1] <= t.zone.ny) ? 1 : -1;
-    c[1] = [c[1][0] + u[0]*sens, c[1][1] + u[1]*sens];
-    c[2] = [c[2][0] + u[0]*sens, c[2][1] + u[1]*sens];
-    c.push(c[0]);
-    return c;
+    const t = chantier.trace, q = file[pos];
+    /* On ALLONGE le rectangle : la figure reste close et tous ses côtés
+       restent traçables au glissement — une déformation qui casserait une
+       pente rendrait le contour intraçable, donc invalidé pour la mauvaise
+       raison.
+       ET ON VÉRIFIE QUE LA FIGURE OBTENUE EST BIEN FAUSSE. La complétion du
+       CP accepte DEUX solutions — le carré d’un côté ou de l’autre du côté
+       donné — et une déformation d’une maille tombait parfois pile sur la
+       seconde : le test échouait alors une fois sur cinq en accusant le code
+       d’accepter une figure fausse qui n’en était pas une. On essaie donc
+       plusieurs allongements et on garde le premier qui ne coïncide avec
+       AUCUNE solution. */
+    const base = q.solutions[0][0].map(p => t.versGrille(p).map(Math.round));
+    const attendues = q.solutions.map(sol => segmentsDeSolution(sol, chantier.z));
+    const u = [Math.sign(base[1][0] - base[0][0]), Math.sign(base[1][1] - base[0][1])];
+    for (const n of [1, 2, -1, -2]) {
+      const c = base.map(p => p.slice());
+      c[1] = [c[1][0] + u[0]*n, c[1][1] + u[1]*n];
+      c[2] = [c[2][0] + u[0]*n, c[2][1] + u[1]*n];
+      if (c.some(p => p[0] < 0 || p[1] < 0 || p[0] > t.zone.nx || p[1] > t.zone.ny)) continue;
+      const cles = c.map((p, i) => cleSeg(p, c[(i+1) % c.length]));
+      if (attendues.some(att => memesTraces(cles, att, q.libre))) continue;
+      c.push(c[0]);
+      return c;
+    }
+    return null;
   });
   await tracerChemin(page, fausse);
   const abandon = await page.evaluate(async () => {
@@ -496,6 +509,8 @@ async function tracerChemin(page, chemin){
     return {pret, contours:chantier.contours.length, ok:file[pos]._ok, vitrail:vitrail.length,
       confettis:document.querySelectorAll('#confettis-conteneur .confetti').length};
   });
+  T('12. une déformation vraiment fausse a été trouvée',
+    fausse !== null, fausse ? fausse.length + ' sommets' : 'aucune');
   T('12. la figure fausse est bien allée jusqu’à la validation',
     abandon.pret === true && abandon.contours === 1, JSON.stringify(abandon));
   T('12. et une figure fausse ne fête rien',
@@ -678,6 +693,70 @@ async function tracerChemin(page, chemin){
       bavure.pose.length > 0 && bavure.faces === 1 && bavure.avantFaces === 1, JSON.stringify(bavure));
     T('tracé — un trait en trop fait échouer la manche, même si la pièce est juste',
       bavure.ok === false, JSON.stringify({ok:bavure.ok}));
+
+    /* ---------- LE CHOIX DU CE2 : le même travail, deux verdicts ----------
+       Le croquis regarde la FIGURE et laisse passer une bavure ; le tracé
+       exact regarde les TRAITS et la refuse. On joue donc DEUX FOIS la même
+       manche, avec le même trait en trop, en ne changeant que le mode : si
+       les deux verdicts étaient identiques, le choix ne serait qu’un bouton
+       décoratif. */
+    await page.goto(base + '?competence=ce2-reproduire');
+    await page.waitForTimeout(400);
+    const choixCE2 = await page.evaluate(async () => {
+      const jouer = async (mode) => {
+        await new Promise(r => setTimeout(r, 20));
+        pos = 0; manche(); desarmerAutoSuivant();
+        const q = file[pos], t = chantier.trace;
+        segmentsDeSolution(q.solutions[0], chantier.z)
+          .forEach(k => { if (!t.pre.has(k)) t.poser(k); });
+        /* Une bavure : un trait de plus, qui n’enferme rien. */
+        let pose = null;
+        for (let j = 0; j <= t.zone.ny && !pose; j++)
+          for (let i = 0; i < t.zone.nx && !pose; i++) {
+            const k = cleSeg([i,j], [i+1,j]);
+            if (!t.pre.has(k) && !t.traces.has(k)) pose = t.poser(k);
+          }
+        q._mode = mode;
+        validerManche(q);
+        await new Promise(r => setTimeout(r, 60));
+        return {ok:q._ok, bavure:!!pose, fb:document.getElementById('feedback').textContent.trim()};
+      };
+      /* ET UNE FIGURE FAUSSE, EN CROQUIS. Sans ce cas, « croquis » pouvait
+         devenir « tout passe » sans qu’un test bronche : mesuré, la mutation
+         est restée aveugle. Croquer vite une figure JUSTE est la compétence ;
+         croquer n’importe quoi n’en est pas une. On allonge un côté d’une
+         maille — la figure reste close et traçable, elle est simplement
+         fausse. */
+      const fausse = async () => {
+        await new Promise(r => setTimeout(r, 20));
+        pos = 0; manche(); desarmerAutoSuivant();
+        const q = file[pos], t = chantier.trace;
+        const c = q.solutions[0][0].map(p => t.versGrille(p).map(Math.round));
+        const u = [Math.sign(c[1][0] - c[0][0]), Math.sign(c[1][1] - c[0][1])];
+        const sens = (c[1][0] + u[0] <= t.zone.nx && c[1][1] + u[1] <= t.zone.ny
+                      && c[2][0] + u[0] <= t.zone.nx && c[2][1] + u[1] <= t.zone.ny) ? 1 : -1;
+        c[1] = [c[1][0] + u[0]*sens, c[1][1] + u[1]*sens];
+        c[2] = [c[2][0] + u[0]*sens, c[2][1] + u[1]*sens];
+        for (let i = 0; i < c.length; i++) t.poser(cleSeg(c[i], c[(i+1) % c.length]));
+        q._mode = 'esquisse';
+        validerManche(q);
+        await new Promise(r => setTimeout(r, 60));
+        return {ok:q._ok, contours:chantier.contours.length};
+      };
+      return {exact:await jouer('exact'), croquis:await jouer('esquisse'),
+              crobard:await fausse()};
+    });
+    T('CE2 — la bavure a bien été posée dans les deux essais',
+      choixCE2.exact.bavure && choixCE2.croquis.bavure, JSON.stringify(choixCE2.exact.bavure));
+    T('CE2 — en tracé exact, un trait en trop fait échouer la manche',
+      choixCE2.exact.ok === false, JSON.stringify({ok:choixCE2.exact.ok}));
+    T('CE2 — en croquis, la même bavure passe : c’est la figure qu’on regarde',
+      choixCE2.croquis.ok === true, JSON.stringify({ok:choixCE2.croquis.ok}));
+    T('CE2 — et le refus en mode exact dit que le croquis existe',
+      /croquis/.test(choixCE2.exact.fb), choixCE2.exact.fb);
+    T('CE2 — mais le croquis n’est pas un blanc-seing : une figure fausse est refusée',
+      choixCE2.crobard.contours === 1 && choixCE2.crobard.ok === false,
+      JSON.stringify(choixCE2.crobard));
     T('tracé — et on le DIT, au lieu de montrer en vert une figure déjà faite',
       /traits en trop/.test(bavure.fb), bavure.fb.trim().slice(0, 70));
 
