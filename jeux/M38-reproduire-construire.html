@@ -2376,6 +2376,26 @@ const DIMENSIONS_CONTENU = {
     ferme:'une seule manche de synthèse : il n’y a rien à faire tourner'}]
 };
 
+/* ---- La consigne de reproduction, calculée ----
+   LES TROIS PALIERS DEMANDENT LA MÊME CHOSE — copier le modèle — et portent
+   donc le même nom. Mais ils ne le demandent ni avec le même geste ni sur le
+   même papier : au CP et au CE1 on trace au doigt, au CE2 on pointe les
+   sommets ; le quadrillage devient un semis de points aux dernières manches
+   de chaque partie. Écrire la consigne trois fois, ce serait la voir mentir
+   dès qu’une manche change de support — et le nombre de pièces, qui décide du
+   pluriel, n’est connu que de la donnée. Elle se calcule donc, comme tout ce
+   que la figure sait déjà dire d’elle-même. */
+const Q_REPRODUIRE = 'Copie le modèle sur ton panneau.';
+function sousReproduire(mode, support, nbPieces){
+  const geste = mode === 'tracer'
+    ? 'Dessine la forme en glissant ton doigt sur ton panneau, ou en pointant du doigt les sommets'
+    : 'Dessine la forme en pointant du doigt les sommets';
+  const quoi = nbPieces > 1 ? ' des figures.' : ' de la figure.';
+  const repere = support === 'quadrille' ? ' Aide-toi du quadrillage.'
+               : support === 'pointe' ? ' Aide-toi des points.' : '';
+  return geste + quoi + repere;
+}
+
 /* ---- CP : reproduire ---- */
 /* TOUS LES CÔTÉS SONT TRAÇABLES AU GLISSEMENT, orthogonaux ou à 45° : c’est
    la condition pour que le geste naturel — suivre les lignes du carton d’un
@@ -2412,12 +2432,13 @@ function qCpReproduire(){
      progression du support, quadrillé puis pointé, est conservée. */
   for (let i = 0; i < 5; i++) {
     const f = figures[i]();
+    const support = i < 3 ? 'quadrille' : 'pointe';
     liste.push(mancheBase({
-      mode:'tracer', support: i < 3 ? 'quadrille' : 'pointe',
+      mode:'tracer', support,
       modele:poserDansZone(ZONE_MODELE, [f]),
       solutions:[poserDansZone(ZONE_TRAVAIL, [f])],
-      q:'Fais la même pièce.',
-      sous:'Trace les côtés au doigt : glisse d’un nœud au nœud voisin.'
+      q:Q_REPRODUIRE,
+      sous:sousReproduire('tracer', support, 1)
     }));
   }
   return liste;
@@ -2575,8 +2596,14 @@ function qCe1Reproduire(){
       mode:'tracer', support:s,
       modele:poserDansZone(ZONE_MODELE, c),
       solutions:[poserDansZone(ZONE_TRAVAIL, c)],
-      q:'Fais la même pièce.',
-      sous:'Le côté est en biais : pose le doigt sur un coin et va droit jusqu’à l’autre.'
+      q:Q_REPRODUIRE,
+      /* LA PHRASE SUR LE BIAIS RESTE, et ce n’est pas de l’ornement : le
+         moteur n’écrit une oblique que si le doigt y est allé DROIT. Un
+         enfant qui zigzague d’un coin à l’autre n’obtient rien, sans que
+         rien ne le lui dise. C’est le mode d’emploi du geste, pas un
+         encouragement. */
+      sous:sousReproduire('tracer', s, 1)
+          + ' Les côtés sont en biais : va droit d’un coin à l’autre.'
     });
   });
 }
@@ -2772,8 +2799,13 @@ function qCe2Reproduire(){
       support:'quadrille', esquissePossible:true,
       modele:poserDansZone(ZONE_MODELE, c),
       solutions:[poserDansZone(ZONE_TRAVAIL, c)],
-      q:'Reproduis cette pièce.',
-      sous:'Choisis ta façon de faire : le croquis rapide, ou le tracé exact.'
+      q:Q_REPRODUIRE,
+      /* Une des six figures du stock en compte DEUX : le pluriel se lit sur
+         elle, il ne se décide pas ici. Et la phrase sur les deux façons de
+         faire reste, parce que deux boutons attendent une réponse — la
+         retirer laisserait l’enfant devant un choix que rien n’explique. */
+      sous:sousReproduire('poser', 'quadrille', c.length)
+          + ' Choisis ta façon de faire : le croquis rapide, ou le tracé exact.'
     });
   });
 }
@@ -3079,7 +3111,7 @@ const CONTENU = {
     CP: {
       sousTitre: 'Sur le carton quadrillé : la même pièce, puis les pièces qui manquent.',
       miniJeux: [
-        {id:'cp-reproduire', titre:'La même pièce', icone:'🔷', description:'Refais le modèle.', gen:qCpReproduire},
+        {id:'cp-reproduire', titre:'Reproduction', icone:'🔷', description:'Refais le modèle.', gen:qCpReproduire},
         {id:'cp-completer', titre:'Les pièces inachevées', icone:'🧩', description:'Ferme la figure.', gen:qCpCompleter},
         {id:'cp-assembler', titre:'Le petit vitrail', icone:'🪟', description:'Monte l’assemblage.', gen:qCpAssembler}
       ]
@@ -3087,7 +3119,7 @@ const CONTENU = {
     CE1: {
       sousTitre: 'Les côtés partent en biais, et le papier uni fait son entrée.',
       miniJeux: [
-        {id:'ce1-reproduire', titre:'Le modèle oblique', icone:'📐', description:'Compte les biais.', gen:qCe1Reproduire},
+        {id:'ce1-reproduire', titre:'Reproduction', icone:'📐', description:'Compte les biais.', gen:qCe1Reproduire},
         {id:'ce1-completer', titre:'Les pièces inachevées', icone:'🧩', description:'Jusqu’au papier uni.', gen:qCe1Completer},
         {id:'ce1-construire', titre:'La commande du client', icone:'📜', description:'Plus de modèle.', gen:qCe1Construire}
       ]
@@ -3095,7 +3127,7 @@ const CONTENU = {
     CE2: {
       sousTitre: 'Le croquis ou le tracé exact, l’énoncé du maître verrier, et la rosace.',
       miniJeux: [
-        {id:'ce2-reproduire', titre:'Croquis ou tracé', icone:'✏️', description:'À toi de choisir.', gen:qCe2Reproduire},
+        {id:'ce2-reproduire', titre:'Reproduction', icone:'✏️', description:'À toi de choisir.', gen:qCe2Reproduire},
         {id:'ce2-construire-uni', titre:'L’énoncé du maître verrier', icone:'📜', description:'Aux mesures données.', gen:qCe2ConstruireUni},
         {id:'ce2-rosace', titre:'La rosace', icone:'🌹', description:'Le bouquet final.', gen:qCe2Rosace}
       ]

@@ -515,7 +515,7 @@ async function tracerChemin(page, chemin){
         const svg = document.getElementById('scene'), r = svg.getBoundingClientRect();
         const vb = svg.getAttribute('viewBox').split(/\s+/).map(Number), ech = r.width / vb[2];
         return {maillePx:MAILLE * ech, rayonPx:RAYON_NOEUD_M * MAILLE * ech,
-          planBas:r.bottom, fold:window.innerHeight, H:vb[3],
+          planBas:r.bottom, planH:r.height, fold:window.innerHeight, H:vb[3],
           avecModele:!!file[pos].modele, support:file[pos].support,
           uni:{x0:ZONE_PLEINE_UNI.x0, y0:ZONE_PLEINE_UNI.y0, l:ZONE_PLEINE_UNI.l, h:ZONE_PLEINE_UNI.h},
           rayonRosace:rayonMaxRosace(), centre:centreDuPanneau()};
@@ -528,11 +528,24 @@ async function tracerChemin(page, chemin){
       m.maillePx >= 28 && m.rayonPx >= 12,
       m.maillePx.toFixed(1) + ' px, rayon ' + m.rayonPx.toFixed(1) + ' px');
     /* Le plafond : les deux panneaux doivent se voir ENSEMBLE, sinon
-       « reproduis le modèle » demande de faire défiler entre les deux. */
+       « copie le modèle » demande de faire défiler entre les deux.
+       LA PROPRIÉTÉ A CHANGÉ DE FORME, et c’est une décision, pas un
+       affaiblissement. Elle exigeait que TOUT tienne au-dessus du pli, consigne
+       comprise. La consigne de reproduction a été allongée exprès — elle nomme
+       maintenant le geste et le repère — et passe de une à quatre lignes : la
+       somme ne peut plus tenir, à moins de rétrécir la maille, qu’on venait
+       d’élargir pour le doigt. Ce qu’on protège vraiment survit intact : le
+       PLAN entier tient dans un écran, donc l’enfant ne fait jamais l’aller-
+       retour entre le modèle et sa copie. On borne en plus ce qui dépasse, pour
+       qu’une consigne de trois paragraphes ne repousse pas le plan une page
+       plus bas sans que rien ne le dise. */
     const avecModele = ['cp-reproduire','cp-assembler','ce1-reproduire'].map(c => mesures[c]);
-    T('maille — sur un écran à modèle, tout le plan tient au-dessus de la ligne de flottaison',
-      avecModele.every(x => x.avecModele && x.planBas <= x.fold),
-      avecModele.map(x => Math.round(x.planBas) + '/' + x.fold).join(' '));
+    T('maille — le plan entier tient dans un écran : jamais de va-et-vient entre le modèle et la copie',
+      avecModele.every(x => x.avecModele && x.planH <= x.fold),
+      avecModele.map(x => Math.round(x.planH) + '/' + x.fold).join(' '));
+    T('maille — et ce que la consigne repousse sous le pli reste un petit défilement, jamais une page',
+      avecModele.every(x => x.planBas - x.fold <= 80),
+      avecModele.map(x => Math.round(x.planBas - x.fold) + ' px').join(' '));
     /* Le papier uni est FIGÉ : élargir la maille du quadrillage ne doit pas
        déplacer la rosace ni les constructions au compas d’un pixel. */
     const uni = mesures['ce2-rosace'];
@@ -834,7 +847,7 @@ async function tracerChemin(page, chemin){
       Object.entries(mesure.pentes).map(([k, v]) => k + (v ? '✔' : '✘')).join(' '));
     T('obliques — un virage franc reste vu, même au milieu d’un geste',
       mesure.virages.every(Boolean), mesure.virages.map(v => v ? '✔' : '✘').join(''));
-    T('obliques — « Le modèle oblique » se joue au tracé au doigt',
+    T('obliques — « Reproduction » CE1 se joue au tracé au doigt',
       mesure.modes.length === 1 && mesure.modes[0] === 'tracer', JSON.stringify(mesure.modes));
   }
 
@@ -1102,6 +1115,9 @@ async function tracerChemin(page, chemin){
       const dx = (cible[0] + ecart*0.6) - prep.x, dy = (cible[1] + ecart*0.8) - prep.y;
       await page.mouse.move(prep.prise.x, prep.prise.y);
       await page.mouse.down();
+      /* Le détour, même raison qu’à la règle plus bas : sous le seuil de
+         glissement le geste serait un tap, pas une prise d’instrument. */
+      for (let i = 1; i <= 5; i++) await page.mouse.move(prep.prise.x + 24*i, prep.prise.y + 12*i);
       for (let i = 1; i <= 10; i++)
         await page.mouse.move(prep.prise.x + dx*prep.ech*i/10, prep.prise.y + dy*prep.ech*i/10);
       await page.mouse.up();
@@ -1227,6 +1243,16 @@ async function tracerChemin(page, chemin){
     });
     await page.mouse.move(pose.prise.x, pose.prise.y);
     await page.mouse.down();
+    /* UN DÉTOUR AVANT LA CIBLE, et c’est le seuil qui l’impose. Un instrument
+       ne se saisit qu’au-delà de `SEUIL_GLISSEMENT` : en dessous, le geste est
+       un TAP, qui pose un point au lieu de déplacer la règle. Or la règle
+       tombe parfois à quelques unités de sa cible, et le trajet direct est
+       alors trop court pour être un glissement — mesuré, un déplacement
+       demandé de 7 sur 5 ne bougeait rien et posait un sommet, une fois sur
+       dix. On s’éloigne donc franchement d’abord : seule la position finale
+       compte, les aimantations en chemin ne s’accumulent pas puisque la
+       position se recalcule sur le doigt à chaque mouvement. */
+    for (let i = 1; i <= 5; i++) await page.mouse.move(pose.prise.x + 24*i, pose.prise.y + 12*i);
     for (let i = 1; i <= 10; i++)
       await page.mouse.move(pose.prise.x + pose.d[0]*pose.ech*i/10,
                             pose.prise.y + pose.d[1]*pose.ech*i/10);

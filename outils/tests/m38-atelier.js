@@ -235,7 +235,7 @@ const JEUX = ['cp-reproduire','cp-completer','cp-assembler',
     modes: [...new Set(file.map(q => q.mode))],
     supports: file.map(q => q.support)
   }));
-  T('« La même pièce » : cinq manches où l’enfant TRACE la figure au doigt',
+  T('« Reproduction » CP : cinq manches où l’enfant TRACE la figure au doigt',
     cp.n === 5 && cp.modes.length === 1 && cp.modes[0] === 'tracer', JSON.stringify(cp.modes));
   T('la progression du support est conservée (quadrillé puis pointé)',
     cp.supports.join() === 'quadrille,quadrille,quadrille,pointe,pointe', cp.supports.join());
@@ -610,6 +610,57 @@ const JEUX = ['cp-reproduire','cp-completer','cp-assembler',
     titres['cp-completer'] + ' / ' + titres['ce1-completer']);
   T('titres — et ce nom est au pluriel : une partie en montre plusieurs',
     /^Les pièces inachevées$/.test(titres['cp-completer'] || ''), titres['cp-completer']);
+  T('titres — les trois mini-jeux de reproduction portent le même nom aux trois paliers',
+    titres['cp-reproduire'] === 'Reproduction' && titres['ce1-reproduire'] === 'Reproduction'
+    && titres['ce2-reproduire'] === 'Reproduction',
+    [titres['cp-reproduire'], titres['ce1-reproduire'], titres['ce2-reproduire']].join(' / '));
+
+  /* ============================================================
+     LA CONSIGNE DE REPRODUCTION SUIT LA MANCHE
+     ------------------------------------------------------------
+     Un même nom aux trois paliers appelle une même consigne, et c’est là que
+     le texte figé devient dangereux : ces mini-jeux CHANGENT de papier en
+     cours de partie (quadrillé, puis pointé), le CE2 change de geste, et une
+     de ses figures compte deux pièces. « Aide-toi du quadrillage » sur du
+     papier pointé, ou « les sommets des figures » devant une seule, ce sont
+     des consignes qui mentent à l’enfant sans que rien ne plante. On lit donc
+     les énoncés PRODUITS sur quarante parties, pas le gabarit.
+     ============================================================ */
+  {
+    const dits = await page.evaluate(() => {
+      const gens = {CP:qCpReproduire, CE1:qCe1Reproduire, CE2:qCe2Reproduire};
+      const out = [];
+      for (const [niveau, g] of Object.entries(gens))
+        for (let i = 0; i < 40; i++) g().forEach(q => out.push({
+          niveau, support:q.support, mode:q.mode || 'poser',
+          pieces:q.solutions[0].length, q:q.q, sous:q.sous
+        }));
+      return out;
+    });
+    T('reproduction — la même consigne aux trois paliers, et elle dit de copier le modèle',
+      new Set(dits.map(m => m.q)).size === 1 && /^Copie le modèle sur ton panneau\.$/.test(dits[0].q),
+      [...new Set(dits.map(m => m.q))].join(' | '));
+    /* Le repère nommé suit le SUPPORT, jamais l’inverse. */
+    T('reproduction — jamais « quadrillage » sur du papier pointé, ni « les points » sur du quadrillé',
+      dits.every(m => m.support === 'quadrille'
+        ? /Aide-toi du quadrillage\./.test(m.sous) && !/Aide-toi des points/.test(m.sous)
+        : /Aide-toi des points\./.test(m.sous) && !/Aide-toi du quadrillage/.test(m.sous)),
+      [...new Set(dits.map(m => m.support + '→' + (/quadrillage/.test(m.sous) ? 'quadrillage' : 'points')))].join(' '));
+    /* Le geste nommé suit le MODE : on ne promet le glissement que là où il existe. */
+    T('reproduction — « en glissant ton doigt » n’est promis qu’aux manches qui se tracent au doigt',
+      dits.every(m => /glissant ton doigt/.test(m.sous) === (m.mode === 'tracer')),
+      [...new Set(dits.map(m => m.mode + '→' + (/glissant/.test(m.sous) ? 'glisse' : 'pointe seulement')))].join(' '));
+    /* Et le pluriel se lit sur la figure. */
+    T('reproduction — « des figures » seulement quand la manche en montre plusieurs',
+      dits.every(m => /les sommets des figures/.test(m.sous) === (m.pieces > 1)),
+      [...new Set(dits.map(m => m.pieces + ' pièce(s) → '
+        + (/des figures/.test(m.sous) ? 'pluriel' : 'singulier')))].join(' | '));
+    T('reproduction — les deux cas de pluriel sont bien tous les deux éprouvés',
+      new Set(dits.map(m => m.pieces > 1)).size === 2
+      && new Set(dits.map(m => m.support)).size === 2
+      && new Set(dits.map(m => m.mode)).size === 2,
+      dits.length + ' manches lues');
+  }
 
   /* ---------- 9. Papier uni : l’instrument rend la précision atteignable ---------- */
   await page.goto(base + '?competence=ce2-construire-uni');
