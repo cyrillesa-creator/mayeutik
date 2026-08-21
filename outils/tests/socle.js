@@ -44,5 +44,16 @@ function servir(){
   return srv;
 }
 
-module.exports = {RACINE, chargerPlaywright, servir,
+/* Les captures d’écran servent à REGARDER, jamais à décider : aucune n’est
+   comparée, aucune ne fait échouer une suite. Elles n’ont donc rien à faire
+   dans le dépôt — écrites au chemin relatif où on les avait laissées, elles
+   se déposaient à la racine à chaque exécution, et l’une s’est retrouvée
+   commise. */
+const CAPTURES = path.join(require('os').tmpdir(), 'mayeutik-captures');
+function capture(nom){
+  fs.mkdirSync(CAPTURES, {recursive:true});
+  return path.join(CAPTURES, nom);
+}
+
+module.exports = {RACINE, chargerPlaywright, servir, capture, CAPTURES,
   EXEC_CHROMIUM: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium'};

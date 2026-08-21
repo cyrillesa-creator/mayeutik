@@ -1,8 +1,9 @@
+const socle = require('./socle.js');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
-const ROOT = '/home/user/mayeutik';
+const { chromium } = socle.chargerPlaywright();
+const ROOT = socle.RACINE;
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.css': 'text/css' };
 
 function creerServeur() {
@@ -52,7 +53,7 @@ const retour = async (page) => {
 (async () => {
   const srv = creerServeur(); await new Promise((r) => srv.listen(0, r));
   const port = srv.address().port;
-  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const browser = await chromium.launch({ executablePath: socle.EXEC_CHROMIUM });
   const { page, erreurs } = await ouvrir(browser, port);
 
   // ---- 1. Plus de « Regarde bien la forme » ----

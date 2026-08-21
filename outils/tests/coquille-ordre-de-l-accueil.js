@@ -1,8 +1,9 @@
 /* A4 — l'accueil suit-il l'ordre du programme ? On lit l'ordre RENDU, pas le
    référentiel : c'est l'écran qui doit être juste. */
+const socle = require('./socle.js');
 const http=require('http'),fs=require('fs'),path=require('path');
-const {chromium}=require('/opt/node22/lib/node_modules/playwright');
-const RACINE='/home/user/mayeutik';
+const {chromium}=socle.chargerPlaywright();
+const RACINE=socle.RACINE;
 let ok=0,ko=0;
 const T=(n,c,d)=>{if(c){ok++;console.log('OK   '+n,d===undefined?'':d);}else{ko++;console.log('KO   '+n,d===undefined?'':d);}};
 const TYPES={'.html':'text/html','.js':'text/javascript','.json':'application/json','.css':'text/css'};
@@ -12,7 +13,7 @@ const srv=http.createServer((q,r)=>{const p=path.join(RACINE,decodeURIComponent(
 (async()=>{
  await new Promise(r=>srv.listen(0,r));
  const base='http://localhost:'+srv.address().port+'/index.html';
- const nav=await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
+ const nav=await chromium.launch({executablePath:socle.EXEC_CHROMIUM});
  const page=await nav.newPage({viewport:{width:390,height:900},deviceScaleFactor:2});
  const erreurs=[]; page.on('pageerror',e=>erreurs.push(''+e));
  /* La coquille charge une police Google : hors ligne elle échoue et retombe
@@ -55,6 +56,6 @@ const srv=http.createServer((q,r)=>{const p=path.join(RACINE,decodeURIComponent(
  if(erreurs.length) ko+=erreurs.length;
  console.log(`\n${ok} OK, ${ko} KO`);
  console.log('EXIT:'+(ko===0?'SUCCES':'ECHEC'));
- await page.screenshot({path:'accueil_ordre.png',fullPage:true});
+ await page.screenshot({path:socle.capture('coquille-accueil-ordre.png'),fullPage:true});
  await nav.close(); srv.close();
 })().catch(e=>{console.log('CRASH',e);console.log('EXIT:ECHEC');process.exit(1);});

@@ -1,7 +1,8 @@
+const socle = require('./socle.js');
 const http = require('http'), fs = require('fs'), path = require('path');
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium } = socle.chargerPlaywright();
 
-const RACINE = '/home/user/mayeutik';
+const RACINE = socle.RACINE;
 const JEU = '/jeux/M34-formes-planes.html';
 let ok = 0, ko = 0;
 const T = (n, c, d) => { if (c) { ok++; console.log('OK   ' + n, d === undefined ? '' : d); }
@@ -23,7 +24,7 @@ const JEUX = ['cp-reconnaitre','cp-relations','cp-decrire',
   await new Promise(r => srv.listen(0, r));
   const port = srv.address().port;
   const base = `http://localhost:${port}${JEU}`;
-  const nav = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const nav = await chromium.launch({ executablePath: socle.EXEC_CHROMIUM });
   const page = await nav.newPage({ viewport: { width: 390, height: 780 } });
   const erreurs = [];
   page.on('pageerror', e => erreurs.push('pageerror: ' + e.message));

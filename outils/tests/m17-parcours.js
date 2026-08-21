@@ -1,13 +1,14 @@
+const socle = require('./socle.js');
 const http=require('http'),fs=require('fs'),path=require('path');
-const {chromium}=require('/opt/node22/lib/node_modules/playwright');
-const ROOT='/home/user/mayeutik';
+const {chromium}=socle.chargerPlaywright();
+const ROOT=socle.RACINE;
 const MIME={'.html':'text/html','.js':'text/javascript','.json':'application/json'};
 const srv=http.createServer((q,r)=>{const p=path.join(ROOT,decodeURIComponent(q.url.split('?')[0]));
   fs.readFile(p,(e,d)=>{if(e){r.writeHead(404);r.end();return;}r.writeHead(200,{'Content-Type':MIME[path.extname(p)]||'text/plain'});r.end(d);});});
 
 (async()=>{
   await new Promise(r=>srv.listen(0,r)); const port=srv.address().port;
-  const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
+  const b=await chromium.launch({executablePath:socle.EXEC_CHROMIUM});
   const page=await b.newPage({viewport:{width:390,height:844},hasTouch:true,isMobile:true,reducedMotion:'reduce'});
   const err=[];
   page.on('pageerror',e=>err.push('pageerror: '+e.message));

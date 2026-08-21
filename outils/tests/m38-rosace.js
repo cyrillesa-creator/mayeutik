@@ -1,7 +1,8 @@
 /* Étape 3 du prompt compas-rosace : la rosace construite au compas. */
+const socle = require('./socle.js');
 const http=require('http'),fs=require('fs'),path=require('path');
-const {chromium}=require('/opt/node22/lib/node_modules/playwright');
-const RACINE='/home/user/mayeutik';
+const {chromium}=socle.chargerPlaywright();
+const RACINE=socle.RACINE;
 let ok=0,ko=0;
 const T=(n,c,d)=>{if(c){ok++;console.log('OK   '+n,d===undefined?'':d);}else{ko++;console.log('KO   '+n,d===undefined?'':d);}};
 const srv=http.createServer((q,r)=>{const p=path.join(RACINE,decodeURIComponent(q.url.split('?')[0]));
@@ -9,7 +10,7 @@ const srv=http.createServer((q,r)=>{const p=path.join(RACINE,decodeURIComponent(
 (async()=>{
  await new Promise(r=>srv.listen(0,r));
  const base='http://localhost:'+srv.address().port+'/jeux/M38-reproduire-construire.html';
- const nav=await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
+ const nav=await chromium.launch({executablePath:socle.EXEC_CHROMIUM});
  const page=await nav.newPage({viewport:{width:390,height:860},deviceScaleFactor:2});
  const erreurs=[]; page.on('pageerror',e=>erreurs.push(''+e));
  page.on('console',m=>{if(m.type()==='error'&&!/favicon/.test(m.location().url||''))erreurs.push(m.text());});
@@ -136,7 +137,7 @@ const srv=http.createServer((q,r)=>{const p=path.join(RACINE,decodeURIComponent(
  for(let i=1;i<=8;i++) await page.mouse.move(depart[0]+(haut[0]-depart[0])*i/8,
                                              depart[1]+(haut[1]-depart[1])*i/8);
  await page.waitForTimeout(60);
- await page.screenshot({path:'vue_rosace38/4_pointe_ajustee.png'});
+ await page.screenshot({path:socle.capture('m38-rosace-pointe-ajustee.png')});
  await page.mouse.up(); await page.waitForTimeout(1400);
  const pose=await page.evaluate(()=>file[pos]._centres.map(p=>p.slice()));
  T('la pointe suit le doigt tant qu’on n’a pas relâché',

@@ -18,12 +18,19 @@
 - Vérifier la syntaxe JS (absence d'erreur console) avant de committer.
 - Ne jamais introduire de dépendance réseau dans les jeux (fichiers autonomes).
 - `outils/tests/` : les suites de test, **versionnées avec le code qu'elles
-  rattrapent**. `node outils/tests/lancer.js` les joue toutes ;
-  `node outils/tests/lancer.js m38` n'en joue qu'une. Elles ont vécu dans un
+  rattrapent**. `node outils/tests/lancer.js` les joue toutes (~14 min) ;
+  `node outils/tests/lancer.js m38` n'en joue qu'une ; `--tout` ajoute les
+  suites mises de côté pour leur durée, que le compte final nomme toujours.
+  Ce qui dépend de la machine — racine du dépôt, Playwright, Chromium — vient
+  de `socle.js`, jamais d'un chemin écrit en dur. Elles ont vécu dans un
   répertoire de travail hors dépôt et ont été effacées deux fois par un
   redémarrage de conteneur — ce sont pourtant elles qui ont trouvé les manches
   infaillibles du pochoir, le blocage dès la deuxième manche et les
   instruments jamais déplaçables. Toute suite nouvelle va là, jamais ailleurs.
+  `outils/tests/_tri/` est le reliquat de ce sauvetage : des suites qui
+  échouent encore, décrites une par une dans `_tri/RESTE.md` — un échec y dit
+  seulement qu'il reste à savoir si c'est le test qui est périmé ou le code
+  qui est cassé.
 - Les propriétés corrigées se verrouillent par une **mutation** : casser la
   correction dans le code doit faire rougir un test. Une mutation qui reste
   verte signale un test aveugle, ou un mutant équivalent — et alors c'est le

@@ -1,8 +1,9 @@
+const socle = require('./socle.js');
 const http = require('http'), fs = require('fs'), path = require('path');
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium } = socle.chargerPlaywright();
 
 const srv = http.createServer((q, r) => {
-  const p = path.join('/home/user/mayeutik', decodeURIComponent(q.url.split('?')[0]));
+  const p = path.join(socle.RACINE, decodeURIComponent(q.url.split('?')[0]));
   fs.readFile(p, (e, d) => {
     if (e) { r.writeHead(404); r.end(); return; }
     r.writeHead(200, { 'Content-Type': 'text/html' });
@@ -77,7 +78,7 @@ async function glisserVersCellule(page, index, cle) {
 (async () => {
   await new Promise((r) => srv.listen(0, r));
   const port = srv.address().port;
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const b = await chromium.launch({ executablePath: socle.EXEC_CHROMIUM });
   const page = await b.newPage({ viewport: { width: 390, height: 900 }, hasTouch: true, isMobile: true });
   const erreurs = [];
   page.on('pageerror', (e) => erreurs.push('pageerror: ' + e.message));

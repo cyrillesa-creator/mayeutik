@@ -1,5 +1,6 @@
+const socle = require('./socle.js');
 const http = require('http'), fs = require('fs'), path = require('path');
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium } = socle.chargerPlaywright();
 const SCRATCH = '/tmp/claude-0/-home-user-mayeutik/9c811c93-b040-5195-a545-ab2966a28f08/scratchpad';
 
 /* Copie de diagnostic : on expose la fabrique du tableau pour pouvoir
@@ -13,7 +14,7 @@ fs.writeFileSync(path.join(SCRATCH, 'M39_diag.html'),
 
 const srv = http.createServer((q, r) => {
   const u = decodeURIComponent(q.url.split('?')[0]);
-  const p = u === '/diag' ? path.join(SCRATCH, 'M39_diag.html') : path.join('/home/user/mayeutik', u);
+  const p = u === '/diag' ? path.join(SCRATCH, 'M39_diag.html') : path.join(socle.RACINE, u);
   fs.readFile(p, (e, d) => {
     if (e) { r.writeHead(404); r.end(); return; }
     r.writeHead(200, { 'Content-Type': /\.js$/.test(p) ? 'text/javascript' : 'text/html' });
@@ -27,7 +28,7 @@ const ok = (c, m, x) => { console.log((c ? 'OK   ' : '✗    ') + m, x === undef
 (async () => {
   await new Promise((r) => srv.listen(0, r));
   const port = srv.address().port;
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const b = await chromium.launch({ executablePath: socle.EXEC_CHROMIUM });
   const page = await b.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   const erreurs = [];
   page.on('pageerror', (e) => erreurs.push('pageerror: ' + e.message));

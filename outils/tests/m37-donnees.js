@@ -1,11 +1,12 @@
+const socle = require('./socle.js');
 const http = require('http'), fs = require('fs'), path = require('path');
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium } = socle.chargerPlaywright();
 
 let echecs = 0;
 const ok = (c, m, x) => { console.log((c ? 'OK   ' : '✗    ') + m, x === undefined ? '' : JSON.stringify(x)); if (!c) echecs++; };
 
 const srv = http.createServer((q, r) => {
-  const p = path.join('/home/user/mayeutik', decodeURIComponent(q.url.split('?')[0]));
+  const p = path.join(socle.RACINE, decodeURIComponent(q.url.split('?')[0]));
   fs.readFile(p, (e, d) => { if (e) { r.writeHead(404); r.end(); return; }
     r.writeHead(200, { 'Content-Type': 'text/html' }); r.end(d); });
 });
@@ -13,7 +14,7 @@ const srv = http.createServer((q, r) => {
 (async () => {
   await new Promise(r => srv.listen(0, r));
   const port = srv.address().port;
-  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const browser = await chromium.launch({ executablePath: socle.EXEC_CHROMIUM });
   const page = await browser.newPage();
   const erreurs = [];
   page.on('pageerror', e => erreurs.push(e.message));

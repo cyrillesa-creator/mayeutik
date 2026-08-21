@@ -1,4 +1,9 @@
-# Les suites de test écrivent parfois des captures d’écran pour inspection :
-# ce sont des sorties de diagnostic, pas des sources.
-outils/tests/**/*.png
+# Les suites de test écrivent des captures d’écran pour inspection : ce sont
+# des sorties de diagnostic, jamais des sources. Elles vont désormais dans le
+# répertoire temporaire du système (cf. `socle.capture`), mais deux d’entre
+# elles se sont déposées à la racine du dépôt avant cette correction — et
+# l’une s’y est fait committer. Le filet reste, au cas où une suite nouvelle
+# oublie le socle.
+*.png
+!icons/*.png
 outils/tests/**/bilan.json

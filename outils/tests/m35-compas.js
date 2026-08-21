@@ -1,13 +1,14 @@
+const socle = require('./socle.js');
 const http=require('http'),fs=require('fs'),path=require('path');
-const {chromium}=require('/opt/node22/lib/node_modules/playwright');
-const RACINE='/home/user/mayeutik';
+const {chromium}=socle.chargerPlaywright();
+const RACINE=socle.RACINE;
 let ok=0,ko=0;
 const T=(n,c,d)=>{if(c){ok++;console.log('OK   '+n,d===undefined?'':d);}else{ko++;console.log('KO   '+n,d===undefined?'':d);}};
 const srv=http.createServer((q,r)=>{const p=path.join(RACINE,decodeURIComponent(q.url.split('?')[0]));
  fs.readFile(p,(e,d)=>{if(e){r.writeHead(404);r.end();return;}r.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});r.end(d);});});
 (async()=>{await new Promise(r=>srv.listen(0,r));const port=srv.address().port;
  const base=`http://localhost:${port}/jeux/M35-verifier-coder.html`;
- const nav=await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
+ const nav=await chromium.launch({executablePath:socle.EXEC_CHROMIUM});
  const page=await nav.newPage({viewport:{width:390,height:780}});
  const err=[];page.on('pageerror',e=>err.push(e.message));
  page.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource/.test(m.text()))err.push(m.text());});

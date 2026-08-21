@@ -1,7 +1,8 @@
+const socle = require('./socle.js');
 const http = require('http'), fs = require('fs'), path = require('path');
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium } = socle.chargerPlaywright();
 
-const RACINE = '/home/user/mayeutik';
+const RACINE = socle.RACINE;
 const JEU = '/jeux/M35-verifier-coder.html';
 let ok = 0, ko = 0;
 const T = (nom, cond, det) => { if (cond) { ok++; console.log('OK   ' + nom, det === undefined ? '' : det); }
@@ -20,7 +21,7 @@ const JEUX = ['cp-alignement','cp-tracer-droite','ce1-alignement','ce1-angles','
   await new Promise(r => srv.listen(0, r));
   const port = srv.address().port;
   const base = `http://localhost:${port}${JEU}`;
-  const navigateur = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const navigateur = await chromium.launch({ executablePath: socle.EXEC_CHROMIUM });
   const page = await navigateur.newPage({ viewport: { width: 390, height: 880 } });
   /* A2 : a la premiere rencontre d'un instrument, le mini-jeu s'ouvre sur une
      manche d'ESSAI. Cette suite-ci teste les TACHES, pas la decouverte (elle a

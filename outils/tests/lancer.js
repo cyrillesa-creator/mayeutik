@@ -11,17 +11,32 @@
 const {execFileSync} = require('child_process');
 const fs = require('fs'), path = require('path');
 
+/* LES SUITES TRÈS LONGUES SONT MISES DE CÔTÉ, PAS AFFAIBLIES. Celle-ci
+   échantillonne les énoncés RENDUS À L’ÉCRAN, une navigation par tirage : sa
+   force vient précisément de son nombre de tirages, et la raccourcir la
+   viderait. Mais vingt minutes dans le lot, c’est un filet qu’on cesse de
+   lancer — et un filet qu’on ne lance plus ne rattrape rien. Elle est donc
+   nommée à chaque exécution, jouée sur demande (`lancer.js langue`) et par
+   `--tout`, jamais oubliée en silence. Ajouter un nom ici est une décision
+   sur le RYTHME, pas sur la couverture. */
+const LENTES = ['langue-elision-interface.js'];
+
 const ici = __dirname;
-const suites = fs.readdirSync(ici)
+const filtre = process.argv.slice(2).find(a => a !== '--tout');
+const tout = process.argv.includes('--tout');
+const toutes = fs.readdirSync(ici)
   .filter(f => /\.js$/.test(f) && f !== 'socle.js' && f !== 'lancer.js')
-  .filter(f => !process.argv[2] || f.indexOf(process.argv[2]) >= 0)
+  .filter(f => !filtre || f.indexOf(filtre) >= 0)
   .sort();
+/* Une lente nommée explicitement est jouée : c’est bien elle qu’on demande. */
+const suites = toutes.filter(f => tout || filtre || LENTES.indexOf(f) < 0);
+const misesDeCote = toutes.filter(f => suites.indexOf(f) < 0);
 
 let duree = 0, total = 0, echecs = 0;
 for (const f of suites) {
   const t0 = Date.now();
   let sortie = '';
-  try { sortie = execFileSync('node', [path.join(ici, f)], {encoding:'utf8', timeout:900000}); }
+  try { sortie = execFileSync('node', [path.join(ici, f)], {encoding:'utf8', timeout:1800000}); }
   catch (e) { sortie = (e.stdout || '') + (e.stderr || ''); }
   const s = Date.now() - t0; duree += s;
   const m = sortie.match(/(\d+) OK, (\d+) KO/);
@@ -35,4 +50,6 @@ for (const f of suites) {
 }
 console.log('\n' + suites.length + ' suite(s), ' + total + ' assertion(s), '
   + echecs + ' échec(s), ' + (duree/1000).toFixed(0) + ' s au total.');
+if (misesDeCote.length) console.log('Mise(s) de côté pour leur durée, à jouer par leur nom ou avec --tout : '
+  + misesDeCote.map(f => f.replace(/\.js$/, '')).join(', '));
 process.exit(echecs ? 1 : 0);

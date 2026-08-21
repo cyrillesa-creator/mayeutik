@@ -1,7 +1,8 @@
 /* Le convoyeur — on pilote le tapis comme un enfant, à la souris. */
+const socle = require('./socle.js');
 const http=require('http'),fs=require('fs'),path=require('path');
-const {chromium}=require('/opt/node22/lib/node_modules/playwright');
-const RACINE='/home/user/mayeutik';
+const {chromium}=socle.chargerPlaywright();
+const RACINE=socle.RACINE;
 let ok=0,ko=0;
 const T=(n,c,d)=>{if(c){ok++;console.log('OK   '+n,d===undefined?'':d);}else{ko++;console.log('KO   '+n,d===undefined?'':d);}};
 const srv=http.createServer((q,r)=>{const p=path.join(RACINE,decodeURIComponent(q.url.split('?')[0]));
@@ -9,7 +10,7 @@ const srv=http.createServer((q,r)=>{const p=path.join(RACINE,decodeURIComponent(
 (async()=>{
  await new Promise(r=>srv.listen(0,r));
  const base='http://localhost:'+srv.address().port+'/jeux/M34-formes-planes.html';
- const nav=await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
+ const nav=await chromium.launch({executablePath:socle.EXEC_CHROMIUM});
  const page=await nav.newPage({viewport:{width:390,height:800},deviceScaleFactor:2});
  const erreurs=[]; page.on('pageerror',e=>erreurs.push(''+e));
  page.on('console',m=>{if(m.type()==='error'&&!/favicon/.test(m.location().url||''))erreurs.push(m.text());});

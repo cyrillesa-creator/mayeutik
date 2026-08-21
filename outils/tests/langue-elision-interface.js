@@ -1,12 +1,20 @@
 /* Vérification par l'INTERFACE RÉELLE : on ouvre les mini-jeux concernés et
    on relit ce que l'enfant voit à l'écran, plutôt que d'introspecter des
-   variables enfermées dans des closures. */
+   variables enfermées dans des closures.
+
+   VINGT MINUTES (1209 s mesurées), et c'est le prix de ce qu'elle prouve : un
+   tirage, une navigation. `outils/lint-elision.js` balaie les chaînes en une
+   seconde et `outils/verif-elision-gabarits.js` applique les gabarits aux
+   vraies données ; seule celle-ci lit l'ÉCRAN. Réduire l'échantillon la
+   viderait de sa force, elle est donc mise de côté par `lancer.js` (voir la
+   liste LENTES) et se joue par son nom : `node outils/tests/lancer.js langue`. */
+const socle = require('./socle.js');
 const http = require('http'), fs = require('fs'), path = require('path');
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
-const { violations } = require('./lint_elision.js');
+const { chromium } = socle.chargerPlaywright();
+const { violations } = require('../lint-elision.js');
 
 const srv = http.createServer((q, r) => {
-  const p = path.join('/home/user/mayeutik', decodeURIComponent(q.url.split('?')[0]));
+  const p = path.join(socle.RACINE, decodeURIComponent(q.url.split('?')[0]));
   fs.readFile(p, (e, d) => { if (e) { r.writeHead(404); r.end(); return; }
     r.writeHead(200, { 'Content-Type': 'text/html' }); r.end(d); });
 });
@@ -25,7 +33,7 @@ function verifier(jeu, textes) {
 (async () => {
   await new Promise(r => srv.listen(0, r));
   const port = srv.address().port;
-  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const browser = await chromium.launch({ executablePath: socle.EXEC_CHROMIUM });
 
   async function ouvrir(fichier, niveau) {
     const p = await browser.newPage({ viewport: { width: 390, height: 900 } });
