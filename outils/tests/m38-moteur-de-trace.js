@@ -1919,6 +1919,76 @@ async function tracerChemin(page, chemin){
       };
       return {ce1:compte(qCe1Construire), ce2:compte(qCe2ConstruireUni)};
     });
+    /* ============================================================
+       LES QUATRE COINS, ET LE GESTE QUI VA AVEC
+       ------------------------------------------------------------
+       « Centré sur un de ses coins » les accepte tous — le verdict, lui,
+       n’a jamais fait de différence. Mais le GESTE en refusait trois : le
+       second point d’un cercle centré sur un coin tombe naturellement VERS
+       L’EXTÉRIEUR, donc hors du panneau, et `aimanterPoint` y rend `null`.
+       La pose plantait, le cercle n’apparaissait pas, et vu de l’enfant le
+       jeu n’acceptait qu’un seul coin. On rejoue donc le geste tel qu’il se
+       fait — en visant dehors — sur les quatre coins et aux deux paliers,
+       plutôt que d’appeler le juge en lui tendant des coordonnées choisies. */
+    for (const jeu of ['ce2-construire-uni', 'ce1-construire']) {
+      await page.goto(base + '?competence=' + jeu);
+      await page.waitForTimeout(400);
+      const coins = await page.evaluate(async () => {
+        const res = [];
+        const i = file.findIndex(q => q.cercles && q.cercles[0].relation === 'sommet');
+        for (let k = 0; k < 4; k++) {
+          pos = i; manche(); desarmerAutoSuivant();
+          const q = file[pos], sol = q.solutions[0][0];
+          sol.forEach(p => poserSommet(p.slice()));
+          poserSommet(sol[0].slice());
+          const ancre = sol[k], o = centre(sol);
+          /* Un rayon de 4 unités des deux côtés : c’est la mesure imposée au
+             CE2, et elle reste dans la fourchette libre du CE1 — assez grande
+             pour que le second point sorte du panneau, ce qui est justement
+             le cas qui plantait. */
+          const r = q.cercles[0].r != null ? q.cercles[0].r : 4 * PX_PAR_UNITE;
+          /* VERS L’EXTÉRIEUR : à l’opposé du centre de la figure. */
+          const d = Math.hypot(ancre[0]-o[0], ancre[1]-o[1]) || 1;
+          const dehors = [ancre[0] + (ancre[0]-o[0])/d*r, ancre[1] + (ancre[1]-o[1])/d*r];
+          chantier.enAttenteCentre = true;
+          let plante = null;
+          try { poserCercle(ancre.slice()); poserCercle(dehors); }
+          catch (e) { plante = String(e).slice(0, 50); }
+          validerManche(q);
+          await new Promise(z => setTimeout(z, 50));
+          res.push({k, plante, cercles:chantier.cerclesPoses.length, ok:q._ok,
+                    horsZone: dehors[0] > chantier.z.x1 || dehors[0] < chantier.z.x0
+                           || dehors[1] > chantier.z.y1 || dehors[1] < chantier.z.y0});
+        }
+        return res;
+      });
+      const nom = jeu === 'ce1-construire' ? 'CE1' : 'CE2';
+      T('coins ' + nom + ' — le geste vise bien DEHORS sur au moins un coin',
+        coins.some(c => c.horsZone), coins.map(c => c.k + (c.horsZone ? '↗' : '·')).join(' '));
+      T('coins ' + nom + ' — poser le cercle ne plante sur aucun coin',
+        coins.every(c => !c.plante && c.cercles === 1),
+        coins.filter(c => c.plante).map(c => 'coin ' + c.k + ' : ' + c.plante).join(' | ') || '4 coins');
+      T('coins ' + nom + ' — et LES QUATRE coins font gagner la manche',
+        coins.every(c => c.ok === true),
+        coins.map(c => c.k + ':' + (c.ok ? '✔' : '✘')).join(' '));
+    }
+    await page.goto(base + '?competence=ce2-construire-uni');
+    await page.waitForTimeout(400);
+    /* LE CENTRE, LUI, RESTE DANS LE PANNEAU : les deux points d’un cercle
+       n’ont pas les mêmes droits, et le second n’a été libéré que parce
+       qu’un cercle centré sur un coin déborde forcément. */
+    const centreDehors = await page.evaluate(() => {
+      pos = file.findIndex(q => q.cercles); manche(); desarmerAutoSuivant();
+      const z = chantier.z;
+      chantier.enAttenteCentre = true;
+      let plante = null;
+      try { poserCercle([z.x1 + 40, z.y1 + 40]); } catch (e) { plante = String(e).slice(0, 40); }
+      return {plante, pointe:!!chantier.centreProvisoire, cercles:chantier.cerclesPoses.length};
+    });
+    T('coins — une pointe posée hors du panneau ne plante pas, et ne pose rien',
+      centreDehors.plante === null && centreDehors.pointe === false
+      && centreDehors.cercles === 0, JSON.stringify(centreDehors));
+
     T('séries — les trois commandes du CE2 ne se jouent plus toujours dans le même ordre',
       series.ce2 >= 4 && series.ce2 === series.ce1,
       'CE2 ' + series.ce2 + ' séries, CE1 ' + series.ce1);

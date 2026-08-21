@@ -3998,9 +3998,19 @@ function poserCercle(brut){
      centre montrait le 4 sans qu’on puisse l’atteindre, et l’instrument ne
      servait qu’à regarder. C’est le même geste et le même aimant que pour un
      sommet — il n’y avait aucune raison que le second point d’un cercle en
-     soit privé. */
-  const p = aimanterPoint(brut, chantier.sup, chantier.z, ancresCourantes());
+     soit privé.
+     MAIS LES DEUX POINTS N’ONT PAS LES MÊMES DROITS. `aimanterPoint` rend
+     `null` hors du panneau : c’est juste pour le CENTRE — un cercle centré
+     hors du plan n’est pas une figure de cette manche — et faux pour le
+     SECOND POINT. Un cercle centré sur un COIN déborde forcément la figure,
+     et l’enfant vise naturellement vers l’extérieur ; s’en tenir au `null`
+     faisait PLANTER la pose, et le cercle n’apparaissait tout simplement
+     pas. Vu de l’enfant : « le jeu n’accepte qu’un seul coin » — alors que
+     le verdict, lui, les acceptait tous les quatre. */
+  const aimante = aimanterPoint(brut, chantier.sup, chantier.z, ancresCourantes());
   if (!chantier.centreProvisoire) {
+    if (!aimante) return;
+    const p = aimante;
     /* Le centre s’accroche à un sommet déjà construit : « centré sur un de
        ses coins » se joue là, et à la main libre on n’y arriverait pas. */
     const cands = tousLesPoints(chantier.contours).concat(chantier.sommets);
@@ -4014,6 +4024,8 @@ function poserCercle(brut){
     g.insertAdjacentHTML('beforeend', `<circle class="sommet" cx="${c[0]}" cy="${c[1]}" r="6"/>`);
     return;
   }
+  /* Second point : hors panneau ou non, c’est l’écartement qui compte. */
+  const p = aimante || brut;
   const c = chantier.centreProvisoire;
   chantier.cerclesPoses.push({c, r:dist(c, p)});
   /* Le cercle REMPLACE la pointe dans le journal : défaire un cercle défait
