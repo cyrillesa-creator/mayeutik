@@ -142,7 +142,9 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
   font-size:1.08rem; font-weight:700; text-align:center; margin:6px 4px 2px;
   line-height:1.35; display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;
 }
-.sous-consigne{text-align:center; font-size:.85rem; color:var(--encre2); margin:2px 0 8px; line-height:1.35;}
+/* Interlignage et marges SERRÉS : c’est ce qui garde le plan entier
+   au-dessus de la ligne de flottaison une fois la consigne écrite. */
+.sous-consigne{text-align:center; font-size:.85rem; color:var(--encre2); margin:2px 0 6px; line-height:1.28;}
 .btn-voix{
   border:none; background:var(--carte); box-shadow:var(--ombre); border-radius:12px;
   min-width:40px; min-height:40px; font-size:1.05rem; cursor:pointer; font-family:inherit; padding:0 10px;
@@ -218,7 +220,7 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
    un trait sombre de 3,4 px : sans cerne blanc elles y disparaissent. */
 .ancre{fill:var(--mandarine); stroke:#fff; stroke-width:1.6; pointer-events:none;}
 
-.barre-outils{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:0 0 10px;}
+.barre-outils{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:0 0 8px;}
 .outil{
   border:2.5px solid #C9D6E8; background:var(--carte); border-radius:12px;
   min-height:44px; padding:6px 12px; font-family:inherit; font-weight:700; font-size:.85rem;
@@ -2003,16 +2005,73 @@ function ancresCercle(relation, contour){
   if (!contour || !contour.length) return [];
   return relation === 'centre' ? [centre(contour)] : contour.map(p => p.slice());
 }
+/* TOUTES LES ANCRES QUE LA FIGURE PROPOSE, quelle que soit la relation
+   demandée : ses coins et son milieu. Ce sont les seuls endroits qu’un
+   énoncé de ce module désigne, donc les seuls candidats entre lesquels il
+   faut trancher. */
+function ancresPossibles(contour){
+  return contour.map(p => p.slice()).concat([centre(contour)]);
+}
+/* ON N’AJUSTE PLUS UN RAYON DE TOLÉRANCE : ON ATTRIBUE LE POINT.
+   Le cercle posé est rattaché à l’ancre dont il est LE PLUS PROCHE, parmi
+   toutes celles que la figure propose ; la manche est réussie si cette ancre
+   est de celles que l’énoncé demandait. C’est la plus large acceptation
+   possible qui ne confonde encore rien — la cellule de Voronoï de l’ancre —
+   et elle a la forme du problème plutôt que celle d’un cercle.
+   L’écart consenti n’est donc plus le même dans toutes les directions, et
+   c’est précisément ce qu’il fallait : viser le milieu d’un carré sans en
+   tracer les diagonales est difficile, et un rayon unique devait rester
+   sous la demi-diagonale pour ne pas mordre sur les coins — il bridait donc
+   aussi les directions où rien ne concurrençait le milieu. Sur un carré de
+   5, on passe de 44 px consentis partout à 62 px vers le milieu des côtés,
+   soit la moitié du carré : on peut viser à vue. Vers un coin, la frontière
+   reste à mi-chemin, et un cercle posé au coin n’est jamais pris pour un
+   cercle posé au milieu. */
+function ancreAttribuee(point, contour){
+  const cands = ancresPossibles(contour);
+  let meilleure = null, d0 = Infinity;
+  cands.forEach(a => { const d = dist(point, a); if (d < d0) { d0 = d; meilleure = a; } });
+  return meilleure;
+}
+/* L’ATTRIBUTION NE SUFFIT PAS SEULE, et il a fallu la mesurer pour le voir :
+   les cellules des quatre coins PAVENT la figure, si bien qu’un cercle posé
+   en plein milieu d’un rectangle serait attribué à un coin — et « au coin »
+   accepterait alors n’importe où. L’attribution dit à QUELLE ancre le point
+   se rapporte ; il reste à demander qu’il en soit VISIBLEMENT proche, et ce
+   « proche » n’a pas la même forme selon la relation :
+   — UN COIN est cerné par les autres coins : à moins d’un demi-côté, on est
+     à ce coin-là et cela se voit ;
+   — LE MILIEU est cerné par les CÔTÉS, pas par une distance : y être, c’est
+     être DANS la figure et plus près du milieu que d’un coin. Sur un carré
+     de 5, cela va jusqu’au bord au droit des côtés — 62 px, la moitié du
+     carré — là où un rayon unique devait s’arrêter à 44 pour ne pas mordre
+     sur les coins. Viser le milieu à vue, sans tracer les diagonales,
+     redevient possible. */
+function dansContour(p, c){
+  let dedans = false;
+  for (let i = 0, j = c.length - 1; i < c.length; j = i++) {
+    const yi = c[i][1], yj = c[j][1];
+    if ((yi > p[1]) === (yj > p[1])) continue;
+    const x = c[i][0] + (p[1] - yi) / (yj - yi) * (c[j][0] - c[i][0]);
+    if (p[0] < x) dedans = !dedans;
+  }
+  return dedans;
+}
+function assezPres(relation, point, ancre, contour){
+  if (relation === 'centre') return dansContour(point, contour);
+  let court = Infinity;
+  for (let i = 0; i < contour.length; i++)
+    court = Math.min(court, dist(contour[i], contour[(i+1) % contour.length]));
+  return dist(point, ancre) <= court / 2;
+}
+/* Ce que cela vaut EN DISTANCE dans la direction la plus contrainte : lu,
+   jamais déclaré — les tests s’en servent pour montrer l’ordre de grandeur,
+   le verdict ne s’en sert pas. */
 function toleranceRattachement(relation, contour){
-  const ancres = ancresCercle(relation, contour);
-  /* Les concurrentes d’un coin sont les autres coins ; celles du milieu sont
-     les coins eux-mêmes — c’est d’eux qu’il doit rester distinguable. */
-  const rivales = relation === 'centre' ? contour : ancres;
+  const voulues = ancresCercle(relation, contour);
+  const autres = ancresPossibles(contour).filter(a => !voulues.some(v => dist(v, a) < 1e-6));
   let d = Infinity;
-  ancres.forEach(a => rivales.forEach(r => {
-    const e = dist(a, r);
-    if (e > 1e-6) d = Math.min(d, e);
-  }));
+  voulues.forEach(v => autres.forEach(a => { d = Math.min(d, dist(v, a)); }));
   return d === Infinity ? PX_PAR_UNITE : d / 2;
 }
 /* Un rayon LIBRE n’a pas de bonne valeur : l’énoncé n’en donne pas. Il doit
@@ -2022,7 +2081,9 @@ function cercleAccepte(pose, spec, contour, tol){
   if (!pose || !spec) return false;
   const ancres = ancresCercle(spec.relation, contour);
   if (!ancres.length) return false;
-  const bonCentre = ancres.some(a => dist(pose.c, a) <= toleranceRattachement(spec.relation, contour));
+  const attribuee = ancreAttribuee(pose.c, contour);
+  const bonCentre = !!attribuee && ancres.some(a => dist(a, attribuee) < 1e-6)
+    && assezPres(spec.relation, pose.c, attribuee, contour);
   const b = bbox(contour);
   const rMax = Math.max(b.x1 - b.x0, b.y1 - b.y0);
   const bonRayon = spec.r != null
@@ -2067,7 +2128,24 @@ function creerPosable(hote, spec){
           + `<path class="poignee-fleche" d="M ${po[0]-5} ${po[1]-1.5} a 5 5 0 1 1 1.7 3.6"/>` : '');
   hote.appendChild(g);
 
-  const etat = () => ({x, y, angle:a});
+  /* LE PIVOT N’EST PAS LE MILIEU DE L’INSTRUMENT — c’est le point par lequel
+     il est TENU. `rotate()` tourne autour de l’origine locale de l’habillage,
+     et la règle, dessinée de −L/2 à +L/2, tournait donc autour de son milieu :
+     posée par son 0 sur un sommet, elle en glissait dès le premier degré, et
+     le calage qu’on venait de faire était perdu. Deux règles, dans cet ordre :
+     — si une graduation est AIMANTÉE sur un point dessiné, c’est ELLE le
+       pivot : on cale la règle sur un coin, puis on la fait tourner autour ;
+       c’est le geste réel, et c’est ce qui rend le calage utile ;
+     — sinon, l’instrument pivote par le point que son habillage désigne —
+       une EXTRÉMITÉ pour la règle, le coin pour l’équerre —, jamais par un
+       milieu que rien ne matérialise. */
+  let pivotLocal = ((spec.pivotParDefaut || [0, 0])).slice();
+  const versMonde = (p, ax, ay, aa) => {
+    const co = Math.cos(aa), si = Math.sin(aa);
+    return [ax + p[0]*co - p[1]*si, ay + p[0]*si + p[1]*co];
+  };
+  const pivotMonde = () => versMonde(pivotLocal, x, y, a);
+  const etat = () => ({x, y, angle:a, pivot:pivotMonde()});
   function appliquer(){
     g.setAttribute('transform', `translate(${x.toFixed(2)},${y.toFixed(2)}) rotate(${(a*180/Math.PI).toFixed(2)})`);
     if (spec.surChangement) spec.surChangement(etat(), g);
@@ -2105,7 +2183,8 @@ function creerPosable(hote, spec){
       mode: surPoignee ? 'rot' : 'trans',
       cx: e.clientX, cy: e.clientY,
       depart: surPoignee
-        ? {a0: a, ang0: Math.atan2(p.y - y, p.x - x)}
+        ? (() => { const P = pivotMonde();
+            return {a0: a, ang0: Math.atan2(p.y - P[1], p.x - P[0])}; })()
         : {dx: p.x - x, dy: p.y - y}
     };
     /* La capture est prise tout de suite : elle ne coupe pas la propagation
@@ -2128,15 +2207,19 @@ function creerPosable(hote, spec){
     const cibles = (spec.aimants && spec.aimants()) || [];
     if (!cibles.length) return;
     const co = Math.cos(a), si = Math.sin(a);
-    let meilleur = null, d0 = AIMANT_INSTRUMENT;
+    let meilleur = null, meilleurLoc = null, d0 = AIMANT_INSTRUMENT;
     (spec.ancresLocales || []).forEach(loc => {
       const w = [x + loc[0]*co - loc[1]*si, y + loc[0]*si + loc[1]*co];
       cibles.forEach(c => {
         const d = Math.hypot(c[0]-w[0], c[1]-w[1]);
-        if (d < d0) { d0 = d; meilleur = [c[0]-w[0], c[1]-w[1]]; }
+        if (d < d0) { d0 = d; meilleur = [c[0]-w[0], c[1]-w[1]]; meilleurLoc = loc; }
       });
     });
-    if (meilleur) { x += meilleur[0]; y += meilleur[1]; }
+    /* La graduation qui accroche devient le pivot ; si rien n’accroche, on
+       revient au point de tenue de l’habillage. Le pivot suit donc le
+       CALAGE, il n’est jamais une propriété figée de l’instrument. */
+    if (meilleur) { x += meilleur[0]; y += meilleur[1]; pivotLocal = meilleurLoc.slice(); }
+    else pivotLocal = ((spec.pivotParDefaut || [0, 0])).slice();
   }
   /* EN ROTATION, C’EST L’ANGLE QUI S’AIMANTE, pas la position — et c’est bien
      un autre mécanisme. Déplacer l’instrument pendant qu’on l’oriente le
@@ -2148,7 +2231,10 @@ function creerPosable(hote, spec){
      l’instrument n’a pas à déclarer deux fois sa forme. */
   function directionsLocales(){
     const vues = new Set(), dirs = [];
-    (spec.ancresLocales || []).forEach(l => {
+    /* Les bords se lisent DEPUIS LE PIVOT : c’est autour de lui que tout
+       tourne, donc c’est de lui que partent les directions qu’on aligne. */
+    (spec.ancresLocales || []).forEach(l0 => {
+      const l = [l0[0] - pivotLocal[0], l0[1] - pivotLocal[1]];
       const n = Math.hypot(l[0], l[1]);
       if (n < 1e-6) return;
       const u = [l[0]/n, l[1]/n];
@@ -2158,14 +2244,14 @@ function creerPosable(hote, spec){
     });
     return dirs;
   }
-  function aimanterAngle(brut){
+  function aimanterAngle(brut, P){
     const cibles = (spec.aimants && spec.aimants()) || [];
     const dirs = directionsLocales();
     if (!cibles.length || !dirs.length) return brut;
     let meilleur = brut, d0 = AIMANT_ANGLE;
     cibles.forEach(c => {
-      const vers = Math.atan2(c[1] - y, c[0] - x);
-      if (Math.hypot(c[0] - x, c[1] - y) < 1e-6) return;
+      const vers = Math.atan2(c[1] - P[1], c[0] - P[0]);
+      if (Math.hypot(c[0] - P[0], c[1] - P[1]) < 1e-6) return;
       dirs.forEach(u => {
         /* L’angle qu’il faudrait pour que ce bord pointe sur ce point. */
         let cand = vers - u;
@@ -2186,7 +2272,17 @@ function creerPosable(hote, spec){
     }
     const p = versSVG(svg, e.clientX, e.clientY);
     if (mode === 'trans') { x = p.x - depart.dx; y = p.y - depart.dy; aimanter(); }
-    else a = aimanterAngle(depart.a0 + (Math.atan2(p.y - y, p.x - x) - depart.ang0));
+    else {
+      /* Le pivot est le seul point qui NE BOUGE PAS : on note où il est,
+         on tourne, puis on rattrape la translation que la rotation autour
+         de l’origine lui a fait subir. Sans ce rattrapage, tourner
+         déplacerait la graduation qu’on venait de caler sur un sommet. */
+      const P = pivotMonde();
+      const brut = depart.a0 + (Math.atan2(p.y - P[1], p.x - P[0]) - depart.ang0);
+      a = aimanterAngle(brut, P);
+      const apres = versMonde(pivotLocal, x, y, a);
+      x += P[0] - apres[0]; y += P[1] - apres[1];
+    }
     appliquer();
     e.preventDefault();
   };
@@ -2223,6 +2319,11 @@ const REGLE_GRADUEE = (nbUnites) => {
          + `<line class="bord" x1="${-L/2}" y1="0" x2="${L/2}" y2="0"/>` + g,
     poignee: [L/2 - 26, 46],
     ancresLocales: anc,
+    /* LE POINT DE TENUE DE LA RÈGLE EST SON ZÉRO, à l’autre bout de la
+       poignée : on tient la règle par une extrémité et on balaie avec
+       l’autre. Dessinée de −L/2 à +L/2, son origine locale tombait en son
+       milieu, et elle tournait donc autour d’un point que rien ne montre. */
+    pivotParDefaut: [-L/2, 0],
     /* Encombrement sous l’origine, poignée et son halo compris : sans lui,
        l’instrument se gare à cheval sur le bord et arrive tronqué. */
     encombrement: 74, demiLargeur: L/2
@@ -2501,15 +2602,25 @@ const DIMENSIONS_CONTENU = {
    dès qu’une manche change de support — et le nombre de pièces, qui décide du
    pluriel, n’est connu que de la donnée. Elle se calcule donc, comme tout ce
    que la figure sait déjà dire d’elle-même. */
-const Q_REPRODUIRE = 'Copie le modèle sur ton panneau.';
-function sousReproduire(mode, support, nbPieces){
-  const geste = mode === 'tracer'
-    ? 'Dessine la forme en glissant ton doigt sur ton panneau, ou en pointant du doigt les sommets'
-    : 'Dessine la forme en pointant du doigt les sommets';
-  const quoi = nbPieces > 1 ? ' des figures.' : ' de la figure.';
+/* LA CONSIGNE TIENT EN DEUX LIGNES, ET C’EST UNE CONTRAINTE DE FOND. Écrite
+   au long, elle repoussait le plan sous la ligne de flottaison : l’enfant
+   devait faire défiler pour voir le panneau qu’on lui demande de regarder.
+   Une consigne qu’il faut quitter des yeux pour travailler ne sert plus à
+   rien. Elle dit donc le geste et le repère, et rien d’autre — le détail
+   appartient à l’écran, pas au texte.
+   Le PLURIEL ne se calcule que là où la donnée varie, c’est-à-dire au CE2,
+   seul palier dont une figure compte deux pièces : l’accorder au CP, où il
+   n’y en a jamais qu’une, serait du code qui ne peut pas se tromper. */
+const Q_REPRODUIRE = 'Copie le modèle.';
+function sousReproduire(mode, support, nbPieces, obliques){
+  const geste = mode !== 'tracer'
+    ? 'Pointe les sommets ' + (nbPieces > 1 ? 'des figures.' : 'de la figure.')
+    : obliques
+      ? 'Glisse ton doigt d’un coin à l’autre, bien droit.'
+      : 'Glisse ton doigt le long des côtés, ou pointe les sommets.';
   const repere = support === 'quadrille' ? ' Aide-toi du quadrillage.'
                : support === 'pointe' ? ' Aide-toi des points.' : '';
-  return geste + quoi + repere;
+  return geste + repere;
 }
 
 /* ---- CP : reproduire ---- */
@@ -2554,7 +2665,7 @@ function qCpReproduire(){
       modele:poserDansZone(ZONE_MODELE, [f]),
       solutions:[poserDansZone(ZONE_TRAVAIL, [f])],
       q:Q_REPRODUIRE,
-      sous:sousReproduire('tracer', support, 1)
+      sous:sousReproduire('tracer', support, 1, false)
     }));
   }
   return liste;
@@ -2713,13 +2824,12 @@ function qCe1Reproduire(){
       modele:poserDansZone(ZONE_MODELE, c),
       solutions:[poserDansZone(ZONE_TRAVAIL, c)],
       q:Q_REPRODUIRE,
-      /* LA PHRASE SUR LE BIAIS RESTE, et ce n’est pas de l’ornement : le
-         moteur n’écrit une oblique que si le doigt y est allé DROIT. Un
-         enfant qui zigzague d’un coin à l’autre n’obtient rien, sans que
-         rien ne le lui dise. C’est le mode d’emploi du geste, pas un
-         encouragement. */
-      sous:sousReproduire('tracer', s, 1)
-          + ' Les côtés sont en biais : va droit d’un coin à l’autre.'
+      /* LE BIAIS EST DIT PAR LE GESTE LUI-MÊME, en une phrase au lieu de
+         deux : le moteur n’écrit une oblique que si le doigt y est allé
+         DROIT, et un enfant qui zigzague n’obtient rien sans que rien ne le
+         lui dise. « D’un coin à l’autre, bien droit » est ce mode d’emploi,
+         et il tient sur la même ligne que la consigne. */
+      sous:sousReproduire('tracer', s, 1, true)
     });
   });
 }
@@ -2888,7 +2998,7 @@ function qCe1Construire(){
         support:'uni', libre:true, zone:'pleine',
         solutions:[[c]],
         instruments:['regle','equerre'],
-        q:'Un triangle rectangle dont les côtés de l’angle droit mesurent 6 et 4.',
+        q:'Un triangle rectangle, côtés de l’angle droit 6 et 4.',
         enonce:'Construis un triangle rectangle dont les côtés de l’angle droit mesurent 6 et 4.',
         sous:'Pose l’équerre pour l’angle droit, la règle pour les longueurs, puis reviens sur le premier coin pour fermer.'
       });
@@ -2920,8 +3030,8 @@ function qCe2Reproduire(){
          elle, il ne se décide pas ici. Et la phrase sur les deux façons de
          faire reste, parce que deux boutons attendent une réponse — la
          retirer laisserait l’enfant devant un choix que rien n’explique. */
-      sous:sousReproduire('poser', 'quadrille', c.length)
-          + ' Choisis ta façon de faire : le croquis rapide, ou le tracé exact.'
+      sous:sousReproduire('poser', 'quadrille', c.length, false)
+          + ' Croquis rapide ou tracé exact ?'
     });
   });
 }
@@ -2938,7 +3048,7 @@ function qCe2ConstruireUni(){
     return mancheBase({
       support:'uni', libre:true, zone:'pleine', solutions:[[c]],
       instruments:['regle','equerre'],
-      q:'Un rectangle de longueur 7 et de largeur 3.',
+      q:'Un rectangle : longueur 7, largeur 3.',
       enonce:'Construis un rectangle de longueur 7 et de largeur 3.',
       /* Le vocabulaire longueur / largeur, introduit dans M34, se
          réinvestit ici : intervertir les deux produit une figure fausse. */
@@ -2954,7 +3064,7 @@ function qCe2ConstruireUni(){
          Seul le rattachement se calcule sur la figure produite. */
       cercles:[{relation:'sommet', r:4*U}],
       instruments:['regle','equerre'], compas:'rayon', rayonDemande:4,
-      q:'Un carré de côté 6, et un cercle de rayon 4 centré sur un de ses sommets.',
+      q:'Un carré de côté 6, un cercle de rayon 4 sur un sommet.',
       enonce:'Construis un carré de côté 6, puis un cercle de rayon 4 centré sur un de ses sommets.',
       sous:'Ferme d’abord le carré, puis règle l’écartement du compas sur 4.'
     });
@@ -2966,7 +3076,7 @@ function qCe2ConstruireUni(){
     return mancheBase({
       support:'uni', libre:true, zone:'pleine', solutions:[[c]],
       instruments:['regle','equerre'],
-      q:'Un triangle rectangle dont les côtés de l’angle droit mesurent 10 et 4.',
+      q:'Un triangle rectangle, côtés de l’angle droit 10 et 4.',
       enonce:'Construis un triangle rectangle dont les côtés de l’angle droit mesurent 10 et 4.',
       sous:'L’équerre donne l’angle droit, la règle les longueurs. Reviens sur le premier coin pour fermer.'
     });
@@ -3715,7 +3825,7 @@ function rendrePoser(q){
      compétence à part entière — seule la tolérance change. */
   if (q.esquissePossible) {
     q._mode = null;
-    ['main levée', 'à la règle'].forEach((lib, i) => {
+    ['croquis', 'règle'].forEach((lib, i) => {
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'outil'; b.textContent = (i === 0 ? '✏️ ' : '📏 ') + lib;
       b.addEventListener('click', () => {

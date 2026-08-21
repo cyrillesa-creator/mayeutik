@@ -638,7 +638,7 @@ const JEUX = ['cp-reproduire','cp-completer','cp-assembler',
       return out;
     });
     T('reproduction — la même consigne aux trois paliers, et elle dit de copier le modèle',
-      new Set(dits.map(m => m.q)).size === 1 && /^Copie le modèle sur ton panneau\.$/.test(dits[0].q),
+      new Set(dits.map(m => m.q)).size === 1 && /^Copie le modèle\.$/.test(dits[0].q),
       [...new Set(dits.map(m => m.q))].join(' | '));
     /* Le repère nommé suit le SUPPORT, jamais l’inverse. */
     T('reproduction — jamais « quadrillage » sur du papier pointé, ni « les points » sur du quadrillé',
@@ -647,19 +647,28 @@ const JEUX = ['cp-reproduire','cp-completer','cp-assembler',
         : /Aide-toi des points\./.test(m.sous) && !/Aide-toi du quadrillage/.test(m.sous)),
       [...new Set(dits.map(m => m.support + '→' + (/quadrillage/.test(m.sous) ? 'quadrillage' : 'points')))].join(' '));
     /* Le geste nommé suit le MODE : on ne promet le glissement que là où il existe. */
-    T('reproduction — « en glissant ton doigt » n’est promis qu’aux manches qui se tracent au doigt',
-      dits.every(m => /glissant ton doigt/.test(m.sous) === (m.mode === 'tracer')),
-      [...new Set(dits.map(m => m.mode + '→' + (/glissant/.test(m.sous) ? 'glisse' : 'pointe seulement')))].join(' '));
-    /* Et le pluriel se lit sur la figure. */
+    T('reproduction — « glisse ton doigt » n’est promis qu’aux manches qui se tracent au doigt',
+      dits.every(m => /Glisse ton doigt/.test(m.sous) === (m.mode === 'tracer')),
+      [...new Set(dits.map(m => m.mode + '→' + (/Glisse/.test(m.sous) ? 'glisse' : 'pointe seulement')))].join(' '));
+    /* Le pluriel se lit sur la figure, là où la donnée varie — le CE2. */
     T('reproduction — « des figures » seulement quand la manche en montre plusieurs',
-      dits.every(m => /les sommets des figures/.test(m.sous) === (m.pieces > 1)),
-      [...new Set(dits.map(m => m.pieces + ' pièce(s) → '
+      dits.filter(m => m.mode !== 'tracer')
+          .every(m => /les sommets des figures/.test(m.sous) === (m.pieces > 1)),
+      [...new Set(dits.filter(m => m.mode !== 'tracer').map(m => m.pieces + ' pièce(s) → '
         + (/des figures/.test(m.sous) ? 'pluriel' : 'singulier')))].join(' | '));
     T('reproduction — les deux cas de pluriel sont bien tous les deux éprouvés',
-      new Set(dits.map(m => m.pieces > 1)).size === 2
+      new Set(dits.filter(m => m.mode !== 'tracer').map(m => m.pieces > 1)).size === 2
       && new Set(dits.map(m => m.support)).size === 2
       && new Set(dits.map(m => m.mode)).size === 2,
       dits.length + ' manches lues');
+    /* LA CONSIGNE TIENT EN DEUX LIGNES — c’est ce qui garde le plan entier
+       au-dessus du pli (cf. « pli » dans la suite du moteur). Le nombre de
+       caractères n’est qu’un garde-fou grossier ; la vraie mesure est faite
+       à l’écran, là-bas. */
+    T('reproduction — et la consigne reste courte : deux lignes au plus',
+      dits.every(m => m.q.length <= 24 && m.sous.length <= 100),
+      'q ' + Math.max(...dits.map(m => m.q.length))
+        + ' car., sous ' + Math.max(...dits.map(m => m.sous.length)) + ' car.');
   }
 
   /* ---------- 9. Papier uni : l’instrument rend la précision atteignable ---------- */
@@ -745,7 +754,7 @@ const JEUX = ['cp-reproduire','cp-completer','cp-assembler',
     }));
   });
   const parQ = (re) => officiels.find(o => re.test(o.q));
-  const r7 = parQ(/rectangle de longueur 7/);
+  const r7 = parQ(/rectangle : longueur 7/);
   T('exemple 1 : rectangle 7 × 3', r7 && JSON.stringify(r7.cotes) === '[7,3,7,3]', r7 && JSON.stringify(r7.cotes));
   const c6 = parQ(/carré de côté 6/);
   T('exemple 2 : carré de côté 6', c6 && c6.cotes.every(x => x === 6), c6 && JSON.stringify(c6.cotes));

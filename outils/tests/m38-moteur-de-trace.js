@@ -527,25 +527,19 @@ async function tracerChemin(page, chemin){
     T('maille — le doigt trouve les nœuds : maille ≥ 28 px et rayon ≥ 12 px sur un iPhone',
       m.maillePx >= 28 && m.rayonPx >= 12,
       m.maillePx.toFixed(1) + ' px, rayon ' + m.rayonPx.toFixed(1) + ' px');
-    /* Le plafond : les deux panneaux doivent se voir ENSEMBLE, sinon
-       « copie le modèle » demande de faire défiler entre les deux.
-       LA PROPRIÉTÉ A CHANGÉ DE FORME, et c’est une décision, pas un
-       affaiblissement. Elle exigeait que TOUT tienne au-dessus du pli, consigne
-       comprise. La consigne de reproduction a été allongée exprès — elle nomme
-       maintenant le geste et le repère — et passe de une à quatre lignes : la
-       somme ne peut plus tenir, à moins de rétrécir la maille, qu’on venait
-       d’élargir pour le doigt. Ce qu’on protège vraiment survit intact : le
-       PLAN entier tient dans un écran, donc l’enfant ne fait jamais l’aller-
-       retour entre le modèle et sa copie. On borne en plus ce qui dépasse, pour
-       qu’une consigne de trois paragraphes ne repousse pas le plan une page
-       plus bas sans que rien ne le dise. */
+    /* Le plafond : TOUT tient au-dessus de la ligne de flottaison, consigne
+       comprise. Une consigne écrite au long repoussait le plan sous le pli —
+       l’enfant devait faire défiler pour voir le panneau qu’on lui demande de
+       regarder, et une consigne qu’il faut quitter des yeux pour travailler ne
+       sert plus à rien. C’est donc le TEXTE qui s’ajuste au plan, jamais le
+       plan qui cède : la maille a été dimensionnée pour le doigt, elle n’a pas
+       à rétrécir pour faire de la place à une phrase.
+       Éprouvé sur les NEUF mini-jeux, et pas seulement sur ceux à modèle :
+       n’importe quelle consigne trop bavarde doit rougir ici. */
     const avecModele = ['cp-reproduire','cp-assembler','ce1-reproduire'].map(c => mesures[c]);
-    T('maille — le plan entier tient dans un écran : jamais de va-et-vient entre le modèle et la copie',
-      avecModele.every(x => x.avecModele && x.planH <= x.fold),
-      avecModele.map(x => Math.round(x.planH) + '/' + x.fold).join(' '));
-    T('maille — et ce que la consigne repousse sous le pli reste un petit défilement, jamais une page',
-      avecModele.every(x => x.planBas - x.fold <= 80),
-      avecModele.map(x => Math.round(x.planBas - x.fold) + ' px').join(' '));
+    T('maille — sur un écran à modèle, tout le plan tient au-dessus de la ligne de flottaison',
+      avecModele.every(x => x.avecModele && x.planBas <= x.fold),
+      avecModele.map(x => Math.round(x.planBas) + '/' + x.fold).join(' '));
     /* Le papier uni est FIGÉ : élargir la maille du quadrillage ne doit pas
        déplacer la rosace ni les constructions au compas d’un pixel. */
     const uni = mesures['ce2-rosace'];
@@ -563,6 +557,30 @@ async function tracerChemin(page, chemin){
     });
     T('maille — la hauteur du plan se déduit de la zone la plus basse, jamais déclarée à côté',
       derivee.every(d => d === derivee[0] && d >= 0.5 * 26), derivee.join());
+    /* LES NEUF MINI-JEUX, MANCHE PAR MANCHE. Le contrôle ne portait que sur
+       la première manche de trois d’entre eux : une consigne allongée
+       ailleurs — et il y en a eu — passait sans que rien ne rougisse. */
+    const plis = [];
+    for (const c of ['cp-reproduire','cp-completer','cp-assembler','ce1-reproduire',
+                     'ce1-completer','ce1-construire','ce2-reproduire',
+                     'ce2-construire-uni','ce2-rosace']) {
+      await tel.goto(base + '?competence=' + c);
+      await tel.waitForTimeout(400);
+      plis.push(await tel.evaluate((nom) => {
+        let pire = -Infinity, quelle = 0;
+        for (let i = 0; i < file.length; i++) {
+          pos = i; manche(); desarmerAutoSuivant();
+          const d = document.getElementById('plan').getBoundingClientRect().bottom - window.innerHeight;
+          if (d > pire) { pire = d; quelle = i; }
+        }
+        return {jeu:nom, debord:Math.round(pire), manche:quelle + 1};
+      }, c));
+    }
+    T('pli — sur les neuf mini-jeux, aucune manche ne repousse le plan sous la ligne de flottaison',
+      plis.every(p => p.debord <= 0),
+      plis.filter(p => p.debord > 0).map(p => p.jeu + ' manche ' + p.manche + ' : +' + p.debord + ' px')
+        .join(' | ') || 'marge la plus faible : '
+        + Math.min(...plis.map(p => -p.debord)) + ' px');
     /* AUCUNE figure ne sort de sa zone, modèle compris — l’offset imposé de
        `cp-assembler` débordait dès que le panneau a perdu une rangée. */
     const debords = await tel.evaluate(() => {
@@ -1269,15 +1287,22 @@ async function tracerChemin(page, chemin){
       'graduation n°' + regle.quelle + ' (visée ' + pose.k + ') sur ' + regle.nb
         + ', écart ' + regle.ecartMin);
 
-    /* ET ON LA FAIT TOURNER. C’est le seul cas qui prouve quelque chose sur
-       l’aimantation de POSITION en rotation : le coin de l’équerre EST son
-       centre de rotation, il ne s’écarte donc jamais du point sur lequel il
-       est aimanté, et y corriger vaudrait zéro — indétectable. La règle,
-       accrochée par une graduation non centrale, sauterait dès le premier
-       degré. Une mutation est restée aveugle jusqu’à ce que le test porte
-       sur elle. */
-    const rotRegle = await page.evaluate(() => {
+    /* ET ON LA FAIT TOURNER, EN REGARDANT LE BON POINT.
+       CE TEST MESURAIT UN LEURRE : il vérifiait que le `translate()` du groupe
+       ne bougeait pas, et en concluait que la règle ne « sautait » pas. Or
+       `rotate()` tourne autour de l’ORIGINE LOCALE de l’habillage, qui pour la
+       règle tombe en son MILIEU : le translate restait donc parfaitement
+       immobile pendant que la graduation calée sur un sommet en glissait. Le
+       test était vert et l’instrument faux — on ne pouvait pas poser la règle
+       sur un coin et la faire tourner autour.
+       Ce qui compte est la SEULE chose qu’on veut garantir : la graduation
+       aimantée reste sur son point. Le translate, lui, DOIT bouger — c’est
+       ainsi qu’une rotation autour d’un point excentré se réalise. */
+    const rotRegle = await page.evaluate((cible) => {
       const p = chantier.posables[0], avant = p.etat();
+      const ancreAvant = p.ancres().reduce((m, a) =>
+        Math.hypot(a[0]-cible[0], a[1]-cible[1]) < Math.hypot(m[0]-cible[0], m[1]-cible[1]) ? a : m);
+      const iAncre = p.ancres().findIndex(a => a[0] === ancreAvant[0] && a[1] === ancreAvant[1]);
       const poi = p.g.querySelector('.poignee'), po = poi.getBoundingClientRect();
       const cx = po.x + po.width/2, cy = po.y + po.height/2;
       const env = (t, X, Y, sur) => (sur || p.g).dispatchEvent(new PointerEvent(t,
@@ -1285,14 +1310,77 @@ async function tracerChemin(page, chemin){
       env('pointerdown', cx, cy, poi);
       for (let i = 1; i <= 8; i++) env('pointermove', cx + 5*i, cy - 4*i);
       env('pointerup', cx + 40, cy - 32);
-      const apres = p.etat();
+      const apres = p.etat(), ancreApres = p.ancres()[iAncre];
       return {aTourne:Math.abs(apres.angle - avant.angle) > 0.02,
-              deplacement:+Math.hypot(apres.x - avant.x, apres.y - avant.y).toFixed(3)};
-    });
+              /* de combien la graduation calée a quitté son sommet */
+              glissement:+Math.hypot(ancreApres[0]-ancreAvant[0], ancreApres[1]-ancreAvant[1]).toFixed(3),
+              deplacement:+Math.hypot(apres.x - avant.x, apres.y - avant.y).toFixed(3),
+              iAncre};
+    }, pose.cible);
     T('aimant — la règle tourne aussi par sa poignée',
-      rotRegle.aTourne === true, JSON.stringify(rotRegle));
-    T('aimant — et une graduation NON CENTRALE aimantée ne fait pas sauter la règle en tournant',
-      rotRegle.deplacement === 0, 'déplacement ' + rotRegle.deplacement);
+      rotRegle.aTourne === true, JSON.stringify({aTourne:rotRegle.aTourne}));
+    T('pivot — la règle tourne AUTOUR de la graduation calée : elle ne quitte pas son sommet',
+      rotRegle.glissement < 0.01,
+      'graduation n°' + rotRegle.iAncre + ', glissement ' + rotRegle.glissement + ' px');
+    T('pivot — et le groupe se déplace pour cela : tourner autour d’un point excentré n’est pas tourner sur place',
+      rotRegle.deplacement > 1, 'translation ' + rotRegle.deplacement + ' px');
+
+    /* SANS CALAGE, LA RÈGLE PIVOTE PAR SON ZÉRO — une extrémité, pas son
+       milieu. C’est le point de tenue que son habillage désigne, et le seul
+       que l’enfant voit. */
+    const pivotLibre = await page.evaluate(() => {
+      const svg = document.getElementById('scene');
+      const p = chantier.posables[0];
+      const m = svg.getScreenCTM(), pt = svg.createSVGPoint();
+      const versClient = (s) => { pt.x = s[0]; pt.y = s[1];
+        const e = pt.matrixTransform(m); return {x:e.x, y:e.y}; };
+      const env = (t, X, Y, sur) => (sur || p.g).dispatchEvent(new PointerEvent(t,
+        {clientX:X, clientY:Y, pointerId:31, bubbles:true}));
+      const glisserVers = (s) => {
+        const corps = p.g.querySelector('.corps').getBoundingClientRect();
+        const prise = {x:corps.x + corps.width/2, y:corps.y + corps.height/2};
+        const c = versClient(s);
+        env('pointerdown', prise.x, prise.y);
+        for (let i = 1; i <= 8; i++)
+          env('pointermove', prise.x + (c.x-prise.x)*i/8, prise.y + (c.y-prise.y)*i/8);
+        env('pointerup', c.x, c.y);
+      };
+      /* LA PRÉMISSE EST VÉRIFIÉE, PAS SUPPOSÉE : « sans calage » veut dire
+         qu’aucune graduation n’est à portée d’aimant d’un point dessiné.
+         Un premier essai posait la règle contre la figure, elle s’y accrochait
+         par son dernier trait, et le test croyait mesurer le pivot par défaut
+         alors qu’il mesurait un calage. */
+      const loinDeTout = () => {
+        const pts = pointsRemarquables();
+        return p.ancres().every(a => pts.every(q =>
+          Math.hypot(a[0]-q[0], a[1]-q[1]) > AIMANT_INSTRUMENT + 1));
+      };
+      const essais = [[ZONE_PLEINE_UNI.x0 + 6, ZONE_PLEINE_UNI.y1 - 4],
+                      [ZONE_PLEINE_UNI.x0 + 6, ZONE_PLEINE_UNI.y0 + 4],
+                      [ZONE_PLEINE_UNI.x1 - 6, ZONE_PLEINE_UNI.y1 - 4]];
+      let libre = false;
+      for (const s of essais) { glisserVers(s); if (loinDeTout()) { libre = true; break; } }
+      const anc = p.ancres(), avant = anc.map(a => a.slice());
+      const poi = p.g.querySelector('.poignee'), po = poi.getBoundingClientRect();
+      const cx = po.x + po.width/2, cy = po.y + po.height/2;
+      env('pointerdown', cx, cy, poi);
+      for (let i = 1; i <= 8; i++) env('pointermove', cx + 6*i, cy - 5*i);
+      env('pointerup', cx + 48, cy - 40);
+      const apres = p.ancres();
+      const bouges = apres.map((a, i) => +Math.hypot(a[0]-avant[i][0], a[1]-avant[i][1]).toFixed(2));
+      let iFixe = 0;
+      bouges.forEach((d, i) => { if (d < bouges[iFixe]) iFixe = i; });
+      return {libre, n:bouges.length, iFixe, fixe:bouges[iFixe],
+              zero:bouges[0], bout:bouges[bouges.length-1]};
+    });
+    T('pivot — la prémisse tient : la règle est bien posée loin de tout point aimantant',
+      pivotLibre.libre === true, JSON.stringify({libre:pivotLibre.libre}));
+    T('pivot — sans calage, la règle pivote par son ZÉRO : cette extrémité ne bouge pas',
+      pivotLibre.iFixe === 0 && pivotLibre.zero < 0.01,
+      'graduation fixe n°' + pivotLibre.iFixe + '/' + (pivotLibre.n - 1)
+        + ', déplacement ' + pivotLibre.fixe + ' px');
+    T('pivot — et c’est bien l’autre extrémité qui balaie',
+      pivotLibre.bout > 10, 'autre bout ' + pivotLibre.bout + ' px');
   }
 
   /* ============================================================
@@ -1590,6 +1678,35 @@ async function tracerChemin(page, chemin){
     T('rattachement — reconnaître un rattachement est beaucoup plus large que mesurer',
       rels.every(([, v]) => v.tolRattachement >= 4 * v.tolMesure),
       rels.map(([r, v]) => r + ' : ' + v.tolRattachement + ' px contre ' + v.tolMesure).join(' | '));
+
+    /* VISER LE MILIEU À VUE. Sans tracer les diagonales, on ne trouve pas le
+       centre d’un carré au pixel — et les tracer polluerait la figure jugée.
+       L’acceptation du milieu va donc jusqu’au BORD au droit des côtés, et
+       s’arrête à mi-chemin vers les coins : on balaie le carré en croix et en
+       diagonale pour lire où elle s’arrête vraiment, plutôt que de croire un
+       nombre écrit dans le code. */
+    const balayage = await page.evaluate(() => {
+      const q = qCe1Construire().find(m => m.cercles && m.cercles[0].relation === 'centre');
+      const c = q.solutions[0][0], o = centre(c), r = 2 * PX_PAR_UNITE;
+      const cote = dist(c[0], c[1]);
+      const portee = (ux, uy) => {          // jusqu’où on peut viser à côté
+        let d = 0;
+        for (let t = 0; t <= cote; t += 0.5)
+          if (cercleAccepte({c:[o[0]+ux*t, o[1]+uy*t], r}, q.cercles[0], c, 1)) d = t; else break;
+        return +d.toFixed(1);
+      };
+      const s = Math.SQRT1_2;
+      return {cote:+cote.toFixed(1), auMilieu:cercleAccepte({c:o, r}, q.cercles[0], c, 1),
+        versCote:portee(1, 0), versCoin:portee(s, s),
+        surUnCoin:cercleAccepte({c:c[0], r}, q.cercles[0], c, 1)};
+    });
+    T('milieu — viser le centre exactement est évidemment accepté', balayage.auMilieu === true);
+    T('milieu — on peut viser jusqu’au bord au droit d’un côté : la moitié du carré',
+      balayage.versCote >= 0.45 * balayage.cote,
+      balayage.versCote + ' px pour un côté de ' + balayage.cote);
+    T('milieu — vers un coin l’acceptation s’arrête à mi-chemin, et le coin reste un coin',
+      balayage.versCoin < balayage.versCote && balayage.surUnCoin === false,
+      'coin ' + balayage.versCoin + ' px contre côté ' + balayage.versCote);
 
     /* EN JEU, PAS SEULEMENT SUR LA RÈGLE. Éprouver `cercleAccepte` en lui
        passant soi-même le contour de l’enfant ne dit RIEN de la ligne qui
