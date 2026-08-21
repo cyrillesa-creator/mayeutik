@@ -220,11 +220,11 @@ header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; min-heigh
    un trait sombre de 3,4 px : sans cerne blanc elles y disparaissent. */
 .ancre{fill:var(--mandarine); stroke:#fff; stroke-width:1.6; pointer-events:none;}
 
-/* BARRE COMPACTE : quatre outils doivent tenir sur UNE rangée de 362 px.
-   Une seconde rangée coûte 52 px et repousse le plan sous la ligne de
-   flottaison — c’est le mini-jeu du CE2, qui ajoute le choix du mode aux
-   trois outils du tracé, qui a fixé la contrainte. La cible de touche reste
-   à 44 px de haut (§19) : c’est la largeur qui se resserre, pas la hauteur. */
+/* BARRE COMPACTE : chaque rangée coûte 52 px, et le plan doit rester au-dessus
+   de la ligne de flottaison. Les écrans à instruments en tiennent deux
+   (règle, équerre, compas, annuler) ; sans ce resserrement ils en prendraient
+   trois. La cible de touche reste à 44 px de haut (§19) : c’est la largeur
+   qui se resserre, jamais la hauteur. */
 .barre-outils{display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin:0 0 8px;}
 .outil{
   border:2.5px solid #C9D6E8; background:var(--carte); border-radius:12px;
@@ -3030,28 +3030,34 @@ const FIGURES_CE2_REPRO = [
    changeait de geste sans que rien ne l’annonce, et le geste qu’il venait
    d’acquérir ne lui servait plus. Le mode opératoire s’aligne donc, et la
    progression du support avec lui — quadrillé, puis pointé.
-   CE QUI RESTE PROPRE AU CE2, ce sont les figures — obliques et assemblages —
-   et LE CHOIX entre croquer et tracer exactement. Ce choix change de sens en
-   changeant de geste, et il fallait le lui rendre : sur quadrillage, le doigt
-   accroche les nœuds, donc il n’y a plus de coordonnée imprécise à tolérer.
-   Ce qui distingue alors un croquis d’un tracé exact, c’est ce qu’on
-   REGARDE — le croquis juge la FIGURE, et laisse passer un trait de
-   construction resté en travers ; le tracé exact juge les TRAITS, et
-   n’en tolère aucun en trop. « Seule la tolérance change » reste vrai, mais
-   elle porte sur les bavures au lieu de porter sur les millimètres. */
+   CE QUI RESTE PROPRE AU CE2, ce sont les FIGURES : obliques 2/1 et 3/1, et
+   un assemblage à deux pièces dont le côté partagé ne se trace qu’une fois.
+   LE CHOIX « CROQUIS OU EXACT » A ÉTÉ RETIRÉ, et c’est une décision, pas un
+   oubli. Il séparait deux tolérances de coordonnées tant que l’enfant posait
+   ses sommets un par un ; au doigt sur quadrillage le trait accroche les
+   nœuds, si bien que croquer vite et tracer exactement produisent LES MÊMES
+   TRAITS. On lui avait donné un sens de rechange — le croquis pardonne une
+   bavure, l’exact non — mais ce n’était plus un choix : le croquis acceptait
+   tout ce que l’exact acceptait ET davantage, pour le même point. Une option
+   qui domine l’autre ne se choisit pas, elle se subit ; et elle se subissait
+   avant même de savoir si une bavure allait rester.
+   Rendre au « à main levée » son VRAI geste — dessiner sans accrochage aux
+   nœuds, juger la forme — reste possible et serait le seul moyen de faire
+   travailler cette compétence ; c’est un autre moteur, pas un bouton. En
+   attendant, le référentiel ne prétend plus la couvrir. */
 function qCe2Reproduire(){
   return tirerSansRepetition('ce2-repro-figures', FIGURES_CE2_REPRO, 5).map((f, i) => {
     const c = f();
     const support = i < 3 ? 'quadrille' : 'pointe';
     return mancheBase({
-      mode:'tracer', support, esquissePossible:true,
+      mode:'tracer', support,
       modele:poserDansZone(ZONE_MODELE, c),
       solutions:[poserDansZone(ZONE_TRAVAIL, c)],
       q:Q_REPRODUIRE,
       /* La phrase sur les deux façons de faire reste : deux boutons attendent
          une réponse, et les retirer du texte laisserait l’enfant devant un
          choix que rien n’explique. */
-      sous:sousReproduire(support, false) + ' Croquis ou exact ?'
+      sous:sousReproduire(support, false)
     });
   });
 }
@@ -3900,7 +3906,6 @@ function rendrePoser(q){
   const outils = [];
   (q.instruments || []).forEach(nom => outils.push(nom));
   if (q.compas) outils.push('compas');
-  if (q.esquissePossible) outils.push('mode');
   outils.push('annuler');
   barre.hidden = false;
   barre.innerHTML = '';
@@ -4049,42 +4054,6 @@ function poserCercle(brut){
    colorient le verre et servent à juger. Elles remplissent `chantier.contours`,
    si bien que la validation, le vitrail cumulatif et la révélation différée
    du §18 ne changent pas d’une ligne. */
-/* LE CHOIX DU CE2 : CE QU’ON REGARDE, PAS DE COMBIEN ON TOLÈRE.
-   Croquer vite une figure juste est une compétence à part entière, et le
-   texte met les deux façons de faire sur le même plan — même nombre de
-   points. En pose de sommets, la différence était une tolérance de
-   coordonnées ; au doigt sur quadrillage, le trait accroche les nœuds et il
-   n’y a plus de millimètre à tolérer. Ce qui sépare alors les deux, c’est
-   l’objet du jugement : le CROQUIS regarde la FIGURE et laisse passer un
-   trait de construction resté en travers, le TRACÉ EXACT regarde les TRAITS
-   et n’en tolère aucun en trop. */
-/* UN SEUL BOUTON, QUI DIT L’ÉTAT — et c’est la place qui l’impose, pas le
-   goût : deux boutons de plus faisaient passer la barre d’outils à deux
-   rangées, ce qui repousse le plan sous la ligne de flottaison. Le choix
-   reste visible et réversible à tout moment, c’est ce qui compte ; il part
-   sur « exact », le plus strict, pour que ne rien choisir ne soit jamais
-   une facilité. */
-function brancherModeCE2(q, barre){
-  if (!q.esquissePossible) return;
-  q._mode = 'exact';
-  const b = document.createElement('button');
-  b.type = 'button'; b.className = 'outil outil-mode';
-  /* PAS D’ÉMOJI ICI, et ce n’est pas qu’une question de largeur : le 📏 de
-     l’ancien « à la règle » désignait un instrument, et il n’y en a plus —
-     le doigt trace. Un pictogramme qui montre ce qui n’existe pas est pire
-     qu’un mot seul. */
-  const libelle = () => q._mode === 'esquisse' ? 'croquis' : 'exact';
-  b.textContent = libelle();
-  b.addEventListener('click', () => {
-    if (verrouille) return;
-    q._mode = q._mode === 'esquisse' ? 'exact' : 'esquisse';
-    b.textContent = libelle();
-    b.classList.toggle('on', q._mode === 'esquisse');
-    sonClic();
-  });
-  barre.appendChild(b);
-}
-
 function rendreTracer(q){
   const zt = fondScene(q);
   const svg = scene();
@@ -4122,7 +4091,6 @@ function rendreTracer(q){
     });
     outils.push(b); barre.appendChild(b);
   });
-  brancherModeCE2(q, barre);
   /* L’instrument reste disponible en tracé : sur « place le sommet de l’angle
      droit », c’est l’équerre qui fait trouver le nœud, le quadrillage ne
      faisant que rendre le trait exact une fois le nœud choisi. */
@@ -4168,18 +4136,13 @@ function validerManche(q){
       const traitsJustes = q.solutions.some(sol =>
         memesTraces(produites, segmentsDeSolution(sol, chantier.z), q.libre));
       const figureJuste = figureAcceptee(chantier.contours, q.solutions, tol, q.libre);
-      /* EN CROQUIS, C’EST LA FIGURE QUI COMPTE et non la propreté du trait :
-         un trait de construction resté en travers ne défait pas un croquis
-         juste. En tracé exact, il le défait — c’est tout ce qui sépare les
-         deux façons de faire, et c’est le CE2 qui choisit laquelle il joue. */
-      bon = traitsJustes || (q._mode === 'esquisse' && figureJuste);
+      bon = traitsJustes;
       if (!bon) {
         /* La bonne pièce ET des traits qui ne collent pas : ce sont des
            traits en trop, et le dire vaut mieux que « regarde en vert »,
            qui montrerait une figure que l’enfant a pourtant faite. */
         motif = figureJuste
-          ? 'La pièce est juste, mais il reste des traits en trop : gomme-les'
-            + (q.esquissePossible ? ', ou choisis le croquis.' : '.')
+          ? 'La pièce est juste, mais il reste des traits en trop : gomme-les.'
           : chantier.contours.length !== q.solutions[0].length
             ? 'Il fallait ' + q.solutions[0].length + ' pièce' + (q.solutions[0].length > 1 ? 's' : '') + '.'
             : 'Regarde la figure attendue, en vert.';

@@ -668,11 +668,13 @@ const JEUX = ['cp-reproduire','cp-completer','cp-assembler',
        au-dessus du pli (cf. « pli » dans la suite du moteur). Le nombre de
        caractères n’est qu’un garde-fou grossier ; la vraie mesure est faite
        à l’écran, là-bas. */
-    /* UN BOUTON QUE LE TEXTE N’ANNONCE PAS est un bouton que personne ne
-       comprend : seul le CE2 offre le choix, seul le CE2 doit le nommer. */
-    T('reproduction — seule la consigne du CE2 annonce le choix, et elle l’annonce',
-      dits.every(m => /Croquis ou exact \?/.test(m.sous) === (m.niveau === 'CE2')),
-      [...new Set(dits.map(m => m.niveau + (/Croquis/.test(m.sous) ? ' l’annonce' : ' non')))].join(', '));
+    /* LA CONSIGNE EST LA MÊME AUX TROIS PALIERS, à l’exception du biais
+       nommé au CE1. Elle a un temps annoncé au CE2 un choix « croquis ou
+       exact » ; le bouton a été retiré, et le texte avec lui — une consigne
+       qui nomme un bouton absent est pire qu’un bouton sans consigne. */
+    T('reproduction — plus aucune consigne n’annonce un choix qui n’existe plus',
+      dits.every(m => !/croquis|exact/i.test(m.sous)),
+      [...new Set(dits.filter(m => /croquis|exact/i.test(m.sous)).map(m => m.sous))].join(' | ') || 'aucune');
     T('reproduction — et la consigne reste courte : deux lignes au plus',
       dits.every(m => m.q.length <= 24 && m.sous.length <= 105),
       'q ' + Math.max(...dits.map(m => m.q.length))
@@ -708,24 +710,22 @@ const JEUX = ['cp-reproduire','cp-completer','cp-assembler',
   T('la règle graduée publie ses graduations comme ancres', uni.nbAncres >= 13, uni.nbAncres);
   T('un point posé près d’une graduation s’y accroche exactement', uni.colle);
 
-  /* ---------- 10. Le CE2 reproduit au doigt, et choisit ce qu’on regarde ----------
-     LE MINI-JEU A CHANGÉ DE GESTE pour rejoindre le CP et le CE1 : il posait
-     ses sommets un par un, il se trace au doigt. Le choix du CE2 survit à ce
-     changement mais change de nature — sur quadrillage le trait accroche les
-     nœuds, il n’y a plus de millimètre à tolérer. Ce qui sépare les deux
-     façons de faire, c’est désormais l’OBJET du jugement : le croquis regarde
-     la figure, le tracé exact regarde les traits. */
+  /* ---------- 10. Le CE2 reproduit au doigt, comme le CP et le CE1 ----------
+     LE MINI-JEU A CHANGÉ DE GESTE pour les rejoindre : il posait ses sommets
+     un par un, il se trace au doigt. Il portait aussi un choix « croquis ou
+     exact », RETIRÉ depuis : il séparait deux tolérances de coordonnées tant
+     qu’on posait des sommets, mais au doigt sur quadrillage le trait accroche
+     les nœuds — croquer vite et tracer exactement produisent les mêmes traits.
+     Le sens de rechange qu’on lui avait donné n’en faisait pas un choix : le
+     croquis acceptait tout ce que l’exact acceptait ET davantage, pour le même
+     point. Une option qui domine l’autre ne se choisit pas.
+     CE QUI RESTE PROPRE AU CE2 est dans les figures, pas dans un bouton. */
   await page.goto(base + '?competence=ce2-reproduire');
   await page.waitForTimeout(220);
   const esq = await page.evaluate(async () => {
-    const modes = file.map(q => q.mode), supports = file.map(q => q.support);
-    const b = document.querySelector('#barreOutils .outil-mode');
-    const parDefaut = file[pos]._mode, libelleDefaut = b && b.textContent;
-    if (b) b.click();
-    const apresClic = file[pos]._mode, libelleApres = b && b.textContent;
-    if (b) b.click();
-    return {modes, supports, parDefaut, apresClic, retour:file[pos]._mode,
-            libelleDefaut, libelleApres,
+    const dessins = file.map(q => q.solutions[0].length);
+    return {modes:file.map(q => q.mode), supports:file.map(q => q.support),
+            pieces:Math.max(...dessins),
             barre:[...document.querySelectorAll('#barreOutils .outil')].map(x => x.textContent),
             rangees:Math.round(document.getElementById('barreOutils').getBoundingClientRect().height)};
   });
@@ -733,16 +733,16 @@ const JEUX = ['cp-reproduire','cp-completer','cp-assembler',
     esq.modes.every(m => m === 'tracer'), JSON.stringify([...new Set(esq.modes)]));
   T('CE2 — et suit la même progression de support : quadrillé puis pointé',
     esq.supports.join() === 'quadrille,quadrille,quadrille,pointe,pointe', esq.supports.join());
-  T('CE2 — le choix reste offert, et part sur le plus strict',
-    esq.parDefaut === 'exact' && esq.libelleDefaut === 'exact', JSON.stringify(esq.libelleDefaut));
-  T('CE2 — un appui passe au croquis, un second revient : le choix est réversible',
-    esq.apresClic === 'esquisse' && esq.libelleApres === 'croquis' && esq.retour === 'exact',
-    esq.libelleDefaut + ' → ' + esq.libelleApres + ' → ' + esq.retour);
-  /* Quatre outils sur UNE rangée : une seconde coûte 52 px et repousse le
-     plan sous le pli (cf. « pli » dans la suite du moteur). */
-  T('CE2 — les quatre outils tiennent sur une seule rangée',
-    esq.barre.length === 4 && esq.rangees <= 48, JSON.stringify(esq.barre) + ' — ' + esq.rangees + ' px');
-  T('les deux modes valent le même nombre de points', /PTS_MANCHE = 1/.test(brut) && !/_mode.*PTS/.test(brut));
+  T('CE2 — les mêmes trois outils qu’au CP et au CE1, sur une seule rangée',
+    esq.barre.length === 3 && esq.rangees <= 48 && !/croquis|exact/.test(esq.barre.join()),
+    JSON.stringify(esq.barre) + ' — ' + esq.rangees + ' px');
+  T('CE2 — plus aucune trace du choix « croquis / exact » dans le code',
+    !/_mode|esquissePossible|outil-mode/.test(brut),
+    (brut.match(/_mode|esquissePossible|outil-mode/g) || []).slice(0, 3).join(' '));
+  /* Ce que le CE2 garde vraiment : ses figures. */
+  T('CE2 — une de ses figures compte deux pièces, ce qu’aucun autre palier ne fait',
+    esq.pieces === 2, esq.pieces + ' pièce(s) au plus');
+  T('une manche vaut un point, quel que soit le palier', /PTS_MANCHE = 1/.test(brut));
 
   /* ---------- 11. Le compas : UN SEUL GESTE, aux deux paliers ----------
      LE CE2 RÉGLAIT SON RAYON DANS UNE RANGÉE DE HUIT BOUTONS. C’était un
