@@ -3280,7 +3280,13 @@ function rendreRosace(q){
          et ses branches barraient la rosace. */
       compasRosace.detruire();
       terminerManche(true, null);
-      $('feedback').textContent = 'Six fois exactement ! Tes six centres forment un hexagone.';
+      /* LA FÉLICITATION D’ABORD, LE SAVOIR ENSUITE. La rosace est la dernière
+         manche du dernier mini-jeu du CE2 : c’est la pièce maîtresse, et le
+         retour le dit. La phrase qui NOMME l’hexagone reste derrière — c’est
+         le seul endroit où l’enfant voit d’où vient un mot que M34 lui fait
+         employer, et ce n’est pas une félicitation qu’on remplace. */
+      $('feedback').textContent =
+        'La pièce maîtresse du vitrail achevée ! Tes six centres forment un hexagone.';
       return;
     }
     /* §18 : on montre ce qu’il fallait voir, sans jamais colorer en rouge la

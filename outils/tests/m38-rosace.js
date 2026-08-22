@@ -90,7 +90,9 @@ const srv=http.createServer((q,r)=>{const p=path.join(RACINE,decodeURIComponent(
  T('le septième appui retombe sur le départ et referme la rosace', ferme.ok===true);
  T('les six pétales et l’hexagone apparaissent',
    ferme.petales===6 && ferme.hex===1, JSON.stringify({p:ferme.petales,h:ferme.hex}));
- T('l’hexagone est NOMMÉ, pour information', /hexagone/i.test(ferme.fb), ferme.fb);
+ T('le retour salue la PIÈCE MAÎTRESSE du vitrail',
+   /pièce maîtresse du vitrail achevée/i.test(ferme.fb), ferme.fb);
+ T('l’hexagone reste NOMMÉ derrière, pour information', /hexagone/i.test(ferme.fb), ferme.fb);
  T('l’instrument se retire de la figure achevée', ferme.compas===0);
 
  /* ---- 5. LE POINT CRITIQUE : revenir au départ ne suffit pas ----
